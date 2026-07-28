@@ -33,7 +33,9 @@ describe("TwoSumSorted React Component Spec", () => {
 
   it("renders step visualizer with two pointers and match status", () => {
     const steps = generateTwoSumSortedSteps(DEFAULT_TWO_SUM_SORTED_INPUT);
-    const matchStep = steps.find((s) => s.explanation.what.includes("Return matching pair")) ?? steps[steps.length - 1];
+    const matchStep =
+      steps.find((s) => s.explanation.what.includes("Return matching pair")) ??
+      steps[steps.length - 1];
     const noop = vi.fn();
 
     render(

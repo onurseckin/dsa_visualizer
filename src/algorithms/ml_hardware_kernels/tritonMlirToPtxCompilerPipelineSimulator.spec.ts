@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tritonMlirToPtxCompilerPipelineSimulator } from "./tritonMlirToPtxCompilerPipelineSimulator";
 
-describe("tritonMlirToPtxCompilerPipelineSimulator", () => {
+describe("triton-mlir-to-ptx-compiler-pipeline-simulator", () => {
   it("should have valid metadata", () => {
     expect(tritonMlirToPtxCompilerPipelineSimulator.id).toBeDefined();
     expect(tritonMlirToPtxCompilerPipelineSimulator.title).toBeDefined();

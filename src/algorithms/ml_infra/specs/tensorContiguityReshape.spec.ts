@@ -8,9 +8,10 @@ import {
 describe("tensorContiguityReshape algorithm definition", () => {
   it("has valid metadata and ML Infra markers", () => {
     expect(tensorContiguityReshape.id).toBe("tensor-contiguity-reshape");
-    expect(tensorContiguityReshape.category).toBe("ml_tensor_algebra");
-    expect(tensorContiguityReshape.isMlInfra).toBe(true);
-    expect(tensorContiguityReshape.mlInfraLevel).toBe(1);
+    expect(tensorContiguityReshape.topicIds).toContain("ml_tensor_algebra");
+    expect(tensorContiguityReshape.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
     expect(tensorContiguityReshape.sources?.[0].type).toBe("ml_infra");
   });
 

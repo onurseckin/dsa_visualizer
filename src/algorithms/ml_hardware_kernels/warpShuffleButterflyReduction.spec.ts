@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { warpShuffleButterflyReduction } from "./warpShuffleButterflyReduction";
 
-describe("warpShuffleButterflyReduction", () => {
+describe("warp-shuffle-butterfly-reduction", () => {
   it("should have valid metadata", () => {
     expect(warpShuffleButterflyReduction.id).toBeDefined();
     expect(warpShuffleButterflyReduction.title).toBeDefined();

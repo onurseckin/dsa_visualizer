@@ -7,9 +7,6 @@ export interface rotateImageFlatBufferInput {
 }
 
 export const ROTATEIMAGEFLATBUFFER_CODE = `def rotate_image_flat_buffer(matrix):
-    """
-    Rotates an N x N 2D tensor 90 degrees clockwise in-place.
-    """
     n = len(matrix)
 
     for r in range(n // 2):
@@ -141,39 +138,9 @@ export const generateRotateImageFlatBufferSteps = (
     "Function Entry",
   );
 
-  // Line 2: Docstring start
+  // Line 2: Read n
   addStep(
     2,
-    "Parse Docstring & Rotation Strategy",
-    "Rotates an N x N square matrix 90 degrees clockwise in-place using 4-way element cycles across concentric rings.",
-    { strategy: "4-Way Ring Swaps", spaceComplexity: "O(1)" },
-    undefined,
-    "Docstring",
-  );
-
-  // Line 3: Docstring body
-  addStep(
-    3,
-    "Review Concentric Ring Mapping",
-    "Mapping rule: (r, c) -> (c, n - 1 - r) -> (n - 1 - r, n - 1 - c) -> (n - 1 - c, r) -> (r, c).",
-    { cycleLength: 4 },
-    undefined,
-    "Docstring",
-  );
-
-  // Line 4: Docstring end
-  addStep(
-    4,
-    "Finalize Matrix Rotation Setup",
-    "Readying loop boundaries for ring index r from 0 to n//2 - 1.",
-    { n },
-    undefined,
-    "Docstring End",
-  );
-
-  // Line 5: Read n
-  addStep(
-    5,
     `Get Matrix Dimension: n = ${n}`,
     `Extracting dimension size n = ${n} from matrix length.`,
     { n },
@@ -181,9 +148,9 @@ export const generateRotateImageFlatBufferSteps = (
     "Get Size n",
   );
 
-  // Line 6: Blank line
+  // Line 3: Blank line
   addStep(
-    6,
+    3,
     "Prepare Ring Layer Rotation Loops",
     `Beginning ring iteration. Outer loop will run for r = 0 to ${Math.floor(n / 2) - 1}.`,
     { numRings: Math.floor(n / 2) },
@@ -201,9 +168,9 @@ export const generateRotateImageFlatBufferSteps = (
       const tr: [number, number] = [c, n - 1 - r];
       const activePos = { r, c, tl, bl, br, tr };
 
-      // Line 7: Outer loop
+      // Line 4: Outer loop
       addStep(
-        7,
+        4,
         `Ring Layer Loop r = ${r}`,
         `Processing concentric layer ring ${r} of ${maxR}.`,
         { r, maxR },
@@ -211,20 +178,26 @@ export const generateRotateImageFlatBufferSteps = (
         `Ring Layer ${r}`,
       );
 
-      // Line 8: Inner loop
+      // Line 5: Inner loop
       addStep(
-        8,
+        5,
         `Column Offset Loop c = ${c}`,
         `Processing 4-element cycle starting at top-left position (${r}, ${c}).`,
-        { r, c, targetTR: `(${tr[0]},${tr[1]})`, targetBR: `(${br[0]},${br[1]})`, targetBL: `(${bl[0]},${bl[1]})` },
+        {
+          r,
+          c,
+          targetTR: `(${tr[0]},${tr[1]})`,
+          targetBR: `(${br[0]},${br[1]})`,
+          targetBL: `(${bl[0]},${bl[1]})`,
+        },
         activePos,
         `Ring ${r}, Col ${c} Cycle`,
       );
 
-      // Line 9: temp = matrix[r][c]
+      // Line 6: temp = matrix[r][c]
       const temp = grid[r][c];
       addStep(
-        9,
+        6,
         `Store Temp = matrix[${r}][${c}] (${temp})`,
         `Saving top-left element grid[${r}][${c}] (${temp}) into scalar temporary variable.`,
         { r, c, temp },
@@ -232,11 +205,11 @@ export const generateRotateImageFlatBufferSteps = (
         `Store Temp = ${temp}`,
       );
 
-      // Line 10: matrix[r][c] = matrix[n-1-c][r]
+      // Line 7: matrix[r][c] = matrix[n-1-c][r]
       const blVal = grid[bl[0]][bl[1]];
       grid[r][c] = blVal;
       addStep(
-        10,
+        7,
         `Copy Bottom-Left (${blVal}) to Top-Left (${r}, ${c})`,
         `Moving bottom-left cell grid[${bl[0]}][${bl[1]}] (${blVal}) to top-left position (${r}, ${c}).`,
         { r, c, blVal },
@@ -244,11 +217,11 @@ export const generateRotateImageFlatBufferSteps = (
         `TopLeft = ${blVal}`,
       );
 
-      // Line 11: matrix[n-1-c][r] = matrix[n-1-r][n-1-c]
+      // Line 8: matrix[n-1-c][r] = matrix[n-1-r][n-1-c]
       const brVal = grid[br[0]][br[1]];
       grid[bl[0]][bl[1]] = brVal;
       addStep(
-        11,
+        8,
         `Copy Bottom-Right (${brVal}) to Bottom-Left (${bl[0]}, ${bl[1]})`,
         `Moving bottom-right cell grid[${br[0]}][${br[1]}] (${brVal}) to bottom-left position (${bl[0]}, ${bl[1]}).`,
         { blR: bl[0], blC: bl[1], brVal },
@@ -256,11 +229,11 @@ export const generateRotateImageFlatBufferSteps = (
         `BotLeft = ${brVal}`,
       );
 
-      // Line 12: matrix[n-1-r][n-1-c] = matrix[c][n-1-r]
+      // Line 9: matrix[n-1-r][n-1-c] = matrix[c][n-1-r]
       const trVal = grid[tr[0]][tr[1]];
       grid[br[0]][br[1]] = trVal;
       addStep(
-        12,
+        9,
         `Copy Top-Right (${trVal}) to Bottom-Right (${br[0]}, ${br[1]})`,
         `Moving top-right cell grid[${tr[0]}][${tr[1]}] (${trVal}) to bottom-right position (${br[0]}, ${br[1]}).`,
         { brR: br[0], brC: br[1], trVal },
@@ -268,10 +241,10 @@ export const generateRotateImageFlatBufferSteps = (
         `BotRight = ${trVal}`,
       );
 
-      // Line 13: matrix[c][n-1-r] = temp
+      // Line 10: matrix[c][n-1-r] = temp
       grid[tr[0]][tr[1]] = temp;
       addStep(
-        13,
+        10,
         `Copy Temp (${temp}) to Top-Right (${tr[0]}, ${tr[1]})`,
         `Assigning saved temp value (${temp}) into top-right position (${tr[0]}, ${tr[1]}).`,
         { trR: tr[0], trC: tr[1], temp },
@@ -287,9 +260,9 @@ export const generateRotateImageFlatBufferSteps = (
     }
   }
 
-  // Line 14: Blank line
+  // Line 11: Blank line
   addStep(
-    14,
+    11,
     "All Concentric Ring Cycles Completed",
     "Completed 90° clockwise in-place rotation for all ring layers.",
     { totalRotated: completedCells.size },
@@ -297,9 +270,9 @@ export const generateRotateImageFlatBufferSteps = (
     "Rings Complete",
   );
 
-  // Line 15: Return matrix
+  // Line 12: Return matrix
   addStep(
-    15,
+    12,
     "Return Rotated Matrix",
     "Returning 90° clockwise rotated matrix buffer.",
     { matrix: JSON.stringify(grid) },
@@ -317,41 +290,36 @@ const ROTATEIMAGEFLATBUFFER_TRIVIA: TriviaMeta = {
     "matrix[r][c] = matrix[n-1-r][n-1-c]",
     "temp = matrix[c][r]",
   ],
-  hints: [{ line: 10, hint: "Perform 4-way cyclic element swap: top-left <- bottom-left <- bottom-right <- top-right <- temp." }],
+  hints: [
+    {
+      line: 7,
+      hint: "Perform 4-way cyclic element swap: top-left <- bottom-left <- bottom-right <- top-right <- temp.",
+    },
+  ],
   lineExplanations: {
     1: "Function declaration taking N x N matrix input.",
-    2: "Opening docstring for 90-degree clockwise matrix rotation.",
-    3: "Documentation describing in-place ring-by-ring 4-way cyclic swapping.",
-    4: "Closing docstring for 90-degree clockwise matrix rotation.",
-    5: "Retrieves grid size n from matrix length.",
-    6: "Empty line separating initialization from loop structure.",
-    7: "Outer loop iterating over concentric ring layers r from 0 to n//2 - 1.",
-    8: "Inner loop iterating over element column offsets c within current ring.",
-    9: "Saves top-left cell matrix[r][c] into temporary variable.",
-    10: "Moves bottom-left cell matrix[n-1-c][r] into top-left position matrix[r][c].",
-    11: "Moves bottom-right cell matrix[n-1-r][n-1-c] into bottom-left position.",
-    12: "Moves top-right cell matrix[c][n-1-r] into bottom-right position.",
-    13: "Assigns saved temp value into top-right position matrix[c][n-1-r].",
-    14: "Empty line separating rotation loops from return statement.",
-    15: "Returns rotated N x N matrix in-place.",
+    2: "Retrieves grid size n from matrix length.",
+    3: "Empty line separating initialization from ring layer loops.",
+    4: "Outer loop iterating over concentric ring layers r from 0 to n//2 - 1.",
+    5: "Inner loop iterating over element column offsets c within current ring.",
+    6: "Saves top-left cell matrix[r][c] into temporary variable.",
+    7: "Moves bottom-left cell matrix[n-1-c][r] into top-left position matrix[r][c].",
+    8: "Moves bottom-right cell matrix[n-1-r][n-1-c] into bottom-left position.",
+    9: "Moves top-right cell matrix[c][n-1-r] into bottom-right position.",
+    10: "Assigns saved temp value into top-right position matrix[c][n-1-r].",
+    11: "Empty line separating rotation loops from return statement.",
+    12: "Returns rotated N x N matrix in-place.",
   },
 };
 
 export const rotateImageFlatBuffer: AlgorithmDefinition<rotateImageFlatBufferInput> = {
   id: "rotate-image-flat-buffer",
   title: "Rotate 2D Tensor 90 Degrees in Flat Memory",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In computer vision data augmentation, tensor layout transformations (e.g. PyTorch `torchvision.transforms.v2`, OpenCV image preprocessing, TensorRT vision pipelines), rotating an image batch 90 degrees clockwise is a fundamental operation.\n\nPerforming matrix rotation in-place without allocating auxiliary memory buffers optimizes memory bandwidth and prevents GPU DRAM allocation overhead.\n\nThis algorithm implements 90-degree clockwise square matrix rotation in $\\mathcal{O}(1)$ auxiliary space by processing concentric square rings from the outermost perimeter inward, rotating groups of 4 elements in a cycle:\n$$(r, c) \\rightarrow (c, N-1-r) \\rightarrow (N-1-r, N-1-c) \\rightarrow (N-1-c, r) \\rightarrow (r, c)$$",
-  constraints: [
-    "1 <= matrix.length == matrix[i].length <= 100",
-    "-1000 <= matrix[i][j] <= 1000",
-  ],
+  constraints: ["1 <= matrix.length == matrix[i].length <= 100", "-1000 <= matrix[i][j] <= 1000"],
   examples: [
     {
       kind: "basic",
@@ -399,7 +367,8 @@ export const rotateImageFlatBuffer: AlgorithmDefinition<rotateImageFlatBufferInp
   spaceComplexity: "O(1)",
   complexityAnalysis: {
     time: "O(N^2) time to visit each element in the N x N grid exactly once.",
-    space: "O(1) auxiliary space since rotation is performed strictly in-place using one scalar temp variable.",
+    space:
+      "O(1) auxiliary space since rotation is performed strictly in-place using one scalar temp variable.",
   },
   topicGuide: {
     overview:
@@ -429,15 +398,18 @@ export const rotateImageFlatBuffer: AlgorithmDefinition<rotateImageFlatBufferInp
     keyTerms: [
       {
         term: "In-Place Permutation",
-        definition: "Rearranging dataset elements within their original memory allocation without extra storage.",
+        definition:
+          "Rearranging dataset elements within their original memory allocation without extra storage.",
       },
       {
         term: "Concentric Ring Layers",
-        definition: "Perimeter rings of a square matrix processed layer-by-layer from outside boundary to center.",
+        definition:
+          "Perimeter rings of a square matrix processed layer-by-layer from outside boundary to center.",
       },
       {
         term: "4-Way Cyclic Swap",
-        definition: "Rotating 4 corresponding corner/edge elements simultaneously in a circular assignment.",
+        definition:
+          "Rotating 4 corresponding corner/edge elements simultaneously in a circular assignment.",
       },
       {
         term: "Coordinate Transformation",

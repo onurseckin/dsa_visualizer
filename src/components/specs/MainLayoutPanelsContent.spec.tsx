@@ -98,7 +98,7 @@ const dummyTopicGuide: TopicGuide = { overview: "", sections: [], keyTerms: [] }
 const dummyAlgorithm: AlgorithmDefinition = {
   id: "bubble-sort",
   title: "Bubble Sort Algorithm",
-  category: "arrays_and_hashing",
+  topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
   description: "Repeatedly steps through the list",
   constraints: [],

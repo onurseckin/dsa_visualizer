@@ -122,7 +122,9 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
   });
 
   // Line 4: Sort intervals by start time
-  const intervals = rawIntervals.map((item) => ({ ...item })).sort((a, b) => a.start - b.start || a.end - b.end);
+  const intervals = rawIntervals
+    .map((item) => ({ ...item }))
+    .sort((a, b) => a.start - b.start || a.end - b.end);
 
   steps.push({
     stepIndex: stepIdx++,

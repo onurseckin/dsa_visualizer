@@ -9,7 +9,7 @@ describe("Smoothquant Outlier Migration", () => {
   it("should have correct metadata", () => {
     expect(smoothquantOutlierMigration.id).toBe("smoothquant-outlier-migration");
     expect(smoothquantOutlierMigration.title).toBe("Smoothquant Outlier Migration");
-    expect(smoothquantOutlierMigration.category).toBe("ml_precision_quantization");
+    expect(smoothquantOutlierMigration.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

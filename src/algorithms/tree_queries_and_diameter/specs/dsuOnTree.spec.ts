@@ -1,15 +1,11 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_DSU_ON_TREE_INPUT,
-  dsuOnTree,
-  generateDsuOnTreeSteps,
-} from "../dsuOnTree";
+import { DEFAULT_DSU_ON_TREE_INPUT, dsuOnTree, generateDsuOnTreeSteps } from "../dsuOnTree";
 
 describe("dsuOnTree algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(dsuOnTree.id).toBe("dsu-on-tree");
     expect(dsuOnTree.title).toBe("DSU on Tree (Sack / Small-to-Large)");
-    expect(dsuOnTree.category).toBe("tree_queries_and_diameter");
+    expect(dsuOnTree.topicIds).toContain("tree_fundamentals");
     expect(dsuOnTree.difficulty).toBe("Hard");
     expect(dsuOnTree.defaultInput).toEqual(DEFAULT_DSU_ON_TREE_INPUT);
   });

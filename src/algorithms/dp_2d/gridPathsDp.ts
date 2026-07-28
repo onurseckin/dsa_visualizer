@@ -177,9 +177,10 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
         codeLine: 11,
         explanation: {
           what: `Check condition if obstacleGrid[${r}][${c}] == 1 (${grid[r][c] === 1})`,
-          why: grid[r][c] === 1
-            ? `Cell (${r}, ${c}) is an obstacle wall!`
-            : `Cell (${r}, ${c}) is an open floor cell.`,
+          why:
+            grid[r][c] === 1
+              ? `Cell (${r}, ${c}) is an obstacle wall!`
+              : `Cell (${r}, ${c}) is an open floor cell.`,
         },
         primarySnapshot: createSnapshot([r, c]),
         auxiliaryState: { customState: { r, c, isObstacle: grid[r][c] === 1 } },
@@ -221,9 +222,10 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
         codeLine: 14,
         explanation: {
           what: `Evaluate top neighbor condition if r > 0 (r = ${r})`,
-          why: r > 0
-            ? `Top neighbor cell (${r - 1}, ${c}) exists.`
-            : `Top boundary reached (row 0), no top neighbor.`,
+          why:
+            r > 0
+              ? `Top neighbor cell (${r - 1}, ${c}) exists.`
+              : `Top boundary reached (row 0), no top neighbor.`,
         },
         primarySnapshot: createSnapshot([r, c]),
         auxiliaryState: { customState: { r, c, hasTop: r > 0 } },
@@ -251,9 +253,10 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
         codeLine: 16,
         explanation: {
           what: `Evaluate left neighbor condition if c > 0 (c = ${c})`,
-          why: c > 0
-            ? `Left neighbor cell (${r}, ${c - 1}) exists.`
-            : `Left boundary reached (col 0), no left neighbor.`,
+          why:
+            c > 0
+              ? `Left neighbor cell (${r}, ${c - 1}) exists.`
+              : `Left boundary reached (col 0), no left neighbor.`,
         },
         primarySnapshot: createSnapshot([r, c]),
         auxiliaryState: { customState: { r, c, hasLeft: c > 0 } },
@@ -271,7 +274,8 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
             why: `Robot can move right from left neighbor cell (${r}, ${c - 1}). Total paths now ${dp[r][c]}.`,
           },
           primarySnapshot: createSnapshot([r, c]),
-          variables: { val: dp[r][c] },
+          auxiliaryState: { customState: { r, c, leftAdded: leftVal, currentPaths: dp[r][c] } },
+          variables: { r, c, leftVal, "dp[r][c]": dp[r][c] },
         });
       }
     }
@@ -320,8 +324,7 @@ export const GRID_PATHS_TRIVIA: TriviaMeta = {
 export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   id: "grid-paths-dp",
   title: "Grid Paths Dynamic Programming",
-  category: "dp_2d",
-  categories: ["dp_2d"],
+  topicIds: ["dp_2d"],
   difficulty: "Medium",
   description: `The **Grid Unique Paths with Obstacles** problem (LeetCode #63) asks for the total number of unique paths a robot can take from top-left $(0,0)$ to bottom-right $(m-1, n-1)$ on an $m \\times n$ grid while avoiding obstacle cells ($grid[r][c] = 1$).
 
@@ -369,7 +372,8 @@ $$dp[r][c] = \\begin{cases} 0 & \\text{if } grid[r][c] = 1 \\text{ (obstacle)} \
         ],
       },
       output: "8",
-      explanation: "A 4x4 grid with an obstacle at (1,1) yields 8 unique paths from (0,0) to (3,3).",
+      explanation:
+        "A 4x4 grid with an obstacle at (1,1) yields 8 unique paths from (0,0) to (3,3).",
     },
     {
       kind: "negative",
@@ -446,6 +450,3 @@ $$dp[r][c] = \\begin{cases} 0 & \\text{if } grid[r][c] = 1 \\text{ (obstacle)} \
   defaultInput: DEFAULT_GRID_PATHS_INPUT,
   generateSteps: generateGridPathsDpSteps,
 };
-
-
-

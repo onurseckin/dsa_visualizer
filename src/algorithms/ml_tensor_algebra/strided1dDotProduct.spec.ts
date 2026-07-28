@@ -9,10 +9,9 @@ import {
 describe("strided-1d-dot-product (Strided 1D Vector Dot Product)", () => {
   it("should have correct metadata and structure", () => {
     expect(strided1dDotProduct.id).toBe("strided-1d-dot-product");
-    expect(strided1dDotProduct.isMlInfra).toBe(true);
-    expect(strided1dDotProduct.mlInfraLevel).toBe(1);
-    expect(strided1dDotProduct.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(strided1dDotProduct.categories).toContain("ml_tensor_algebra");
+    expect(strided1dDotProduct.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(strided1dDotProduct.topicIds).toContain("ml_tensor_algebra");
+    expect(strided1dDotProduct.topicIds).toContain("ml_tensor_algebra");
     expect(strided1dDotProduct.topicGuide?.sections.length).toBe(5);
   });
 
@@ -25,12 +24,12 @@ describe("strided-1d-dot-product (Strided 1D Vector Dot Product)", () => {
     }
   });
 
-  it("should generate >= 20 steps for default input and use matrix snapshot", () => {
+  it("should generate >= 20 steps for default input and use vector snapshot", () => {
     const steps = generateStrided1dDotProductSteps(DEFAULT_STRIDED1DDOTPRODUCT_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Strided 1D Vector Dot Product");
     expect(steps[steps.length - 1].explanation.what).toContain("Return Final Dot Product");
-    expect(steps[0].primarySnapshot.kind).toBe("matrix");
+    expect(steps[0].primarySnapshot.kind).toBe("vector");
   });
 
   it("should correctly compute strided dot product", () => {

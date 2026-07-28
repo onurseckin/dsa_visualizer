@@ -6,8 +6,7 @@ export interface FordFulkersonInput {
 }
 
 export const FORD_FULKERSON_CODE = `def ford_fulkerson(nodes, edges, source, sink):
-    capacity = {}
-    flow = {}
+    capacity, flow = {}, {}
     for u, v, cap in edges:
         capacity[(u, v)] = cap
         flow[(u, v)] = 0
@@ -22,6 +21,7 @@ export const FORD_FULKERSON_CODE = `def ford_fulkerson(nodes, edges, source, sin
                 if res_cap > 0:
                     bottleneck = dfs(v_node, target, visited, min(current_flow, res_cap))
                     if bottleneck > 0:
+                        flow[(u, v_node)] = flow.get((u, v_node), 0) + bottleneck
                         return bottleneck
         return 0
 

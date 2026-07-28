@@ -14,9 +14,6 @@ export interface MoAlgorithmInput {
 export const MO_ALGORITHM_CODE = `import math
 
 def mo_algorithm(arr: list[int], queries: list[tuple[int, int]]) -> list[int]:
-    """
-    Offline range query processing using Mo's Algorithm with Hilbert/Block sorting.
-    """
     n = len(arr)
     q = len(queries)
     if n == 0 or q == 0:
@@ -128,32 +125,19 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
   );
 
   if (n === 0 || input.queries.length === 0) {
-        addStep(
-      4,
-      "Function docstring — describes algorithm contract",
-      "Opening delimiter of the Python docstring.",
-      {},
-    );
-
-    addStep(
-      5,
-      "Docstring body: algorithm description",
-      "Offline range query processing using Mo's Algorithm with Hilbert/Block sort",
-      {},
-    );
-
     addStep(
       6,
-      "End of docstring",
-      "Docstring complete. Entering the function body.",
-      {},
-    );
-
-addStep(
-      9,
       "Input is empty",
       "No queries to process or array is empty.",
       { n, numQueries: input.queries.length },
+      0,
+      -1,
+    );
+    addStep(
+      7,
+      "Return empty list",
+      "Returning [] because input array or query list is empty.",
+      { answers: "[]" },
       0,
       -1,
     );
@@ -167,7 +151,6 @@ addStep(
     id: idx,
   }));
 
-  // Hilbert / Hilbert curve sort or Block Hilbert sort (Mo's algorithm block order)
   indexedQueries.sort((a, b) => {
     const b1 = Math.floor(a.L / blockSize);
     const b2 = Math.floor(b.L / blockSize);
@@ -176,7 +159,7 @@ addStep(
   });
 
   addStep(
-    13,
+    10,
     "Sorted queries by block index (L // block_size, R)",
     `Query execution order optimized to minimize pointer movements: ${indexedQueries.map((q) => `Q${q.id + 1}[${q.L}..${q.R}]`).join(", ")}.`,
     { blockSize, sortedOrder: indexedQueries.map((q) => `Q${q.id + 1}`).join(", ") },
@@ -189,11 +172,20 @@ addStep(
   let currSum = 0;
   const ans: number[] = Array(input.queries.length).fill(0);
 
+  addStep(
+    13,
+    "Initialize window pointers and answer array",
+    `Initial window pointers currL = 0, currR = -1, currSum = 0. Answer array initialized for ${input.queries.length} queries.`,
+    { currL, currR, currSum, numQueries: input.queries.length },
+    currL,
+    currR,
+  );
+
   for (let stepQ = 0; stepQ < indexedQueries.length; stepQ++) {
     const { L, R, id } = indexedQueries[stepQ];
 
     addStep(
-      17,
+      14,
       `Processing Query Q${id + 1}: Range [${L}..${R}]`,
       `Adjusting current window [${currL}..${currR}] to target range [${L}..${R}].`,
       { queryId: id + 1, L, R, currL, currR, currSum },
@@ -208,7 +200,7 @@ addStep(
       currL--;
       currSum += arr[currL];
       addStep(
-        20,
+        17,
         `Expand left pointer to currL = ${currL}`,
         `Added arr[${currL}] (${arr[currL]}) to current window sum (${currSum}).`,
         { currL, currR, currSum, addedVal: arr[currL] },
@@ -224,7 +216,7 @@ addStep(
       currR++;
       currSum += arr[currR];
       addStep(
-        23,
+        20,
         `Expand right pointer to currR = ${currR}`,
         `Added arr[${currR}] (${arr[currR]}) to current window sum (${currSum}).`,
         { currL, currR, currSum, addedVal: arr[currR] },
@@ -240,7 +232,7 @@ addStep(
       currSum -= arr[currL];
       currL++;
       addStep(
-        26,
+        23,
         `Shrink left pointer to currL = ${currL}`,
         `Removed arr[${currL - 1}] (${arr[currL - 1]}) from window sum (${currSum}).`,
         { currL, currR, currSum, removedVal: arr[currL - 1] },
@@ -256,7 +248,7 @@ addStep(
       currSum -= arr[currR];
       currR--;
       addStep(
-        29,
+        26,
         `Shrink right pointer to currR = ${currR}`,
         `Removed arr[${currR + 1}] (${arr[currR + 1]}) from window sum (${currSum}).`,
         { currL, currR, currSum, removedVal: arr[currR + 1] },
@@ -269,7 +261,7 @@ addStep(
 
     ans[id] = currSum;
     addStep(
-      30,
+      27,
       `Saved result for Q${id + 1}: sum([${L}..${R}]) = ${currSum}`,
       `Recorded result for query Q${id + 1}. Current answers array: [${ans.join(", ")}].`,
       { queryId: id + 1, L, R, answer: currSum },
@@ -280,6 +272,15 @@ addStep(
       { answers: JSON.stringify(ans) },
     );
   }
+
+  addStep(
+    28,
+    "Return query results",
+    `All ${indexedQueries.length} range queries processed successfully. Final results array: [${ans.join(", ")}].`,
+    { answers: JSON.stringify(ans) },
+    currL,
+    currR,
+  );
 
   return steps;
 };
@@ -334,7 +335,7 @@ export const MO_ALGORITHM_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const MO_ALGORITHM_TRIVIA: TriviaMeta = {
-  skipLines: [2, 14],
+  skipLines: [2, 11],
   distractors: [
     "indexed_queries.sort(key=lambda q: (q[0], q[1]))",
     "curr_sum += arr[curr_r]; curr_r -= 1",
@@ -342,11 +343,11 @@ export const MO_ALGORITHM_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 13,
+      line: 10,
       hint: "Sort queries primarily by L // block_size and secondarily by R",
     },
     {
-      line: 18,
+      line: 15,
       hint: "Move curr_l left (decrement) and add element to sum",
     },
   ],
@@ -354,42 +355,38 @@ export const MO_ALGORITHM_TRIVIA: TriviaMeta = {
     1: "Imports the math module for square root calculations.",
     2: "Blank line separating import statements.",
     3: "Defines mo_algorithm function taking array and offline query list.",
-    4: "Docstring describing Mo's algorithm range processing.",
-    5: "Docstring continuation.",
-    6: "Docstring continuation.",
-    7: "Computes array length n.",
-    8: "Computes number of queries q.",
-    9: "Checks for empty input array or empty query list.",
-    10: "Returns empty list for zero input.",
-    11: "Calculates block size as max(1, floor(sqrt(n))).",
-    12: "Attaches original index i to each query (l, r, i).",
-    13: "Sorts queries by left block (l // block_size) and zig-zag right endpoint.",
-    14: "Blank line separating query setup.",
-    15: "Initializes output answer array of size q.",
-    16: "Initializes two pointers curr_l=0, curr_r=-1 and running sum curr_sum=0.",
-    17: "Loops over reordered queries (l, r, idx).",
-    18: "While loop expanding window leftward (curr_l > l).",
-    19: "Decrements left pointer curr_l.",
-    20: "Adds newly included array element arr[curr_l] to running sum.",
-    21: "While loop expanding window rightward (curr_r < r).",
-    22: "Increments right pointer curr_r.",
-    23: "Adds newly included array element arr[curr_r] to running sum.",
-    24: "While loop contracting window from left (curr_l < l).",
-    25: "Subtracts excluded array element arr[curr_l] from running sum.",
-    26: "Increments left pointer curr_l.",
-    27: "While loop contracting window from right (curr_r > r).",
-    28: "Subtracts excluded array element arr[curr_r] from running sum.",
-    29: "Decrements right pointer curr_r.",
-    30: "Stores computed range sum into answer array at original query index idx.",
-    31: "Returns complete list of query answers.",
+    4: "Computes array length n.",
+    5: "Computes number of queries q.",
+    6: "Checks for empty input array or empty query list.",
+    7: "Returns empty list for zero input.",
+    8: "Calculates block size as max(1, floor(sqrt(n))).",
+    9: "Attaches original index i to each query (l, r, i).",
+    10: "Sorts queries by left block (l // block_size) and zig-zag right endpoint.",
+    11: "Blank line separating query setup.",
+    12: "Initializes output answer array of size q.",
+    13: "Initializes two pointers curr_l=0, curr_r=-1 and running sum curr_sum=0.",
+    14: "Loops over reordered queries (l, r, idx).",
+    15: "While loop expanding window leftward (curr_l > l).",
+    16: "Decrements left pointer curr_l.",
+    17: "Adds newly included array element arr[curr_l] to running sum.",
+    18: "While loop expanding window rightward (curr_r < r).",
+    19: "Increments right pointer curr_r.",
+    20: "Adds newly included array element arr[curr_r] to running sum.",
+    21: "While loop contracting window from left (curr_l < l).",
+    22: "Subtracts excluded array element arr[curr_l] from running sum.",
+    23: "Increments left pointer curr_l.",
+    24: "While loop contracting window from right (curr_r > r).",
+    25: "Subtracts excluded array element arr[curr_r] from running sum.",
+    26: "Decrements right pointer curr_r.",
+    27: "Stores computed range sum into answer array at original query index idx.",
+    28: "Returns complete list of query answers.",
   },
 };
 
 export const moAlgorithm: AlgorithmDefinition<MoAlgorithmInput> = {
   id: "mo-algorithm",
   title: "Mo's Algorithm (Offline Range Queries)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "**Mo's Algorithm** reorders offline range queries using $\\sqrt{N}$ block partitioning to minimize pointer movements, answering $Q$ queries in $O((N + Q) \\sqrt{N})$ total time.",

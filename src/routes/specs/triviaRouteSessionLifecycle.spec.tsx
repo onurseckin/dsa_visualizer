@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
@@ -11,7 +11,9 @@ const renderTriviaRoute = async () => {
     history: createMemoryHistory({ initialEntries: ["/trivia"] }),
   });
   const res = render(<RouterProvider router={router} />);
-  await router.load();
+  await act(async () => {
+    await router.load();
+  });
   return res;
 };
 

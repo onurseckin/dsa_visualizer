@@ -9,9 +9,6 @@ export interface antiDiagonalExtractionInput {
 }
 
 export const ANTIDIAGONALEXTRACTION_CODE = `def anti_diagonal_extraction(matrix):
-    """
-    Extracts anti-diagonals (row + col = k) for wavefront parallel processing.
-    """
     rows = len(matrix)
     cols = len(matrix[0]) if rows > 0 else 0
     diagonals = []
@@ -119,54 +116,23 @@ export const generateAntiDiagonalExtractionSteps = (
     });
   };
 
-  // Step 1: Init function
+  // Step 1: Function entry point
   addStep(
     1,
     "Initialize Anti-Diagonal Wavefront Matrix Traversal",
-    "Setting up execution data structures to slice matrix into parallel anti-diagonals (r + c = k).",
+    `Setting up execution data structures to slice ${numRows}x${numCols} matrix into parallel anti-diagonals (r + c = k).`,
     { rows: numRows, cols: numCols },
   );
 
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Extracts anti-diagonals (row + col = k) for wavefront parallel processing.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
   // Step 2: Measure rows
-  addStep(
-    5,
-    "Extract Matrix Row Count",
-    `Measured rows = ${numRows}.`,
-    { rows: numRows },
-  );
+  addStep(2, "Extract Matrix Row Count", `Measured rows = ${numRows}.`, { rows: numRows });
 
   // Step 3: Measure cols
-  addStep(
-    6,
-    "Extract Matrix Column Count",
-    `Measured cols = ${numCols}.`,
-    { cols: numCols },
-  );
+  addStep(3, "Extract Matrix Column Count", `Measured cols = ${numCols}.`, { cols: numCols });
 
   // Step 4: Init diagonals list
   addStep(
-    7,
+    4,
     "Initialize Wavefront Diagonals Container",
     "Created empty list diagonals to accumulate extracted anti-diagonal arrays.",
     { total_diagonals: numRows + numCols - 1 },
@@ -174,21 +140,23 @@ export const generateAntiDiagonalExtractionSteps = (
 
   const completedK: number[] = [];
   const maxK = numRows + numCols - 1;
+  const allDiagonals: number[][] = [];
 
   for (let k = 0; k < maxK; k++) {
     addStep(
-      9,
+      6,
       `Begin Wavefront Diagonal Step k = ${k}`,
       `Iterating outer loop for anti-diagonal sum k = ${k} (range 0 to ${maxK - 1}).`,
       { k, max_k: maxK - 1 },
       k,
     );
 
+    const currentDiag: number[] = [];
     addStep(
-      10,
+      7,
       `Initialize Storage for Anti-Diagonal k = ${k}`,
       `Created empty list diag for wavefront step k = ${k}.`,
-      { k },
+      { k, diag: "[]" },
       k,
     );
 
@@ -200,7 +168,7 @@ export const generateAntiDiagonalExtractionSteps = (
       const val = matrix[r][c];
 
       addStep(
-        11,
+        8,
         `Evaluate Row Index r = ${r} for Diagonal k = ${k}`,
         `Valid row range for k=${k}: [${rMin}, ${rMax - 1}]. Currently processing row r = ${r}.`,
         { k, r, r_min: rMin, r_max: rMax - 1 },
@@ -211,7 +179,7 @@ export const generateAntiDiagonalExtractionSteps = (
       );
 
       addStep(
-        12,
+        9,
         `Calculate Column Index c = ${k} - ${r} = ${c}`,
         `Derived column coordinate c = ${c} (satisfying r + c = ${k}).`,
         { k, r, c },
@@ -221,11 +189,12 @@ export const generateAntiDiagonalExtractionSteps = (
         completedK,
       );
 
+      currentDiag.push(val);
       addStep(
-        13,
+        10,
         `Extract Element matrix[${r}][${c}] = ${val}`,
         `Appended cell value ${val} at position (${r}, ${c}) into diagonal k = ${k}.`,
-        { k, r, c, val },
+        { k, r, c, val, diag: JSON.stringify(currentDiag) },
         k,
         r,
         c,
@@ -233,12 +202,13 @@ export const generateAntiDiagonalExtractionSteps = (
       );
     }
 
+    allDiagonals.push([...currentDiag]);
     completedK.push(k);
     addStep(
-      14,
+      11,
       `Finalize Wavefront Anti-Diagonal k = ${k}`,
-      `Completed anti-diagonal k = ${k}. Appended array to diagonals container. Total completed: ${completedK.length}/${maxK}.`,
-      { k, completed_diagonals: completedK.length },
+      `Completed anti-diagonal k = ${k} (${JSON.stringify(currentDiag)}). Appended array to diagonals container. Total completed: ${completedK.length}/${maxK}.`,
+      { k, completed_diagonals: completedK.length, diag: JSON.stringify(currentDiag) },
       undefined,
       undefined,
       undefined,
@@ -248,7 +218,7 @@ export const generateAntiDiagonalExtractionSteps = (
 
   // Return step
   addStep(
-    16,
+    13,
     "Return Wavefront Anti-Diagonals",
     `Successfully extracted all ${maxK} parallel anti-diagonals across ${numRows}x${numCols} matrix.`,
     { completed: true, total_diagonals: maxK },
@@ -262,7 +232,7 @@ export const generateAntiDiagonalExtractionSteps = (
 };
 
 const ANTIDIAGONALEXTRACTION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [5, 12],
   distractors: [
     "for r in range(rows): diag.append(matrix[r][r])",
     "c = r - k",
@@ -270,43 +240,36 @@ const ANTIDIAGONALEXTRACTION_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 11,
+      line: 8,
       hint: "The row bounds range(max(0, k - cols + 1), min(rows, k + 1)) restrict iteration strictly to valid grid coordinates.",
     },
     {
-      line: 12,
+      line: 9,
       hint: "Column index is uniquely calculated as c = k - r because all elements on anti-diagonal k satisfy r + c = k.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for anti-diagonal matrix extraction function.",
-    2: "Starts docstring for anti-diagonal extraction function.",
-    3: "Describes extraction of wavefront parallel anti-diagonals where row + col = k.",
-    4: "Closes docstring for anti-diagonal extraction function.",
-    5: "Measures total row count M in input 2D matrix.",
-    6: "Measures column count N from first row, defaulting to 0 if matrix is empty.",
-    7: "Initializes empty list diagonals to store extracted wavefront anti-diagonal arrays.",
-    8: "Blank line before outer wavefront diagonal loop.",
-    9: "Iterates through diagonal wavefront index k from 0 up to rows + cols - 2.",
-    10: "Initializes empty temporary list diag for elements on current anti-diagonal k.",
-    11: "Iterates row index r over valid bounded range max(0, k - cols + 1) to min(rows, k + 1) - 1.",
-    12: "Calculates column index c = k - r for current anti-diagonal element.",
-    13: "Appends matrix[r][c] scalar value into current anti-diagonal array diag.",
-    14: "Appends collected anti-diagonal array diag to main diagonals list.",
-    15: "Blank line before return statement.",
-    16: "Returns final list of extracted wavefront anti-diagonal arrays.",
+    2: "Measures total row count M in input 2D matrix.",
+    3: "Measures column count N from first row, defaulting to 0 if matrix is empty.",
+    4: "Initializes empty list diagonals to store extracted wavefront anti-diagonal arrays.",
+    5: "Blank line before outer wavefront diagonal loop.",
+    6: "Iterates through diagonal wavefront index k from 0 up to rows + cols - 2.",
+    7: "Initializes empty temporary list diag for elements on current anti-diagonal k.",
+    8: "Iterates row index r over valid bounded range max(0, k - cols + 1) to min(rows, k + 1) - 1.",
+    9: "Calculates column index c = k - r for current anti-diagonal element.",
+    10: "Appends matrix[r][c] scalar value into current anti-diagonal array diag.",
+    11: "Appends collected anti-diagonal array diag to main diagonals list.",
+    12: "Blank line before return statement.",
+    13: "Returns final list of extracted wavefront anti-diagonal arrays.",
   },
 };
 
 export const antiDiagonalExtraction: AlgorithmDefinition<antiDiagonalExtractionInput> = {
   id: "anti-diagonal-extraction",
   title: "Anti-Diagonal Matrix Traversal",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In dynamic programming, dynamic time warping (DTW), sequence alignment, and parallel matrix solvers (such as Floyd-Warshall or Smith-Waterman), dependencies run along row and column indices such that element $(r, c)$ depends on $(r-1, c)$ and $(r, c-1)$. Consequently, all elements along anti-diagonal slices defined by $r + c = k$ are mutually independent and can be executed concurrently in a single GPU wavefront step.\n\nThis algorithm extracts anti-diagonal slices from 2D tensor buffers, grouping matrix elements by wavefront step $k$. Executing entire anti-diagonals concurrently enables lock-free parallel execution across GPU thread blocks without write conflicts.\n\n### Problem Solved & ML Compiler Relevance\nOn GPU SIMT architectures, serial nested loops ($r, c$) introduce massive thread stall cycles when calculating recurrence relations. By transforming matrix iteration into diagonal sweeps ($k = 0, 1, \\dots, M+N-2$), all threads in a CUDA thread block or Triton kernel process cells on diagonal $k$ in parallel before barrier synchronizing (`__syncthreads()`) to move to step $k+1$.\n\n### Step-by-Step Execution\n1. **Dimension Extraction**: Determine rows $M$ and columns $N$.\n2. **Wavefront Loop**: Iterate diagonal index $k$ from $0$ to $M + N - 2$.\n3. **Coordinate Bounding**: Compute valid row range $r \\in [\\max(0, k - N + 1), \\min(M, k + 1))$.\n4. **Column Derivation**: For each valid $r$, derive column coordinate $c = k - r$ and extract $matrix[r][c]$.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],

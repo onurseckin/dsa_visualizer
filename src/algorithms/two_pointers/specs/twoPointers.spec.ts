@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { generateTwoPointersSteps, twoPointers } from "../twoPointers";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("twoPointers algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(twoPointers.id).toBe("two-pointers");
     expect(twoPointers.title).toContain("Two Pointers");
-    expect(twoPointers.category).toBe("two_pointers");
+    expect(twoPointers.topicIds).toContain("two_pointers");
     expect(twoPointers.timeComplexity.average).toBe("O(n)");
     expect(twoPointers.spaceComplexity).toBe("O(1)");
   });
@@ -79,7 +80,11 @@ describe("twoPointers algorithm spec", () => {
     const N = twoPointers.code.split("\n").length;
     const inputs = [
       twoPointers.defaultInput,
-      ...(twoPointers.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        twoPointers,
+        (input): input is typeof twoPointers.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const inp of inputs) {

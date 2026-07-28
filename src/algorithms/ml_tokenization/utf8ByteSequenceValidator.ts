@@ -9,14 +9,6 @@ export const DEFAULT_UTF8_VALIDATOR_INPUT: Utf8ByteSequenceValidatorInput = {
 };
 
 export const UTF8_BYTE_SEQUENCE_VALIDATOR_CODE = `def validate_utf8_byte_sequence(bytes_input: list[int]) -> tuple[bool, list[tuple[str, list[int]]]]:
-    """
-    Validates UTF-8 byte sequences according to RFC 3629 bit pattern specifications:
-    - 1-byte ASCII: 0xxxxxxx (0x00 - 0x7F)
-    - 2-byte char: 110xxxxx 10xxxxxx (0xC0 - 0xDF)
-    - 3-byte char: 1110xxxx 10xxxxxx 10xxxxxx (0xE0 - 0xEF)
-    - 4-byte char: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx (0xF0 - 0xF7)
-    Returns (isValid, decodedCharacterByteGroups).
-    """
     idx = 0
     N = len(bytes_input)
     groups = []
@@ -25,11 +17,9 @@ export const UTF8_BYTE_SEQUENCE_VALIDATOR_CODE = `def validate_utf8_byte_sequenc
     while idx < N:
         b0 = bytes_input[idx]
 
-        # 1-byte ASCII (0x00..0x7F)
         if (b0 & 0x80) == 0:
             groups.append(("ASCII", [b0]))
             idx += 1
-        # 2-byte sequence (110xxxxx)
         elif (b0 & 0xE0) == 0xC0:
             if idx + 1 >= N or (bytes_input[idx + 1] & 0xC0) != 0x80:
                 is_valid = False
@@ -38,7 +28,6 @@ export const UTF8_BYTE_SEQUENCE_VALIDATOR_CODE = `def validate_utf8_byte_sequenc
             else:
                 groups.append(("2-BYTE", [b0, bytes_input[idx + 1]]))
                 idx += 2
-        # 3-byte sequence (1110xxxx)
         elif (b0 & 0xF0) == 0xE0:
             if idx + 2 >= N or (bytes_input[idx + 1] & 0xC0) != 0x80 or (bytes_input[idx + 2] & 0xC0) != 0x80:
                 is_valid = False
@@ -47,7 +36,6 @@ export const UTF8_BYTE_SEQUENCE_VALIDATOR_CODE = `def validate_utf8_byte_sequenc
             else:
                 groups.append(("3-BYTE", [b0, bytes_input[idx + 1], bytes_input[idx + 2]]))
                 idx += 3
-        # 4-byte sequence (11110xxx)
         elif (b0 & 0xF8) == 0xF0:
             if idx + 3 >= N or (bytes_input[idx + 1] & 0xC0) != 0x80 or (bytes_input[idx + 2] & 0xC0) != 0x80 or (bytes_input[idx + 3] & 0xC0) != 0x80:
                 is_valid = False
@@ -70,33 +58,33 @@ export const generateUtf8ValidatorSteps = (
   const { bytes } = input;
   let stepIndex = 0;
 
+  const hexFormat = (b: number) => `0x${b.toString(16).toUpperCase().padStart(2, "0")}`;
+
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: "Initialize UTF-8 Byte Sequence Validator (RFC 3629)",
-      why: `Validating ${bytes.length} raw bytes: [${bytes
-        .map((b) => `0x${b.toString(16).toUpperCase().padStart(2, "0")}`)
-        .join(", ")}].`,
+      why: `Validating ${bytes.length} raw bytes: [${bytes.map(hexFormat).join(", ")}].`,
     },
     primarySnapshot: {
       kind: "array",
       elements: bytes.map((b, idx) => ({
         id: `b-${idx}`,
         value: b,
-        label: `0x${b.toString(16).toUpperCase().padStart(2, "0")}`,
+        label: hexFormat(b),
         state: "default" as ElementState,
       })),
     },
     auxiliaryState: {
       customState: {
         totalBytes: String(bytes.length),
-        hexStream: bytes.map((b) => `0x${b.toString(16).toUpperCase()}`).join(" "),
+        hexStream: bytes.map(hexFormat).join(" "),
         status: "Initialized",
       },
     },
-    variables: { byteCount: bytes.length },
+    variables: { idx: 0, N: bytes.length, isValid: true, groupCount: 0 },
   });
 
   let idx = 0;
@@ -107,72 +95,166 @@ export const generateUtf8ValidatorSteps = (
     const b0 = bytes[idx];
 
     if ((b0 & 0x80) === 0) {
+      const charStr = b0 >= 32 && b0 <= 126 ? `'${String.fromCharCode(b0)}'` : hexFormat(b0);
       groups.push({ type: "1-Byte ASCII", byteList: [b0] });
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 16,
+        codeLine: 9,
         explanation: {
-          what: `Byte 0x${b0.toString(16).toUpperCase()} at Index ${idx}: Valid 1-Byte ASCII (0x00..0x7F)`,
-          why: `Lead bit pattern 0xxxxxxx match. Character '${String.fromCharCode(b0)}'.`,
+          what: `Byte ${hexFormat(b0)} at Index ${idx}: Valid 1-Byte ASCII (0x00..0x7F)`,
+          why: `Lead bit pattern 0xxxxxxx matched (mask 0x80 is 0). ASCII character ${charStr}.`,
         },
         primarySnapshot: {
           kind: "array",
           elements: bytes.map((b, i) => ({
             id: `b-${i}`,
             value: b,
-            label: `0x${b.toString(16).toUpperCase()}`,
+            label: hexFormat(b),
             state:
               i === idx
                 ? ("active" as ElementState)
                 : i < idx
                   ? ("visited" as ElementState)
                   : ("default" as ElementState),
-            pointers: i === idx ? [`ASCII '${String.fromCharCode(b0)}'`] : [],
+            pointers: i === idx ? [`ASCII ${charStr}`] : [],
           })),
         },
         auxiliaryState: {
           customState: {
-            leadByte: `0x${b0.toString(16).toUpperCase()}`,
+            leadByte: hexFormat(b0),
             byteType: "1-Byte ASCII",
-            char: `'${String.fromCharCode(b0)}'`,
+            char: charStr,
           },
         },
-        variables: { idx, leadByte: b0, type: "ASCII" },
+        variables: { idx, leadByte: hexFormat(b0), type: "ASCII", isValid },
       });
       idx += 1;
     } else if ((b0 & 0xe0) === 0xc0) {
       if (idx + 1 < bytes.length && (bytes[idx + 1] & 0xc0) === 0x80) {
-        groups.push({ type: "2-Byte Sequence", byteList: [b0, bytes[idx + 1]] });
+        const seq = [b0, bytes[idx + 1]];
+        groups.push({ type: "2-Byte Sequence", byteList: seq });
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 23,
+          codeLine: 17,
           explanation: {
-            what: `Bytes [0x${b0.toString(16).toUpperCase()}, 0x${bytes[idx + 1]
-              .toString(16)
-              .toUpperCase()}] at Index ${idx}: Valid 2-Byte Sequence (110xxxxx 10xxxxxx)`,
-            why: `Valid 2-byte UTF-8 character encoding sequence.`,
+            what: `Bytes [${seq.map(hexFormat).join(", ")}] at Index ${idx}: Valid 2-Byte Sequence (110xxxxx 10xxxxxx)`,
+            why: `Lead byte matches 110xxxxx (0xC0) and 1 continuation byte matches 10xxxxxx (0x80).`,
           },
           primarySnapshot: {
             kind: "array",
             elements: bytes.map((b, i) => ({
               id: `b-${i}`,
               value: b,
-              label: `0x${b.toString(16).toUpperCase()}`,
+              label: hexFormat(b),
               state:
                 i === idx || i === idx + 1
                   ? ("active" as ElementState)
                   : i < idx
                     ? ("visited" as ElementState)
                     : ("default" as ElementState),
-              pointers: i === idx ? ["2-Byte Lead"] : [],
+              pointers: i === idx ? ["2-Byte Lead"] : i === idx + 1 ? ["Continuation"] : [],
             })),
           },
           auxiliaryState: { customState: { byteType: "2-Byte Sequence" } },
-          variables: { idx, type: "2-Byte" },
+          variables: { idx, type: "2-Byte", isValid },
         });
         idx += 2;
       } else {
         isValid = false;
+        groups.push({ type: "INVALID_2BYTE", byteList: [b0] });
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 14,
+          explanation: {
+            what: `Byte ${hexFormat(b0)} at Index ${idx}: Invalid 2-Byte Sequence`,
+            why: `Expected continuation byte matching 10xxxxxx at index ${idx + 1}, but ${
+              idx + 1 >= bytes.length
+                ? "reached end of byte stream"
+                : `found ${hexFormat(bytes[idx + 1])}`
+            }.`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: bytes.map((b, i) => ({
+              id: `b-${i}`,
+              value: b,
+              label: hexFormat(b),
+              state:
+                i === idx
+                  ? ("error" as ElementState)
+                  : i < idx
+                    ? ("visited" as ElementState)
+                    : ("default" as ElementState),
+              pointers: i === idx ? ["Invalid 2-Byte Lead"] : [],
+            })),
+          },
+          auxiliaryState: { customState: { byteType: "INVALID_2BYTE", status: "Error" } },
+          variables: { idx, type: "INVALID_2BYTE", isValid: false },
+        });
+        idx += 1;
+      }
+    } else if ((b0 & 0xf0) === 0xe0) {
+      if (
+        idx + 2 < bytes.length &&
+        (bytes[idx + 1] & 0xc0) === 0x80 &&
+        (bytes[idx + 2] & 0xc0) === 0x80
+      ) {
+        const seq = [b0, bytes[idx + 1], bytes[idx + 2]];
+        groups.push({ type: "3-Byte Sequence", byteList: seq });
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 25,
+          explanation: {
+            what: `Bytes [${seq.map(hexFormat).join(", ")}] at Index ${idx}: Valid 3-Byte Sequence (1110xxxx 10xxxxxx 10xxxxxx)`,
+            why: `Lead byte matches 1110xxxx (0xE0) and 2 continuation bytes match 10xxxxxx (0x80).`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: bytes.map((b, i) => ({
+              id: `b-${i}`,
+              value: b,
+              label: hexFormat(b),
+              state:
+                i >= idx && i <= idx + 2
+                  ? ("active" as ElementState)
+                  : i < idx
+                    ? ("visited" as ElementState)
+                    : ("default" as ElementState),
+              pointers: i === idx ? ["3-Byte Lead"] : [],
+            })),
+          },
+          auxiliaryState: { customState: { byteType: "3-Byte Sequence" } },
+          variables: { idx, type: "3-Byte", isValid },
+        });
+        idx += 3;
+      } else {
+        isValid = false;
+        groups.push({ type: "INVALID_3BYTE", byteList: [b0] });
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 22,
+          explanation: {
+            what: `Byte ${hexFormat(b0)} at Index ${idx}: Invalid 3-Byte Sequence`,
+            why: `Lead byte 1110xxxx missing valid continuation bytes at index ${idx + 1} and ${idx + 2}.`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: bytes.map((b, i) => ({
+              id: `b-${i}`,
+              value: b,
+              label: hexFormat(b),
+              state:
+                i === idx
+                  ? ("error" as ElementState)
+                  : i < idx
+                    ? ("visited" as ElementState)
+                    : ("default" as ElementState),
+              pointers: i === idx ? ["Invalid 3-Byte Lead"] : [],
+            })),
+          },
+          auxiliaryState: { customState: { byteType: "INVALID_3BYTE", status: "Error" } },
+          variables: { idx, type: "INVALID_3BYTE", isValid: false },
+        });
         idx += 1;
       }
     } else if ((b0 & 0xf8) === 0xf0) {
@@ -186,13 +268,9 @@ export const generateUtf8ValidatorSteps = (
         groups.push({ type: "4-Byte Emoji/Unicode", byteList: seq });
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 41,
+          codeLine: 33,
           explanation: {
-            what: `Bytes [${seq
-              .map((b) => `0x${b.toString(16).toUpperCase()}`)
-              .join(
-                ", ",
-              )}] at Index ${idx}: Valid 4-Byte Unicode Sequence (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)`,
+            what: `Bytes [${seq.map(hexFormat).join(", ")}] at Index ${idx}: Valid 4-Byte Unicode Sequence (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)`,
             why: `Valid 4-byte UTF-8 emoji / supplementary character sequence.`,
           },
           primarySnapshot: {
@@ -200,7 +278,7 @@ export const generateUtf8ValidatorSteps = (
             elements: bytes.map((b, i) => ({
               id: `b-${i}`,
               value: b,
-              label: `0x${b.toString(16).toUpperCase()}`,
+              label: hexFormat(b),
               state:
                 i >= idx && i <= idx + 3
                   ? ("highlighted" as ElementState)
@@ -211,15 +289,67 @@ export const generateUtf8ValidatorSteps = (
             })),
           },
           auxiliaryState: { customState: { byteType: "4-Byte Emoji/Unicode" } },
-          variables: { idx, type: "4-Byte" },
+          variables: { idx, type: "4-Byte", isValid },
         });
         idx += 4;
       } else {
         isValid = false;
+        groups.push({ type: "INVALID_4BYTE", byteList: [b0] });
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 30,
+          explanation: {
+            what: `Byte ${hexFormat(b0)} at Index ${idx}: Invalid 4-Byte Sequence`,
+            why: `Lead byte 11110xxx missing valid continuation bytes matching 10xxxxxx.`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: bytes.map((b, i) => ({
+              id: `b-${i}`,
+              value: b,
+              label: hexFormat(b),
+              state:
+                i === idx
+                  ? ("error" as ElementState)
+                  : i < idx
+                    ? ("visited" as ElementState)
+                    : ("default" as ElementState),
+              pointers: i === idx ? ["Invalid 4-Byte Lead"] : [],
+            })),
+          },
+          auxiliaryState: { customState: { byteType: "INVALID_4BYTE", status: "Error" } },
+          variables: { idx, type: "INVALID_4BYTE", isValid: false },
+        });
         idx += 1;
       }
     } else {
       isValid = false;
+      groups.push({ type: "INVALID_LEAD_BYTE", byteList: [b0] });
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 37,
+        explanation: {
+          what: `Byte ${hexFormat(b0)} at Index ${idx}: Illegal Lead Byte`,
+          why: `Byte does not match any valid UTF-8 lead bit prefix (0x00-0x7F, 0xC0-0xDF, 0xE0-0xEF, 0xF0-0xF7).`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: bytes.map((b, i) => ({
+            id: `b-${i}`,
+            value: b,
+            label: hexFormat(b),
+            state:
+              i === idx
+                ? ("error" as ElementState)
+                : i < idx
+                  ? ("visited" as ElementState)
+                  : ("default" as ElementState),
+            pointers: i === idx ? ["Illegal Lead Byte"] : [],
+          })),
+        },
+        auxiliaryState: { customState: { byteType: "INVALID_LEAD_BYTE", status: "Error" } },
+        variables: { idx, type: "INVALID_LEAD_BYTE", isValid: false },
+      });
       idx += 1;
     }
   }
@@ -227,7 +357,7 @@ export const generateUtf8ValidatorSteps = (
   // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 46,
+    codeLine: 39,
     explanation: {
       what: `UTF-8 Validation Complete: Result = ${isValid ? "VALID UTF-8" : "INVALID UTF-8"}`,
       why: `Parsed ${groups.length} multi-byte character groups across ${bytes.length} total bytes.`,
@@ -238,7 +368,7 @@ export const generateUtf8ValidatorSteps = (
         id: `grp-${rank}`,
         value: rank,
         label: `${g.type} (${g.byteList.length}B)`,
-        state: "sorted" as ElementState,
+        state: (g.type.startsWith("INVALID") ? "error" : "sorted") as ElementState,
       })),
     },
     auxiliaryState: {
@@ -255,14 +385,10 @@ export const generateUtf8ValidatorSteps = (
 };
 
 export const utf8ByteSequenceValidator: AlgorithmDefinition<Utf8ByteSequenceValidatorInput> = {
-  id: "utf8ByteSequenceValidator",
+  id: "utf8-byte-sequence-validator",
   title: "UTF-8 Byte Sequence Validator (RFC 3629)",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization", "bit_manipulation"],
+  topicIds: ["ml_tokenization", "bit_manipulation"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Validates raw byte arrays against UTF-8 bit pattern specifications (RFC 3629). Checks lead byte bit prefixes (`0xxxxxxx` for 1-byte ASCII, `110xxxxx` for 2-byte, `1110xxxx` for 3-byte, `11110xxx` for 4-byte) and enforces continuation byte masks (`10xxxxxx`). Used by byte-level tokenizers (Tiktoken, SentencePiece) prior to subword parsing.\n\nInput Format:\n- bytes: Array of 8-bit integer byte values (0-255).\n\nOutput Format:\n- Returns tuple (isValidBoolean, decodedByteGroupsList).\n\nEdge Cases & Constraints:\n- Truncated continuation bytes or invalid lead byte: Marks sequence invalid.",
   constraints: ["0 <= bytes[i] <= 255."],

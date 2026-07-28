@@ -1,13 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { subvectorDecompositionCodebook } from "./subvectorDecompositionCodebook";
 
-describe("subvectorDecompositionCodebook", () => {
+describe("subvector-decomposition-codebook", () => {
   it("should be defined and have correctly populated fields", () => {
     expect(subvectorDecompositionCodebook).toBeDefined();
-    expect(subvectorDecompositionCodebook.id).toBe("subvectorDecompositionCodebook");
-    expect(subvectorDecompositionCodebook.isMlInfra).toBe(true);
-    expect(subvectorDecompositionCodebook.mlInfraLevel).toBe(5);
-    expect(subvectorDecompositionCodebook.categories).toContain("ml_vector_search");
+    expect(subvectorDecompositionCodebook.id).toBe("subvector-decomposition-codebook");
+    expect(
+      subvectorDecompositionCodebook.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(subvectorDecompositionCodebook.topicIds).toContain("ml_vector_search");
   });
 
   it("should generate steps successfully", () => {

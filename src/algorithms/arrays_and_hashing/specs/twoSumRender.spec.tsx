@@ -29,12 +29,8 @@ describe("TwoSum React Component Spec", () => {
     expect(screen.getByText("Two Sum")).toBeInTheDocument();
 
     // Problem details render expanded, so the description needs no disclosure click.
-    expect(
-      screen.getByText(/Two Sum determines the/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Two Sum is the fundamental paradigm shift/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Two Sum determines the/i)).toBeInTheDocument();
+    expect(screen.getByText(/Two Sum is the fundamental paradigm shift/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: twoSum.topicGuide.sections[0].heading }),
     ).toBeInTheDocument();

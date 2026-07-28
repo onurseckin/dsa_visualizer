@@ -9,10 +9,9 @@ import {
 describe("vector-dot-product-mac (Vector Multiply-Accumulate (MAC) Engine)", () => {
   it("should have correct metadata", () => {
     expect(vectorDotProductMac.id).toBe("vector-dot-product-mac");
-    expect(vectorDotProductMac.isMlInfra).toBe(true);
-    expect(vectorDotProductMac.mlInfraLevel).toBe(2);
-    expect(vectorDotProductMac.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(vectorDotProductMac.categories).toContain("ml_gemm_roofline");
+    expect(vectorDotProductMac.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(vectorDotProductMac.topicIds).toContain("ml_gemm_roofline");
+    expect(vectorDotProductMac.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 steps with matrix snapshot for default input", () => {

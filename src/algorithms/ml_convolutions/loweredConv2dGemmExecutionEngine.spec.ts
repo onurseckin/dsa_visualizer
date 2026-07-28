@@ -5,14 +5,15 @@ import {
   generateLoweredConv2dGemmExecutionEngineSteps,
 } from "./loweredConv2dGemmExecutionEngine";
 
-describe("loweredConv2dGemmExecutionEngine", () => {
+describe("lowered-conv2d-gemm-execution-engine", () => {
   it("should have correct metadata", () => {
-    expect(loweredConv2dGemmExecutionEngine.id).toBe("loweredConv2dGemmExecutionEngine");
-    expect(loweredConv2dGemmExecutionEngine.isMlInfra).toBe(true);
-    expect(loweredConv2dGemmExecutionEngine.mlInfraLevel).toBe(8);
-    expect(loweredConv2dGemmExecutionEngine.mlInfraCategory).toBe("ml_convolutions");
-    expect(loweredConv2dGemmExecutionEngine.categories).toContain("ml_convolutions");
-    expect(loweredConv2dGemmExecutionEngine.categories).toContain("ml_gemm_roofline");
+    expect(loweredConv2dGemmExecutionEngine.id).toBe("lowered-conv2d-gemm-execution-engine");
+    expect(
+      loweredConv2dGemmExecutionEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(loweredConv2dGemmExecutionEngine.topicIds).toContain("ml_convolutions");
+    expect(loweredConv2dGemmExecutionEngine.topicIds).toContain("ml_convolutions");
+    expect(loweredConv2dGemmExecutionEngine.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

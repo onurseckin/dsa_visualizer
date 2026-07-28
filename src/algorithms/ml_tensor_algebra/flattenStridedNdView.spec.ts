@@ -9,10 +9,9 @@ import {
 describe("flatten-strided-nd-view (Multi-Dimensional Strided Coordinate Mapper)", () => {
   it("should have correct metadata and structure", () => {
     expect(flattenStridedNdView.id).toBe("flatten-strided-nd-view");
-    expect(flattenStridedNdView.isMlInfra).toBe(true);
-    expect(flattenStridedNdView.mlInfraLevel).toBe(1);
-    expect(flattenStridedNdView.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(flattenStridedNdView.categories).toContain("ml_tensor_algebra");
+    expect(flattenStridedNdView.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(flattenStridedNdView.topicIds).toContain("ml_tensor_algebra");
+    expect(flattenStridedNdView.topicIds).toContain("ml_tensor_algebra");
     expect(flattenStridedNdView.topicGuide?.sections.length).toBe(5);
   });
 

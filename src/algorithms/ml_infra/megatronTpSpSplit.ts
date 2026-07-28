@@ -16,24 +16,15 @@ export const MEGATRON_TP_SP_SPLIT_CODE = `def megatron_tp_sp_split(
     hidden_dim: int,
     tp_world_size: int
 ) -> dict:
-    # Column Parallel Linear (e.g. QKV projection or MLP gate)
-  # Weights split along hidden_dim columns: [hidden_dim, hidden_dim // tp_world_size]
-  col_weight_cols = hidden_dim // tp_world_size
-  
-  # Row Parallel Linear (e.g. Output projection or MLP down)
-  # Weights split along hidden_dim rows: [hidden_dim // tp_world_size, hidden_dim]
-  row_weight_rows = hidden_dim // tp_world_size
-  
-  # Sequence Parallelism (SP)
-  # Activations (LayerNorm / Dropout) split along seq_len: [seq_len // tp_world_size, hidden_dim]
-  sp_seq_len_per_rank = seq_len // tp_world_size
-  
-  return {
-      "tp_world_size": tp_world_size,
-      "column_parallel_slice": (hidden_dim, col_weight_cols),
-      "row_parallel_slice": (row_weight_rows, hidden_dim),
-      "sp_activation_slice": (sp_seq_len_per_rank, hidden_dim)
-  }`;
+    col_weight_cols = hidden_dim // tp_world_size
+    row_weight_rows = hidden_dim // tp_world_size
+    sp_seq_len_per_rank = seq_len // tp_world_size
+    return {
+        "tp_world_size": tp_world_size,
+        "column_parallel_slice": (hidden_dim, col_weight_cols),
+        "row_parallel_slice": (row_weight_rows, hidden_dim),
+        "sp_activation_slice": (sp_seq_len_per_rank, hidden_dim)
+    }`;
 
 export const DEFAULT_MEGATRON_TP_SP_INPUT: MegatronTpSpInput = {
   tpWorldSize: 4,
@@ -113,7 +104,8 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
 
   const elements: ArrayElement[] = Array.from({ length: TP }, (_, idx) => ({
     id: `gpu-${idx}`,
-    value: idx,
+    value: `GPU ${idx}`,
+    label: `Rank ${idx}`,
     state: "default",
   }));
 
@@ -163,7 +155,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
   );
 
   addStep(
-    8,
+    6,
     `Compute Column Parallel Weight Slice: col_weight_cols = ${H} // ${TP} = ${colCols}`,
     `Column-parallel linear layer (e.g. QKV projection, MLP gate) splits weight cols: each GPU gets [${H}, ${colCols}] slice.`,
     -1,
@@ -171,7 +163,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
   );
 
   addStep(
-    12,
+    7,
     `Compute Row Parallel Weight Slice: row_weight_rows = ${H} // ${TP} = ${colCols}`,
     `Row-parallel linear layer (e.g. output projection, MLP down) splits weight rows: each GPU gets [${colCols}, ${H}] slice.`,
     -1,
@@ -179,7 +171,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
   );
 
   addStep(
-    16,
+    8,
     `Compute SP Activation Slice: sp_seq_len_per_rank = ${S} // ${TP} = ${spSeq}`,
     `Sequence Parallel activations (LayerNorm / Dropout inputs) split along sequence length: each GPU holds [${spSeq}, ${H}] tokens.`,
     -1,
@@ -193,7 +185,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
     const colEnd = colStart + colCols - 1;
 
     addStep(
-      8,
+      6,
       `GPU Rank #${r} TP/SP Partition Assigned`,
       `GPU #${r} holds Column-Parallel weight cols ${colStart}..${colEnd} and Sequence-Parallel activation tokens ${tokenStart}..${tokenEnd}.`,
       r,
@@ -206,7 +198,7 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
   });
 
   addStep(
-    18,
+    9,
     "Return TP+SP Partition Map",
     `Successfully sharded Transformer layer across ${TP} GPUs with zero activation memory redundancy.`,
     TP,
@@ -219,12 +211,10 @@ export function generateMegatronTpSpSteps(input: MegatronTpSpInput): AlgorithmSt
 export const megatronTpSpSplit: AlgorithmDefinition<MegatronTpSpInput> = {
   id: "megatron-tp-sp-split",
   title: "Megatron-LM Tensor & Sequence Parallelism",
-  category: "ml_distributed_systems",
+  topicIds: ["ml_distributed_systems"],
   difficulty: "Hard",
   description:
     "Shards Transformer MLP/Attention weight matrices column-wise and row-wise across Tensor Parallel (TP) GPU ranks, while partitioning non-linear activations along the sequence length across Sequence Parallel (SP) ranks.",
-  isMlInfra: true,
-  mlInfraLevel: 9,
   constraints: [
     "TP World Size > 0",
     "Sequence length S divisible by TP World Size",

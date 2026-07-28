@@ -4,11 +4,12 @@ import {
   generateGeneratingPermutationsSteps,
   generatingPermutations,
 } from "../generatingPermutations";
+import { requireExampleInputs, requireLineExplanations } from "../../specs/assertions";
 
 describe("generatingPermutations logic spec", () => {
   it("should have valid metadata", () => {
     expect(generatingPermutations.id).toBe("generating-permutations");
-    expect(generatingPermutations.category).toBe("backtracking");
+    expect(generatingPermutations.topicIds).toContain("backtracking");
     expect(generatingPermutations.difficulty).toBe("Medium");
   });
 
@@ -23,9 +24,10 @@ describe("generatingPermutations logic spec", () => {
 
   it("should map every line of python code in trivia lineExplanations", () => {
     const codeLines = generatingPermutations.code.split("\n").length;
+    const explanations = requireLineExplanations(generatingPermutations);
     expect(codeLines).toBe(20);
     for (let line = 1; line <= codeLines; line++) {
-      expect(generatingPermutations.trivia?.lineExplanations[line]).toBeDefined();
+      expect(explanations[line]).toBeDefined();
     }
   });
 
@@ -33,7 +35,11 @@ describe("generatingPermutations logic spec", () => {
     const totalLines = generatingPermutations.code.split("\n").length;
     const inputsToTest = [
       generatingPermutations.defaultInput,
-      ...(generatingPermutations.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        generatingPermutations,
+        (input): input is typeof generatingPermutations.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const input of inputsToTest) {

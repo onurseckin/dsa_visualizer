@@ -44,12 +44,12 @@ export function TileTray({
     <Card
       title="Tiles"
       actions={<span className="text-xs text-[var(--text-muted)]">{remaining} left</span>}
-      className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl min-w-0"
+      className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl min-w-0 h-full min-h-0 flex flex-col overflow-hidden"
     >
-      <p className="mb-2 text-xs leading-relaxed text-[var(--text-muted)]">
+      <p className="mb-2 text-xs leading-relaxed text-[var(--text-muted)] shrink-0">
         Click a tile to fill the next empty line — or drag it to a specific one.
       </p>
-      <div className="flex flex-wrap gap-3 items-center justify-end">
+      <div className="flex flex-wrap gap-3 items-center justify-end flex-1 min-h-0 overflow-y-auto pr-1">
         {tiles.map((tile) => {
           const isUsed = used.has(tile.id);
           const isSelected = tile.id === selectedTileId && !isUsed;

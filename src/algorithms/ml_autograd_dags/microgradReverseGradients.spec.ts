@@ -8,10 +8,11 @@ import {
 describe("micrograd-reverse-gradients (Micrograd Reverse-Mode Automatic Differentiation)", () => {
   it("should have correct metadata", () => {
     expect(microgradReverseGradients.id).toBe("micrograd-reverse-gradients");
-    expect(microgradReverseGradients.isMlInfra).toBe(true);
-    expect(microgradReverseGradients.mlInfraLevel).toBe(3);
-    expect(microgradReverseGradients.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(microgradReverseGradients.categories).toContain("ml_autograd_dags");
+    expect(microgradReverseGradients.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(microgradReverseGradients.topicIds).toContain("ml_autograd_dags");
+    expect(microgradReverseGradients.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

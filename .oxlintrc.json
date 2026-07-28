@@ -47,5 +47,11 @@
     "browser": true,
     "es2024": true
   },
-  "ignorePatterns": ["dist/**", "node_modules/**", "src/routeTree.gen.ts"]
+  "ignorePatterns": [
+    "dist/**",
+    "node_modules/**",
+    "src/routeTree.gen.ts",
+    // Local scratch helpers are intentionally outside product lint ownership.
+    ".tmp/**"
+  ]
 }

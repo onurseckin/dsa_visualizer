@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { viterbiLatticeSubwordSegmenter } from "./viterbiLatticeSubwordSegmenter";
 
-describe("viterbiLatticeSubwordSegmenter", () => {
+describe("viterbi-lattice-subword-segmenter", () => {
   it("should be a valid AlgorithmDefinition", () => {
-    expect(viterbiLatticeSubwordSegmenter.id).toBe("viterbiLatticeSubwordSegmenter");
-    expect(viterbiLatticeSubwordSegmenter.category).toBe("ml_tokenization");
-    expect(viterbiLatticeSubwordSegmenter.isMlInfra).toBe(true);
-    expect(viterbiLatticeSubwordSegmenter.mlInfraCategory).toBe("ml_tokenization");
+    expect(viterbiLatticeSubwordSegmenter.id).toBe("viterbi-lattice-subword-segmenter");
+    expect(viterbiLatticeSubwordSegmenter.topicIds).toContain("ml_tokenization");
+    expect(
+      viterbiLatticeSubwordSegmenter.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(viterbiLatticeSubwordSegmenter.topicIds).toContain("ml_tokenization");
   });
 
   it("generateSteps should return at least one step for defaultInput", () => {

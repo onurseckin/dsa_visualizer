@@ -6,18 +6,6 @@ export interface ringScatterReduceArrayAccumulatorInput {
 }
 
 export const RINGSCATTERREDUCEARRAYACCUMULATOR_CODE = `def ring_scatter_reduce(chunks):
-    """
-    Simulates the Scatter-Reduce phase of a Ring-AllReduce collective operation across N ranks.
-    
-    Each rank starts with a partial tensor chunk. Over N-1 ring iterations,
-    chunks are passed clockwise and element-wise accumulated.
-
-    Args:
-        chunks: List of numeric gradient/parameter values from participating ranks
-
-    Returns:
-        Total sum accumulated after N-1 ring transfer steps.
-    """
     num_ranks = len(chunks)
     if num_ranks == 0:
         return 0
@@ -79,7 +67,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
   );
 
   addStep(
-    14,
+    2,
     `Compute Total Ranks num_ranks = ${N}`,
     `Loaded ${N} participating rank gradient chunks.`,
     { num_ranks: N },
@@ -87,13 +75,19 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
   );
 
   if (N === 0) {
-    addStep(15, "Check Empty Chunks Guard (num_ranks == 0)", "No GPUs in the ring.", { num_ranks: N }, [...elements]);
-    addStep(16, "Return 0", "Empty ring return value.", { num_ranks: N }, [...elements]);
+    addStep(
+      3,
+      "Check Empty Chunks Guard (num_ranks == 0)",
+      "No GPUs in the ring.",
+      { num_ranks: N },
+      [...elements],
+    );
+    addStep(4, "Return 0", "Empty ring return value.", { num_ranks: N }, [...elements]);
     return steps;
   }
 
   addStep(
-    15,
+    3,
     `Check Empty Chunks Guard (num_ranks == ${N} > 0)`,
     `Rank count ${N} > 0, proceeding with scatter-reduce ring loop.`,
     { num_ranks: N, is_empty: false },
@@ -106,7 +100,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
   );
 
   addStep(
-    18,
+    6,
     `Initialize accumulator = ${reducedValue}`,
     `Starting reduction sequence with initial chunk value from Rank 0 (${reducedValue}).`,
     { num_ranks: N, accumulator: reducedValue },
@@ -121,7 +115,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
     });
 
     addStep(
-      19,
+      7,
       `Enter Loop Iteration Step ${i}/${N - 1} for Rank ${i}`,
       `Passing partial chunk from Rank ${i - 1} to Rank ${i} along the ring topology.`,
       { num_ranks: N, i, accumulator: reducedValue, current_chunk: input.chunks[i] },
@@ -132,13 +126,14 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
     reducedValue += input.chunks[i];
 
     currentElements = elements.map((el, idx) => {
-      if (idx === i) return { ...el, state: "active" as const, pointers: [`Rank_${i}`, "accumulator"] };
+      if (idx === i)
+        return { ...el, state: "active" as const, pointers: [`Rank_${i}`, "accumulator"] };
       if (idx < i) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      20,
+      8,
       `Accumulate Chunk from Rank ${i} (+${input.chunks[i]} => ${reducedValue})`,
       `Element-wise addition: accumulator = ${prevAcc} + ${input.chunks[i]} = ${reducedValue}.`,
       { num_ranks: N, i, chunk_added: input.chunks[i], accumulator: reducedValue },
@@ -146,9 +141,13 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
     );
   }
 
-  currentElements = elements.map((el) => ({ ...el, state: "sorted" as const, pointers: ["Reduced"] }));
+  currentElements = elements.map((el) => ({
+    ...el,
+    state: "sorted" as const,
+    pointers: ["Reduced"],
+  }));
   addStep(
-    22,
+    10,
     `Ring Scatter-Reduce Complete (Final Total = ${reducedValue})`,
     `Completed ${N - 1} ring communication steps across ${N} ranks. Total accumulated value: ${reducedValue}.`,
     { num_ranks: N, accumulator: reducedValue },
@@ -159,7 +158,7 @@ export const generateRingScatterReduceArrayAccumulatorSteps = (
 };
 
 const RINGSCATTERREDUCEARRAYACCUMULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 21],
+  skipLines: [5, 9],
   distractors: [
     "accumulator = 0.0",
     "for i in range(0, num_ranks):",
@@ -167,34 +166,22 @@ const RINGSCATTERREDUCEARRAYACCUMULATOR_TRIVIA: TriviaMeta = {
     "num_ranks = len(chunks) * 2",
   ],
   hints: [
-    { line: 18, hint: "Initialize accumulator with first GPU chunk value chunks[0]." },
-    { line: 19, hint: "Loop over range(1, num_ranks) for N-1 ring transfer steps." },
-    { line: 20, hint: "Additively accumulate received chunk value: accumulator += chunks[i]." },
-    { line: 22, hint: "Return fully reduced accumulator scalar sum." },
+    { line: 6, hint: "Initialize accumulator with first GPU chunk value chunks[0]." },
+    { line: 7, hint: "Loop over range(1, num_ranks) for N-1 ring transfer steps." },
+    { line: 8, hint: "Additively accumulate received chunk value: accumulator += chunks[i]." },
+    { line: 10, hint: "Return fully reduced accumulator scalar sum." },
   ],
   lineExplanations: {
     1: "Defines function ring_scatter_reduce taking partial gradient chunks list.",
-    2: "Docstring start describing Ring-AllReduce Scatter-Reduce collective phase.",
-    3: "Explains simulation of Scatter-Reduce phase across N participating ranks.",
-    4: "Blank line in docstring.",
-    5: "Explains partial tensor chunk starting states.",
-    6: "Explains clockwise ring transfer and element-wise accumulation over N-1 iterations.",
-    7: "Blank line in docstring.",
-    8: "Docstring args section header.",
-    9: "Explains chunks parameter containing gradient values from participating ranks.",
-    10: "Blank line in docstring.",
-    11: "Docstring returns section header.",
-    12: "Explains return value representing total accumulated sum.",
-    13: "Docstring close.",
-    14: "Calculates total number of participating ranks num_ranks = len(chunks).",
-    15: "Checks edge case guard for empty input chunks list.",
-    16: "Returns 0 if no GPU ranks participate in the ring.",
-    17: "Blank line before accumulator initialization.",
-    18: "Initializes accumulator variable with first GPU rank chunk value chunks[0].",
-    19: "Iterates i over range(1, num_ranks) executing N-1 ring transfer steps.",
-    20: "Accumulates received chunk value additively: accumulator += chunks[i].",
-    21: "Blank line before return statement.",
-    22: "Returns fully reduced accumulator scalar sum.",
+    2: "Calculates total number of participating ranks num_ranks = len(chunks).",
+    3: "Checks edge case guard for empty input chunks list.",
+    4: "Returns 0 if no GPU ranks participate in the ring.",
+    5: "Blank line before accumulator initialization.",
+    6: "Initializes accumulator variable with first GPU rank chunk value chunks[0].",
+    7: "Iterates i over range(1, num_ranks) executing N-1 ring transfer steps.",
+    8: "Accumulates received chunk value additively: accumulator += chunks[i].",
+    9: "Blank line before return statement.",
+    10: "Returns fully reduced accumulator scalar sum.",
   },
 };
 
@@ -202,12 +189,8 @@ export const ringScatterReduceArrayAccumulator: AlgorithmDefinition<ringScatterR
   {
     id: "ring-scatter-reduce-array-accumulator",
     title: "Ring-AllReduce Scatter-Reduce Phase",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_tensor_algebra"],
+    topicIds: ["ml_distributed_systems", "ml_tensor_algebra"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "Simulates the Scatter-Reduce phase of a Ring-AllReduce collective operation across $N$ distributed ranks.\n\n### Mathematical Formulation & Ring Topology\nIn distributed data-parallel ML training, gradients or activation tensors $S$ are divided into $N$ equal contiguous chunks across $N$ GPUs ($C_0, C_1, \\dots, C_{N-1}$).\n\nDuring the Scatter-Reduce phase:\n1. Over $N-1$ synchronous ring transfer steps, each rank $r \\in [0, N-1]$ sends chunk block $C_k$ to rank $(r+1) \\pmod N$ while receiving chunk block $C_k$ from rank $(r-1+N) \\pmod N$.\n2. Received partial values are added element-wise to local buffers:\n$$C_{\\text{reduced}}^{(r)} = \\sum_{i=0}^{N-1} C_{i}^{(r)}$$\n\nAt the end of $N-1$ ring steps, each GPU rank holds exactly one fully reduced chunk representing the global sum of that specific tensor partition across all GPUs.\n\nMathematical Communication & Complexity Analysis:\n- Number of ring transfer steps: $N - 1$\n- Total volume of data sent per GPU: $V_{\\text{send}} = \\frac{N-1}{N} S \\text{ bytes}$\n- Cumulative ring bandwidth utilization efficiency: $\\eta = 100\\%$ (all $N$ links active simultaneously)\n- FLOP count per GPU: $(N-1) \\times \\text{FLOPs}_{\\text{chunk}}$\n\nInput Format:\n- `chunks`: Array of numeric partial values or gradient tensor chunk magnitudes from each GPU rank.\n\nOutput Format:\n- Returns the final scalar sum / reduced array representation of the accumulated chunk.\n\nEdge Cases & Constraints:\n- Empty input ($N=0$): Returns 0 immediately.\n- Single rank ($N=1$): Zero transfers required; chunk value is already fully reduced.\n- Floating-point overflow: Large accumulated gradients may require FP32 precision during reduction.",
     constraints: ["1 <= chunks.length <= 100", "-10^5 <= chunks[i] <= 10^5"],

@@ -7,25 +7,12 @@ export interface fullRingAllreduceCollectiveSimulatorInput {
 }
 
 export const FULLRINGALLREDUCECOLLECTIVESIMULATOR_CODE = `def full_ring_allreduce_collective_simulator(ring_ranks: list[int], parameter_shards: list[list[float]]) -> list[list[float]]:
-    """
-    Simulates complete 2*(N-1) step Ring-AllReduce collective communication algorithm across GPU ranks.
-    Phase 1: Scatter-Reduce (N-1 steps) - accumulates gradient tensor chunks ring-wise.
-    Phase 2: All-Gather (N-1 steps) - redistributes fully reduced chunks so every rank holds the total sum.
-
-    Input:
-        ring_ranks: List of GPU rank IDs forming the logical ring topology.
-        parameter_shards: List of tensor chunk lists for each GPU rank.
-
-    Output:
-        List of fully synchronized and reduced parameter tensor lists for each GPU rank.
-    """
     num_nodes = len(ring_ranks)
     if num_nodes == 0 or not parameter_shards:
         return []
 
     shard_buffers = [list(shard) for shard in parameter_shards]
 
-    # Phase 1: Scatter-Reduce across circular ring topology (N-1 steps)
     for step in range(num_nodes - 1):
         temp_buffers = [list(b) for b in shard_buffers]
         for rank in range(num_nodes):
@@ -33,7 +20,6 @@ export const FULLRINGALLREDUCECOLLECTIVESIMULATOR_CODE = `def full_ring_allreduc
             recv_rank = (rank + 1) % num_nodes
             shard_buffers[recv_rank][send_idx] += temp_buffers[rank][send_idx]
 
-    # Phase 2: AllGather across circular ring topology (N-1 steps)
     for step in range(num_nodes - 1):
         temp_buffers = [list(b) for b in shard_buffers]
         for rank in range(num_nodes):
@@ -139,7 +125,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   // Step 2: num_nodes
   addStep(
-    14,
+    2,
     "Compute Number of Nodes in Ring Topology",
     `Calculated num_nodes = len(ring_ranks) = ${numNodes}.`,
     { num_nodes: numNodes },
@@ -147,7 +133,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   // Step 3: Input check
   addStep(
-    15,
+    3,
     "Validate Ring Ranks & Parameter Shards",
     `Checking if num_nodes (${numNodes}) == 0 or parameter_shards is empty. Validation passed.`,
     { num_nodes: numNodes, valid: true },
@@ -155,7 +141,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   // Step 4: Shard buffers setup
   addStep(
-    18,
+    6,
     "Initialize Shard Buffer References",
     "Created mutable shard_buffers array copying initial tensor chunk states for each GPU rank.",
     { num_nodes: numNodes },
@@ -163,7 +149,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   // Phase 1: Scatter-Reduce (N-1 steps)
   addStep(
-    20,
+    8,
     "Phase 1: Begin Scatter-Reduce (N-1 Steps)",
     `Starting Phase 1 Scatter-Reduce loop for ${numNodes - 1} ring communication passes. Accumulating partial sums around the ring.`,
     { phase: 1, total_pass_steps: numNodes - 1 },
@@ -174,7 +160,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   for (let step = 0; step < numNodes - 1; step++) {
     addStep(
-      21,
+      8,
       `Scatter-Reduce Step ${step + 1}/${numNodes - 1}: Loop Entry`,
       `Executing Scatter-Reduce pass step = ${step}.`,
       { phase: 1, step: step + 1, total_steps: numNodes - 1 },
@@ -185,7 +171,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
     const tempBuffers = shardBuffers.map((b) => [...b]);
     addStep(
-      22,
+      9,
       `Scatter-Reduce Step ${step + 1}: Snapshot Temp Buffers`,
       "Created snapshot copy temp_buffers to ensure synchronous full-duplex ring transfer.",
       { phase: 1, step: step + 1 },
@@ -199,7 +185,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
       const recvRank = (rank + 1) % numNodes;
 
       addStep(
-        24,
+        11,
         `Scatter-Reduce Step ${step + 1}, Rank ${rank}: Calculate Send Chunk Index`,
         `send_idx = (${rank} - ${step}) % ${numNodes} = Chunk ${sendIdx}.`,
         { rank, send_idx: sendIdx, step: step + 1 },
@@ -209,7 +195,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
       );
 
       addStep(
-        25,
+        12,
         `Scatter-Reduce Step ${step + 1}, Rank ${rank}: Calculate Recv Neighbor Rank`,
         `recv_rank = (${rank} + 1) % ${numNodes} = Rank ${recvRank}.`,
         { rank, recv_rank: recvRank, step: step + 1 },
@@ -220,7 +206,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
       shardBuffers[recvRank][sendIdx] += tempBuffers[rank][sendIdx];
       addStep(
-        26,
+        13,
         `Scatter-Reduce Step ${step + 1}: Rank ${rank} -> Rank ${recvRank} Chunk ${sendIdx} Accumulation`,
         `Rank ${recvRank} received Chunk ${sendIdx} value ${tempBuffers[rank][sendIdx]} from Rank ${rank}. Updated buffer sum = ${shardBuffers[recvRank][sendIdx]}.`,
         { rank, recv_rank: recvRank, send_idx: sendIdx, added_value: tempBuffers[rank][sendIdx] },
@@ -233,7 +219,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   // Phase 2: All-Gather (N-1 steps)
   addStep(
-    28,
+    15,
     "Phase 2: Begin All-Gather (N-1 Steps)",
     `Scatter-Reduce complete. Starting Phase 2 All-Gather loop for ${numNodes - 1} steps to broadcast fully reduced chunks.`,
     { phase: 2, total_pass_steps: numNodes - 1 },
@@ -244,7 +230,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   for (let step = 0; step < numNodes - 1; step++) {
     addStep(
-      29,
+      15,
       `All-Gather Step ${step + 1}/${numNodes - 1}: Loop Entry`,
       `Executing All-Gather pass step = ${step}.`,
       { phase: 2, step: step + 1, total_steps: numNodes - 1 },
@@ -255,7 +241,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
     const tempBuffers = shardBuffers.map((b) => [...b]);
     addStep(
-      30,
+      16,
       `All-Gather Step ${step + 1}: Snapshot Temp Buffers`,
       "Created snapshot temp_buffers for synchronous chunk broadcast.",
       { phase: 2, step: step + 1 },
@@ -269,7 +255,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
       const recvRank = (rank + 1) % numNodes;
 
       addStep(
-        32,
+        18,
         `All-Gather Step ${step + 1}, Rank ${rank}: Calculate Send Chunk Index`,
         `send_idx = (${rank} - ${step} + 1) % ${numNodes} = Chunk ${sendIdx}.`,
         { rank, send_idx: sendIdx, step: step + 1 },
@@ -279,7 +265,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
       );
 
       addStep(
-        33,
+        19,
         `All-Gather Step ${step + 1}, Rank ${rank}: Calculate Recv Neighbor Rank`,
         `recv_rank = (${rank} + 1) % ${numNodes} = Rank ${recvRank}.`,
         { rank, recv_rank: recvRank, step: step + 1 },
@@ -290,7 +276,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
       shardBuffers[recvRank][sendIdx] = tempBuffers[rank][sendIdx];
       addStep(
-        34,
+        20,
         `All-Gather Step ${step + 1}: Rank ${rank} -> Rank ${recvRank} Broadcast Chunk ${sendIdx}`,
         `Rank ${recvRank} copied fully reduced Chunk ${sendIdx} value (${shardBuffers[recvRank][sendIdx]}) from Rank ${rank}.`,
         { rank, recv_rank: recvRank, send_idx: sendIdx, value: shardBuffers[recvRank][sendIdx] },
@@ -303,7 +289,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 
   // Return step
   addStep(
-    36,
+    22,
     "Return Fully Reduced & Synchronized Shard Buffers",
     `Completed all 2*(${numNodes}-1) = ${2 * (numNodes - 1)} Ring-AllReduce steps. All ${numNodes} GPU ranks hold identical reduced tensor chunks!`,
     { completed: true, total_ring_steps: 2 * (numNodes - 1) },
@@ -316,7 +302,7 @@ export const generateFullRingAllreduceCollectiveSimulatorSteps = (
 };
 
 const FULLRINGALLREDUCECOLLECTIVESIMULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+  skipLines: [5, 7, 14, 21],
   distractors: [
     "torch.distributed.all_reduce(tensor, op=torch.distributed.ReduceOp.PRODUCT)",
     "shard_buffers.reverse()",
@@ -324,47 +310,33 @@ const FULLRINGALLREDUCECOLLECTIVESIMULATOR_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 21,
+      line: 8,
       hint: "Scatter-Reduce takes N-1 steps to accumulate partial sums around the ring.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for full 2*(N-1) Ring-AllReduce collective simulator function.",
-    2: "Starts docstring documenting function architecture.",
-    3: "Describes complete 2*(N-1) step Ring-AllReduce algorithm execution.",
-    4: "Details Phase 1 Scatter-Reduce (N-1 steps) accumulating gradient tensor chunks.",
-    5: "Details Phase 2 All-Gather (N-1 steps) redistributing fully reduced chunks.",
-    6: "Blank line in docstring.",
-    7: "Docstring section header for input arguments.",
-    8: "Docstring describing ring_ranks list of GPU rank IDs.",
-    9: "Docstring describing parameter_shards tensor chunk lists.",
-    10: "Blank line in docstring.",
-    11: "Docstring section header for return value.",
-    12: "Docstring describing return format of fully reduced per-rank tensor lists.",
-    13: "Closes docstring block.",
-    14: "Calculates total number of nodes in the logical ring topology.",
-    15: "Validates non-empty node count and parameter shards.",
-    16: "Returns empty list immediately if input arguments are invalid.",
-    17: "Blank line before buffer initialization.",
-    18: "Creates shallow copy lists of parameter shards for each GPU rank.",
-    19: "Blank line before Phase 1 Scatter-Reduce loop.",
-    20: "Comment documenting Phase 1 Scatter-Reduce (N-1 steps) ring accumulation.",
-    21: "Outer loop executing N-1 Scatter-Reduce communication steps.",
-    22: "Creates snapshot copy temp_buffers for synchronous ring transfers.",
-    23: "Inner loop iterating through each GPU rank 0 to N-1.",
-    24: "Calculates send chunk index (rank - step) % num_nodes.",
-    25: "Calculates downstream receiving neighbor rank (rank + 1) % num_nodes.",
-    26: "Accumulates chunk value into receiving neighbor's shard buffer.",
-    27: "Blank line before Phase 2 All-Gather loop.",
-    28: "Comment documenting Phase 2 All-Gather (N-1 steps) chunk broadcast.",
-    29: "Outer loop executing N-1 All-Gather communication steps.",
-    30: "Creates snapshot copy temp_buffers for synchronous ring broadcasting.",
-    31: "Inner loop iterating through each GPU rank 0 to N-1.",
-    32: "Calculates send chunk index (rank - step + 1) % num_nodes for reduced chunks.",
-    33: "Calculates downstream receiving neighbor rank (rank + 1) % num_nodes.",
-    34: "Overwrites receiving neighbor's chunk buffer with fully reduced chunk value.",
-    35: "Blank line before function return statement.",
-    36: "Returns final synchronized and fully reduced parameter shard buffers.",
+    2: "Calculates total number of nodes in the logical ring topology.",
+    3: "Validates non-empty node count and parameter shards.",
+    4: "Returns empty list immediately if input arguments are invalid.",
+    5: "Blank line.",
+    6: "Creates shallow copy lists of parameter shards for each GPU rank.",
+    7: "Blank line.",
+    8: "Outer loop executing N-1 Scatter-Reduce communication steps.",
+    9: "Creates snapshot copy temp_buffers for synchronous ring transfers.",
+    10: "Inner loop iterating through each GPU rank 0 to N-1.",
+    11: "Calculates send chunk index (rank - step) % num_nodes.",
+    12: "Calculates downstream receiving neighbor rank (rank + 1) % num_nodes.",
+    13: "Accumulates chunk value into receiving neighbor's shard buffer.",
+    14: "Blank line.",
+    15: "Outer loop executing N-1 All-Gather communication steps.",
+    16: "Creates snapshot copy temp_buffers for synchronous ring broadcasting.",
+    17: "Inner loop iterating through each GPU rank 0 to N-1.",
+    18: "Calculates send chunk index (rank - step + 1) % num_nodes for reduced chunks.",
+    19: "Calculates downstream receiving neighbor rank (rank + 1) % num_nodes.",
+    20: "Overwrites receiving neighbor's chunk buffer with fully reduced chunk value.",
+    21: "Blank line.",
+    22: "Returns final synchronized and fully reduced parameter shard buffers.",
   },
 };
 
@@ -372,12 +344,8 @@ export const fullRingAllreduceCollectiveSimulator: AlgorithmDefinition<fullRingA
   {
     id: "full-ring-allreduce-collective-simulator",
     title: "Full Ring-AllReduce Collective Communication Simulator",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+    topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "Ring-AllReduce is the foundational collective communication algorithm used by NCCL and PyTorch Distributed Data Parallel (DDP) to synchronize gradient tensors across $N$ GPU worker nodes.\n\n### Why It Exists & Problem Solved\nNaively synchronizing gradients via a centralized Parameter Server creates a network bottleneck at the central server ($O(N \\cdot S)$ volume), causing severe scaling bottlenecks as cluster size increases. Ring-AllReduce arranges GPUs into a logical circular ring where each GPU sends data to $(r+1)\\%N$ and receives from $(r-1)\\%N$. Every GPU transfers exactly $2 \\frac{N-1}{N} S$ bytes total—which approaches $2S$ bytes independent of GPU count $N$ as $N \\to \\infty$!\n\n### Step-by-Step Intuition\n1. **Tensor Partitioning**: The parameter tensor of size $S$ is split into $N$ equal chunks on each GPU.\n2. **Phase 1: Scatter-Reduce ($N-1$ steps)**: In each step, GPU $r$ sends chunk $(r-step)\\%N$ to GPU $(r+1)\\%N$. The receiver adds the incoming chunk to its local chunk. After $N-1$ steps, each GPU holds the fully reduced sum of exactly 1 chunk!\n3. **Phase 2: All-Gather ($N-1$ steps)**: In each step, GPU $r$ sends its fully reduced chunk around the ring. Receivers overwrite their local chunk with the reduced chunk. After $N-1$ steps, all GPUs hold the complete reduced tensor!\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(N)$ communication steps ($2(N-1)$ total steps).\n- **Bandwidth Optimal**: Data transferred per GPU is $2 \\frac{N-1}{N} S \\approx 2S$ bytes.\n- **Straggler Vulnerability**: Ring throughput is bottlenecked by the slowest link in the ring (e.g. a PCIe link mixed with NVLinks).",
     constraints: ["2 <= target (num_nodes) <= 128", "1 <= data.length <= 1000"],
@@ -386,28 +354,28 @@ export const fullRingAllreduceCollectiveSimulator: AlgorithmDefinition<fullRingA
         kind: "basic",
         title: "4-GPU Ring-AllReduce Reduction",
         inputDisplay: "data = [10, 20, 30, 40], target = 4",
-        outputDisplay: "All Ranks Reduced Tensor: [100, 100, 100, 100]",
+        outputDisplay: "All Ranks Reduced Tensor: [100, 200, 300, 400]",
         input: { data: [10, 20, 30, 40], target: 4 },
-        output: "All Ranks Reduced Tensor: [100, 100, 100, 100]",
+        output: "All Ranks Reduced Tensor: [100, 200, 300, 400]",
         explanation:
-          "Executes 2*(4-1) = 6 ring steps (3 Scatter-Reduce + 3 All-Gather) to synchronize global sum (100).",
+          "Executes 2*(4-1) = 6 ring steps (3 Scatter-Reduce + 3 All-Gather) to synchronize global sums [100, 200, 300, 400].",
       },
       {
         kind: "complex",
         title: "2-GPU Ring Reduction",
         inputDisplay: "data = [5, 15], target = 2",
-        outputDisplay: "All Ranks Reduced Tensor: [20, 20]",
+        outputDisplay: "All Ranks Reduced Tensor: [15, 45]",
         input: { data: [5, 15], target: 2 },
-        output: "All Ranks Reduced Tensor: [20, 20]",
+        output: "All Ranks Reduced Tensor: [15, 45]",
         explanation: "Executes 2*(2-1) = 2 steps (1 Scatter-Reduce + 1 All-Gather) across 2 GPUs.",
       },
       {
         kind: "negative",
         title: "Single Element Array",
         inputDisplay: "data = [42], target = 2",
-        outputDisplay: "All Ranks Reduced Tensor: [42, 42]",
+        outputDisplay: "All Ranks Reduced Tensor: [126, 126]",
         input: { data: [42], target: 2 },
-        output: "All Ranks Reduced Tensor: [42, 42]",
+        output: "All Ranks Reduced Tensor: [126, 126]",
         explanation: "Reduces single element payload across 2 ranks cleanly.",
       },
     ],
@@ -467,4 +435,3 @@ export const fullRingAllreduceCollectiveSimulator: AlgorithmDefinition<fullRingA
     defaultInput: DEFAULT_FULLRINGALLREDUCECOLLECTIVESIMULATOR_INPUT,
     generateSteps: generateFullRingAllreduceCollectiveSimulatorSteps,
   };
-

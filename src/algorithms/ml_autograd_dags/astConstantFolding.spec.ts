@@ -8,10 +8,9 @@ import {
 describe("ast-constant-folding (AST Constant Folding Compiler Pass)", () => {
   it("should have correct metadata", () => {
     expect(astConstantFolding.id).toBe("ast-constant-folding");
-    expect(astConstantFolding.isMlInfra).toBe(true);
-    expect(astConstantFolding.mlInfraLevel).toBe(3);
-    expect(astConstantFolding.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(astConstantFolding.categories).toContain("ml_autograd_dags");
+    expect(astConstantFolding.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(astConstantFolding.topicIds).toContain("ml_autograd_dags");
+    expect(astConstantFolding.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

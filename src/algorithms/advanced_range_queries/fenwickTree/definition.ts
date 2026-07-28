@@ -89,8 +89,7 @@ const FENWICK_TREE_TRIVIA: TriviaMeta = {
 export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   id: "fenwick-tree",
   title: "Binary Indexed Tree (Fenwick Tree)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "A Binary Indexed Tree (Fenwick Tree) is a compact array-based structure that answers prefix-sum queries and applies point updates in O(log N) time. Each index i is responsible for a block of elements whose length equals its lowest set bit (i & -i), so updates and queries move through the array in short bit-arithmetic hops.",
@@ -177,4 +176,3 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
 };
 
 export default fenwickTree;
-

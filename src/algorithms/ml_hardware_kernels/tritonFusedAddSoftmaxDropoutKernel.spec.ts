@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tritonFusedAddSoftmaxDropoutKernel } from "./tritonFusedAddSoftmaxDropoutKernel";
 
-describe("tritonFusedAddSoftmaxDropoutKernel", () => {
+describe("triton-fused-add-softmax-dropout-kernel", () => {
   it("should have valid metadata", () => {
     expect(tritonFusedAddSoftmaxDropoutKernel.id).toBeDefined();
     expect(tritonFusedAddSoftmaxDropoutKernel.title).toBeDefined();

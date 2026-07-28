@@ -38,8 +38,7 @@ const BINARY_TREE_LCA_TRIVIA: TriviaMeta = {
 export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   id: "binary-tree-lca",
   title: "Lowest Common Ancestor of a Binary Tree",
-  category: "tree_fundamentals",
-  categories: ["tree_fundamentals"],
+  topicIds: ["tree_fundamentals"],
   difficulty: "Medium",
   description: `Find the Lowest Common Ancestor (LCA) node for two given target nodes $p$ and $q$ in a binary tree.
 
@@ -186,8 +185,7 @@ $$ T_{\\text{time}}(N) = O(N), \\quad S_{\\text{space}}(N) = O(H) \\quad \\text{
     keyTerms: [
       {
         term: "Lowest Common Ancestor (LCA)",
-        definition:
-          "The deepest node in a tree that has both target nodes p and q as descendants.",
+        definition: "The deepest node in a tree that has both target nodes p and q as descendants.",
       },
       {
         term: "Post-Order DFS",

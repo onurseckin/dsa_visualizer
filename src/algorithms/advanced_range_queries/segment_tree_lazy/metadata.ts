@@ -111,4 +111,3 @@ export const SEGMENT_TREE_LAZY_TRIVIA: TriviaMeta = {
     57: "Returns sum of left and right child query results.",
   },
 };
-

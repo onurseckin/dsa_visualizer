@@ -20,7 +20,6 @@ export const GROUPED_QUERY_ATTENTION_CODE = `def grouped_query_attention(
 ) -> dict:
     group_size = num_query_heads // num_kv_heads
     
-    # Map query head index -> shared KV head index
     head_mapping = {}
     for q_idx in range(num_query_heads):
         kv_idx = q_idx // group_size
@@ -113,6 +112,7 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
 
   const elements: ArrayElement[] = Array.from({ length: Q }, (_, idx) => ({
     id: `qhead-${idx}`,
+    label: `Q${idx}`,
     value: idx,
     state: "default",
   }));
@@ -136,8 +136,17 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
           const kvGroup = Math.floor(idx / groupSize);
           return {
             ...el,
-            state: idx === activeQHead ? "active" : idx < activeQHead ? "sorted" : "default",
-            pointers: [`KV-Group #${kvGroup}`],
+            state:
+              activeQHead === -1
+                ? "default"
+                : activeQHead === Q
+                  ? "sorted"
+                  : idx === activeQHead
+                    ? "active"
+                    : idx < activeQHead
+                      ? "sorted"
+                      : "default",
+            pointers: [`KV-${kvGroup}`],
           };
         }),
       },
@@ -161,7 +170,7 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
     "Initialize Grouped-Query Attention (GQA) Head Partitioning",
     `Configuring ${Q} Query heads into ${G} KV groups. Group size = ${Q}/${G} = ${groupSize} Query heads per KV head pair.`,
     -1,
-    { Q, G, groupSize, memoryReduction: `${memoryReduction}x` },
+    { num_query_heads: Q, num_kv_heads: G, seq_len: seqLen, head_dim: headDim },
   );
 
   addStep(
@@ -173,40 +182,45 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
   );
 
   addStep(
-    10,
-    `Initialize head_mapping = {}`,
-    `Empty dict to store the query-head → shared-KV-head index mapping for all ${Q} query heads.`,
+    9,
+    "Initialize head_mapping = {}",
+    `Empty dict to store the query-head -> shared-KV-head index mapping for all ${Q} query heads.`,
     -1,
-    { num_query_heads: Q },
+    { num_query_heads: Q, group_size: groupSize },
   );
 
   for (let q = 0; q < Q; q++) {
     const kvIdx = Math.floor(q / groupSize);
+
+    addStep(
+      11,
+      `Compute Shared KV Head Index for Query Head Q${q}`,
+      `kv_idx = ${q} // ${groupSize} = ${kvIdx}. Query head Q${q} maps to KV group #${kvIdx} (shared across Query heads Q${kvIdx * groupSize}..Q${(kvIdx + 1) * groupSize - 1}).`,
+      q,
+      { q_idx: q, kv_idx: kvIdx, group_size: groupSize },
+    );
+
     headMapping[q] = kvIdx;
 
     addStep(
       12,
-      `Mapped Query Head #${q} to Shared KV Head #${kvIdx}`,
-      `kv_idx = ${q} // ${groupSize} = ${kvIdx}. Query head Q${q} belongs to group #${kvIdx} (heads Q${kvIdx * groupSize}..Q${(kvIdx + 1) * groupSize - 1}). Shares Key/Value tensors in fast SRAM.`,
+      `Store Mapping: head_mapping[${q}] = ${kvIdx}`,
+      `Recorded Q${q} -> KV${kvIdx} in head_mapping. Query head Q${q} will share Key/Value cache tensors with KV head #${kvIdx}.`,
       q,
-      { qHead: q, sharedKvHead: kvIdx, groupSize },
+      { q_idx: q, kv_idx: kvIdx, head_mapping_size: Object.keys(headMapping).length },
     );
   }
 
-  elements.forEach((el) => {
-    el.state = "sorted";
-  });
-
   addStep(
-    15,
+    14,
     `Compute memory_compression = ${Q} / ${G} = ${memoryReduction}x`,
-    `GQA reduces KV-cache memory bandwidth by ${memoryReduction}x compared to Multi-Head Attention.`,
+    `GQA reduces KV-cache memory bandwidth by ${memoryReduction}x compared to Multi-Head Attention (MHA).`,
     Q,
     { num_query_heads: Q, num_kv_heads: G, kv_memory_reduction_factor: memoryReduction },
   );
 
   addStep(
-    17,
+    16,
     "Return GQA Head Mapping",
     `Successfully constructed GQA mapping. Reduced memory bandwidth for KV-cache by ${memoryReduction}x compared to MHA.`,
     Q,
@@ -219,12 +233,10 @@ export function generateGqaSteps(input: GqaInput): AlgorithmStep[] {
 export const groupedQueryAttention: AlgorithmDefinition<GqaInput> = {
   id: "grouped-query-attention",
   title: "Grouped-Query Attention (GQA)",
-  category: "ml_attention_geometry",
+  topicIds: ["ml_attention_geometry"],
   difficulty: "Medium",
   description:
     "Attention architecture variant that groups query heads into partitions sharing single Key and Value heads, striking an optimal trade-off between MHA quality and MQA KV-cache memory compression.",
-  isMlInfra: true,
-  mlInfraLevel: 7,
   constraints: [
     "Number of Query heads Q > 0",
     "Number of KV heads G > 0",

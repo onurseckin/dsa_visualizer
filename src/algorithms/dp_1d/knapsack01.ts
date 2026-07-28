@@ -275,8 +275,7 @@ const KNAPSACK_01_TRIVIA: TriviaMeta = {
 export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   id: "knapsack-01",
   title: "0/1 Knapsack Problem",
-  category: "dp_1d",
-  categories: ["dp_1d"],
+  topicIds: ["dp_1d"],
   difficulty: "Medium",
   description: `The **0/1 Knapsack Problem** is a foundational decision problem in combinatorial optimization and dynamic programming. Given $N$ items, each with weight $w_i$ and value $v_i$, alongside a total knapsack capacity $W$, select a subset of items to maximize total value without exceeding capacity $W$. Each item must either be included ($1$) or excluded ($0$) in full—fractional items are strictly forbidden.
 

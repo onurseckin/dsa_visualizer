@@ -8,9 +8,8 @@ import {
 describe("affineQuantizationSq8 algorithm definition", () => {
   it("has valid metadata and ML Infra markers", () => {
     expect(affineQuantizationSq8.id).toBe("affine-quantization-sq8");
-    expect(affineQuantizationSq8.category).toBe("ml_precision_quantization");
-    expect(affineQuantizationSq8.isMlInfra).toBe(true);
-    expect(affineQuantizationSq8.mlInfraLevel).toBe(3);
+    expect(affineQuantizationSq8.topicIds).toContain("ml_precision_quantization");
+    expect(affineQuantizationSq8.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
     expect(affineQuantizationSq8.sources?.[0].type).toBe("ml_infra");
   });
 

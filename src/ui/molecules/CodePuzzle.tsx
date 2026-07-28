@@ -84,8 +84,8 @@ export function CodePuzzle({
 
   return (
     <Card
-      style={{ borderColor: "var(--border-default)", minWidth: 0 }}
-      className="border border-[var(--border-default)] rounded-2xl p-0 bg-[var(--bg-inset)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed overflow-hidden flex flex-col"
+      style={{ borderColor: "var(--border-default)", minWidth: 0, height: "100%" }}
+      className="border border-[var(--border-default)] rounded-2xl p-0 bg-[var(--bg-inset)] shadow-lg hover:border-[var(--accent)] transition-all font-mono text-sm leading-relaxed overflow-hidden flex flex-col h-full min-h-0"
     >
       <div
         data-testid="code-puzzle-well"
@@ -94,6 +94,7 @@ export function CodePuzzle({
         onDrop={handleWellDrop}
         style={{
           minHeight: 0,
+          maxHeight: "100%",
           overflow: "auto",
           background: "var(--bg-inset)",
           borderTop: "2px solid transparent",

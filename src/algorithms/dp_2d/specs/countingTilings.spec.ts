@@ -9,7 +9,7 @@ import {
 describe("countingTilings algorithm logic spec", () => {
   it("has categories ['dp_2d'] and valid metadata", () => {
     expect(countingTilings.id).toBe("counting-tilings");
-    expect(countingTilings.categories).toEqual(["dp_2d"]);
+    expect(countingTilings.topicIds).toEqual(["dp_2d"]);
     expect(countingTilings.difficulty).toBe("Hard");
     expect(countingTilings.code).toContain("def count_tilings");
   });
@@ -18,7 +18,7 @@ describe("countingTilings algorithm logic spec", () => {
     const steps = generateCountingTilingsSteps(DEFAULT_COUNTING_TILINGS_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.primarySnapshot.kind).toBe("array");
+    expect(lastStep.primarySnapshot.kind).toBe("grid");
     expect(lastStep.variables.result).toBe(11);
   });
 

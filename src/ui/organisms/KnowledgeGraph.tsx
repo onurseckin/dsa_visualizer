@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TOPIC_ROADMAP_NODES } from "../../components/knowledge-graph/knowledgeGraphData";
+import { DSA_TREE_PLACEMENTS } from "../../components/knowledge-graph/knowledgeGraphData";
 import { KnowledgeGraphLegend } from "../../components/knowledge-graph/components/KnowledgeGraphLegend";
 import { KnowledgeGraphConnections } from "../../components/knowledge-graph/components/KnowledgeGraphConnections";
 import { KnowledgeGraphNode } from "../../components/knowledge-graph/components/KnowledgeGraphNode";
@@ -7,20 +7,20 @@ import { KnowledgeGraphNode } from "../../components/knowledge-graph/components/
 export type {
   TopicFamilyId,
   TopicFamily,
-  TopicRoadmapNode,
+  DsaCurriculumPlacement,
 } from "../../components/knowledge-graph/knowledgeGraphData";
 export {
   TOPIC_FAMILIES,
-  TOPIC_ROADMAP_NODES,
+  DSA_TREE_PLACEMENTS,
   topicFamilyColor,
   topicFamilyLabel,
 } from "../../components/knowledge-graph/knowledgeGraphData";
 
 interface KnowledgeGraphProps {
-  onSelectCategoryFolder: (folder: string) => void;
+  onSelectTopic: (topicId: string) => void;
 }
 
-export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategoryFolder }) => {
+export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectTopic }) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
   return (
@@ -39,12 +39,12 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectCategory
         >
           <KnowledgeGraphConnections hoveredNodeId={hoveredNodeId} />
 
-          {TOPIC_ROADMAP_NODES.map((node) => (
+          {DSA_TREE_PLACEMENTS.map((node) => (
             <KnowledgeGraphNode
               key={node.id}
               node={node}
               hoveredNodeId={hoveredNodeId}
-              onSelectCategoryFolder={onSelectCategoryFolder}
+              onSelectTopic={onSelectTopic}
               onHover={setHoveredNodeId}
             />
           ))}

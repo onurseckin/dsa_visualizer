@@ -30,7 +30,7 @@ describe("intervalScheduling logic spec", () => {
 
   it("verifies algorithm definition metadata and complete lineExplanations mapping", () => {
     expect(intervalScheduling.id).toBe("interval-scheduling");
-    expect(intervalScheduling.category).toBe("greedy_algorithms");
+    expect(intervalScheduling.topicIds).toContain("greedy_algorithms");
     expect(intervalScheduling.difficulty).toBe("Medium");
     expect(intervalScheduling.code).toContain("def interval_scheduling");
 
@@ -44,7 +44,11 @@ describe("intervalScheduling logic spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(intervalScheduling.examples).toHaveLength(3);
-    expect(intervalScheduling.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(intervalScheduling.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
 
     for (const example of intervalScheduling.examples!) {
       const steps = intervalScheduling.generateSteps(

@@ -10,9 +10,8 @@ import type { TreeVisualSnapshot } from "../../../types/dsa";
 describe("triePrefixTreeSearch algorithm spec", () => {
   it("should have correct ML Infra Level 5 metadata", () => {
     expect(triePrefixTreeSearch.id).toBe("trie-prefix-tree-search");
-    expect(triePrefixTreeSearch.isMlInfra).toBe(true);
-    expect(triePrefixTreeSearch.mlInfraLevel).toBe(5);
-    expect(triePrefixTreeSearch.category).toBe("ml_tokenization");
+    expect(triePrefixTreeSearch.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(triePrefixTreeSearch.topicIds).toContain("ml_tokenization");
     expect(triePrefixTreeSearch.defaultInput).toEqual(DEFAULT_TRIE_PREFIX_TREE_SEARCH_INPUT);
     expect(triePrefixTreeSearch.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

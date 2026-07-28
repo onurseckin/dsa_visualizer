@@ -8,7 +8,7 @@ import {
 describe("numberOfIslands algorithm logic spec", () => {
   it("generates valid steps for default input", () => {
     expect(numberOfIslands.id).toBe("number-of-islands");
-    expect(numberOfIslands.category).toBe("graph_traversal");
+    expect(numberOfIslands.topicIds).toContain("graph_traversal");
     const steps = generateNumberOfIslandsSteps(DEFAULT_NUMBER_OF_ISLANDS_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
 
@@ -75,7 +75,7 @@ describe("numberOfIslands algorithm logic spec", () => {
 
   it("has proper algorithm definition metadata", () => {
     expect(numberOfIslands.id).toBe("number-of-islands");
-    expect(numberOfIslands.category).toBe("graph_traversal");
+    expect(numberOfIslands.topicIds).toContain("graph_traversal");
     expect(numberOfIslands.difficulty).toBe("Medium");
   });
 });

@@ -9,10 +9,11 @@ import {
 describe("grouped-query-attention-gqa-engine (Grouped-Query Attention (GQA) Engine)", () => {
   it("should have correct metadata", () => {
     expect(groupedQueryAttentionGqaEngine.id).toBe("grouped-query-attention-gqa-engine");
-    expect(groupedQueryAttentionGqaEngine.isMlInfra).toBe(true);
-    expect(groupedQueryAttentionGqaEngine.mlInfraLevel).toBe(7);
-    expect(groupedQueryAttentionGqaEngine.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(groupedQueryAttentionGqaEngine.categories).toContain("ml_attention_geometry");
+    expect(
+      groupedQueryAttentionGqaEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(groupedQueryAttentionGqaEngine.topicIds).toContain("ml_attention_geometry");
+    expect(groupedQueryAttentionGqaEngine.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
@@ -20,9 +21,7 @@ describe("grouped-query-attention-gqa-engine (Grouped-Query Attention (GQA) Engi
       DEFAULT_GROUPEDQUERYATTENTIONGQAENGINE_INPUT,
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    expect(steps[0].explanation.what).toContain(
-      "Initialize Grouped-Query Attention (GQA) Engine",
-    );
+    expect(steps[0].explanation.what).toContain("Initialize Grouped-Query Attention (GQA) Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
 
     steps.forEach((step) => {

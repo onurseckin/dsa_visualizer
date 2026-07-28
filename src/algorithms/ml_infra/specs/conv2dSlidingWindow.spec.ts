@@ -10,9 +10,8 @@ import type { GridVisualSnapshot } from "../../../types/dsa";
 describe("conv2dSlidingWindow algorithm spec", () => {
   it("should have correct ML Infra Level 6 metadata", () => {
     expect(conv2dSlidingWindow.id).toBe("conv2d-sliding-window");
-    expect(conv2dSlidingWindow.isMlInfra).toBe(true);
-    expect(conv2dSlidingWindow.mlInfraLevel).toBe(6);
-    expect(conv2dSlidingWindow.category).toBe("ml_convolutions");
+    expect(conv2dSlidingWindow.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(conv2dSlidingWindow.topicIds).toContain("ml_convolutions");
     expect(conv2dSlidingWindow.defaultInput).toEqual(DEFAULT_CONV2D_SLIDING_WINDOW_INPUT);
     expect(conv2dSlidingWindow.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

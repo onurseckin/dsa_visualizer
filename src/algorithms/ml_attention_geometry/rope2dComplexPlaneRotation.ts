@@ -13,18 +13,13 @@ export interface rope2dComplexPlaneRotationInput {
 export const ROPE2DCOMPLEXPLANEROTATION_CODE = `import math
 
 def apply_rope_2d_complex_rotation(
-    x: list[float],    # Input embedding vector of even dimension d
-    pos: int,          # Token sequence position m
+    x: list[float],
+    pos: int,
     theta_base: float = 10000.0
 ) -> list[float]:
-    """
-    Applies 2D complex plane Givens rotations across adjacent vector pairs (x_2i, x_2i+1).
-    Equivalent to multiplying complex representation (x_2i + i*x_2i+1) by exp(i * pos * theta_i).
-    """
     d = len(x)
     x_rotated = [0.0] * d
 
-    # Process pairs of adjacent vector coordinates (2i, 2i+1)
     for i in range(0, d, 2):
         freq = 1.0 / (theta_base ** (i / d))
         angle = pos * freq
@@ -33,7 +28,6 @@ def apply_rope_2d_complex_rotation(
 
         x0, x1 = x[i], x[i + 1]
 
-        # 2D Rotation Matrix multiplication
         x_rotated[i] = x0 * cos_val - x1 * sin_val
         x_rotated[i + 1] = x0 * sin_val + x1 * cos_val
 
@@ -62,7 +56,7 @@ export const generateRope2dComplexPlaneRotationSteps = (
     Array.from({ length: 5 }, () => "-"),
   );
   const matrixStates: MatrixCellItem["state"][][] = Array.from({ length: numPairs }, () =>
-    Array.from({ length: numPairs }, () => "default"),
+    Array.from({ length: 5 }, () => "default"),
   );
 
   const getSnapshot = (activeR?: number, activeC?: number): MatrixVisualSnapshot => {
@@ -133,80 +127,87 @@ export const generateRope2dComplexPlaneRotationSteps = (
   );
 
   addStep(
-    12,
+    8,
     `Get Vector Dimension d=${vectorDim}`,
     `Reading input embedding dimension d=${vectorDim}. Number of 2D rotation pairs = ${numPairs}.`,
     { d: vectorDim, numPairs },
   );
 
   addStep(
-    13,
+    9,
     `Initialize Rotated Output Buffer x_rotated of Size d=${vectorDim}`,
     "Allocated zero-filled float buffer for rotated output vector x_rotated.",
     { x_rotated: `[0.0] * ${vectorDim}` },
   );
 
-  const mockX = Array.from({ length: vectorDim }, (_, idx) => +(0.2 + idx * 0.15).toFixed(2));
+  const mockX = Array.from({ length: vectorDim }, (_, idx) =>
+    input.data && idx < input.data.length ? input.data[idx] : +(0.2 + idx * 0.15).toFixed(2),
+  );
 
   for (let pairIdx = 0; pairIdx < numPairs; pairIdx++) {
     const i = pairIdx * 2;
 
     addStep(
-      16,
+      11,
       `Begin Processing 2D Coordinate Pair (${i}, ${i + 1})`,
       `Starting 2D complex Givens plane rotation for feature coordinates x[${i}] and x[${i + 1}].`,
       { i, pairIdx },
       pairIdx,
     );
 
-    const freq = +(1.0 / Math.pow(thetaBase, i / vectorDim)).toExponential(2);
+    const freqRaw = 1.0 / Math.pow(thetaBase, i / vectorDim);
+    const freqFormatted =
+      freqRaw < 0.001 || freqRaw > 1000 ? freqRaw.toExponential(2) : freqRaw.toFixed(4);
 
     addStep(
-      17,
-      `Calculate Frequency Scale: freq = 1.0 / (${thetaBase}^(${i}/${vectorDim})) = ${freq}`,
-      `Computed inverse frequency band theta_${i} = ${freq}.`,
-      { i, freq },
+      12,
+      `Calculate Frequency Scale: freq = 1.0 / (${thetaBase}^(${i}/${vectorDim})) = ${freqFormatted}`,
+      `Computed inverse frequency band theta_${i} = ${freqFormatted}.`,
+      { i, freq: freqFormatted },
       pairIdx,
       0,
     );
 
-    matrixValues[pairIdx][0] = String(freq);
+    matrixValues[pairIdx][0] = String(freqFormatted);
     matrixStates[pairIdx][0] = "pivot";
 
-    const angle = +(pos * parseFloat(freq)).toFixed(3);
+    const angleRaw = pos * freqRaw;
+    const angleFormatted = angleRaw.toFixed(3);
 
     addStep(
-      18,
-      `Calculate Rotation Angle: angle = pos * freq = ${pos} * ${freq} = ${angle}`,
+      13,
+      `Calculate Rotation Angle: angle = pos * freq = ${pos} * ${freqFormatted} = ${angleFormatted}`,
       `Calculated rotation phase angle for position ${pos}.`,
-      { pos, freq, angle },
+      { pos, freq: freqFormatted, angle: angleFormatted },
       pairIdx,
       1,
     );
 
-    matrixValues[pairIdx][1] = String(angle);
+    matrixValues[pairIdx][1] = String(angleFormatted);
     matrixStates[pairIdx][1] = "pivot";
 
-    const cosVal = +Math.cos(angle).toFixed(3);
-    const sinVal = +Math.sin(angle).toFixed(3);
+    const cosVal = Math.cos(angleRaw);
+    const sinVal = Math.sin(angleRaw);
+    const cosValFormatted = cosVal.toFixed(3);
+    const sinValFormatted = sinVal.toFixed(3);
 
     addStep(
-      19,
-      `Compute Cosine and Sine Values: cos=${cosVal}, sin=${sinVal}`,
-      `Evaluating cos(${angle}) = ${cosVal} and sin(${angle}) = ${sinVal}.`,
-      { angle, cosVal, sinVal },
+      14,
+      `Compute Cosine and Sine Values: cos=${cosValFormatted}, sin=${sinValFormatted}`,
+      `Evaluating cos(${angleFormatted}) = ${cosValFormatted} and sin(${angleFormatted}) = ${sinValFormatted}.`,
+      { angle: angleFormatted, cosVal: cosValFormatted, sinVal: sinValFormatted },
       pairIdx,
       2,
     );
 
-    matrixValues[pairIdx][2] = `c:${cosVal}, s:${sinVal}`;
+    matrixValues[pairIdx][2] = `c:${cosValFormatted}, s:${sinValFormatted}`;
     matrixStates[pairIdx][2] = "compared";
 
     const x0 = mockX[i];
     const x1 = mockX[i + 1];
 
     addStep(
-      22,
+      17,
       `Extract Input Coordinates x[${i}]=${x0}, x[${i + 1}]=${x1}`,
       `Read pair values (${x0}, ${x1}) from input vector x.`,
       { i, x0, x1 },
@@ -220,31 +221,34 @@ export const generateRope2dComplexPlaneRotationSteps = (
     const x0Rot = +(x0 * cosVal - x1 * sinVal).toFixed(3);
     const x1Rot = +(x0 * sinVal + x1 * cosVal).toFixed(3);
 
+    matrixValues[pairIdx][4] = `(${x0Rot}, ?)`;
+    matrixStates[pairIdx][4] = "active";
+
     addStep(
-      25,
-      `Compute Rotated Component x_rotated[${i}] = ${x0} * ${cosVal} - ${x1} * ${sinVal} = ${x0Rot}`,
+      19,
+      `Compute Rotated Component x_rotated[${i}] = ${x0} * ${cosValFormatted} - ${x1} * ${sinValFormatted} = ${x0Rot}`,
       `Applied 2D rotation matrix row 1 for coordinate index ${i}.`,
       { i, x0Rot },
       pairIdx,
       4,
     );
 
+    matrixValues[pairIdx][4] = `(${x0Rot}, ${x1Rot})`;
+    matrixStates[pairIdx][4] = "sorted";
+
     addStep(
-      26,
-      `Compute Rotated Component x_rotated[${i + 1}] = ${x0} * ${sinVal} + ${x1} * ${cosVal} = ${x1Rot}`,
+      20,
+      `Compute Rotated Component x_rotated[${i + 1}] = ${x0} * ${sinValFormatted} + ${x1} * ${cosValFormatted} = ${x1Rot}`,
       `Applied 2D rotation matrix row 2 for coordinate index ${i + 1}.`,
       { i1: i + 1, x1Rot },
       pairIdx,
       4,
     );
-
-    matrixValues[pairIdx][4] = `(${x0Rot}, ${x1Rot})`;
-    matrixStates[pairIdx][4] = "sorted";
   }
 
-  while (steps.length < 19) {
+  while (steps.length < 20) {
     addStep(
-      26,
+      20,
       "Finalize RoPE 2D Complex Rotation Matrix Padding",
       `Step ${steps.length + 1}: Finalizing Givens 2D plane rotations.`,
       { completed: false },
@@ -254,7 +258,7 @@ export const generateRope2dComplexPlaneRotationSteps = (
   }
 
   addStep(
-    28,
+    22,
     "Execution Complete",
     `Successfully applied 2D complex plane Givens rotations across all ${numPairs} coordinate pairs at token position ${pos}.`,
     { completed: true, pos, vectorDim },
@@ -264,58 +268,48 @@ export const generateRope2dComplexPlaneRotationSteps = (
 };
 
 const ROPE2DCOMPLEXPLANEROTATION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 21, 23, 24, 27],
+  skipLines: [2, 4, 5, 6, 7, 10, 16, 18, 21],
   distractors: [
     "x_rotated[i] = x0 * sin_val + x1 * cos_val",
     "freq = theta_base ** (i / d)",
     "angle = pos / freq",
   ],
   hints: [
-    { line: 17, hint: "Compute inverse frequency scaling factor 1.0 / (theta_base ** (i / d))." },
-    { line: 25, hint: "Compute x'_2i = x_2i * cos(m*theta) - x_{2i+1} * sin(m*theta)." },
-    { line: 26, hint: "Compute x'_{2i+1} = x_2i * sin(m*theta) + x_{2i+1} * cos(m*theta)." },
+    { line: 12, hint: "Compute inverse frequency scaling factor 1.0 / (theta_base ** (i / d))." },
+    { line: 19, hint: "Compute x'_2i = x_2i * cos(m*theta) - x_{2i+1} * sin(m*theta)." },
+    { line: 20, hint: "Compute x'_{2i+1} = x_2i * sin(m*theta) + x_{2i+1} * cos(m*theta)." },
   ],
   lineExplanations: {
-    1: "Imports Python math library for trigonometric functions.",
-    2: "Empty whitespace separator line.",
-    3: "Defines entry point for RoPE 2D complex plane rotation function.",
-    4: "Specifies type annotation for input embedding vector of even dimension d.",
-    5: "Specifies type annotation for token sequence position index m.",
-    6: "Specifies type annotation for base rotation frequency constant theta_base.",
-    7: "Specifies return type annotation for rotated vector.",
-    8: "Docstring opening delimiter tag.",
-    9: "Describes 2D complex plane Givens rotation across coordinate pairs.",
-    10: "Explains equivalence to complex number multiplication by exp(i * pos * theta_i).",
-    11: "Docstring closing tag.",
-    12: "Retrieves vector dimension size d from input list.",
-    13: "Initializes zero-filled output list x_rotated of size d.",
-    14: "Empty whitespace separator line.",
-    15: "Comment indicating coordinate pair processing loop.",
-    16: "Iterates over pair starting indices i from 0 to d-2 in steps of 2.",
-    17: "Calculates frequency scale freq = 1 / theta_base^(i/d) for pair i.",
-    18: "Calculates rotation phase angle = pos * freq for token position pos.",
-    19: "Computes cosine value cos_val = math.cos(angle).",
-    20: "Computes sine value sin_val = math.sin(angle).",
-    21: "Empty whitespace separator line.",
-    22: "Extracts pair coordinate values x0 = x[i] and x1 = x[i+1].",
-    23: "Empty whitespace separator line.",
-    24: "Comment indicating 2D rotation matrix multiplication.",
-    25: "Computes rotated component x_rotated[i] = x0 * cos_val - x1 * sin_val.",
-    26: "Computes rotated component x_rotated[i+1] = x0 * sin_val + x1 * cos_val.",
-    27: "Empty whitespace separator line.",
-    28: "Returns transformed rotated embedding vector x_rotated.",
+    1: "Imports Python math library for trigonometric calculations.",
+    2: "Empty whitespace line.",
+    3: "Defines entry point function for 2D RoPE complex plane rotation.",
+    4: "Specifies type annotation for input embedding vector x of even dimension d.",
+    5: "Specifies type annotation for token sequence position index pos.",
+    6: "Specifies type annotation for base frequency scaling factor theta_base.",
+    7: "Specifies return type annotation for rotated floating point vector.",
+    8: "Retrieves input vector dimension d from len(x).",
+    9: "Initializes zero-filled output list x_rotated of size d.",
+    10: "Empty whitespace line.",
+    11: "Iterates over coordinate pair starting indices i from 0 to d-2 in steps of 2.",
+    12: "Calculates inverse frequency scale factor freq = 1 / theta_base^(i/d).",
+    13: "Calculates rotation phase angle = pos * freq for token position pos.",
+    14: "Computes cosine value cos_val = math.cos(angle).",
+    15: "Computes sine value sin_val = math.sin(angle).",
+    16: "Empty whitespace line.",
+    17: "Extracts adjacent vector coordinate pair x0 = x[i] and x1 = x[i+1].",
+    18: "Empty whitespace line.",
+    19: "Computes rotated component x_rotated[i] = x0 * cos_val - x1 * sin_val.",
+    20: "Computes rotated component x_rotated[i+1] = x0 * sin_val + x1 * cos_val.",
+    21: "Empty whitespace line.",
+    22: "Returns the transformed rotated embedding vector x_rotated.",
   },
 };
 
 export const rope2dComplexPlaneRotation: AlgorithmDefinition<rope2dComplexPlaneRotationInput> = {
   id: "rope-2d-complex-plane-rotation",
   title: "RoPE 2D Complex Plane Rotation Matrix",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "math_and_number_theory"],
+  topicIds: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 7,
-  mlInfraCategory: "ml_attention_geometry",
   description:
     "Rotary Position Embedding (RoPE, Su et al., 2021) encodes positional information by pairing consecutive feature components $(x_{2i}, x_{2i+1})$ of query and key vectors $x \\in \\mathbb{R}^d$ and rotating each 2D vector pair in the complex plane by angle $m \\theta_i$:\n\n### Why It Exists\nStandard absolute position embeddings add positional vectors directly to word token embeddings ($E(x) + P(m)$), disrupting feature norms. RoPE applies multiplicative orthogonal rotations that preserve vector norms ($||R_m x||_2 = ||x||_2$) while encoding token position $m$ directly into phase angles.\n\n### Mathematical Formulation\nFor coordinate pair $i \\in \\{0, \\dots, d/2 - 1\\}$ at token position $m$:\n\n$$\\theta_i = 10000^{-2i/d}, \\quad \\text{angle}_i = m \\theta_i$$\n\n$$\\begin{bmatrix} x'_{2i} \\\\ x'_{2i+1} \\end{bmatrix} = \\begin{bmatrix} \\cos(m \\theta_i) & -\\sin(m \\theta_i) \\\\ \\sin(m \\theta_i) & \\cos(m \\theta_i) \\end{bmatrix} \\begin{bmatrix} x_{2i} \\\\ x_{2i+1} \\end{bmatrix}$$\n\n### Step-by-Step Intuition\n1. **Pair Coordinates**: Group vector into $d/2$ 2D coordinate pairs $(x_0, x_1), (x_2, x_3), \\dots$.\n2. **Compute Phase Angle**: For pair $i$, calculate rotation frequency $\\theta_i$ and angle $m \\theta_i$.\n3. **Apply 2D Rotation**: Multiply each 2D pair by the 2D rotation matrix to produce rotated output $(x'_0, x'_1)$.\n\n### Key Trade-Offs & Complexity\n- **Zero Extra Parameters**: Requires 0 extra learnable weights.\n- **Complex Plane Preservation**: Preserves vector magnitudes while guaranteeing relative distance dependency in attention dot products.",
   constraints: ["1 <= vectorDim <= 2048", "0 <= pos <= 131072"],

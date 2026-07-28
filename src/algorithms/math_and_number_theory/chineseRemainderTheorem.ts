@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ChineseRemainderInput {
@@ -8,10 +13,6 @@ export interface ChineseRemainderInput {
 
 export const PYTHON_CHINESE_REMAINDER_CODE = `
 def chinese_remainder(num: list[int], rem: list[int]) -> int:
-    """
-    Solves a system of linear congruences x = rem[i] (mod num[i])
-    for pairwise coprime moduli num[i].
-    """
     prod = 1
     for n in num:
         prod *= n
@@ -83,7 +84,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
       rows: k,
       cols: 5,
       cells,
-      rowHeaders: num.map((m, idx) => `Eq #${idx + 1}`),
+      rowHeaders: num.map((_, idx) => `Eq #${idx + 1}`),
       colHeaders: ["m_i", "r_i", "M_i = M/m_i", "M_i^-1 mod m_i", "Term_i"],
       title: "CRT Congruence System Matrix",
     };
@@ -118,7 +119,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
   let prod = 1;
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 3,
     explanation: {
       what: "Initializing total product of moduli M = 1.",
       why: "Master modulus M = prod(m_i) bounds the unique solution range.",
@@ -135,7 +136,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
     prod *= num[i];
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 9,
+      codeLine: 5,
       explanation: {
         what: `Multiplying modulus m_${i + 1} = ${num[i]}: M = ${prevProd} * ${num[i]} = ${prod}.`,
         why: "Accumulate total modulus product for all pairwise coprime moduli.",
@@ -155,7 +156,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
   let result = 0;
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 7,
     explanation: {
       what: `Master modulus M = ${prod}. Initializing running sum result = 0.`,
       why: "We will now evaluate the basis contribution for each congruence equation.",
@@ -177,7 +178,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 13,
+      codeLine: 9,
       explanation: {
         what: `Equation #${i + 1}: x ≡ ${ri} (mod ${ni}). Partial product M_${i + 1} = M / m_${i + 1} = ${prod} / ${ni} = ${p}.`,
         why: `M_${i + 1} = ${p} is divisible by all other moduli except m_${i + 1} (${ni}).`,
@@ -199,7 +200,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 14,
+      codeLine: 10,
       explanation: {
         what: `Modular inverse of M_${i + 1} = ${p} modulo ${ni} is ${inv} (${p} * ${inv} ≡ 1 mod ${ni}).`,
         why: "By Fermat's Little Theorem, M_i^(-1) ≡ M_i^(m_i - 2) (mod m_i).",
@@ -223,7 +224,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 15,
+      codeLine: 11,
       explanation: {
         what: `Basis term for Eq #${i + 1}: r_i * M_i * inv = ${ri} * ${p} * ${inv} = ${term}. Add to result: ${prevResult} + ${term} = ${result}.`,
         why: `Term ${term} evaluates to ${ri} modulo ${ni} and 0 modulo all other moduli.`,
@@ -245,7 +246,7 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 17,
+    codeLine: 13,
     explanation: {
       what: `Final answer x = ${result} % ${prod} = ${finalAns}.`,
       why: "The minimum non-negative integer solution satisfying all linear congruences.",
@@ -315,30 +316,25 @@ export const CHINESE_REMAINDER_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Empty leading line for code formatting.",
     2: "Defines chinese_remainder function signature taking arrays num ($m_i$) and rem ($r_i$).",
-    3: "Opening docstring tag.",
-    4: "Docstring describing system of linear congruences.",
-    5: "Docstring detailing pairwise coprime moduli condition.",
-    6: "Closing docstring tag.",
-    7: "Initializes total moduli product accumulator prod = 1.",
-    8: "Loops over moduli in num array.",
-    9: "Multiplies each modulus n into total product prod.",
-    10: "Empty line separating product initialization from solution loop.",
-    11: "Initializes running solution sum accumulator result = 0.",
-    12: "Loops over corresponding (n_i, r_i) pairs in num and rem.",
-    13: "Computes partial product p = prod // n_i.",
-    14: "Computes modular inverse inv = pow(p, n_i - 2, n_i) assuming n_i is prime.",
-    15: "Adds basis term r_i * p * inv to running solution result.",
-    16: "Empty line separating calculation loop from final return.",
-    17: "Returns result % prod, the unique solution modulo total master product.",
-    18: "Empty trailing line for code formatting.",
+    3: "Initializes total moduli product accumulator prod = 1.",
+    4: "Loops over moduli in num array.",
+    5: "Multiplies each modulus n into total product prod.",
+    6: "Empty line separating product initialization from solution loop.",
+    7: "Initializes running solution sum accumulator result = 0.",
+    8: "Loops over corresponding (n_i, r_i) pairs in num and rem.",
+    9: "Computes partial product p = prod // n_i.",
+    10: "Computes modular inverse inv = pow(p, n_i - 2, n_i) assuming n_i is prime.",
+    11: "Adds basis term r_i * p * inv to running solution result.",
+    12: "Empty line separating calculation loop from final return.",
+    13: "Returns result % prod, the unique solution modulo total master product.",
+    14: "Empty trailing line for code formatting.",
   },
 };
 
 export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput> = {
   id: "chinese-remainder-theorem",
   title: "Chinese Remainder Theorem",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Hard",
   description:
     "Solves a system of simultaneous linear congruences $x \\equiv r_i \\pmod{m_i}$ for pairwise coprime moduli $m_i$.\n\n$$x = \\sum_{i=1}^k r_i \\cdot M_i \\cdot \\left(M_i^{-1} \\bmod m_i\\right) \\pmod M$$\nwhere $M = \\prod m_i$ and $M_i = \\frac{M}{m_i}$.\n\n### State Matrix Representation\nThe system solution is tracked via a matrix $\\mathbf{M} \\in \\mathbb{Z}^{k \\times 5}$ recording $(m_i, r_i, M_i, M_i^{-1}, \\text{Term}_i)$ for each congruence $i$.\n\n### Input Parameters\n- `num` (`list[int]`): Array of pairwise coprime moduli $[m_1, m_2, \\dots, m_k]$.\n- `rem` (`list[int]`): Array of remainders $[r_1, r_2, \\dots, r_k]$.\n\n### Output\n- `int`: The minimal unique non-negative integer solution $x \\bmod M$.\n\n### Edge Cases & Constraints\n- All zero remainders: Returns 0.\n- Single congruence: Returns $r_1 \\bmod m_1$.",
@@ -397,4 +393,3 @@ export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput>
   defaultInput: DEFAULT_CHINESE_REMAINDER_INPUT,
   generateSteps: generateChineseRemainderSteps,
 };
-

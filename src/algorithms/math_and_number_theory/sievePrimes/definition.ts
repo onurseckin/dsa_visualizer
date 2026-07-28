@@ -84,8 +84,7 @@ const SIEVE_PRIMES_TRIVIA: TriviaMeta = {
 export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   id: "sieve-primes",
   title: "Sieve of Eratosthenes",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit $n$. Instead of testing numbers individually via trial division in $O(n \\sqrt{n})$ time, it crosses out multiples of each discovered prime $p$ starting from $p^2$, leaving only primes standing in nearly linear time:\n\n$$\\sum_{p \\le \\sqrt{n}} \\frac{n}{p} = \\mathcal{O}(n \\log \\log n)$$\n\n### Primality State Vector\nThe primality status is recorded in state vector $\\mathbf{v} \\in \\{0, 1\\}^{n+1}$ where $\\mathbf{v}[i] = 1$ indicates $i$ is prime and $\\mathbf{v}[i] = 0$ indicates $i$ is composite.\n\n### Input Parameters\n- `limit` ($n \\in \\mathbb{Z}_{\\ge 0}$): Upper bound inclusive limit.\n\n### Output\n- `list[int]`: List of all prime numbers $p \\le n$.\n\n### Edge Cases & Constraints\n- `limit < 2`: Returns empty list `[]`.\n- Large `limit`: Memory scales linearly with limit $\\mathcal{O}(n)$.",
@@ -156,4 +155,3 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
 };
 
 export default sievePrimes;
-

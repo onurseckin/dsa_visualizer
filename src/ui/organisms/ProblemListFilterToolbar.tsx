@@ -1,9 +1,9 @@
 import React from "react";
 import { Search } from "lucide-react";
-import { CategoryType } from "../../types/dsa";
+import { TopicId } from "../../types/dsa";
 import { Button, Input, Select } from "../index";
 import {
-  CATEGORY_ENTRIES,
+  TOPIC_ENTRIES,
   ProblemListDifficulty,
   ProblemListSource,
 } from "../../components/problem-list/problemListUtils";
@@ -11,8 +11,8 @@ import {
 interface ProblemListFilterToolbarProps {
   searchTerm: string;
   onSearchTermChange: (term: string) => void;
-  selectedCategory: CategoryType | "All";
-  onCategorySelect: (category: CategoryType | "All") => void;
+  selectedTopic: TopicId | "All";
+  onTopicSelect: (topic: TopicId | "All") => void;
   selectedDifficulty: ProblemListDifficulty;
   onDifficultySelect: (difficulty: ProblemListDifficulty) => void;
   selectedSource?: ProblemListSource;
@@ -24,8 +24,8 @@ interface ProblemListFilterToolbarProps {
 export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> = ({
   searchTerm,
   onSearchTermChange,
-  selectedCategory,
-  onCategorySelect,
+  selectedTopic,
+  onTopicSelect,
   selectedDifficulty,
   onDifficultySelect,
   selectedSource = "All",
@@ -43,23 +43,23 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           onChange={(e) => onSearchTermChange(e.target.value)}
           onClear={() => onSearchTermChange("")}
           leadingIcon={<Search className="text-[var(--text-muted)]" size={18} />}
-          placeholder="Search problems by title, category, description..."
+          placeholder="Search problems by title, topic, description..."
           aria-label="Filter problems"
         />
       </div>
 
       <div className="min-w-[180px] flex items-center gap-2">
         <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}>
-          Category:
+          Topic:
         </label>
         <Select
-          value={selectedCategory}
-          onChange={(e) => onCategorySelect(e.target.value as CategoryType | "All")}
-          aria-label="Filter by Category"
+          value={selectedTopic}
+          onChange={(e) => onTopicSelect(e.target.value as TopicId | "All")}
+          aria-label="Filter by topic"
         >
-          <option value="All">All Categories ({stats.total})</option>
-          {CATEGORY_ENTRIES.map(([catKey, label]) => (
-            <option key={catKey} value={catKey}>
+          <option value="All">All Topics ({stats.total})</option>
+          {TOPIC_ENTRIES.map(([topicId, label]) => (
+            <option key={topicId} value={topicId}>
               {label}
             </option>
           ))}

@@ -10,15 +10,20 @@ describe("speculative-decoding-residual-distribution-recoverer (Speculative Deco
     expect(speculativeDecodingResidualDistributionRecoverer.id).toBe(
       "speculative-decoding-residual-distribution-recoverer",
     );
-    expect(speculativeDecodingResidualDistributionRecoverer.isMlInfra).toBe(true);
-    expect(speculativeDecodingResidualDistributionRecoverer.mlInfraLevel).toBe(12);
-    expect(speculativeDecodingResidualDistributionRecoverer.mlInfraCategory).toBe("ml_llm_serving");
-    expect(speculativeDecodingResidualDistributionRecoverer.categories).toContain("ml_llm_serving");
+    expect(
+      speculativeDecodingResidualDistributionRecoverer.topicIds.some((topicId) =>
+        topicId.startsWith("ml_"),
+      ),
+    ).toBe(true);
+    expect(speculativeDecodingResidualDistributionRecoverer.topicIds).toContain("ml_llm_serving");
+    expect(speculativeDecodingResidualDistributionRecoverer.topicIds).toContain("ml_llm_serving");
     expect(speculativeDecodingResidualDistributionRecoverer.defaultInput).toEqual(
       DEFAULT_SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_INPUT,
     );
 
-    const codeLines = speculativeDecodingResidualDistributionRecoverer.code.trim().split("\n").length;
+    const codeLines = speculativeDecodingResidualDistributionRecoverer.code
+      .trim()
+      .split("\n").length;
     const explanationKeys = Object.keys(
       speculativeDecodingResidualDistributionRecoverer.trivia?.lineExplanations || {},
     ).map(Number);
@@ -36,6 +41,6 @@ describe("speculative-decoding-residual-distribution-recoverer (Speculative Deco
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(15);
+    expect(steps[steps.length - 1].codeLine).toBe(11);
   });
 });

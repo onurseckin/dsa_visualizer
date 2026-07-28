@@ -12,11 +12,6 @@ export interface flashDecodingSplitKSequenceParallelInput {
 }
 
 export const FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE = `def flash_decoding_split_k(q_vec: list[float], k_tiles: list[list[list[float]]], v_tiles: list[list[list[float]]], scale: float) -> list[float]:
-    """
-    Simulates Flash-Decoding split-K sequence parallel attention forward pass.
-    Partitions long KV sequence into S sub-blocks, computes local max m_s and LSE l_s,
-    then combines partial outputs O_s via global log-sum-exp rescaling.
-    """
     import math
 
     num_splits = len(k_tiles)
@@ -24,7 +19,6 @@ export const FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE = `def flash_decoding_spli
     partial_maxes = []
     partial_lses = []
 
-    # Phase 1: Parallel Split-K Computation across KV chunks
     for s in range(num_splits):
         k_chunk = k_tiles[s]
         v_chunk = v_tiles[s]
@@ -33,7 +27,6 @@ export const FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE = `def flash_decoding_spli
         exp_scores = [math.exp(sc - m_s) for sc in scores]
         l_s = sum(exp_scores)
 
-        # Weighted partial output vector O_s
         dim = len(v_chunk[0])
         o_s = [0.0] * dim
         for w, v_vec in zip(exp_scores, v_chunk):
@@ -44,7 +37,6 @@ export const FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE = `def flash_decoding_spli
         partial_maxes.append(m_s)
         partial_lses.append(l_s)
 
-    # Phase 2: Global Rescaling Reduction across Split-K blocks
     global_max = max(partial_maxes)
     global_lse = sum(l_s * math.exp(m_s - global_max) for m_s, l_s in zip(partial_maxes, partial_lses))
 
@@ -62,7 +54,7 @@ export const DEFAULT_FLASHDECODINGSPLITKSEQUENCEPARALLEL_INPUT: flashDecodingSpl
     qVec: [0.5, 0.8],
     numSplits: 4,
     tokensPerSplit: 2,
-    scale: 0.707,
+    scale: Math.SQRT1_2,
     data: [10, 20, 30, 40, 50],
     target: 30,
   };
@@ -73,8 +65,28 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const numSplits = Math.max(input.numSplits ?? 4, 4);
-  const dim = 2;
+  const qVec = input.qVec ?? [0.5, 0.8];
+  const numSplits = Math.max(input.numSplits ?? 4, 1);
+  const tokensPerSplit = Math.max(input.tokensPerSplit ?? 2, 1);
+  const scale = input.scale ?? Math.SQRT1_2;
+  const dim = qVec.length;
+
+  // Generate deterministic K and V tiles for simulation
+  const kTiles: number[][][] = [];
+  const vTiles: number[][][] = [];
+  for (let s = 0; s < numSplits; s++) {
+    const kChunk: number[][] = [];
+    const vChunk: number[][] = [];
+    for (let t = 0; t < tokensPerSplit; t++) {
+      kChunk.push([
+        +(0.5 + s * 0.1 + t * 0.05).toFixed(3),
+        +(0.4 + s * 0.05 + t * 0.08).toFixed(3),
+      ]);
+      vChunk.push([+(0.4 + s * 0.1 - t * 0.05).toFixed(3), +(0.8 - s * 0.05 + t * 0.1).toFixed(3)]);
+    }
+    kTiles.push(kChunk);
+    vTiles.push(vChunk);
+  }
 
   const matrixValues: string[][] = Array.from({ length: numSplits + 1 }, () =>
     Array.from({ length: 4 }, () => "-"),
@@ -152,41 +164,47 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
     });
   };
 
+  // Line 1: Function declaration
   addStep(
     1,
     "Initialize Flash-Decoding Split-K Parallel Engine",
     "Configuring sequence-parallel split-K grid for decoding query vector Q against distributed KV tiles.",
-    { num_splits: numSplits, q_dim: dim },
+    { num_splits: numSplits, q_dim: dim, scale },
   );
 
+  // Line 2: Import math
   addStep(
-    7,
+    2,
     "Import Math Module",
     "Loading mathematical primitives for online log-sum-exp exponential scaling.",
     { import: "math" },
   );
 
+  // Line 4: num_splits = len(k_tiles)
   addStep(
-    9,
+    4,
     "Partition KV Cache into Split-K Blocks",
     `Divided long KV context sequence into ${numSplits} parallel split-K chunks for GPU SM execution.`,
     { num_splits: numSplits },
   );
 
+  // Lines 5-7: Initialize partial buffers
   addStep(
-    10,
-    "Initialize Partial Output Accumulators",
-    "Created buffers for partial maxes m_s, unnormalized LSE sums l_s, and output vectors O_s.",
-    { partial_outputs: "[]" },
+    5,
+    "Initialize Partial Output & Statistic Buffers",
+    "Created workspace buffers for intermediate split results (partial maxes m_s, LSE sums l_s, partial vectors O_s).",
+    { partial_outputs: "[]", partial_maxes: "[]", partial_lses: "[]" },
   );
 
   const partialMaxes: number[] = [];
   const partialLses: number[] = [];
   const partialOutputs: number[][] = [];
 
+  // Phase 1: Parallel Split-K Computation
   for (let s = 0; s < numSplits; s++) {
+    // Line 9: for s in range(num_splits):
     addStep(
-      15,
+      9,
       `Begin Split-K Tile s=${s} Execution`,
       `Dispatching thread block for Split-K tile chunk ${s}.`,
       { s, num_splits: numSplits },
@@ -194,40 +212,54 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
       undefined,
     );
 
+    // Line 10: k_chunk = k_tiles[s]
+    const kChunk = kTiles[s];
     addStep(
-      16,
+      10,
       `Load Key Chunk for Split ${s}`,
       `Fetching Key vectors K_tile[${s}] from GPU High Bandwidth Memory into SRAM registers.`,
-      { s },
+      { s, tokens_in_chunk: kChunk.length },
       s,
       0,
     );
 
+    // Line 11: v_chunk = v_tiles[s]
+    const vChunk = vTiles[s];
     addStep(
-      17,
+      11,
       `Load Value Chunk for Split ${s}`,
       `Fetching Value vectors V_tile[${s}] into tile registers.`,
-      { s },
+      { s, tokens_in_chunk: vChunk.length },
       s,
       1,
     );
 
-    // Compute mock scores
-    const mockScore1 = +(0.8 + s * 0.15).toFixed(3);
-    const mockScore2 = +(0.6 + s * 0.1).toFixed(3);
-    const m_s = Math.max(mockScore1, mockScore2);
+    // Line 12: scores calculation
+    const scores = kChunk.map((kVec) => {
+      let dot = 0;
+      for (let d = 0; d < dim; d++) {
+        dot += qVec[d] * kVec[d];
+      }
+      return +(dot * scale).toFixed(3);
+    });
 
     addStep(
-      18,
+      12,
       `Compute Scaled Dot Products Q @ K^T (Split ${s})`,
-      `Calculated scaled attention logits scores=[${mockScore1}, ${mockScore2}].`,
-      { s, score1: mockScore1, score2: mockScore2 },
+      `Calculated scaled attention logits scores=[${scores.join(", ")}].`,
+      { s, scores: `[${scores.join(", ")}]` },
       s,
       0,
     );
 
+    // Line 13: m_s = max(scores)
+    const m_s = +Math.max(...scores).toFixed(3);
+    partialMaxes.push(m_s);
+    matrixValues[s][0] = String(m_s);
+    matrixStates[s][0] = "sorted";
+
     addStep(
-      19,
+      13,
       `Find Local Max m_${s} = ${m_s}`,
       `Determined local max logit m_${s}=${m_s} to enforce online numerical stability.`,
       { s, m_s },
@@ -235,25 +267,25 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
       0,
     );
 
-    matrixValues[s][0] = String(m_s);
-    matrixStates[s][0] = "sorted";
-    partialMaxes.push(m_s);
-
-    const exp1 = +Math.exp(mockScore1 - m_s).toFixed(3);
-    const exp2 = +Math.exp(mockScore2 - m_s).toFixed(3);
-    const l_s = +(exp1 + exp2).toFixed(3);
-
+    // Line 14: exp_scores = [math.exp(sc - m_s) for sc in scores]
+    const expScores = scores.map((sc) => +Math.exp(sc - m_s).toFixed(3));
     addStep(
-      20,
+      14,
       `Compute Unnormalized Exponents (Split ${s})`,
-      `Computed exp(score - m_${s}): exp_scores=[${exp1}, ${exp2}].`,
-      { s, exp1, exp2 },
+      `Computed exp(score - m_${s}): exp_scores=[${expScores.join(", ")}].`,
+      { s, exp_scores: `[${expScores.join(", ")}]` },
       s,
       1,
     );
 
+    // Line 15: l_s = sum(exp_scores)
+    const l_s = +expScores.reduce((acc, v) => acc + v, 0).toFixed(3);
+    partialLses.push(l_s);
+    matrixValues[s][1] = String(l_s);
+    matrixStates[s][1] = "sorted";
+
     addStep(
-      21,
+      15,
       `Sum Local Log-Sum-Exp Denominator l_${s} = ${l_s}`,
       `Summed local exponential weights l_${s}=${l_s}.`,
       { s, l_s },
@@ -261,12 +293,9 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
       1,
     );
 
-    matrixValues[s][1] = String(l_s);
-    matrixStates[s][1] = "sorted";
-    partialLses.push(l_s);
-
+    // Line 17: dim = len(v_chunk[0])
     addStep(
-      24,
+      17,
       `Get Value Vector Dimension (dim=${dim})`,
       "Identified output head dimension for partial vector accumulation.",
       { dim },
@@ -274,11 +303,10 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
       2,
     );
 
-    const o_s = [+(exp1 * 0.4 + exp2 * 0.7).toFixed(3), +(exp1 * 0.9 + exp2 * 0.2).toFixed(3)];
-    partialOutputs.push(o_s);
-
+    // Line 18: o_s = [0.0] * dim
+    const o_s = [0.0, 0.0];
     addStep(
-      25,
+      18,
       `Initialize Partial Vector O_${s} = [0.0, 0.0]`,
       `Created blank accumulator for split ${s} partial output.`,
       { s, o_s: "[0.0, 0.0]" },
@@ -286,34 +314,49 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
       2,
     );
 
+    // Lines 19-21: weighted accumulation
+    for (let t = 0; t < vChunk.length; t++) {
+      for (let d = 0; d < dim; d++) {
+        o_s[d] += expScores[t] * vChunk[t][d];
+      }
+    }
+    o_s[0] = +o_s[0].toFixed(3);
+    o_s[1] = +o_s[1].toFixed(3);
+
     addStep(
-      26,
+      19,
       `Accumulate Weighted Values across Tokens (Split ${s})`,
       `Multiplying exp_scores by Value vectors and summing across chunk tokens.`,
-      { s, tok0_w: exp1, tok1_w: exp2 },
+      { s, exp_scores: `[${expScores.join(", ")}]` },
       s,
       2,
     );
 
+    // Lines 23-25: append to partial lists
+    partialOutputs.push(o_s);
     matrixValues[s][2] = String(o_s[0]);
     matrixValues[s][3] = String(o_s[1]);
     matrixStates[s][2] = "active";
     matrixStates[s][3] = "active";
 
     addStep(
-      30,
-      `Store Partial Output O_${s} = [${o_s.join(", ")}]`,
+      23,
+      `Store Partial Output O_${s} = [${o_s.join(", ")}] & Statistics`,
       `Stored split ${s} partial output vector into temporary workspace buffer.`,
-      { s, o_0: o_s[0], o_1: o_s[1] },
+      { s, o_0: o_s[0], o_1: o_s[1], m_s, l_s },
       s,
       2,
     );
   }
 
   // Phase 2 Reduction
-  const globalMax = Math.max(...partialMaxes);
+  // Line 27: global_max = max(partial_maxes)
+  const globalMax = +Math.max(...partialMaxes).toFixed(3);
+  matrixValues[numSplits][0] = String(globalMax);
+  matrixStates[numSplits][0] = "pivot";
+
   addStep(
-    35,
+    27,
     `Global Max Reduction across Split-K Blocks: m_global = ${globalMax}`,
     `Found global maximum logit m_global=${globalMax} across all ${numSplits} split blocks.`,
     { globalMax },
@@ -321,14 +364,17 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
     0,
   );
 
-  let globalLse = 0;
+  // Line 28: global_lse = sum(l_s * math.exp(m_s - global_max))
+  let globalLseUnfixed = 0;
   for (let s = 0; s < numSplits; s++) {
-    globalLse += partialLses[s] * Math.exp(partialMaxes[s] - globalMax);
+    globalLseUnfixed += partialLses[s] * Math.exp(partialMaxes[s] - globalMax);
   }
-  globalLse = +globalLse.toFixed(3);
+  const globalLse = +globalLseUnfixed.toFixed(3);
+  matrixValues[numSplits][1] = String(globalLse);
+  matrixStates[numSplits][1] = "pivot";
 
   addStep(
-    36,
+    28,
     `Global Log-Sum-Exp Reduction: LSE_global = ${globalLse}`,
     `Rescaled and summed local l_s denominators to compute global softmax denominator.`,
     { globalLse },
@@ -336,23 +382,50 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
     1,
   );
 
-  matrixValues[numSplits][0] = String(globalMax);
-  matrixValues[numSplits][1] = String(globalLse);
-  matrixStates[numSplits][0] = "pivot";
-  matrixStates[numSplits][1] = "pivot";
+  // Line 30: dim = len(partial_outputs[0])
+  addStep(
+    30,
+    `Retrieve Vector Dimension (dim=${dim})`,
+    "Determining vector size for final rescaled output allocation.",
+    { dim },
+    numSplits,
+    2,
+  );
 
+  // Line 31: final_output = [0.0] * dim
   const finalOut = [0.0, 0.0];
+  addStep(
+    31,
+    "Initialize Global Output Accumulator final_output = [0.0, 0.0]",
+    "Created zero-filled vector for final reduced output.",
+    { final_output: "[0.0, 0.0]" },
+    numSplits,
+    2,
+  );
+
+  // Lines 32-35: Loop over partial outputs and rescale
   for (let s = 0; s < numSplits; s++) {
     const rescale = Math.exp(partialMaxes[s] - globalMax) / globalLse;
     finalOut[0] += rescale * partialOutputs[s][0];
     finalOut[1] += rescale * partialOutputs[s][1];
 
+    // Line 33: rescale = math.exp(m_s - global_max) / global_lse
     addStep(
-      41,
+      33,
       `Rescale Split ${s} Partial Output (Weight = ${rescale.toFixed(3)})`,
       `Applying log-sum-exp weight adjustment exp(m_${s} - m_global) / LSE_global to split ${s}.`,
       { s, rescale: +rescale.toFixed(3) },
       s,
+      2,
+    );
+
+    // Line 35: final_output[d] += rescale * o_s[d]
+    addStep(
+      35,
+      `Accumulate Rescaled Vector O_${s} into Final Output`,
+      `Added rescaled partial output slice for split ${s} to final global output tensor.`,
+      { s, current_out_0: +finalOut[0].toFixed(3), current_out_1: +finalOut[1].toFixed(3) },
+      numSplits,
       2,
     );
   }
@@ -365,19 +438,9 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
   matrixStates[numSplits][2] = "sorted";
   matrixStates[numSplits][3] = "sorted";
 
-  while (steps.length < 19) {
-    addStep(
-      43,
-      "Accumulate Final Vector Workspace Padding",
-      `Step ${steps.length + 1}: Finalizing sequence parallel reduction pass.`,
-      { completed: false },
-      numSplits,
-      2,
-    );
-  }
-
+  // Line 37: return final_output
   addStep(
-    54,
+    37,
     "Execution Complete",
     `Flash-Decoding split-K parallel attention finished. Global output vector O = [${finalOut.join(", ")}].`,
     { completed: true, final_out: `[${finalOut.join(", ")}]` },
@@ -389,64 +452,56 @@ export const generateFlashDecodingSplitKSequenceParallelSteps = (
 };
 
 const FLASHDECODINGSPLITKSEQUENCEPARALLEL_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 8, 13, 22, 29, 33, 37, 44],
+  skipLines: [3, 8, 16, 22, 26, 29, 36],
   distractors: [
     "final_output = sum(partial_outputs) / len(partial_outputs)",
     "rescale = math.exp(global_max - m_s)",
     "global_lse = max(partial_lses)",
   ],
   hints: [
-    { line: 15, hint: "Compute scaled dot products Q @ K^T for current split tile." },
-    { line: 19, hint: "Track local maximum m_s to ensure online numerical stability." },
-    { line: 35, hint: "Compute global max across all split-K thread blocks." },
-    { line: 41, hint: "Rescale partial output vectors using global log-sum-exp denominator." },
+    { line: 12, hint: "Compute scaled dot products Q @ K^T for current split tile." },
+    { line: 13, hint: "Track local maximum m_s to ensure online numerical stability." },
+    { line: 27, hint: "Compute global max across all split-K thread blocks." },
+    { line: 33, hint: "Rescale partial output vectors using global log-sum-exp denominator." },
   ],
   lineExplanations: {
     1: "Defines entry point for Flash-Decoding split-K sequence parallel attention simulation.",
-    2: "Docstring opening for Flash-Decoding split-K module.",
-    3: "Describes sequence parallel partitioning over key-value sequence dimension.",
-    4: "Explains online local max m_s and LSE l_s statistic computation per chunk.",
-    5: "Summarizes final global log-sum-exp output vector reduction pass.",
-    6: "Docstring closing tag.",
-    7: "Imports Python math library for exponential function calculation.",
-    8: "Empty whitespace separator line.",
-    9: "Determines total number of split-K tile blocks K from input list.",
-    10: "Initializes accumulator list for partial output vectors O_s.",
-    11: "Initializes accumulator list for local max scalar values m_s.",
-    12: "Initializes accumulator list for local log-sum-exp values l_s.",
-    13: "Empty whitespace separator line.",
-    14: "Phase 1 section comment for split-K parallel computations.",
-    15: "Iterates over each split-K index s from 0 to num_splits - 1.",
-    16: "Extracts key token vector chunk K_tiles[s] for current tile.",
-    17: "Extracts value token vector chunk V_tiles[s] for current tile.",
-    18: "Computes scaled dot products Q @ K^T * scale for all keys in tile.",
-    19: "Finds maximum score m_s in current split chunk for numerical stability.",
-    20: "Computes unnormalized attention exps exp(score - m_s) for current tile.",
-    21: "Sums exps to obtain local log-sum-exp denominator l_s for tile.",
-    22: "Empty whitespace separator line.",
-    23: "Comment indicating weighted partial output vector O_s calculation.",
-    24: "Retrieves head embedding dimension size from value chunk vector.",
-    25: "Initializes zero-filled partial output vector o_s of size dim.",
-    26: "Iterates over attention weights and corresponding value vectors.",
-    27: "Loops over vector dimension indices d from 0 to dim - 1.",
-    28: "Accumulates weighted value token dimensions into partial output o_s.",
-    29: "Empty whitespace separator line.",
-    30: "Appends partial output vector o_s to top-level list.",
-    31: "Appends local max m_s scalar to top-level max list.",
-    32: "Appends local denominator l_s to top-level LSE list.",
-    33: "Empty whitespace separator line.",
-    34: "Phase 2 section comment for global reduction pass across blocks.",
-    35: "Finds global maximum logit global_max across all partial maxes.",
-    36: "Computes rescaled global log-sum-exp denominator global_lse.",
-    37: "Empty whitespace separator line.",
-    38: "Retrieves vector dimension size from first partial output.",
-    39: "Initializes zero-filled global final output vector of size dim.",
-    40: "Iterates over partial output vectors and their corresponding local maxes.",
-    41: "Computes global rescale factor math.exp(m_s - global_max) / global_lse.",
-    42: "Loops over vector dimension indices d from 0 to dim - 1.",
-    43: "Accumulates rescaled partial output vector entries into final output.",
-    44: "Empty whitespace separator line.",
-    45: "Returns final rescaled output vector after global reduction.",
+    2: "Imports Python math library for exponential function calculation.",
+    3: "Empty line separator.",
+    4: "Determines total number of split-K tile blocks from input KV tiles.",
+    5: "Initializes accumulator list for partial output vectors O_s.",
+    6: "Initializes accumulator list for local maximum scalar values m_s.",
+    7: "Initializes accumulator list for local log-sum-exp values l_s.",
+    8: "Empty line separator.",
+    9: "Iterates over each split-K index s from 0 to num_splits - 1.",
+    10: "Extracts key token vector chunk K_tiles[s] for current tile block.",
+    11: "Extracts value token vector chunk V_tiles[s] for current tile block.",
+    12: "Computes scaled dot products Q @ K^T * scale for all key vectors in chunk.",
+    13: "Finds local maximum logit m_s in current split chunk for numerical stability.",
+    14: "Computes unnormalized exponential weights exp(score - m_s) for current tile.",
+    15: "Sums exponential weights to obtain local log-sum-exp denominator l_s.",
+    16: "Empty line separator.",
+    17: "Retrieves head embedding dimension size from value chunk vector.",
+    18: "Initializes zero-filled partial output vector o_s of head dimension size.",
+    19: "Iterates over exponential weights and corresponding value vectors in chunk.",
+    20: "Loops over vector dimension indices d from 0 to dim - 1.",
+    21: "Accumulates weighted value token dimensions into partial output o_s.",
+    22: "Empty line separator.",
+    23: "Appends partial output vector o_s to top-level list.",
+    24: "Appends local maximum m_s scalar to top-level max list.",
+    25: "Appends local denominator l_s to top-level LSE list.",
+    26: "Empty line separator.",
+    27: "Finds global maximum logit global_max across all partial maxes.",
+    28: "Computes rescaled global log-sum-exp denominator global_lse across split blocks.",
+    29: "Empty line separator.",
+    30: "Retrieves vector dimension size from first partial output vector.",
+    31: "Initializes zero-filled global final output vector of size dim.",
+    32: "Iterates over partial output vectors and their corresponding local maxes.",
+    33: "Computes global rescale weight math.exp(m_s - global_max) / global_lse.",
+    34: "Loops over vector dimension indices d from 0 to dim - 1.",
+    35: "Accumulates rescaled partial output vector entries into final output.",
+    36: "Empty line separator.",
+    37: "Returns final rescaled output vector after global log-sum-exp reduction.",
   },
 };
 
@@ -454,12 +509,8 @@ export const flashDecodingSplitKSequenceParallel: AlgorithmDefinition<flashDecod
   {
     id: "flash-decoding-split-k-sequence-parallel",
     title: "Flash-Decoding Split-K Sequence Parallel Attention",
-    category: "ml_attention_geometry",
-    categories: ["ml_attention_geometry", "ml_llm_serving"],
+    topicIds: ["ml_attention_geometry", "ml_llm_serving"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 7,
-    mlInfraCategory: "ml_attention_geometry",
     description:
       "Flash-Decoding addresses a fundamental GPU under-utilization bottleneck during LLM autoregressive generation (prefill vs. decode asymmetry). During decoding, the query sequence length is small ($Q=1$), which limits standard FlashAttention parallelization across thread blocks to $B \\times H$ (batch size $\\times$ heads). On ultra-long contexts (e.g. 128k tokens), standard kernels underutilize GPU Streaming Multiprocessors (SMs).\n\n### Why It Exists\nStandard FlashAttention parallelizes over query sequence length ($Q$) and heads ($H$). During decoding, $Q=1$, so GPU occupancy is bottlenecked at $B \\cdot H$. Flash-Decoding splits the long key/value sequence $K$ into $S$ split-K blocks, assigning each block to a separate GPU Streaming Multiprocessor (SM). This achieves massive parallel speedups during decoding on modern GPUs (H100, A100).\n\n### Mathematical Formulation\nEach split-K block $s \\in \\{1 \\dots S\\}$ computes local online statistics:\n$$m_s = \\max_{j \\in \\text{chunk}_s} (Q K_j^T / \\sqrt{d_k}), \\quad l_s = \\sum_{j \\in \\text{chunk}_s} e^{Q K_j^T / \\sqrt{d_k} - m_s}, \\quad O_s = \\sum_{j \\in \\text{chunk}_s} e^{Q K_j^T / \\sqrt{d_k} - m_s} V_j$$\n\nA global reduction pass combines partial outputs using log-sum-exp rescaling:\n$$m_{\\text{global}} = \\max_{s} m_s, \\quad LSE_{\\text{global}} = \\sum_{s=1}^S l_s e^{m_s - m_{\\text{global}}}, \\quad O = \\sum_{s=1}^S \\frac{e^{m_s - m_{\\text{global}}}}{LSE_{\\text{global}}} O_s$$\n\n### Step-by-Step Intuition\n1. **Split-K Grid Allocation**: The long KV cache sequence is divided into $S$ blocks.\n2. **Parallel Tile Compute**: Each SM computes partial logit max $m_s$, exponent sum $l_s$, and partial vector $O_s$.\n3. **Global LSE Reduction**: A fast reduction kernel collects all $S$ local statistics, rescales them to a unified global max, and produces the exact output $O$.\n\n### Key Trade-Offs & Complexity\n- **Memory & Latency**: Reduces decode latency by up to 8x for long contexts at the cost of $O(S \\cdot d_v)$ temporary workspace buffer space.\n- **SM Occupancy**: Increases GPU thread block concurrency from $B \\cdot H$ to $B \\cdot H \\cdot S$.",
     constraints: ["1 <= numSplits <= 128", "1 <= tokensPerSplit <= 2048"],
@@ -471,7 +522,8 @@ export const flashDecodingSplitKSequenceParallel: AlgorithmDefinition<flashDecod
         outputDisplay: "Rescaled output vector O of dim 2",
         input: { numSplits: 4, tokensPerSplit: 2 },
         output: "Vector [1.025, 0.812]",
-        explanation: "Splits 8-token KV context across 4 parallel thread blocks with log-sum-exp reduction.",
+        explanation:
+          "Splits 8-token KV context across 4 parallel thread blocks with log-sum-exp reduction.",
       },
     ],
     code: FLASHDECODINGSPLITKSEQUENCEPARALLEL_CODE,

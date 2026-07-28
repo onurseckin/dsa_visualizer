@@ -7,11 +7,12 @@ import {
 
 describe("conv2dToGemmReceptiveFieldUnroll (Conv2D Receptive Field Patch Unroller)", () => {
   it("should have correct metadata", () => {
-    expect(conv2dToGemmReceptiveFieldUnroll.id).toBe("conv2dToGemmReceptiveFieldUnroll");
-    expect(conv2dToGemmReceptiveFieldUnroll.isMlInfra).toBe(true);
-    expect(conv2dToGemmReceptiveFieldUnroll.mlInfraLevel).toBe(8);
-    expect(conv2dToGemmReceptiveFieldUnroll.mlInfraCategory).toBe("ml_convolutions");
-    expect(conv2dToGemmReceptiveFieldUnroll.categories).toContain("ml_convolutions");
+    expect(conv2dToGemmReceptiveFieldUnroll.id).toBe("conv2d-to-gemm-receptive-field-unroll");
+    expect(
+      conv2dToGemmReceptiveFieldUnroll.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(conv2dToGemmReceptiveFieldUnroll.topicIds).toContain("ml_convolutions");
+    expect(conv2dToGemmReceptiveFieldUnroll.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

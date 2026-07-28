@@ -10,9 +10,8 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("floatingPointOverflow algorithm spec", () => {
   it("should have correct ML Infra Level 3 metadata", () => {
     expect(floatingPointOverflow.id).toBe("floating-point-overflow");
-    expect(floatingPointOverflow.isMlInfra).toBe(true);
-    expect(floatingPointOverflow.mlInfraLevel).toBe(3);
-    expect(floatingPointOverflow.category).toBe("ml_precision_quantization");
+    expect(floatingPointOverflow.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(floatingPointOverflow.topicIds).toContain("ml_precision_quantization");
     expect(floatingPointOverflow.defaultInput).toEqual(DEFAULT_FLOATING_POINT_OVERFLOW_INPUT);
     expect(floatingPointOverflow.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

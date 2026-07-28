@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
 import { TriviaLayout } from "../../../trivia/triviaLayout";
 import { TriviaConfig, TriviaProgress, TriviaSessionRecord } from "../../../types/trivia";
-import { TriviaDeckBuilder } from "../../../ui";
+import { TriviaDeckBuilder } from "../../../ui/organisms/TriviaDeckBuilder";
 import { TriviaHeaderCard } from "../../../components/trivia/TriviaHeaderCard";
 
 interface TriviaSetupViewProps {

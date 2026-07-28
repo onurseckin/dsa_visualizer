@@ -41,11 +41,13 @@ const NIM_GAME_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "P-Position",
-      definition: "A position that favors the Previous player (the player to move loses under optimal play).",
+      definition:
+        "A position that favors the Previous player (the player to move loses under optimal play).",
     },
     {
       term: "N-Position",
-      definition: "A position that favors the Next player (the player to move has a forced winning strategy).",
+      definition:
+        "A position that favors the Next player (the player to move has a forced winning strategy).",
     },
     {
       term: "Grundy value",
@@ -88,8 +90,7 @@ const NIM_GAME_TRIVIA: TriviaMeta = {
 export const nimGame: AlgorithmDefinition<NimInput> = {
   id: "nim-game",
   title: "Nim Game Sprague-Grundy",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory", "game_theory"],
+  topicIds: ["math_and_number_theory", "game_theory"],
   difficulty: "Easy",
   description:
     "Nim is the classic impartial combinatorial game solved by the Sprague-Grundy theorem. Computing the Nim-sum—the bitwise XOR sum of all pile sizes:\n$$S = x_1 \\oplus x_2 \\oplus \\dots \\oplus x_n$$\ninstantly determines whether the position is a forced win for the First Player ($S \\neq 0$, N-position) or the Second Player ($S = 0$, P-position), and pinpoints the optimal opening move by targeting a pile $i$ with $x_i' = x_i \\oplus S < x_i$.",
@@ -164,5 +165,3 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
 };
 
 export default nimGame;
-
-

@@ -37,6 +37,7 @@ function createBitArrayElements(
     return {
       id: `bit-ans-${idx}`,
       value: val,
+      label: `0b${idx.toString(2)}`,
       state,
       pointers,
     };
@@ -213,6 +214,7 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
         elements: ans.map((val, idx) => ({
           id: `bit-ans-pad-${idx}`,
           value: val,
+          label: `0b${idx.toString(2)}`,
           state: idx === padIdx % (n + 1) ? "active" : "sorted",
           pointers: [`i=${idx}`],
         })),
@@ -239,6 +241,7 @@ export function generateCountingBitsSteps(input: CountingBitsInput): AlgorithmSt
       elements: ans.map((val, idx) => ({
         id: `bit-ans-final-${idx}`,
         value: val,
+        label: `0b${idx.toString(2)}`,
         state: "sorted",
         pointers: [`i=${idx}`],
       })),
@@ -319,8 +322,7 @@ const COUNTING_BITS_TRIVIA: TriviaMeta = {
 export const countingBits: AlgorithmDefinition<CountingBitsInput> = {
   id: "counting-bits",
   title: "Counting Bits",
-  category: "bit_manipulation",
-  categories: ["bit_manipulation"],
+  topicIds: ["bit_manipulation"],
   difficulty: "Easy",
   description:
     "Compute the population count (number of set 1-bits) for all integers from $0$ to $n$ in linear $O(n)$ time using bottom-up dynamic programming.\n\n### Problem Statement\nGiven an integer $n$, return an array `ans` of length $n + 1$ such that `ans[i]` is the number of `1` bits in the binary representation of $i$.\n\nAchieve linear $O(n)$ time efficiency without built-in bit-counting functions by leveraging the bit-shift recurrence: `ans[i] = ans[i >> 1] + (i & 1)`.\n\n### Input Parameters\n- `n`: An integer constraint ($0 \\le n \\le 10^5$).\n\n### Output\n- An integer array `ans` of size $n + 1$ containing the population counts for indices $0 \\dots n$.\n\n### Step-by-Step Intuition\n1. Base Case: `ans[0] = 0` because binary 0 has zero `1` bits.\n2. Bit Decomposition: Any integer $i$ can be represented as twice its right-shifted value plus its remainder mod 2: $i = 2 \\times (i >> 1) + (i \\& 1)$.\n3. Dynamic Programming: The number of `1` bits in $i$ is equal to the number of `1` bits in $i >> 1$ plus $1$ if $i$ is odd.\n4. Linear Tabulation: Iterate $i$ from 1 to $n$. Since $i >> 1 < i$, `ans[i >> 1]` is guaranteed to be precalculated.\n\n### Constraints & Edge Cases\n- `0 <= n <= 10^5`.\n- $n = 0$: Returns `[0]`.\n- Single-pass execution without auxiliary allocations beyond the result vector.",

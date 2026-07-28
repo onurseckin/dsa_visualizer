@@ -9,10 +9,11 @@ import {
 describe("multi-query-attention-broadcast (Multi-Query Attention (MQA) Broadcaster)", () => {
   it("should have correct metadata", () => {
     expect(multiQueryAttentionBroadcast.id).toBe("multi-query-attention-broadcast");
-    expect(multiQueryAttentionBroadcast.isMlInfra).toBe(true);
-    expect(multiQueryAttentionBroadcast.mlInfraLevel).toBe(7);
-    expect(multiQueryAttentionBroadcast.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(multiQueryAttentionBroadcast.categories).toContain("ml_attention_geometry");
+    expect(multiQueryAttentionBroadcast.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(multiQueryAttentionBroadcast.topicIds).toContain("ml_attention_geometry");
+    expect(multiQueryAttentionBroadcast.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

@@ -10,9 +10,8 @@ import {
 describe("ringAllreducePartition (Level 9 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(ringAllreducePartition.id).toBe("ring-allreduce-partition");
-    expect(ringAllreducePartition.isMlInfra).toBe(true);
-    expect(ringAllreducePartition.mlInfraLevel).toBe(9);
-    expect(ringAllreducePartition.category).toBe("ml_distributed_systems");
+    expect(ringAllreducePartition.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(ringAllreducePartition.topicIds).toContain("ml_distributed_systems");
     expect(ringAllreducePartition.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 9" },
     ]);
@@ -32,7 +31,7 @@ describe("ringAllreducePartition (Level 9 ML Infra)", () => {
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+      expect(steps[i].primarySnapshot.kind).toBe("matrix");
     }
   });
 

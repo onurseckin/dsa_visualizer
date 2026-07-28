@@ -10,9 +10,10 @@ import {
 describe("pagedAttentionBlockTable (Level 10 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(pagedAttentionBlockTable.id).toBe("paged-attention-block-table");
-    expect(pagedAttentionBlockTable.isMlInfra).toBe(true);
-    expect(pagedAttentionBlockTable.mlInfraLevel).toBe(10);
-    expect(pagedAttentionBlockTable.category).toBe("ml_llm_serving");
+    expect(pagedAttentionBlockTable.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(pagedAttentionBlockTable.topicIds).toContain("ml_llm_serving");
     expect(pagedAttentionBlockTable.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 10" },
     ]);

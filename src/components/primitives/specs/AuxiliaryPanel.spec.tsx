@@ -68,4 +68,21 @@ describe("AuxiliaryPanel", () => {
     expect(screen.getByText("Distances")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
   });
+
+  it("renders structured algorithm state without losing nested values", () => {
+    render(
+      <AuxiliaryPanel
+        state={{
+          hashMap: { frontier: [1, 2], flags: [true, false] },
+          customState: { bounds: { left: 0, right: 3 } },
+        }}
+        variables={{ candidate: undefined }}
+      />,
+    );
+
+    expect(screen.getByText("[1, 2]")).toBeInTheDocument();
+    expect(screen.getByText("[true, false]")).toBeInTheDocument();
+    expect(screen.getByText('{"left": 0, "right": 3}')).toBeInTheDocument();
+    expect(screen.getByText("undefined")).toBeInTheDocument();
+  });
 });

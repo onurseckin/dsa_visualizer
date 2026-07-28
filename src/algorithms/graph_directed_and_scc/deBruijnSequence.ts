@@ -351,8 +351,7 @@ export function generateDeBruijnSteps(input: DeBruijnSequenceInput): AlgorithmSt
 export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   id: "de-bruijn-sequence",
   title: "De Bruijn Sequence Generator",
-  category: "graph_directed_and_scc",
-  categories: ["graph_directed_and_scc"],
+  topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
     "A De Bruijn sequence B(k, n) is a cyclic sequence of length k^n containing every possible length-n combination over an alphabet of size k exactly once as a contiguous substring. It is constructed by building a directed De Bruijn graph—where vertices represent length-(n-1) state prefixes and edges represent length-n transitions—and finding an Eulerian circuit using Hierholzer's algorithm in optimal linear O(k^n) time.",
@@ -382,7 +381,8 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   spaceComplexity: "O(k^n)",
   complexityAnalysis: {
     time: "The graph has $k^{n-1}$ vertices and $k^n$ edges. Hierholzer's Eulerian circuit algorithm traverses each edge once, resulting in optimal linear $\\mathcal{O}(k^n)$ time.",
-    space: "$\\mathcal{O}(k^n)$ memory to store De Bruijn graph edges, traversal stack, and sequence output.",
+    space:
+      "$\\mathcal{O}(k^n)$ memory to store De Bruijn graph edges, traversal stack, and sequence output.",
   },
   topicGuide: {
     overview:

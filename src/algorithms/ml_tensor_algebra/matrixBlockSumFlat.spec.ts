@@ -9,10 +9,9 @@ import {
 describe("matrix-block-sum-flat (Submatrix Block Sum with 2D Prefix Array)", () => {
   it("should have correct metadata and structure", () => {
     expect(matrixBlockSumFlat.id).toBe("matrix-block-sum-flat");
-    expect(matrixBlockSumFlat.isMlInfra).toBe(true);
-    expect(matrixBlockSumFlat.mlInfraLevel).toBe(1);
-    expect(matrixBlockSumFlat.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(matrixBlockSumFlat.categories).toContain("ml_tensor_algebra");
+    expect(matrixBlockSumFlat.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(matrixBlockSumFlat.topicIds).toContain("ml_tensor_algebra");
+    expect(matrixBlockSumFlat.topicIds).toContain("ml_tensor_algebra");
     expect(matrixBlockSumFlat.topicGuide?.sections.length).toBe(5);
   });
 

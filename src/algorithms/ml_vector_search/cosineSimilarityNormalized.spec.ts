@@ -1,13 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { cosineSimilarityNormalized } from "./cosineSimilarityNormalized";
 
-describe("cosineSimilarityNormalized", () => {
+describe("cosine-similarity-normalized", () => {
   it("should be defined and have correctly populated fields", () => {
     expect(cosineSimilarityNormalized).toBeDefined();
-    expect(cosineSimilarityNormalized.id).toBe("cosineSimilarityNormalized");
-    expect(cosineSimilarityNormalized.isMlInfra).toBe(true);
-    expect(cosineSimilarityNormalized.mlInfraLevel).toBe(5);
-    expect(cosineSimilarityNormalized.categories).toContain("ml_vector_search");
+    expect(cosineSimilarityNormalized.id).toBe("cosine-similarity-normalized");
+    expect(cosineSimilarityNormalized.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(cosineSimilarityNormalized.topicIds).toContain("ml_vector_search");
   });
 
   it("should generate steps successfully", () => {

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface MatrixExponentiationInput {
@@ -14,9 +19,6 @@ def multiply_matrix(A: list[list[int]], B: list[list[int]], mod: int) -> list[li
     ]
 
 def fibonacci_matrix_pow(n: int, mod: int = 1000000007) -> int:
-    """
-    Computes the n-th Fibonacci number modulo mod using binary matrix exponentiation in O(log n) time.
-    """
     if n == 0:
         return 0
     res = [[1, 0], [0, 1]]
@@ -48,26 +50,29 @@ export const generateMatrixExponentiationSteps = (
   const createMatrixSnapshot = (
     matRes: number[][],
     matBase: number[][],
-    activeCell?: { mat: "res" | "base"; r: number; c: number },
+    highlightTarget?: "res" | "base" | "res[0][0]",
   ) => {
-    // Combine 2x2 res and 2x2 base into a 2x4 matrix
     const cells: MatrixCellItem[] = [];
     for (let r = 0; r < 2; r++) {
       for (let c = 0; c < 4; c++) {
         const isRes = c < 2;
         const val = isRes ? matRes[r][c] : matBase[r][c - 2];
-        const isActive =
-          activeCell &&
-          (isRes
-            ? activeCell.mat === "res" && activeCell.r === r && activeCell.c === c
-            : activeCell.mat === "base" && activeCell.r === r && activeCell.c === c - 2);
+        let state: "default" | "active" | "sorted" | "found" = isRes ? "sorted" : "default";
+
+        if (highlightTarget === "res" && isRes) {
+          state = "active";
+        } else if (highlightTarget === "base" && !isRes) {
+          state = "active";
+        } else if (highlightTarget === "res[0][0]" && isRes && r === 0 && c === 0) {
+          state = "found";
+        }
 
         cells.push({
           row: r,
           col: c,
           value: val,
           label: isRes ? `R[${r}][${c}]` : `B[${r}][${c - 2}]`,
-          state: isActive ? "active" : isRes ? "sorted" : "default",
+          state,
         });
       }
     }
@@ -100,12 +105,35 @@ export const generateMatrixExponentiationSteps = (
     return C;
   };
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 9,
+    explanation: {
+      what: `Checking base case condition: n == 0 (n = ${n}).`,
+      why: "If n is 0, F(0) is defined as 0 and returned immediately without matrix exponentiation.",
+    },
+    primarySnapshot: createMatrixSnapshot(
+      [
+        [0, 0],
+        [0, 0],
+      ],
+      [
+        [1, 1],
+        [1, 0],
+      ],
+    ),
+    auxiliaryState: {
+      hashMap: { "Target n": n },
+    },
+    variables: { n },
+  });
+
   if (n === 0) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 13,
+      codeLine: 10,
       explanation: {
-        what: "N = 0 requested for Fibonacci calculation.",
+        what: "Base case met: n = 0, returning 0.",
         why: "Fibonacci F(0) is defined as 0.",
       },
       primarySnapshot: createMatrixSnapshot(
@@ -138,12 +166,12 @@ export const generateMatrixExponentiationSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 14,
+    codeLine: 11,
     explanation: {
       what: `Initializing Result Matrix res = Identity [[1,0],[0,1]] and Base Matrix base = [[1,1],[1,0]].`,
       why: "Fibonacci transformation matrix [[1,1],[1,0]] raised to power (n-1) yields [[F(n), F(n-1)], [F(n-1), F(n-2)]].",
     },
-    primarySnapshot: createMatrixSnapshot(res, base),
+    primarySnapshot: createMatrixSnapshot(res, base, "res"),
     auxiliaryState: {
       hashMap: {
         "Target Term F(n)": n,
@@ -157,7 +185,7 @@ export const generateMatrixExponentiationSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 13,
     explanation: {
       what: `Power required: power = n - 1 = ${n} - 1 = ${power}.`,
       why: "Binary matrix exponentiation evaluates M^(n-1) in O(log n) steps.",
@@ -174,9 +202,26 @@ export const generateMatrixExponentiationSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 18,
+      codeLine: 14,
       explanation: {
-        what: `Evaluating power = ${power} (binary bit is ${isOdd ? "1 (odd)" : "0 (even)"}).`,
+        what: `Evaluating while power > 0 (${power} > 0 is True).`,
+        why: "Continue binary exponentiation loop while exponent power remains greater than 0.",
+      },
+      primarySnapshot: createMatrixSnapshot(res, base),
+      auxiliaryState: {
+        hashMap: {
+          "Power (binary)": power.toString(2),
+          "Power Parity": isOdd ? "Odd (1)" : "Even (0)",
+        },
+      },
+      variables: { power, n },
+    });
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 15,
+      explanation: {
+        what: `Checking if power (${power}) is odd (power % 2 == 1: ${isOdd ? "True" : "False"}).`,
         why: isOdd
           ? `Power is odd (${power}), so multiply accumulated result matrix by current base matrix.`
           : `Power is even (${power}), skip multiplying into result matrix.`,
@@ -195,12 +240,12 @@ export const generateMatrixExponentiationSteps = (
       res = matMult(res, base);
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 19,
+        codeLine: 16,
         explanation: {
           what: `Multiplied result matrix by current base matrix (mod ${mod}).`,
           why: "When binary power bit is 1, incorporate current base matrix power into accumulated result matrix.",
         },
-        primarySnapshot: createMatrixSnapshot(res, base, { mat: "res", r: 0, c: 0 }),
+        primarySnapshot: createMatrixSnapshot(res, base, "res"),
         auxiliaryState: {
           hashMap: {
             "Power (odd)": power,
@@ -217,12 +262,12 @@ export const generateMatrixExponentiationSteps = (
     base = matMult(base, base);
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 20,
+      codeLine: 17,
       explanation: {
         what: `Squared base matrix: base = base * base (mod ${mod}).`,
         why: "Repeated squaring doubles base power for next binary bit position.",
       },
-      primarySnapshot: createMatrixSnapshot(res, base, { mat: "base", r: 0, c: 0 }),
+      primarySnapshot: createMatrixSnapshot(res, base, "base"),
       auxiliaryState: {
         hashMap: {
           "Base Matrix (squared)": `[[${base[0][0]}, ${base[0][1]}], [${base[1][0]}, ${base[1][1]}]]`,
@@ -234,7 +279,7 @@ export const generateMatrixExponentiationSteps = (
     power = Math.floor(power / 2);
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 21,
+      codeLine: 18,
       explanation: {
         what: `Halved power: power //= 2 -> ${power}.`,
         why: "Shift to next binary bit position.",
@@ -250,12 +295,12 @@ export const generateMatrixExponentiationSteps = (
   const ans = res[0][0];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 19,
     explanation: {
       what: `Completed Matrix Exponentiation. F(${n}) = ${ans} (mod ${mod}).`,
       why: "Top-left cell res[0][0] holds the n-th Fibonacci number.",
     },
-    primarySnapshot: createMatrixSnapshot(res, base, { mat: "res", r: 0, c: 0 }),
+    primarySnapshot: createMatrixSnapshot(res, base, "res[0][0]"),
     auxiliaryState: {
       hashMap: {
         [`F(${n})`]: ans,
@@ -304,6 +349,11 @@ export const MATRIX_EXPONENTIATION_TOPIC_GUIDE: TopicGuide = {
       definition:
         "A sequence where each term $F(n)$ is a fixed linear combination of preceding terms.",
     },
+    {
+      term: "Modulo Arithmetic",
+      definition:
+        "Mathematical operations performed under remainder arithmetic to prevent integer overflow.",
+    },
   ],
 };
 
@@ -317,29 +367,25 @@ export const MATRIX_EXPONENTIATION_TRIVIA: TriviaMeta = {
     6: "Closing bracket of 2x2 matrix return statement.",
     7: "Empty line separating helper function from main function.",
     8: "Defines fibonacci_matrix_pow(n, mod) -> int function signature.",
-    9: "Opening docstring tag.",
-    10: "Docstring describing O(log n) binary matrix exponentiation for Fibonacci.",
-    11: "Closing docstring tag.",
-    12: "Checks base case $n == 0$.",
-    13: "Returns 0 for base case $F(0)$.",
-    14: "Initializes result matrix $\\mathbf{R}$ to identity matrix $\\mathbf{I}_2 = [[1,0],[0,1]]$.",
-    15: "Initializes base matrix to Fibonacci transformation matrix $\\mathbf{M} = [[1,1],[1,0]]$.",
-    16: "Sets initial power exponent $= n - 1$.",
-    17: "Loops while binary exponent remains greater than 0.",
-    18: "Checks if current exponent bit is odd (power % 2 == 1).",
-    19: "Multiplies $\\mathbf{R}$ by base matrix when current exponent bit is odd.",
-    20: "Squares base matrix for next bit position ($\\mathbf{M} \\leftarrow \\mathbf{M}^2$).",
-    21: "Halves power exponent via integer division (power //= 2).",
-    22: "Returns $\\mathbf{R}[0][0]$ representing $F(n)$.",
-    23: "Empty trailing line for code formatting.",
+    9: "Checks base case $n == 0$.",
+    10: "Returns 0 for base case $F(0)$.",
+    11: "Initializes result matrix $\\mathbf{R}$ to identity matrix $\\mathbf{I}_2 = [[1,0],[0,1]]$.",
+    12: "Initializes base matrix to Fibonacci transformation matrix $\\mathbf{M} = [[1,1],[1,0]]$.",
+    13: "Sets initial power exponent $= n - 1$.",
+    14: "Loops while binary exponent remains greater than 0.",
+    15: "Checks if current exponent bit is odd (power % 2 == 1).",
+    16: "Multiplies $\\mathbf{R}$ by base matrix when current exponent bit is odd.",
+    17: "Squares base matrix for next bit position ($\\mathbf{M} \\leftarrow \\mathbf{M}^2$).",
+    18: "Halves power exponent via integer division (power //= 2).",
+    19: "Returns $\\mathbf{R}[0][0]$ representing $F(n)$.",
+    20: "Empty trailing line for code formatting.",
   },
 };
 
 export const matrixExponentiation: AlgorithmDefinition<MatrixExponentiationInput> = {
   id: "matrix-exponentiation",
   title: "Matrix Exponentiation",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Compute the $n$-th term of a linear recurrence (such as Fibonacci $F(n)$) modulo $m$ in $\\mathcal{O}(K^3 \\log n)$ time:\n\n$$\\begin{pmatrix} F(n) \\\\ F(n-1) \\end{pmatrix} = \\begin{pmatrix} 1 & 1 \\\\ 1 & 0 \\end{pmatrix}^{n-1} \\begin{pmatrix} F(1) \\\\ F(0) \\end{pmatrix}$$\n\n### State Matrix Representation\nThe execution state is visualized as a $2 \\times 4$ combined matrix storing the $2 \\times 2$ accumulated result matrix $\\mathbf{R}$ and $2 \\times 2$ base transformation matrix $\\mathbf{B}$.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{\\ge 0}$): Target recurrence term index.\n- `modulo` ($m \\in \\mathbb{Z}_{> 0}$): Modulo $m$ for arithmetic reduction.\n\n### Output\n- `int`: The $n$-th term $F(n)$ modulo $m$.\n\n### Edge Cases & Constraints\n- Base Case: $n = 0 \\implies F(0) = 0$.\n- Large $n$: Supports $n \\le 10^{18}$ in logarithmic steps.",
@@ -392,4 +438,3 @@ export const matrixExponentiation: AlgorithmDefinition<MatrixExponentiationInput
   defaultInput: DEFAULT_MATRIX_EXPONENTIATION_INPUT,
   generateSteps: generateMatrixExponentiationSteps,
 };
-

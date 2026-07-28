@@ -31,12 +31,13 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
 
   const elements: ArrayElement[] = chars.map((ch, idx) => ({
     id: `char-${idx}`,
-    value: ch.charCodeAt(0),
+    value: ch,
     state: "default",
-    pointers: [ch],
+    pointers: [],
   }));
 
   const stack: string[] = [];
+  const stackIndices: number[] = [];
   const bracketMap: Record<string, string> = {
     ")": "(",
     "}": "{",
@@ -48,6 +49,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
+    activeIdx?: number,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -55,9 +57,9 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el) => ({
+        elements: elements.map((el, idx) => ({
           ...el,
-          pointers: [...el.pointers!],
+          pointers: activeIdx === idx ? ["i"] : [],
         })),
       },
       auxiliaryState: {
@@ -101,6 +103,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       `Read '${char}' at index ${i}`,
       `We inspect character '${char}' at position ${i}. An opening bracket starts a new nested context; a closing bracket must match the most recently opened bracket.`,
       { i, char, stackSize: stack.length },
+      i,
     );
 
     if (char === "(" || char === "{" || char === "[") {
@@ -109,9 +112,11 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
         `Recognize '${char}' as an opener`,
         `'${char}' is an opening bracket. We must push it onto the stack to track this nested context.`,
         { i, char, isOpenBracket: true },
+        i,
       );
 
       stack.push(char);
+      stackIndices.push(i);
       elements[i].state = "queued";
 
       addStep(
@@ -119,6 +124,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
         `Push '${char}' onto the stack`,
         `The stack is now [${stack.join(", ")}]. '${char}' will sit at the top of the stack until a matching closing bracket resolves it.`,
         { i, char, stackSize: stack.length },
+        i,
       );
     } else {
       const expectedOpen = bracketMap[char];
@@ -129,6 +135,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
         `'${char}' is a closing bracket — enter else branch`,
         `'${char}' is not an opening bracket, so we take the else path to match it against the stack. Expected opener: '${expectedOpen ?? ""}'.`,
         { i, char, isClosingBracket: true, expectedOpen: expectedOpen ?? "" },
+        i,
       );
 
       addStep(
@@ -136,16 +143,18 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
         `Match '${char}' against the stack top`,
         `Character '${char}' requires matching opener '${expectedOpen ?? ""}'. Current stack top is '${stackTop ?? "EMPTY"}'.`,
         { i, char, expectedOpen: expectedOpen ?? "", stackTop: stackTop ?? "EMPTY" },
+        i,
       );
 
       if (stack.length === 0 || stackTop !== expectedOpen) {
-        elements[i].state = "swap"; // error highlight
+        elements[i].state = "swap";
 
         addStep(
           9,
           "Return False — invalid bracket matching",
           `'${char}' expected '${expectedOpen ?? ""}' at stack top, but found '${stackTop ?? "EMPTY"}'. Nesting structure is violated.`,
           { i, char, stackTop: stackTop ?? "EMPTY", isValid: false },
+          i,
         );
 
         while (steps.length < 20) {
@@ -154,6 +163,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
             `Verification step ${steps.length + 1}`,
             `Verifying invalid bracket state and early exit safety.`,
             { isValid: false, remainingStackSize: stack.length },
+            i,
           );
         }
 
@@ -161,26 +171,39 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       }
 
       const popped = stack.pop();
-      elements[i].state = "visited";
+      const openIdx = stackIndices.pop();
+      if (openIdx !== undefined) {
+        elements[openIdx].state = "sorted";
+      }
+      elements[i].state = "sorted";
 
       addStep(
         10,
         `Pop '${popped}' to close the pair`,
         `'${char}' matches '${popped}' at stack top. We pop '${popped}' off the stack, successfully closing this pair. ${stack.length === 0 ? "Stack is now empty." : `Remaining stack: [${stack.join(", ")}].`}`,
         { i, char, poppedChar: popped!, stackSize: stack.length },
+        i,
       );
     }
   }
 
   const isValid = stack.length === 0;
 
-  for (let i = 0; i < n; i++) {
-    elements[i].state = isValid ? "sorted" : "swap";
+  if (!isValid) {
+    for (const openIdx of stackIndices) {
+      elements[openIdx].state = "swap";
+    }
+  } else {
+    for (let i = 0; i < n; i++) {
+      elements[i].state = "sorted";
+    }
   }
 
   addStep(
     11,
-    isValid ? "Return True — all brackets valid and balanced" : "Return False — unclosed brackets remain",
+    isValid
+      ? "Return True — all brackets valid and balanced"
+      : "Return False — unclosed brackets remain",
     isValid
       ? "We reached the end of the string and the stack is empty. Every opening bracket was closed by a matching bracket in correct LIFO order."
       : `Scan completed, but open brackets [${stack.join(", ")}] remain unclosed on the stack. The string is invalid.`,
@@ -188,12 +211,10 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
   );
 
   while (steps.length < 20) {
-    addStep(
-      11,
-      `Verification step ${steps.length + 1}`,
-      `Verifying final stack balance state.`,
-      { isValid, remainingStackSize: stack.length },
-    );
+    addStep(11, `Verification step ${steps.length + 1}`, `Verifying final stack balance state.`, {
+      isValid,
+      remainingStackSize: stack.length,
+    });
   }
 
   return steps;
@@ -218,8 +239,7 @@ const VALID_PARENTHESES_TRIVIA: TriviaMeta = {
 export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   id: "valid-parentheses",
   title: "Valid Parentheses",
-  category: "stack_and_queue",
-  categories: ["stack_and_queue"],
+  topicIds: ["stack_and_queue"],
   difficulty: "Easy",
   description: `Determine if an input string composed of bracket characters \`()\`, \`{}\`, and \`[]\` is valid.
 
@@ -327,7 +347,7 @@ $$\\text{len}(\\text{stack}) == 0 \\implies \\text{True}$$
       },
       {
         heading: "Trade-Offs & Complexity Analysis",
-        body: "Time Complexity: $O(N)$ single pass with constant time push/pop per character.\nSpace Complexity: $O(N)$ stack memory proportional to nesting depth.\nOptimization: Early parity rejection (\`if s.length % 2 != 0 return false\`) allows immediate $O(1)$ exit for odd-length strings.",
+        body: "Time Complexity: $O(N)$ single pass with constant time push/pop per character.\nSpace Complexity: $O(N)$ stack memory proportional to nesting depth.\nOptimization: Early parity rejection (`if s.length % 2 != 0 return false`) allows immediate $O(1)$ exit for odd-length strings.",
       },
     ],
     keyTerms: [

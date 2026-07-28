@@ -21,12 +21,10 @@ export const PAGED_ATTENTION_BLOCK_TABLE_CODE = `def paged_attention_block_table
     if num_logical_blocks > total_physical_blocks:
         raise MemoryError("Out of GPU physical KV-cache memory blocks")
         
-    # Virtual Memory Mapping: Logical Block ID -> Physical Block ID
     block_table = []
     free_blocks = list(range(total_physical_blocks))
     
     for logical_idx in range(num_logical_blocks):
-        # Allocate non-contiguous physical block from pool
         physical_idx = free_blocks.pop(0)
         block_table.append(physical_idx)
         
@@ -114,38 +112,47 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
 
   const numLogicalBlocks = Math.ceil(S / B);
 
-  if (numLogicalBlocks > P) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 7,
-      explanation: {
-        what: "Out of Physical Memory Blocks",
-        why: `Required ${numLogicalBlocks} blocks, but only ${P} physical blocks available in GPU VRAM pool.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: [],
-      },
-      auxiliaryState: { customState: { error: "Out of physical blocks" } },
-      variables: { numLogicalBlocks, totalPhysicalBlocks: P },
-    });
-    return steps;
-  }
-
   const freeBlocks: number[] = Array.from({ length: P }, (_, i) => i);
   const blockTable: number[] = [];
 
   const elements: ArrayElement[] = Array.from({ length: P }, (_, idx) => ({
     id: `pblock-${idx}`,
-    value: idx,
+    value: `Block ${idx}`,
     state: "default",
   }));
+
+  const makeSnapshotElements = (activePhysIdx: number | null) => {
+    return elements.map((el, idx) => {
+      const mappedLogicalIdx = blockTable.indexOf(idx);
+      const isAllocated = mappedLogicalIdx !== -1;
+      const isActive = activePhysIdx === idx;
+
+      let state: ArrayElement["state"] = "default";
+      if (isActive) state = "active";
+      else if (isAllocated) state = "sorted";
+
+      let pointers: string[] | undefined;
+      if (isActive && !isAllocated) {
+        pointers = [`Popped for allocation`];
+      } else if (isAllocated) {
+        const startT = mappedLogicalIdx * B;
+        const endT = Math.min(S - 1, (mappedLogicalIdx + 1) * B - 1);
+        pointers = [`L${mappedLogicalIdx} (T${startT}..${endT})`];
+      }
+
+      return {
+        ...el,
+        state,
+        pointers,
+      };
+    });
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    _activeLogicalIdx: number,
+    activePhysIdx: number | null,
     vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
@@ -154,21 +161,17 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el, idx) => {
-          const isAllocated = blockTable.includes(idx);
-          return {
-            ...el,
-            state: isAllocated ? "sorted" : "default",
-            pointers: isAllocated ? [`Logical Block #${blockTable.indexOf(idx)}`] : undefined,
-          };
-        }),
+        elements: makeSnapshotElements(activePhysIdx),
       },
       auxiliaryState: {
         customState: {
           blockSize: B,
           sequenceTokens: S,
           numLogicalBlocks,
-          blockTableMapping: blockTable.map((phys, log) => `L${log}->P${phys}`).join(", "),
+          blockTableMapping:
+            blockTable.length > 0
+              ? blockTable.map((phys, log) => `L${log}->P${phys}`).join(", ")
+              : "[]",
           freeBlocksCount: freeBlocks.length,
           virtualMemoryFragmentation: "0%",
         },
@@ -177,60 +180,146 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
     });
   };
 
+  // Line 1: Function entry
   addStep(
     1,
     "Initialize PagedAttention Block Table Allocator",
-    `Configured ${P} physical KV-cache blocks of size ${B} tokens. Sequence of ${S} tokens requires ${numLogicalBlocks} logical blocks.`,
-    -1,
-    { sequenceTokens: S, blockSize: B, totalPhysicalBlocks: P },
+    `Configured ${P} physical KV-cache memory blocks of size ${B} tokens for a sequence of ${S} tokens.`,
+    null,
+    { sequence_tokens: S, block_size: B, total_physical_blocks: P },
   );
 
+  // Line 6: Calculate logical blocks needed
   addStep(
     6,
-    `Compute num_logical_blocks = ceil(${S} / ${B}) = ${numLogicalBlocks}`,
-    `num_logical_blocks = (${S} + ${B} - 1) // ${B} = ${numLogicalBlocks}. This is how many virtual pages the sequence occupies.`,
-    -1,
+    `Compute num_logical_blocks = (${S} + ${B} - 1) // ${B} = ${numLogicalBlocks}`,
+    `Ceil division determines sequence requires ${numLogicalBlocks} virtual logical pages of ${B} tokens each.`,
+    null,
     { sequence_tokens: S, block_size: B, num_logical_blocks: numLogicalBlocks },
   );
 
+  // Line 8: Check if physical memory is sufficient
   addStep(
-    12,
-    `Initialize block_table = [], free_blocks = [0..${P - 1}]`,
-    `block_table will store logical_block → physical_block mappings. free_blocks is the pool of ${P} available physical pages.`,
-    -1,
-    { total_physical_blocks: P, free_blocks_count: P },
+    8,
+    `Check capacity: ${numLogicalBlocks} <= ${P}`,
+    `Required ${numLogicalBlocks} logical blocks fit within the total ${P} available physical GPU memory pages.`,
+    null,
+    { num_logical_blocks: numLogicalBlocks, total_physical_blocks: P },
   );
 
-  for (let lIdx = 0; lIdx < numLogicalBlocks; lIdx++) {
-    const physIdx = freeBlocks.shift()!;
-    blockTable.push(physIdx);
+  if (numLogicalBlocks > P) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 9,
+      explanation: {
+        what: "Raise MemoryError: Out of GPU physical KV-cache memory blocks",
+        why: `Sequence requires ${numLogicalBlocks} logical blocks, exceeding the total physical GPU capacity of ${P} blocks.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: makeSnapshotElements(null),
+      },
+      auxiliaryState: { customState: { error: "Out of physical blocks" } },
+      variables: { num_logical_blocks: numLogicalBlocks, total_physical_blocks: P },
+    });
+    return steps;
+  }
 
+  // Line 11 & 12: Initialize block_table and free_blocks
+  addStep(
+    11,
+    `Initialize block_table = [], free_blocks = list(range(${P}))`,
+    `Created empty virtual block table and populated free_blocks pool with physical indices [0..${P - 1}].`,
+    null,
+    { total_physical_blocks: P, free_blocks_count: freeBlocks.length },
+  );
+
+  // Allocation loop
+  for (let lIdx = 0; lIdx < numLogicalBlocks; lIdx++) {
     const startToken = lIdx * B;
     const endToken = Math.min(S - 1, (lIdx + 1) * B - 1);
 
+    // Line 14: Loop header
     addStep(
-      17,
-      `Allocated Physical Block #${physIdx} for Logical Block #${lIdx}`,
-      `physical_idx = free_blocks.pop(0) = ${physIdx}. Mapped token range [${startToken}..${endToken}] to non-contiguous physical GPU block #${physIdx}. Remaining free blocks: ${freeBlocks.length}.`,
-      lIdx,
-      { logicalBlock: lIdx, physicalBlock: physIdx, tokens: `${startToken}..${endToken}` },
+      14,
+      `For iteration: logical_idx = ${lIdx}`,
+      `Allocating physical GPU block for Logical Block #${lIdx} covering token range [${startToken}..${endToken}].`,
+      null,
+      {
+        logical_idx: lIdx,
+        num_logical_blocks: numLogicalBlocks,
+        start_token: startToken,
+        end_token: endToken,
+      },
+    );
+
+    const physIdx = freeBlocks.shift()!;
+
+    // Line 15: Pop free block
+    addStep(
+      15,
+      `physical_idx = free_blocks.pop(0) -> #${physIdx}`,
+      `Popped non-contiguous physical page #${physIdx} from free pool. ${freeBlocks.length} free blocks remain in pool.`,
+      physIdx,
+      { logical_idx: lIdx, physical_idx: physIdx, free_blocks_remaining: freeBlocks.length },
+    );
+
+    blockTable.push(physIdx);
+
+    // Line 16: Append to block table
+    addStep(
+      16,
+      `block_table.append(${physIdx}) -> [${blockTable.join(", ")}]`,
+      `Mapped Logical Block #${lIdx} to Physical Block #${physIdx}. Virtual block table updated.`,
+      physIdx,
+      { logical_idx: lIdx, physical_idx: physIdx, block_table: `[${blockTable.join(", ")}]` },
     );
   }
 
+  // Line 18: Calculate raw token offset
+  const rawOffset = S % B;
   addStep(
-    20,
-    `Compute token_offset = ${S} % ${B} = ${S % B || B}`,
-    `Offset of last write position inside the active (last) block. ${S % B === 0 ? `Sequence fills blocks exactly: offset set to block_size=${B}` : `${S % B} tokens used in final block #${numLogicalBlocks - 1}`}.`,
-    numLogicalBlocks,
-    { sequence_tokens: S, block_size: B, token_offset: S % B || B },
+    18,
+    `Compute token_offset = ${S} % ${B} = ${rawOffset}`,
+    `Calculates number of active tokens occupied in the final allocated logical block.`,
+    null,
+    { sequence_tokens: S, block_size: B, token_offset: rawOffset },
   );
 
+  let finalOffset = rawOffset;
+  if (rawOffset === 0) {
+    finalOffset = B;
+    // Line 20: Full block adjustment
+    addStep(
+      20,
+      `token_offset = block_size = ${B}`,
+      `Sequence tokens divide block size evenly: final block is fully filled with ${B} tokens.`,
+      null,
+      { token_offset: B, block_size: B },
+    );
+  } else {
+    // Line 19: Check condition (evaluated to false)
+    addStep(
+      19,
+      `Check token_offset == 0 (false, offset remains ${rawOffset})`,
+      `Final block #${numLogicalBlocks - 1} contains ${rawOffset} active tokens (partial block).`,
+      null,
+      { token_offset: rawOffset, block_size: B },
+    );
+  }
+
+  // Line 22: Return result
   addStep(
-    24,
-    "Return PagedAttention Block Table",
-    `Successfully constructed Virtual Block Table mapping for ${S} tokens across ${numLogicalBlocks} physical blocks without VRAM fragmentation.`,
-    numLogicalBlocks,
-    { totalAllocatedBlocks: blockTable.length, freeBlocksRemaining: freeBlocks.length },
+    22,
+    "Return PagedAttention block allocation dict",
+    `Completed mapping for ${S} tokens: ${numLogicalBlocks} blocks allocated, active_block_tokens=${finalOffset}, ${freeBlocks.length} physical blocks remaining free.`,
+    null,
+    {
+      num_logical_blocks: numLogicalBlocks,
+      block_table: `[${blockTable.join(", ")}]`,
+      active_block_tokens: finalOffset,
+      remaining_free_blocks: freeBlocks.length,
+    },
   );
 
   return steps;
@@ -239,12 +328,10 @@ export function generatePagedAttentionSteps(input: PagedAttentionInput): Algorit
 export const pagedAttentionBlockTable: AlgorithmDefinition<PagedAttentionInput> = {
   id: "paged-attention-block-table",
   title: "PagedAttention Physical Block Table Allocator",
-  category: "ml_llm_serving",
+  topicIds: ["ml_llm_serving"],
   difficulty: "Hard",
   description:
     "Virtual memory management algorithm (vLLM / Kwon et al.) that maps logical sequence KV-cache blocks to non-contiguous physical GPU memory pages, eliminating internal and external VRAM fragmentation.",
-  isMlInfra: true,
-  mlInfraLevel: 10,
   constraints: ["Block size B > 0", "Total physical blocks P > 0", "Sequence tokens S > 0"],
   examples: PAGED_ATTENTION_EXAMPLES,
   code: PAGED_ATTENTION_BLOCK_TABLE_CODE,

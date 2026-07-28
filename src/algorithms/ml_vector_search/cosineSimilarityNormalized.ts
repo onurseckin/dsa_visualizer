@@ -1,4 +1,9 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorVisualSnapshot,
+  VectorItem,
+} from "../../types/dsa";
 
 export interface CosineSimilarityNormalizedInput {
   query: number[];
@@ -19,19 +24,81 @@ export const DEFAULT_COSINE_SIMILARITY_NORMALIZED_INPUT: CosineSimilarityNormali
 export const COSINE_SIMILARITY_NORMALIZED_CODE = `import math
 
 def cosine_similarity_normalized(query: list[float], database: list[list[float]]) -> list[tuple[int, float]]:
-    """
-    Computes cosine similarity dot products between pre-normalized query and database vectors.
-    Since vectors are unit L2 normalized (||v|| = 1), cosine_sim(q, v) = q . v.
-    """
     results = []
     for idx, vec in enumerate(database):
-        # Compute dot product sum(q_i * v_i)
         dot_product = sum(q * v for q, v in zip(query, vec))
         results.append((idx, round(dot_product, 4)))
     
-    # Sort candidates by descending similarity score
     results.sort(key=lambda x: x[1], reverse=True)
     return results`;
+
+function makeVectorSnapshot(
+  query: number[],
+  database: number[][],
+  currentIdx: number | null,
+  computedScores: { idx: number; dotProduct: number }[],
+  planeTitle?: string,
+  highlightTopMatch: boolean = false,
+): VectorVisualSnapshot {
+  const is3D = query.length === 3;
+  const vectors: VectorItem[] = [
+    {
+      id: "query",
+      label: `Query [${query.join(", ")}]`,
+      x: query[0] ?? 0,
+      y: query[1] ?? 0,
+      z: is3D ? query[2] : undefined,
+      color: "#ef4444",
+      state: "active",
+      subText: "Query Vector (||q|| = 1.0)",
+    },
+  ];
+
+  const sortedByScore = [...computedScores].sort((a, b) => b.dotProduct - a.dotProduct);
+  const topIdx = sortedByScore.length > 0 ? sortedByScore[0].idx : null;
+
+  database.forEach((vec, idx) => {
+    let state: "default" | "active" | "compared" | "result" | "inactive" = "default";
+    let color = "#3b82f6";
+    let subText = `V${idx} [${vec.join(", ")}]`;
+
+    const foundScore = computedScores.find((s) => s.idx === idx);
+
+    if (highlightTopMatch && idx === topIdx) {
+      state = "result";
+      color = "#10b981";
+      subText = `Rank 1: V${idx} (sim: ${foundScore?.dotProduct.toFixed(4)})`;
+    } else if (idx === currentIdx) {
+      state = "active";
+      color = "#f59e0b";
+      if (foundScore !== undefined) {
+        subText = `Active V${idx} (dot = ${foundScore.dotProduct.toFixed(4)})`;
+      }
+    } else if (foundScore !== undefined) {
+      state = "compared";
+      color = "#64748b";
+      subText = `V${idx} (sim: ${foundScore.dotProduct.toFixed(4)})`;
+    }
+
+    vectors.push({
+      id: `v-${idx}`,
+      label: `V${idx}`,
+      x: vec[0] ?? 0,
+      y: vec[1] ?? 0,
+      z: is3D ? vec[2] : undefined,
+      color,
+      state,
+      subText,
+    });
+  });
+
+  return {
+    kind: "vector",
+    vectors,
+    dimensions: is3D ? "3d" : "2d",
+    planeTitle: planeTitle ?? "Normalized Embedding Unit Vector Space",
+  };
+}
 
 export const generateCosineSimilarityNormalizedSteps = (
   input: CosineSimilarityNormalizedInput,
@@ -40,30 +107,29 @@ export const generateCosineSimilarityNormalizedSteps = (
   const { query, database } = input;
   let stepIndex = 0;
 
-  // Step 0: Initialization
+  // Step 0: Initialization (Line 4)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 8,
+    codeLine: 4,
     explanation: {
-      what: "Initialize Normalized Cosine Similarity Engine",
-      why: `Preparing to compute cosine similarities for query vector [${query.join(
+      what: "Initialize Similarity Results List",
+      why: `Preparing empty list results = [] to store pairwise (vector_index, cosine_similarity) tuples for ${database.length} pre-normalized candidate vectors against Query [${query.join(
         ", ",
-      )}] against ${database.length} pre-normalized database vectors.`,
+      )}].`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: database.map((vec, idx) => ({
-        id: `v-${idx}`,
-        value: Number(idx),
-        label: `V${idx} [${vec.join(",")}]`,
-        state: "default" as ElementState,
-      })),
-    },
+    primarySnapshot: makeVectorSnapshot(
+      query,
+      database,
+      null,
+      [],
+      "Initial Vector Space: Pre-Normalized Query & Database Vectors",
+    ),
     auxiliaryState: {
       customState: {
         queryVector: `[${query.join(", ")}]`,
         databaseCount: String(database.length),
         status: "Initialized",
+        results: "[]",
       },
     },
     variables: { query: query.join(", "), databaseSize: database.length },
@@ -79,115 +145,135 @@ export const generateCosineSimilarityNormalizedSteps = (
     for (let d = 0; d < query.length; d++) {
       const prod = query[d] * vec[d];
       dotProduct += prod;
-      products.push(`${query[d]} * ${vec[d]} = ${prod.toFixed(2)}`);
+      products.push(`${query[d]} * ${vec[d]} = ${prod.toFixed(4)}`);
     }
 
     dotProduct = Math.round(dotProduct * 10000) / 10000;
-    scores.push({ idx: i, dotProduct });
 
+    // Line 6: Compute dot product
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 11,
+      codeLine: 6,
       explanation: {
-        what: `Compute dot product for Vector V${i} [${vec.join(", ")}]`,
-        why: `Dot product sum: (${products.join(" + ")}) = ${dotProduct.toFixed(4)}.`,
+        what: `Compute Dot Product for Candidate Vector V${i}`,
+        why: `Because vectors are pre-normalized to unit L2 length (||q|| = 1, ||v|| = 1), cosine similarity equals dot product q · v: (${products.join(
+          " + ",
+        )}) = ${dotProduct.toFixed(4)}.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: database.map((_, idx) => ({
-          id: `v-${idx}`,
-          value: idx === i ? Math.round(dotProduct * 100) : idx,
-          label: `V${idx} (sim: ${idx <= i ? (scores[idx]?.dotProduct ?? 0).toFixed(2) : "?"})`,
-          state:
-            idx === i
-              ? ("active" as ElementState)
-              : idx < i
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === i ? [`dot=${dotProduct.toFixed(4)}`] : [],
-        })),
-      },
+      primarySnapshot: makeVectorSnapshot(
+        query,
+        database,
+        i,
+        scores,
+        `Computing Dot Product for Candidate V${i}`,
+      ),
       auxiliaryState: {
         customState: {
           activeVector: `V${i} [${vec.join(", ")}]`,
-          dotProduct: dotProduct.toFixed(4),
-          products: products.join(" + "),
+          dotProductSum: dotProduct.toFixed(4),
+          elementwiseProducts: products.join(" + "),
+          status: `Evaluating V${i}`,
         },
       },
-      variables: { i, vector: vec.join(", "), dotProduct },
+      variables: { idx: i, vector: vec.join(", "), dotProduct },
+    });
+
+    scores.push({ idx: i, dotProduct });
+
+    // Line 7: Append tuple to results
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 7,
+      explanation: {
+        what: `Append Candidate V${i} Score (${dotProduct.toFixed(4)}) to Results`,
+        why: `Recorded tuple (V${i}, ${dotProduct.toFixed(4)}) into candidate similarity results list.`,
+      },
+      primarySnapshot: makeVectorSnapshot(
+        query,
+        database,
+        i,
+        scores,
+        `Appended Candidate V${i} Score to Results`,
+      ),
+      auxiliaryState: {
+        customState: {
+          activeVector: `V${i}`,
+          dotProduct: dotProduct.toFixed(4),
+          totalEvaluated: String(scores.length),
+          results: scores.map((s) => `(V${s.idx}, ${s.dotProduct})`).join(", "),
+        },
+      },
+      variables: { idx: i, similarityScore: dotProduct, resultsCount: scores.length },
     });
   }
 
-  // Step: Sorting by score
+  // Line 9: Sort candidates by score descending
   const sortedScores = [...scores].sort((a, b) => b.dotProduct - a.dotProduct);
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 15,
+    codeLine: 9,
     explanation: {
-      what: "Sort Candidate Vectors by Descending Cosine Similarity",
-      why: `Top match is V${sortedScores[0].idx} with cosine similarity score ${sortedScores[0].dotProduct.toFixed(
-        4,
-      )}.`,
+      what: "Sort Candidate Vectors by Descending Similarity Score",
+      why: `Sorted all candidate similarity tuples in descending order. Top nearest neighbor is candidate V${
+        sortedScores[0].idx
+      } with cosine similarity ${sortedScores[0].dotProduct.toFixed(4)}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: sortedScores.map((item, rank) => ({
-        id: `v-${item.idx}`,
-        value: Math.round(item.dotProduct * 100),
-        label: `Rank ${rank + 1}: V${item.idx} (sim: ${item.dotProduct.toFixed(4)})`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-        pointers: rank === 0 ? ["Top Candidate"] : [],
-      })),
-    },
+    primarySnapshot: makeVectorSnapshot(
+      query,
+      database,
+      null,
+      scores,
+      "Sorted Candidates by Cosine Similarity",
+      true,
+    ),
     auxiliaryState: {
       customState: {
         topMatch: `V${sortedScores[0].idx}`,
         topScore: sortedScores[0].dotProduct.toFixed(4),
-        ranking: sortedScores.map((s, r) => `#${r + 1}: V${s.idx} (${s.dotProduct})`).join(" | "),
-        status: "Completed",
+        ranking: sortedScores
+          .map((s, r) => `#${r + 1}: V${s.idx} (sim: ${s.dotProduct})`)
+          .join(" | "),
+        status: "Sorted",
       },
     },
     variables: { topMatchIdx: sortedScores[0].idx, topScore: sortedScores[0].dotProduct },
   });
 
+  // Line 10: Return results
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 10,
     explanation: {
-      what: "Return Ranked Candidate Similarity Results",
+      what: "Return Ranked Similarity Results",
       why: "Function returns final sorted tuples of (vectorIndex, similarityScore).",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: sortedScores.map((item, rank) => ({
-        id: `v-${item.idx}`,
-        value: Math.round(item.dotProduct * 100),
-        label: `Rank ${rank + 1}: V${item.idx} (${item.dotProduct.toFixed(4)})`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-        pointers: rank === 0 ? ["Top Match"] : [],
-      })),
-    },
+    primarySnapshot: makeVectorSnapshot(
+      query,
+      database,
+      null,
+      scores,
+      "Final Similarity Rankings Complete",
+      true,
+    ),
     auxiliaryState: {
       customState: {
+        topMatch: `V${sortedScores[0].idx}`,
+        topScore: sortedScores[0].dotProduct.toFixed(4),
         status: "Completed",
       },
     },
-    variables: { results: sortedScores },
+    variables: { resultsCount: sortedScores.length, topCandidate: sortedScores[0].idx },
   });
 
   return steps;
 };
 
 export const cosineSimilarityNormalized: AlgorithmDefinition<CosineSimilarityNormalizedInput> = {
-  id: "cosineSimilarityNormalized",
+  id: "cosine-similarity-normalized",
   title: "Cosine Similarity over Normalized Embeddings",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search"],
+  topicIds: ["ml_vector_search"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "Calculates high-throughput cosine similarity scores between normalized query and database vector embeddings. When vectors are pre-normalized to unit L2 length (||v|| = 1), cosine similarity collapses to exact dot products q · v, eliminating expensive square root and norm divisions during similarity search.\n\nInput Format:\n- query: Unit L2 normalized query embedding vector of dimension D.\n- database: Array of unit L2 normalized candidate embeddings of dimension D.\n\nOutput Format:\n- Returns sorted list of tuples (vectorIndex, similarityScore) in descending order of similarity.\n\nEdge Cases & Constraints:\n- Zero vector input: Triggers norm division safeguard if unnormalized.\n- Orthogonal vectors: Produces dot product = 0.0.\n- Diametrically opposed vectors: Produces dot product = -1.0.",
   constraints: [

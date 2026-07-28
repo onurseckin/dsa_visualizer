@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  GridCellNode,
+  GridVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface CountingTilingsInput {
@@ -41,6 +47,42 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
+  const createGridSnapshot = (
+    activeCell?: { row: number; col: number },
+    highlightedCells?: { row: number; col: number; state: ElementState }[],
+    allSorted = false,
+  ): GridVisualSnapshot => {
+    const gridNodes: GridCellNode[][] = [];
+    for (let r = 0; r < n; r++) {
+      const rowNodes: GridCellNode[] = [];
+      for (let c = 0; c < m; c++) {
+        const isActive = activeCell && activeCell.row === r && activeCell.col === c;
+        const customHighlight = highlightedCells?.find((cell) => cell.row === r && cell.col === c);
+
+        let state: ElementState = "default";
+        if (allSorted) {
+          state = "sorted";
+        } else if (isActive) {
+          state = "active";
+        } else if (customHighlight) {
+          state = customHighlight.state;
+        } else if (activeCell) {
+          if (c < activeCell.col || (c === activeCell.col && r < activeCell.row)) {
+            state = "visited";
+          }
+        }
+
+        rowNodes.push({
+          row: r,
+          col: c,
+          state,
+        });
+      }
+      gridNodes.push(rowNodes);
+    }
+    return { kind: "grid", grid: gridNodes };
+  };
+
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 1,
@@ -48,10 +90,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       what: `Start Counting Tilings algorithm for ${n}x${m} grid`,
       why: "The goal is to calculate the total number of valid domino tilings (1x2 and 2x1) that cover the grid without overlaps or gaps.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: [{ id: "grid-spec", value: `${n}x${m}`, state: "default" }],
-    },
+    primarySnapshot: createGridSnapshot(),
     auxiliaryState: { customState: { n, m, totalArea: n * m } },
     variables: { n, m, totalArea: n * m },
   });
@@ -63,11 +102,8 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       what: `Check grid area parity: total area ${n} * ${m} = ${n * m}`,
       why: "Each domino covers exactly 2 unit squares. If total grid area is odd, domino coverage is mathematically impossible.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: [{ id: "grid-spec", value: `${n}x${m}`, state: "default" }],
-    },
-    auxiliaryState: { customState: { n, m, isOdd: (n * m) % 2 !== 0 } },
+    primarySnapshot: createGridSnapshot(),
+    auxiliaryState: { customState: { n, m, isOdd: (n * m) % 2 !== 0 ? "true" : "false" } },
     variables: { n, m, isOdd: (n * m) % 2 !== 0 },
   });
 
@@ -79,10 +115,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
         what: `Total area ${n * m} is odd. Returning 0 tilings.`,
         why: "A grid with odd area cannot be covered by 1x2 dominoes of area 2.",
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: [{ id: "dp-0", value: 0, state: "sorted", pointers: ["result: 0"] }],
-      },
+      primarySnapshot: createGridSnapshot(),
       auxiliaryState: { customState: { n, m, totalArea: n * m } },
       variables: { result: 0 },
     });
@@ -98,10 +131,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       what: `Calculate number of profile states num_masks = 2^${n} = ${numMasks}`,
       why: "An n-bit bitmask captures all possible boundary overhang configurations between adjacent columns.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: [{ id: "num-masks", value: numMasks, state: "default" }],
-    },
+    primarySnapshot: createGridSnapshot(),
     auxiliaryState: { customState: { n, m, numMasks } },
     variables: { n, numMasks },
   });
@@ -115,14 +145,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       what: `Allocate DP array of size ${numMasks} initialized with 0`,
       why: "dp[mask] tracks the number of ways to reach the current profile boundary configuration.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((val, mask) => ({
-        id: `mask-${mask}`,
-        value: val,
-        state: "default",
-      })),
-    },
+    primarySnapshot: createGridSnapshot(),
     auxiliaryState: { customState: { n, numMasks } },
     variables: { numMasks },
   });
@@ -135,20 +158,17 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       what: "Set base case dp[0] = 1",
       why: "There is exactly 1 valid configuration with zero boundary overhangs before processing column 0.",
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((val, mask) => ({
-        id: `mask-${mask}`,
-        value: val,
-        state: mask === 0 ? "active" : "default",
-        pointers: mask === 0 ? ["base: 1"] : undefined,
-      })),
-    },
+    primarySnapshot: createGridSnapshot(undefined, [{ row: 0, col: 0, state: "active" }]),
     auxiliaryState: { customState: { n, m, "dp[0]": 1 } },
     variables: { n, m, "dp[0]": 1 },
   });
 
   for (let col = 0; col < m; col++) {
+    const colHighlights = Array.from({ length: n }, (_, r) => ({
+      row: r,
+      col,
+      state: "pivot" as ElementState,
+    }));
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 9,
@@ -156,16 +176,9 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
         what: `Begin column col = ${col}`,
         why: "Columns are processed left-to-right.",
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: dp.map((val, mask) => ({
-          id: `mask-${mask}`,
-          value: val,
-          state: mask === 0 ? "active" : val > 0 ? "visited" : "default",
-        })),
-      },
-      auxiliaryState: { customState: { col, m } },
-      variables: { col, m },
+      primarySnapshot: createGridSnapshot(undefined, colHighlights),
+      auxiliaryState: { customState: { col, m, "dp[0]": dp[0] } },
+      variables: { col, m, "dp[0]": dp[0] },
     });
 
     for (let row = 0; row < n; row++) {
@@ -176,16 +189,9 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
           what: `Process cell (row ${row}, col ${col})`,
           why: "Cell-by-cell profile updates transition bitmask states.",
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: dp.map((val, mask) => ({
-            id: `mask-${mask}`,
-            value: val,
-            state: mask === 0 ? "active" : val > 0 ? "visited" : "default",
-          })),
-        },
-        auxiliaryState: { customState: { col, row } },
-        variables: { col, row },
+        primarySnapshot: createGridSnapshot({ row, col }),
+        auxiliaryState: { customState: { col, row, "dp[0]": dp[0] } },
+        variables: { col, row, "dp[0]": dp[0] },
       });
 
       const nextDp = new Array<number>(numMasks).fill(0);
@@ -197,16 +203,9 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
           what: `Allocate next_dp array of size ${numMasks} for cell (${row}, ${col})`,
           why: "Stores updated boundary profile counts resulting from domino placements at the current cell.",
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: dp.map((val, mask) => ({
-            id: `mask-${mask}`,
-            value: val,
-            state: mask === 0 ? "active" : val > 0 ? "visited" : "default",
-          })),
-        },
-        auxiliaryState: { customState: { col, row, nextDpSize: numMasks } },
-        variables: { col, row, numMasks },
+        primarySnapshot: createGridSnapshot({ row, col }),
+        auxiliaryState: { customState: { col, row, nextDpSize: numMasks, "dp[0]": dp[0] } },
+        variables: { col, row, numMasks, "dp[0]": dp[0] },
       });
 
       let transitionsCount = 0;
@@ -230,18 +229,10 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
         stepIndex: stepIndex++,
         codeLine: 21,
         explanation: {
-          what: `Finished transitions for cell (row ${row}, col ${col}) across ${transitionsCount} active masks`,
+          what: `Finished transitions for cell (row ${row}, col ${col}) across ${transitionsCount} active profile masks`,
           why: `Profile transitions updated DP table for column ${col}, row ${row}. Current dp[0] = ${dp[0]}.`,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: dp.map((val, mask) => ({
-            id: `mask-${mask}`,
-            value: val,
-            state: mask === 0 ? "active" : val > 0 ? "visited" : "default",
-            pointers: mask === 0 ? [`dp[0]: ${val}`] : undefined,
-          })),
-        },
+        primarySnapshot: createGridSnapshot({ row, col }),
         auxiliaryState: {
           customState: { col, row, dp0: dp[0], activeMasks: transitionsCount },
         },
@@ -258,15 +249,7 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       what: `Final result dp[0] = ${result}`,
       why: `The total number of valid domino tilings for a ${n}x${m} grid with zero boundary overhangs is ${result}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((val, mask) => ({
-        id: `mask-${mask}`,
-        value: val,
-        state: mask === 0 ? "sorted" : "default",
-        pointers: mask === 0 ? [`result: ${val}`] : undefined,
-      })),
-    },
+    primarySnapshot: createGridSnapshot(undefined, undefined, true),
     auxiliaryState: { customState: { totalTilings: result } },
     variables: { result },
   });
@@ -305,8 +288,7 @@ const COUNTING_TILINGS_TRIVIA: TriviaMeta = {
 export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
   id: "counting-tilings",
   title: "Counting Tilings (Bitmask DP)",
-  category: "dp_2d",
-  categories: ["dp_2d"],
+  topicIds: ["dp_2d"],
   difficulty: "Hard",
   description: `The **Counting Tilings** problem (CSES #2181) asks for the number of ways to completely tile an $N \\times M$ grid using non-overlapping $1 \\times 2$ and $2 \\times 1$ dominoes.
 

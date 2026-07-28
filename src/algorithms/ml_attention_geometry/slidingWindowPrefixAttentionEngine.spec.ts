@@ -9,10 +9,11 @@ import {
 describe("sliding-window-prefix-attention-engine (Sliding Window Prefix Attention Engine)", () => {
   it("should have correct metadata", () => {
     expect(slidingWindowPrefixAttentionEngine.id).toBe("sliding-window-prefix-attention-engine");
-    expect(slidingWindowPrefixAttentionEngine.isMlInfra).toBe(true);
-    expect(slidingWindowPrefixAttentionEngine.mlInfraLevel).toBe(7);
-    expect(slidingWindowPrefixAttentionEngine.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(slidingWindowPrefixAttentionEngine.categories).toContain("ml_attention_geometry");
+    expect(
+      slidingWindowPrefixAttentionEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(slidingWindowPrefixAttentionEngine.topicIds).toContain("ml_attention_geometry");
+    expect(slidingWindowPrefixAttentionEngine.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps", () => {

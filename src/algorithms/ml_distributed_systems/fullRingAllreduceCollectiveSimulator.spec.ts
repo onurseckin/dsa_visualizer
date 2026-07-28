@@ -11,10 +11,11 @@ describe("full-ring-allreduce-collective-simulator (Full Ring-AllReduce Collecti
     expect(fullRingAllreduceCollectiveSimulator.id).toBe(
       "full-ring-allreduce-collective-simulator",
     );
-    expect(fullRingAllreduceCollectiveSimulator.isMlInfra).toBe(true);
-    expect(fullRingAllreduceCollectiveSimulator.mlInfraLevel).toBe(11);
-    expect(fullRingAllreduceCollectiveSimulator.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(fullRingAllreduceCollectiveSimulator.categories).toContain("ml_distributed_systems");
+    expect(
+      fullRingAllreduceCollectiveSimulator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(fullRingAllreduceCollectiveSimulator.topicIds).toContain("ml_distributed_systems");
+    expect(fullRingAllreduceCollectiveSimulator.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {
@@ -37,4 +38,3 @@ describe("full-ring-allreduce-collective-simulator (Full Ring-AllReduce Collecti
     }
   });
 });
-

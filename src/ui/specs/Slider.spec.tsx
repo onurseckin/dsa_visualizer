@@ -46,6 +46,18 @@ describe("Slider", () => {
     expect(screen.getByRole("slider", { name: "Zoom" })).toHaveAttribute("step", "0.5");
   });
 
+  it("renders an accessible fixed value without asking Base UI to process an empty range", () => {
+    const onChange = vi.fn();
+    render(<Slider label="Starting blanks" value={1} min={1} max={1} onChange={onChange} />);
+
+    const slider = screen.getByRole("slider", { name: "Starting blanks" });
+    expect(slider).toHaveAttribute("aria-valuemin", "1");
+    expect(slider).toHaveAttribute("aria-valuemax", "1");
+    expect(slider).toHaveAttribute("aria-valuenow", "1");
+    expect(slider).toHaveAttribute("aria-disabled", "true");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("handles undefined label and custom id, className, and style", () => {
     const { container } = render(
       <Slider

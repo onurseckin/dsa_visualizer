@@ -8,9 +8,8 @@ import {
 describe("sramGemmTiling algorithm definition", () => {
   it("has valid metadata and ML Infra markers", () => {
     expect(sramGemmTiling.id).toBe("sram-gemm-tiling");
-    expect(sramGemmTiling.category).toBe("ml_gemm_roofline");
-    expect(sramGemmTiling.isMlInfra).toBe(true);
-    expect(sramGemmTiling.mlInfraLevel).toBe(1);
+    expect(sramGemmTiling.topicIds).toContain("ml_gemm_roofline");
+    expect(sramGemmTiling.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
     expect(sramGemmTiling.sources?.[0].type).toBe("ml_infra");
   });
 

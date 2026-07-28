@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  MatrixCellItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ScaledDotAttentionInput {
@@ -15,7 +20,6 @@ def scaled_dot_product_attention(Q: list[list[float]], K: list[list[float]], V: 
     Tk = len(K)
     scale = 1.0 / math.sqrt(dk)
     
-    # Step 1: Compute scaled dot-product attention scores S = (Q @ K.T) / sqrt(dk)
     scores = []
     for i in range(Tq):
         row = []
@@ -24,14 +28,12 @@ def scaled_dot_product_attention(Q: list[list[float]], K: list[list[float]], V: 
             row.append(dot * scale)
         scores.append(row)
         
-    # Step 2: Apply attention mask (set score to -inf for masked positions j > i)
     if mask_type == "causal":
         for i in range(Tq):
             for j in range(Tk):
                 if j > i:
                     scores[i][j] = -1e9
                     
-    # Step 3: Compute numerically stable Softmax per row
     attention_weights = []
     for row in scores:
         max_val = max(row)
@@ -39,7 +41,6 @@ def scaled_dot_product_attention(Q: list[list[float]], K: list[list[float]], V: 
         sum_exp = sum(exp_row)
         attention_weights.append([e / sum_exp for e in exp_row])
         
-    # Step 4: Multiply attention weights by Value matrix O = Attention @ V
     dv = len(V[0])
     output = []
     for i in range(Tq):
@@ -81,7 +82,79 @@ export const generateScaledDotAttentionMaskSteps = (
   const Tk = input.K.length;
   const scale = 1.0 / Math.sqrt(dk);
 
-  // 1. Matmul Q @ K.T and scale
+  const buildDistanceTable = (
+    rawScores?: number[][],
+    maskedScores?: number[][],
+    attentionWeights?: number[][],
+    output?: number[][],
+  ): Record<string, number> => {
+    const table: Record<string, number> = {};
+    if (rawScores) {
+      rawScores.forEach((row, i) =>
+        row.forEach((score, j) => {
+          table[`Raw_S_q${i}_k${j}`] = Number(score.toFixed(2));
+        }),
+      );
+    }
+    if (maskedScores) {
+      maskedScores.forEach((row, i) =>
+        row.forEach((score, j) => {
+          table[`Masked_S_q${i}_k${j}`] = score === -1e9 ? -999 : Number(score.toFixed(2));
+        }),
+      );
+    }
+    if (attentionWeights) {
+      attentionWeights.forEach((row, i) =>
+        row.forEach((w, j) => {
+          table[`A_q${i}_k${j}`] = Number(w.toFixed(3));
+        }),
+      );
+    }
+    if (output) {
+      output.forEach((row, i) =>
+        row.forEach((val, d) => {
+          table[`O_q${i}_d${d}`] = Number(val.toFixed(2));
+        }),
+      );
+    }
+    return table;
+  };
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `Initialize Attention Parameters (Tq=${Tq}, Tk=${Tk}, dk=${dk})`,
+      why: `Computing scaling factor scale = 1 / sqrt(${dk}) = ${scale.toFixed(4)}. Query and Key projections will be multiplied and scaled to prevent Softmax saturation.`,
+    },
+    primarySnapshot: {
+      kind: "matrix",
+      rows: Tq,
+      cols: Tk,
+      title: `Raw Attention Logits S = (Q @ K^T) / sqrt(d_k) (${Tq}x${Tk})`,
+      rowHeaders: Array.from({ length: Tq }, (_, i) => `Query ${i}`),
+      colHeaders: Array.from({ length: Tk }, (_, j) => `Key ${j}`),
+      cells: Array.from({ length: Tq }, (_, r) =>
+        Array.from({ length: Tk }, (_, c) => ({
+          row: r,
+          col: c,
+          value: "-",
+          label: `Q${r}_K${c}`,
+          state: "default" as ElementState,
+        })),
+      ).flat(),
+    },
+    auxiliaryState: {
+      distanceTable: {},
+    },
+    variables: {
+      Tq,
+      Tk,
+      dk,
+      scale: Number(scale.toFixed(4)),
+    },
+  });
+
   const rawScores: number[][] = [];
   for (let i = 0; i < Tq; i++) {
     const row: number[] = [];
@@ -90,40 +163,56 @@ export const generateScaledDotAttentionMaskSteps = (
       row.push(dot * scale);
     }
     rawScores.push(row);
+
+    const snapshotCells: MatrixCellItem[] = [];
+    for (let r = 0; r < Tq; r++) {
+      for (let c = 0; c < Tk; c++) {
+        if (r < i || (r === i && c <= Tk - 1)) {
+          snapshotCells.push({
+            row: r,
+            col: c,
+            value: Number(rawScores[r][c].toFixed(3)),
+            label: `S[q${r},k${c}]`,
+            state: r === i ? ("active" as ElementState) : ("compared" as ElementState),
+          });
+        } else {
+          snapshotCells.push({
+            row: r,
+            col: c,
+            value: "-",
+            label: `Q${r}_K${c}`,
+            state: "default" as ElementState,
+          });
+        }
+      }
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 12,
+      explanation: {
+        what: `Compute Scaled Inner Product Logits for Query Token Q${i}`,
+        why: `Calculated inner products Q${i} @ K^T scaled by 1/sqrt(${dk}) (${scale.toFixed(3)}): [${row.map((s) => s.toFixed(3)).join(", ")}].`,
+      },
+      primarySnapshot: {
+        kind: "matrix",
+        rows: Tq,
+        cols: Tk,
+        title: `Raw Attention Logits S = (Q @ K^T) / sqrt(d_k)`,
+        rowHeaders: Array.from({ length: Tq }, (_, r) => `Query ${r}`),
+        colHeaders: Array.from({ length: Tk }, (_, c) => `Key ${c}`),
+        cells: snapshotCells,
+      },
+      auxiliaryState: {
+        distanceTable: buildDistanceTable(rawScores),
+      },
+      variables: {
+        queryRow: i,
+        scale: Number(scale.toFixed(3)),
+      },
+    });
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 8,
-    explanation: {
-      what: "Compute Scaled Dot-Product Scores S = Q K^T / sqrt(d_k)",
-      why: `Queries (${Tq}x${dk}) x Keys (${Tk}x${dk}) scaled by 1/sqrt(${dk}) = ${scale.toFixed(3)}. Dot product Q K^T measures alignment between Query and Key vectors.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: rawScores.flatMap((row, i) =>
-        row.map((score, j) => ({
-          id: `score-${i}-${j}`,
-          value: Number((score * 10).toFixed(0)),
-          state: "active" as ElementState,
-        })),
-      ),
-    },
-    auxiliaryState: {
-      distanceTable: Object.fromEntries(
-        rawScores.flatMap((row, i) =>
-          row.map((score, j) => [`Raw_S_q${i}_k${j}`, Number(score.toFixed(2))]),
-        ),
-      ),
-    },
-    variables: {
-      Tq,
-      Tk,
-      scale: Number(scale.toFixed(3)),
-    },
-  });
-
-  // 2. Apply Mask
   const maskedScores = rawScores.map((row) => [...row]);
   if (input.maskType === "causal") {
     for (let i = 0; i < Tq; i++) {
@@ -135,80 +224,102 @@ export const generateScaledDotAttentionMaskSteps = (
     }
   }
 
+  const maskedCells: MatrixCellItem[] = maskedScores.flatMap((row, r) =>
+    row.map((score, c) => ({
+      row: r,
+      col: c,
+      value: score === -1e9 ? "-inf" : Number(score.toFixed(3)),
+      label: `S_masked[${r},${c}]`,
+      state:
+        c > r && input.maskType === "causal"
+          ? ("visited" as ElementState)
+          : ("active" as ElementState),
+    })),
+  );
+
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: input.maskType === "causal" ? 20 : 16,
     explanation: {
-      what: `Apply ${input.maskType === "causal" ? "Causal Masking" : "No Mask"}`,
-      why: `${input.maskType === "causal" ? "Causal mask set upper-triangle positions (j > i) to -inf (-1e9)." : "No masking applied."} Causal masking prevents decoder tokens from attending to future tokens.`,
+      what: `Apply ${input.maskType === "causal" ? "Causal Lower-Triangular Masking" : "No Masking"}`,
+      why: `${input.maskType === "causal" ? "Causal mask set upper-triangular entries (j > i) to -inf (-1e9) so future tokens cannot be attended to." : "No masking applied; all tokens attend bidirectionally."}`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: maskedScores.flatMap((row, i) =>
-        row.map((score, j) => ({
-          id: `score-${i}-${j}`,
-          value: score === -1e9 ? -99 : Number((score * 10).toFixed(0)),
-          state:
-            j > i && input.maskType === "causal"
-              ? ("visited" as ElementState)
-              : ("active" as ElementState),
-        })),
-      ),
+      kind: "matrix",
+      rows: Tq,
+      cols: Tk,
+      title: `Masked Attention Logits S_masked (${input.maskType})`,
+      rowHeaders: Array.from({ length: Tq }, (_, r) => `Query ${r}`),
+      colHeaders: Array.from({ length: Tk }, (_, c) => `Key ${c}`),
+      cells: maskedCells,
     },
     auxiliaryState: {
-      distanceTable: Object.fromEntries(
-        maskedScores.flatMap((row, i) =>
-          row.map((score, j) => [
-            `Masked_S_q${i}_k${j}`,
-            score === -1e9 ? -999 : Number(score.toFixed(2)),
-          ]),
-        ),
-      ),
+      distanceTable: buildDistanceTable(rawScores, maskedScores),
     },
     variables: {
       maskType: input.maskType,
     },
   });
 
-  // 3. Softmax
   const attentionWeights: number[][] = [];
-  for (const row of maskedScores) {
+  for (let i = 0; i < Tq; i++) {
+    const row = maskedScores[i];
     const maxVal = Math.max(...row);
     const expRow = row.map((v) => Math.exp(v - maxVal));
     const sumExp = expRow.reduce((a, b) => a + b, 0);
-    attentionWeights.push(expRow.map((e) => e / sumExp));
+    const weightsRow = expRow.map((e) => e / sumExp);
+    attentionWeights.push(weightsRow);
+
+    const softmaxCells: MatrixCellItem[] = [];
+    for (let r = 0; r < Tq; r++) {
+      for (let c = 0; c < Tk; c++) {
+        if (r <= i) {
+          const w = attentionWeights[r][c];
+          softmaxCells.push({
+            row: r,
+            col: c,
+            value: Number(w.toFixed(3)),
+            label: `A[q${r},k${c}]`,
+            state: w > 0.001 ? ("sorted" as ElementState) : ("default" as ElementState),
+          });
+        } else {
+          softmaxCells.push({
+            row: r,
+            col: c,
+            value: "-",
+            label: `A[q${r},k${c}]`,
+            state: "default" as ElementState,
+          });
+        }
+      }
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 27,
+      explanation: {
+        what: `Compute Softmax Attention Probabilities for Query Row Q${i}`,
+        why: `Row ${i} max logit = ${maxVal === -1e9 ? "-inf" : maxVal.toFixed(3)}. Exponentials normalized by sum_exp yield probability weights: [${weightsRow.map((w) => w.toFixed(3)).join(", ")}]. Masked entries become 0.000.`,
+      },
+      primarySnapshot: {
+        kind: "matrix",
+        rows: Tq,
+        cols: Tk,
+        title: `Softmax Attention Weights Matrix A = Softmax(S_masked)`,
+        rowHeaders: Array.from({ length: Tq }, (_, r) => `Query ${r}`),
+        colHeaders: Array.from({ length: Tk }, (_, c) => `Key ${c}`),
+        cells: softmaxCells,
+      },
+      auxiliaryState: {
+        distanceTable: buildDistanceTable(rawScores, maskedScores, attentionWeights),
+      },
+      variables: {
+        queryRow: i,
+        maxVal: maxVal === -1e9 ? "-1e9" : Number(maxVal.toFixed(3)),
+      },
+    });
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 23,
-    explanation: {
-      what: "Apply Row-wise Stable Softmax",
-      why: "Attention matrix weights A generated via Softmax(S). Masked -inf entries evaluate to exactly 0.000 probability.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: attentionWeights.flatMap((row, i) =>
-        row.map((w, j) => ({
-          id: `w-${i}-${j}`,
-          value: Number((w * 100).toFixed(0)),
-          state: w > 0.001 ? ("sorted" as ElementState) : ("default" as ElementState),
-        })),
-      ),
-    },
-    auxiliaryState: {
-      distanceTable: Object.fromEntries(
-        attentionWeights.flatMap((row, i) =>
-          row.map((w, j) => [`A_q${i}_k${j}`, Number(w.toFixed(3))]),
-        ),
-      ),
-    },
-    variables: {
-      maxWeight: Number(Math.max(...attentionWeights.flat()).toFixed(3)),
-    },
-  });
-
-  // 4. Output O = A @ V
   const dv = input.V[0].length;
   const output: number[][] = [];
   for (let i = 0; i < Tq; i++) {
@@ -218,31 +329,88 @@ export const generateScaledDotAttentionMaskSteps = (
       outRow.push(val);
     }
     output.push(outRow);
+
+    const outputCells: MatrixCellItem[] = [];
+    for (let r = 0; r < Tq; r++) {
+      for (let d = 0; d < dv; d++) {
+        if (r <= i) {
+          outputCells.push({
+            row: r,
+            col: d,
+            value: Number(output[r][d].toFixed(2)),
+            label: `O[q${r},v${d}]`,
+            state: "sorted" as ElementState,
+          });
+        } else {
+          outputCells.push({
+            row: r,
+            col: d,
+            value: "-",
+            label: `O[q${r},v${d}]`,
+            state: "default" as ElementState,
+          });
+        }
+      }
+    }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 34,
+      explanation: {
+        what: `Compute Contextualized Output Representation for Query Q${i}: O[${i}] = A[${i}] @ V`,
+        why: `Weighted linear combination of Value vectors V using query Q${i} attention weights: [${outRow.map((v) => v.toFixed(2)).join(", ")}].`,
+      },
+      primarySnapshot: {
+        kind: "matrix",
+        rows: Tq,
+        cols: dv,
+        title: `Attention Output Matrix O = A @ V (${Tq}x${dv})`,
+        rowHeaders: Array.from({ length: Tq }, (_, r) => `Query ${r}`),
+        colHeaders: Array.from({ length: dv }, (_, d) => `Val ${d}`),
+        cells: outputCells,
+      },
+      auxiliaryState: {
+        distanceTable: buildDistanceTable(rawScores, maskedScores, attentionWeights, output),
+      },
+      variables: {
+        queryRow: i,
+        outputRows: Tq,
+        outputCols: dv,
+      },
+    });
   }
+
+  const finalCells: MatrixCellItem[] = output.flatMap((row, r) =>
+    row.map((val, d) => ({
+      row: r,
+      col: d,
+      value: Number(val.toFixed(2)),
+      label: `O[q${r},v${d}]`,
+      state: "sorted" as ElementState,
+    })),
+  );
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 31,
+    codeLine: 38,
     explanation: {
-      what: "Compute Final Attention Output O = A @ V",
-      why: `Attention Output matrix O (${Tq}x${dv}) produced by linear combination of Value vectors V weighted by attention probabilities A.`,
+      what: "Scaled Dot-Product Attention Execution Complete",
+      why: `Successfully computed causal scaled dot-product attention weights A (${Tq}x${Tk}) and output representation matrix O (${Tq}x${dv}).`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: output.flatMap((row, i) =>
-        row.map((val, d) => ({
-          id: `out-${i}-${d}`,
-          value: Number((val * 10).toFixed(0)),
-          state: "sorted" as ElementState,
-        })),
-      ),
+      kind: "matrix",
+      rows: Tq,
+      cols: dv,
+      title: `Final Scaled Dot-Product Attention Output O (${Tq}x${dv})`,
+      rowHeaders: Array.from({ length: Tq }, (_, r) => `Query ${r}`),
+      colHeaders: Array.from({ length: dv }, (_, d) => `Val ${d}`),
+      cells: finalCells,
     },
     auxiliaryState: {
-      distanceTable: Object.fromEntries(
-        output.flatMap((row, i) => row.map((val, d) => [`O_q${i}_d${d}`, Number(val.toFixed(2))])),
-      ),
+      distanceTable: buildDistanceTable(rawScores, maskedScores, attentionWeights, output),
     },
     variables: {
+      completed: true,
       outputRows: Tq,
       outputCols: dv,
     },
@@ -252,15 +420,15 @@ export const generateScaledDotAttentionMaskSteps = (
 };
 
 const SCALED_DOT_ATTENTION_MASK_TRIVIA: TriviaMeta = {
-  skipLines: [1, 3],
+  skipLines: [2, 7, 15, 21, 28, 37],
   distractors: [
-    "scores[i][j] = 0.0 # Wrong mask value",
-    "scale = 1.0 / dk # Forgot square root",
+    "scores[i][j] = 0.0",
+    "scale = 1.0 / dk",
     "attention_weights.append([e / max_val for e in exp_row])",
   ],
   hints: [
     {
-      line: 8,
+      line: 6,
       hint: "Scale Q @ K.T matrix multiplication result by 1 / sqrt(d_k).",
     },
     {
@@ -268,26 +436,42 @@ const SCALED_DOT_ATTENTION_MASK_TRIVIA: TriviaMeta = {
       hint: "Mask future positions (j > i) by setting scores to -inf (-1e9) for causal autoregressive decoding.",
     },
     {
-      line: 23,
+      line: 27,
       hint: "Compute row-wise Softmax probability distribution using max-subtraction for numerical stability.",
+    },
+    {
+      line: 34,
+      hint: "Compute weighted sum of Value matrix vectors O = A @ V.",
     },
   ],
   lineExplanations: {
-    1: "Defines Scaled Dot-Product Attention function.",
-    8: "Computes query-key dot products scaled by 1/sqrt(d_k).",
-    16: "Applies causal upper-triangular mask setting future tokens to -inf.",
-    23: "Transforms logits to valid attention probability weights via Softmax.",
-    31: "Computes weighted sum of Value matrix vectors O = A @ V.",
+    1: "Imports math library for square root and exponent calculations.",
+    3: "Defines entry point for Scaled Dot-Product Attention function.",
+    4: "Retrieves Query matrix dimensions Tq and dk.",
+    5: "Retrieves Key matrix length Tk.",
+    6: "Computes temperature scaling factor 1 / sqrt(dk).",
+    8: "Initializes list to store raw attention score logits.",
+    9: "Iterates over query token indices i.",
+    12: "Computes inner product Q[i] @ K[j] scaled by 1/sqrt(dk).",
+    16: "Checks if causal masking is requested.",
+    20: "Sets future position logits (j > i) to -infinity (-1e9).",
+    22: "Initializes list to store Softmax-normalized attention weights.",
+    24: "Finds max logit value in row for numerical stability.",
+    25: "Calculates centered exponentials exp(val - max_val).",
+    26: "Computes partition sum of row exponentials.",
+    27: "Normalizes exponentials by partition sum to produce attention probabilities.",
+    29: "Retrieves Value vector feature dimension dv.",
+    30: "Initializes list to store final contextualized output vectors.",
+    34: "Computes weighted combination of Value matrix vectors.",
+    38: "Returns tuple of attention weights matrix and output tensor.",
   },
 };
 
 export const scaledDotAttentionMask: AlgorithmDefinition<ScaledDotAttentionInput> = {
   id: "scaled-dot-attention-mask",
   title: "Scaled Dot-Product Attention with Causal Masking & Softmax",
-  category: "ml_attention_geometry",
+  topicIds: ["ml_attention_geometry"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 7,
   description:
     "Computes Transformer scaled dot-product self-attention Softmax(Q K^T / sqrt(d_k) + M) V with causal lower-triangular masking for autoregressive sequence modeling.",
   constraints: ["len(Q) >= 1", "len(Q[0]) == len(K[0])", "len(K) == len(V)"],

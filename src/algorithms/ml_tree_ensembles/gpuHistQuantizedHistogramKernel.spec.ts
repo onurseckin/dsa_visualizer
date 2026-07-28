@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { gpuHistQuantizedHistogramKernel } from "./gpuHistQuantizedHistogramKernel";
 
-describe("gpuHistQuantizedHistogramKernel", () => {
+describe("gpu-hist-quantized-histogram-kernel", () => {
   it("should have valid metadata", () => {
     expect(gpuHistQuantizedHistogramKernel.id).toBeDefined();
     expect(gpuHistQuantizedHistogramKernel.title).toBeDefined();

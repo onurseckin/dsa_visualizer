@@ -9,7 +9,7 @@ describe("binaryLiftingLca algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(binaryLiftingLca.id).toBe("binary-lifting-lca");
     expect(binaryLiftingLca.title).toBe("Binary Lifting for LCA");
-    expect(binaryLiftingLca.category).toBe("tree_queries_and_diameter");
+    expect(binaryLiftingLca.topicIds).toContain("tree_fundamentals");
     expect(binaryLiftingLca.difficulty).toBe("Hard");
     expect(binaryLiftingLca.defaultInput).toEqual(DEFAULT_BINARY_LIFTING_LCA_INPUT);
   });

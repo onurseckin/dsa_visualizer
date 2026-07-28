@@ -1,4 +1,11 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  GraphEdgeItem,
+  GraphNodeItem,
+  GraphVisualSnapshot,
+} from "../../types/dsa";
 
 export interface HnswMultiLayerProbabilisticGraphInput {
   query: number[];
@@ -42,10 +49,6 @@ def l2_distance(v1: list[float], v2: list[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
 
 def hnsw_top_down_routing(query: list[float], top_layer: int, entry_point: int, layers: dict, node_vectors: dict) -> tuple[int, list[tuple[int, int]]]:
-    """
-    Executes top-down routing across HNSW skip-graph layers (Layers L_max down to Layer 1).
-    Greedily finds local entry point for Layer 0 using 1-best search at each upper layer.
-    """
     curr_node = entry_point
     routing_path = []
 
@@ -69,6 +72,73 @@ def hnsw_top_down_routing(query: list[float], top_layer: int, entry_point: int, 
 
     return curr_node, routing_path`;
 
+function buildGraphSnapshot(
+  nodeVectors: Record<number, number[]>,
+  layers: Record<number, { graph: Record<number, number[]> }>,
+  currentLayer: number,
+  currNode: number,
+  nxtNode: number | null = null,
+  traversedEdgesSet: Set<string> = new Set(),
+  routingPathNodes: Set<number> = new Set(),
+): GraphVisualSnapshot {
+  const layerGraph = layers[currentLayer]?.graph || {};
+
+  const nodes: GraphNodeItem[] = Object.keys(nodeVectors).map((nIdStr) => {
+    const nId = Number(nIdStr);
+    const vec = nodeVectors[nId];
+    const x = vec && vec.length >= 2 ? Math.round(vec[0] * 160 + 60) : undefined;
+    const y = vec && vec.length >= 2 ? Math.round(vec[1] * 160 + 60) : undefined;
+
+    let state: ElementState = "default";
+    if (nId === currNode) {
+      state = "active";
+    } else if (nId === nxtNode) {
+      state = "compare";
+    } else if (routingPathNodes.has(nId)) {
+      state = "visited";
+    }
+
+    return {
+      id: String(nId),
+      label: `N${nId}`,
+      x,
+      y,
+      state,
+      val: nId,
+    };
+  });
+
+  const edges: GraphEdgeItem[] = [];
+  const edgeDrawn = new Set<string>();
+
+  for (const [srcStr, neighbors] of Object.entries(layerGraph)) {
+    const src = Number(srcStr);
+    for (const tgt of neighbors) {
+      const edgeKey = `${src}->${tgt}`;
+      const revKey = `${tgt}->${src}`;
+      if (!edgeDrawn.has(edgeKey)) {
+        edgeDrawn.add(edgeKey);
+        edgeDrawn.add(revKey);
+
+        const isTraversed = traversedEdgesSet.has(edgeKey) || traversedEdgesSet.has(revKey);
+
+        edges.push({
+          from: String(src),
+          to: String(tgt),
+          isTraversed,
+          isPath: isTraversed,
+        });
+      }
+    }
+  }
+
+  return {
+    kind: "graph",
+    nodes,
+    edges,
+  };
+}
+
 export const generateHnswMultiLayerGraphSteps = (
   input: HnswMultiLayerProbabilisticGraphInput,
 ): AlgorithmStep[] => {
@@ -80,154 +150,277 @@ export const generateHnswMultiLayerGraphSteps = (
     Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
 
   let currNode = entryPoint;
+  let currDist = l2Dist(query, nodeVectors[currNode] || [0, 0]);
   const path: { layer: number; node: number; dist: number }[] = [];
+  const routingPathNodes = new Set<number>();
+  const traversedEdgesSet = new Set<string>();
 
-  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 8,
+    codeLine: 7,
     explanation: {
-      what: `Initialize Top-Down HNSW Multi-Layer Traversal at Layer ${topLayer}`,
-      why: `Routing query vector [${query.join(
-        ", ",
-      )}] starting from entry point N${entryPoint} at top sparse highway layer ${topLayer}.`,
+      what: `Initialize Top-Down HNSW Multi-Layer Routing at Layer ${topLayer}`,
+      why: `Routing query vector [${query.join(", ")}] starting from entry point N${entryPoint} at top sparse express highway layer ${topLayer}. Initial distance: ${currDist.toFixed(3)}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: Object.keys(nodeVectors).map((nIdStr) => {
-        const nId = Number(nIdStr);
-        return {
-          id: `node-${nId}`,
-          value: nId,
-          label: `N${nId}`,
-          state: nId === entryPoint ? ("active" as ElementState) : ("default" as ElementState),
-          pointers: nId === entryPoint ? [`Top Entry (L${topLayer})`] : [],
-        };
-      }),
-    },
+    primarySnapshot: buildGraphSnapshot(
+      nodeVectors,
+      layers,
+      topLayer,
+      currNode,
+      null,
+      traversedEdgesSet,
+      routingPathNodes,
+    ),
     auxiliaryState: {
       customState: {
         topLayer: String(topLayer),
         entryPoint: `N${entryPoint}`,
         query: `[${query.join(", ")}]`,
+        currNode: `N${currNode}`,
+        currDist: currDist.toFixed(3),
         phase: "Initialization",
       },
     },
-    variables: { topLayer, currNode },
+    variables: { topLayer, currNode, currDist: Math.round(currDist * 1000) / 1000 },
   });
 
   for (let l = topLayer; l >= 1; l--) {
     const layerGraph = layers[l]?.graph || {};
-    let changed = true;
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 13,
+      codeLine: 10,
       explanation: {
-        what: `Begin Greedy Routing at Skip-Graph Layer ${l}`,
-        why: `Routing from current node N${currNode} (dist=${l2Dist(
-          query,
-          nodeVectors[currNode],
-        ).toFixed(3)}) in Layer ${l}.`,
+        what: `Begin Greedy Search at Skip-Graph Layer ${l}`,
+        why: `Routing from current local minimum N${currNode} (dist=${currDist.toFixed(3)}) within sparse Layer ${l} graph structure.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: Object.keys(nodeVectors).map((nIdStr) => {
-          const nId = Number(nIdStr);
-          return {
-            id: `node-${nId}`,
-            value: nId,
-            label: `N${nId}`,
-            state: nId === currNode ? ("active" as ElementState) : ("default" as ElementState),
-            pointers: nId === currNode ? [`Active (L${l})`] : [],
-          };
-        }),
-      },
+      primarySnapshot: buildGraphSnapshot(
+        nodeVectors,
+        layers,
+        l,
+        currNode,
+        null,
+        traversedEdgesSet,
+        routingPathNodes,
+      ),
       auxiliaryState: {
         customState: {
           currentLayer: String(l),
           currNode: `N${currNode}`,
-          currDist: l2Dist(query, nodeVectors[currNode]).toFixed(3),
+          currDist: currDist.toFixed(3),
+          layerGraphNodes: Object.keys(layerGraph)
+            .map((n) => `N${n}`)
+            .join(", "),
         },
       },
-      variables: { l, currNode },
+      variables: { l, currNode, currDist: Math.round(currDist * 1000) / 1000 },
     });
+
+    let changed = true;
 
     while (changed) {
       changed = false;
-      let currDist = l2Dist(query, nodeVectors[currNode]);
+      currDist = l2Dist(query, nodeVectors[currNode]);
       const neighbors = layerGraph[currNode] || [];
+
+      if (neighbors.length > 0) {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 17,
+          explanation: {
+            what: `Inspect Neighbors of N${currNode} at Layer ${l}: [${neighbors.map((n) => `N${n}`).join(", ")}]`,
+            why: `Fetching outgoing graph edges from current local minimum N${currNode} to evaluate distance improvements.`,
+          },
+          primarySnapshot: buildGraphSnapshot(
+            nodeVectors,
+            layers,
+            l,
+            currNode,
+            null,
+            traversedEdgesSet,
+            routingPathNodes,
+          ),
+          auxiliaryState: {
+            customState: {
+              currentLayer: String(l),
+              currNode: `N${currNode}`,
+              neighborsCount: String(neighbors.length),
+              neighborsList: neighbors.map((n) => `N${n}`).join(", "),
+            },
+          },
+          variables: { l, currNode, neighborCount: neighbors.length },
+        });
+      }
 
       for (const nxt of neighbors) {
         const nxtDist = l2Dist(query, nodeVectors[nxt]);
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 20,
+          explanation: {
+            what: `Evaluate Candidate Neighbor N${nxt} (dist=${nxtDist.toFixed(3)}) vs Best N${currNode} (dist=${currDist.toFixed(3)})`,
+            why: `Comparing L2 distance of candidate neighbor N${nxt} (${nxtDist.toFixed(3)}) against current best node N${currNode} (${currDist.toFixed(3)}).`,
+          },
+          primarySnapshot: buildGraphSnapshot(
+            nodeVectors,
+            layers,
+            l,
+            currNode,
+            nxt,
+            traversedEdgesSet,
+            routingPathNodes,
+          ),
+          auxiliaryState: {
+            customState: {
+              currentLayer: String(l),
+              currNode: `N${currNode}`,
+              candidateNode: `N${nxt}`,
+              currDist: currDist.toFixed(3),
+              nxtDist: nxtDist.toFixed(3),
+            },
+          },
+          variables: {
+            l,
+            currNode,
+            nxt,
+            currDist: Math.round(currDist * 1000) / 1000,
+            nxtDist: Math.round(nxtDist * 1000) / 1000,
+          },
+        });
+
         if (nxtDist < currDist) {
           const prevNode = currNode;
+          const prevDist = currDist;
           currNode = nxt;
           currDist = nxtDist;
           changed = true;
+          traversedEdgesSet.add(`${prevNode}->${nxt}`);
+          traversedEdgesSet.add(`${nxt}->${prevNode}`);
 
           steps.push({
             stepIndex: stepIndex++,
-            codeLine: 21,
+            codeLine: 22,
             explanation: {
-              what: `Layer ${l} Highway Jump: N${prevNode} -> N${nxt} (dist=${nxtDist.toFixed(3)})`,
-              why: `Found closer neighbor N${nxt} at Layer ${l}. Distance reduced to ${nxtDist.toFixed(3)}.`,
+              what: `Highway Jump: N${prevNode} -> N${nxt} (dist reduced from ${prevDist.toFixed(3)} to ${nxtDist.toFixed(3)})`,
+              why: `Candidate neighbor N${nxt} is closer to the query vector. Updating active local best to N${nxt}.`,
             },
-            primarySnapshot: {
-              kind: "array",
-              elements: Object.keys(nodeVectors).map((nIdStr) => {
-                const nId = Number(nIdStr);
-                return {
-                  id: `node-${nId}`,
-                  value: nId,
-                  label: `N${nId}`,
-                  state:
-                    nId === currNode ? ("active" as ElementState) : ("default" as ElementState),
-                  pointers: nId === currNode ? [`Highway Jump N${nxt}`] : [],
-                };
-              }),
-            },
+            primarySnapshot: buildGraphSnapshot(
+              nodeVectors,
+              layers,
+              l,
+              currNode,
+              null,
+              traversedEdgesSet,
+              routingPathNodes,
+            ),
             auxiliaryState: {
               customState: {
                 currentLayer: String(l),
                 jump: `N${prevNode} -> N${nxt}`,
+                prevDist: prevDist.toFixed(3),
                 newDist: nxtDist.toFixed(3),
               },
             },
-            variables: { l, currNode, nxtDist: Math.round(nxtDist * 100) / 100 },
+            variables: {
+              l,
+              currNode,
+              prevNode,
+              currDist: Math.round(currDist * 1000) / 1000,
+            },
+          });
+        } else {
+          steps.push({
+            stepIndex: stepIndex++,
+            codeLine: 21,
+            explanation: {
+              what: `Reject Neighbor N${nxt} (dist=${nxtDist.toFixed(3)} >= current best ${currDist.toFixed(3)})`,
+              why: `Candidate N${nxt} does not improve search distance. Maintaining active node at N${currNode}.`,
+            },
+            primarySnapshot: buildGraphSnapshot(
+              nodeVectors,
+              layers,
+              l,
+              currNode,
+              null,
+              traversedEdgesSet,
+              routingPathNodes,
+            ),
+            auxiliaryState: {
+              customState: {
+                currentLayer: String(l),
+                rejectedNode: `N${nxt}`,
+                currNode: `N${currNode}`,
+                currDist: currDist.toFixed(3),
+              },
+            },
+            variables: {
+              l,
+              currNode,
+              rejectedNode: nxt,
+            },
           });
         }
       }
     }
 
-    path.push({ layer: l, node: currNode, dist: l2Dist(query, nodeVectors[currNode]) });
+    routingPathNodes.add(currNode);
+    path.push({ layer: l, node: currNode, dist: currDist });
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 26,
+      explanation: {
+        what: `Layer ${l} Routing Complete: Local Minimum N${currNode} (dist=${currDist.toFixed(3)})`,
+        why: `No further distance reduction possible at Layer ${l}. Record N${currNode} as Layer ${l} local entry point and proceed down.`,
+      },
+      primarySnapshot: buildGraphSnapshot(
+        nodeVectors,
+        layers,
+        l,
+        currNode,
+        null,
+        traversedEdgesSet,
+        routingPathNodes,
+      ),
+      auxiliaryState: {
+        customState: {
+          currentLayer: String(l),
+          layerLocalMin: `N${currNode}`,
+          currDist: currDist.toFixed(3),
+          routingPathSoFar: path.map((p) => `L${p.layer}:N${p.node}`).join(" -> "),
+        },
+      },
+      variables: { l, currNode, layerMinRecorded: true },
+    });
   }
 
-  // Final Step: Complete
-  const finalDist = l2Dist(query, nodeVectors[currNode]);
+  const finalDist = currDist;
+
+  const finalSnapshot = buildGraphSnapshot(
+    nodeVectors,
+    layers,
+    0,
+    currNode,
+    null,
+    traversedEdgesSet,
+    routingPathNodes,
+  );
+  const entryNodeObj = finalSnapshot.nodes.find((n) => n.id === String(currNode));
+  if (entryNodeObj) {
+    entryNodeObj.state = "sorted";
+  }
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 28,
     explanation: {
-      what: `Top-Down Layer Routing Complete: Hand-off Node N${currNode} to Layer 0`,
-      why: `Reached Layer 0 entry point N${currNode} with dist=${finalDist.toFixed(
+      what: `Top-Down Layer Routing Complete: Handoff Node N${currNode} to Layer 0`,
+      why: `Successfully completed top-down highway routing across layers ${topLayer} down to 1. Handing off N${currNode} (dist=${finalDist.toFixed(
         3,
-      )}. Ready for dense layer-0 beam search.`,
+      )}) to Layer 0 as the starting entry point for dense beam search.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: Object.keys(nodeVectors).map((nIdStr) => {
-        const nId = Number(nIdStr);
-        return {
-          id: `node-${nId}`,
-          value: nId,
-          label: `N${nId}`,
-          state: nId === currNode ? ("sorted" as ElementState) : ("visited" as ElementState),
-          pointers: nId === currNode ? [`Layer 0 Entry Point: N${currNode}`] : [],
-        };
-      }),
-    },
+    primarySnapshot: finalSnapshot,
     auxiliaryState: {
       customState: {
         layer0EntryPoint: `N${currNode}`,
@@ -244,14 +437,10 @@ export const generateHnswMultiLayerGraphSteps = (
 
 export const hnswMultiLayerProbabilisticGraph: AlgorithmDefinition<HnswMultiLayerProbabilisticGraphInput> =
   {
-    id: "hnswMultiLayerProbabilisticGraph",
+    id: "hnsw-multi-layer-probabilistic-graph",
     title: "HNSW Multi-Layer Probabilistic Graph Routing",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search", "graph_traversal"],
+    topicIds: ["ml_vector_search", "graph_traversal"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "Simulates top-down hierarchical routing in HNSW probabilistic multi-layer skip-graphs. Upper layers contain sparse long-range express highways, while lower layers contain dense local proximity networks. Top-down 1-best routing quickly pinpoints the optimal Layer 0 entry point in O(log N) steps.\n\nInput Format:\n- query: D-dimensional query embedding vector.\n- topLayer: Maximum layer index L_max.\n- entryPoint: Global entry node ID at layer L_max.\n- layers: Dictionary of layer graph structures.\n- nodeVectors: Dictionary mapping node ID to vector embedding.\n\nOutput Format:\n- Returns tuple (layer0EntryPoint, routingPath).\n\nEdge Cases & Constraints:\n- Single layer graph (L_max = 0): Skips top-down routing, entering Layer 0 directly.",
     constraints: [

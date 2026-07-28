@@ -10,10 +10,11 @@ describe("sequence-length-padding-waste-calculator (Static Batching VRAM Padding
     expect(sequenceLengthPaddingWasteCalculator.id).toBe(
       "sequence-length-padding-waste-calculator",
     );
-    expect(sequenceLengthPaddingWasteCalculator.isMlInfra).toBe(true);
-    expect(sequenceLengthPaddingWasteCalculator.mlInfraLevel).toBe(12);
-    expect(sequenceLengthPaddingWasteCalculator.mlInfraCategory).toBe("ml_llm_serving");
-    expect(sequenceLengthPaddingWasteCalculator.categories).toContain("ml_llm_serving");
+    expect(
+      sequenceLengthPaddingWasteCalculator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(sequenceLengthPaddingWasteCalculator.topicIds).toContain("ml_llm_serving");
+    expect(sequenceLengthPaddingWasteCalculator.topicIds).toContain("ml_llm_serving");
     expect(sequenceLengthPaddingWasteCalculator.defaultInput).toEqual(
       DEFAULT_SEQUENCELENGTHPADDINGWASTECALCULATOR_INPUT,
     );
@@ -34,6 +35,6 @@ describe("sequence-length-padding-waste-calculator (Static Batching VRAM Padding
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(22);
+    expect(steps[steps.length - 1].codeLine).toBe(18);
   });
 });

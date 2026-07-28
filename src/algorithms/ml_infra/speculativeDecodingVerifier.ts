@@ -19,25 +19,21 @@ export const SPECULATIVE_DECODING_VERIFIER_CODE = `def speculative_decoding_veri
     gamma: int
 ) -> list[int]:
     accepted_tokens = []
-    
-    # Evaluate draft tokens step by step via rejection sampling
+
     for i in range(gamma):
         token = draft_tokens[i]
         p_d = p_draft[i]
         p_t = p_target[i]
-        
-        # Acceptance condition: accept with probability min(1, p_target / p_draft)
+
         acceptance_ratio = p_t / p_d if p_d > 0 else 1.0
-        
-        # Deterministic simulation threshold (0.5 for visual step reproducibility)
+
         if acceptance_ratio >= 1.0 or 0.5 < acceptance_ratio:
             accepted_tokens.append(token)
         else:
-            # Rejection: stop draft acceptance early and sample recovery token from target
-            recovery_token = token + 100 # Target resampling
+            recovery_token = token + 100
             accepted_tokens.append(recovery_token)
             break
-            
+
     return accepted_tokens`;
 
 export const DEFAULT_SPECULATIVE_DECODING_INPUT: SpeculativeDecodingInput = {
@@ -107,20 +103,6 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     draftProbabilities.length < gamma ||
     targetProbabilities.length < gamma
   ) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 1,
-      explanation: {
-        what: "Invalid Speculative Decoding Input",
-        why: "Draft tokens, draft probabilities, and target probabilities must match gamma length.",
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: [],
-      },
-      auxiliaryState: { customState: { error: "Mismatch in draft and target lengths" } },
-      variables: {},
-    });
     return steps;
   }
 
@@ -132,11 +114,37 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     state: "default",
   }));
 
+  const makeSnapshotElements = (
+    activeIdx: number,
+    statusOverride?: {
+      idx: number;
+      state: "active" | "sorted" | "swap" | "default";
+      pointer?: string;
+    },
+  ): ArrayElement[] => {
+    return elements.map((el, idx) => {
+      if (statusOverride && statusOverride.idx === idx) {
+        return {
+          ...el,
+          state: statusOverride.state,
+          pointers: statusOverride.pointer ? [statusOverride.pointer] : undefined,
+        };
+      }
+      if (idx < activeIdx) {
+        return { ...el, state: "sorted", pointers: undefined };
+      }
+      if (idx === activeIdx) {
+        return { ...el, state: "active", pointers: [`Draft #${idx}`] };
+      }
+      return { ...el, state: "default", pointers: undefined };
+    });
+  };
+
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    activeIdx: number,
+    snapshotElements: ArrayElement[],
     vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
@@ -145,21 +153,12 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el, idx) => ({
-          ...el,
-          state:
-            idx === activeIdx
-              ? "active"
-              : idx < activeIdx && acceptedTokens.length > idx
-                ? "sorted"
-                : "default",
-          pointers: idx === activeIdx ? [`Draft #${idx}`] : undefined,
-        })),
+        elements: snapshotElements,
       },
       auxiliaryState: {
         customState: {
           draftTokensProposed: gamma,
-          acceptedTokens: acceptedTokens.join(", "),
+          acceptedTokens: acceptedTokens.join(", ") || "[]",
           targetParallelForwardPass: "1 forward pass evaluates all K tokens in parallel",
           speedupMultiplier: `${acceptedTokens.length}x vs single token generation`,
         },
@@ -172,24 +171,16 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     1,
     "Initialize Speculative Decoding Verification",
     `Small draft model proposed ${gamma} candidate tokens. Launching 1 parallel target LLM forward pass to compute target probabilities.`,
-    -1,
+    makeSnapshotElements(-1),
     { gamma, draftTokens: draftTokens.slice(0, gamma).join(", ") },
   );
 
   addStep(
     7,
-    `Initialize accepted_tokens = []`,
-    `Output sequence accumulator. Will receive either draft tokens (if accepted) or recovery tokens (if rejected) on each iteration.`,
-    -1,
-    { gamma, accepted_tokens_count: 0 },
-  );
-
-  addStep(
-    10,
-    `Begin Rejection Sampling Loop: for i in range(${gamma})`,
-    `Verifying ${gamma} draft tokens one by one. Each token runs in O(1) vs O(N) for sequential decoding.`,
-    -1,
-    { gamma },
+    "Initialize accepted_tokens = []",
+    "Output sequence accumulator initialized. Will store verified draft tokens or target recovery tokens.",
+    makeSnapshotElements(-1),
+    { gamma, accepted_tokens: "[]" },
   );
 
   let rejected = false;
@@ -201,55 +192,67 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
     const ratio = pD > 0 ? pT / pD : 1.0;
 
     addStep(
-      16,
-      `Compute acceptance_ratio for token #${i} (val=${token})`,
-      `p_d = ${pD.toFixed(4)}, p_t = ${pT.toFixed(4)}. acceptance_ratio = p_t / p_d = ${ratio.toFixed(4)}.`,
-      i,
-      { tokenIndex: i, token, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(4) },
+      9,
+      `Evaluate Draft Token #${i} (Value: ${token})`,
+      `Evaluating token index ${i} in parallel target forward pass output. p_draft = ${pD.toFixed(4)}, p_target = ${pT.toFixed(4)}.`,
+      makeSnapshotElements(i, { idx: i, state: "active", pointer: `Draft #${i}` }),
+      { i, token, p_draft: pD, p_target: pT },
+    );
+
+    addStep(
+      14,
+      `Compute acceptance_ratio for Token #${i}`,
+      `acceptance_ratio = p_target / p_draft = ${pT.toFixed(4)} / ${pD.toFixed(4)} = ${ratio.toFixed(4)}.`,
+      makeSnapshotElements(i, { idx: i, state: "active", pointer: `Ratio: ${ratio.toFixed(2)}` }),
+      { i, token, p_draft: pD, p_target: pT, acceptance_ratio: Number(ratio.toFixed(4)) },
     );
 
     if (ratio >= 1.0 || 0.5 < ratio) {
       acceptedTokens.push(token);
-      elements[i].state = "sorted";
       addStep(
-        20,
+        17,
         `Draft Token #${i} (Val: ${token}) Accepted`,
-        `acceptance_ratio ${ratio.toFixed(4)} >= 1.0 or > 0.5. accepted_tokens.append(${token}). Token accepted into final output sequence.`,
-        i,
-        { tokenIndex: i, token, pDraft: pD, pTarget: pT, ratio: ratio.toFixed(2) },
+        `acceptance_ratio (${ratio.toFixed(4)}) passes acceptance condition. Appended token ${token} to accepted_tokens.`,
+        makeSnapshotElements(i, { idx: i, state: "sorted", pointer: `Accepted (${token})` }),
+        { i, token, acceptance_ratio: Number(ratio.toFixed(4)), status: "ACCEPTED" },
       );
     } else {
       const recoveryToken = token + 100;
       acceptedTokens.push(recoveryToken);
-      elements[i].state = "swap";
       rejected = true;
+
       addStep(
-        23,
-        `Draft Token #${i} (Val: ${token}) Rejected — recovery_token = ${recoveryToken}`,
-        `acceptance_ratio ${ratio.toFixed(4)} < 0.5. Draft sequence truncated at position ${i}; sampled recovery token ${recoveryToken} from target distribution.`,
-        i,
+        20,
+        `Draft Token #${i} (Val: ${token}) Rejected — Sample Recovery Token ${recoveryToken}`,
+        `acceptance_ratio (${ratio.toFixed(4)}) failed threshold. Truncated draft sequence at position ${i} and sampled target recovery token ${recoveryToken}.`,
+        makeSnapshotElements(i, { idx: i, state: "swap", pointer: `Rejected -> ${recoveryToken}` }),
         {
-          tokenIndex: i,
+          i,
           draftToken: token,
           recoveryToken,
-          pDraft: pD,
-          pTarget: pT,
-          ratio: ratio.toFixed(2),
+          acceptance_ratio: Number(ratio.toFixed(4)),
+          status: "REJECTED",
         },
       );
       break;
     }
   }
 
-  if (!rejected) {
-    addStep(
-      27,
-      "Return accepted_tokens — All Draft Tokens Verified & Accepted",
-      `Target model validated all ${gamma} draft tokens in 1 single forward pass. Achieved maximum ${gamma}x generation speedup.`,
-      gamma - 1,
-      { totalAccepted: acceptedTokens.length, speedup: `${acceptedTokens.length}x` },
-    );
-  }
+  addStep(
+    23,
+    `Return accepted_tokens: [${acceptedTokens.join(", ")}]`,
+    `${
+      rejected
+        ? `Draft sequence truncated at position ${acceptedTokens.length - 1} due to rejection.`
+        : `All ${gamma} draft tokens verified and accepted in 1 parallel target forward pass.`
+    } Generated ${acceptedTokens.length} total tokens.`,
+    makeSnapshotElements(gamma),
+    {
+      accepted_tokens: acceptedTokens.join(", "),
+      total_accepted: acceptedTokens.length,
+      speedup: `${acceptedTokens.length}x`,
+    },
+  );
 
   return steps;
 }
@@ -257,12 +260,10 @@ export function generateSpeculativeDecodingSteps(input: SpeculativeDecodingInput
 export const speculativeDecodingVerifier: AlgorithmDefinition<SpeculativeDecodingInput> = {
   id: "speculative-decoding-verifier",
   title: "Speculative Decoding Draft & Verify",
-  category: "ml_llm_serving",
+  topicIds: ["ml_llm_serving"],
   difficulty: "Hard",
   description:
     "Lossless LLM inference acceleration algorithm (Leviathan et al. / Chen et al.) that uses a small fast draft model to propose K candidate tokens, followed by a single parallel target model forward pass and rejection sampling verification.",
-  isMlInfra: true,
-  mlInfraLevel: 10,
   constraints: [
     "Draft length K (gamma) > 0",
     "Draft and target probabilities must be valid [0, 1] numbers",

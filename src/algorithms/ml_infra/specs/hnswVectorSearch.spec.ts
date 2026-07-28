@@ -9,9 +9,8 @@ import type { GraphVisualSnapshot } from "../../../types/dsa";
 describe("hnswVectorSearch algorithm spec", () => {
   it("should have correct ML Infra Level 4 metadata", () => {
     expect(hnswVectorSearch.id).toBe("hnsw-vector-search");
-    expect(hnswVectorSearch.isMlInfra).toBe(true);
-    expect(hnswVectorSearch.mlInfraLevel).toBe(4);
-    expect(hnswVectorSearch.category).toBe("ml_vector_search");
+    expect(hnswVectorSearch.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(hnswVectorSearch.topicIds).toContain("ml_vector_search");
     expect(hnswVectorSearch.defaultInput).toEqual(DEFAULT_HNSW_VECTOR_SEARCH_INPUT);
     expect(hnswVectorSearch.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" },
@@ -23,7 +22,7 @@ describe("hnswVectorSearch algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(46);
+    expect(lastStep.codeLine).toBe(51);
     expect(lastStep.variables.resultCount).toBe(2);
     expect(lastStep.variables.topMatch).toBe("N4");
 

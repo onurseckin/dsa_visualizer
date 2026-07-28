@@ -22,19 +22,13 @@ def triton_fused_bias_gelu_kernel(
     n = len(x)
     output = [0.0] * n
     num_blocks = (n + block_size - 1) // block_size
-    
-    # Process blocks in parallel GPU thread blocks
     for pid in range(num_blocks):
         block_start = pid * block_size
         block_end = min(n, block_start + block_size)
-        
-        # In SRAM: compute fused y = GELU(x + bias) without DRAM write
         for i in range(block_start, block_end):
             val = x[i] + bias[i]
-            # Fast GELU approximation: 0.5 * val * (1 + tanh(sqrt(2/pi) * (val + 0.044715 * val^3)))
             cdf = 0.5 * (1.0 + math.tanh(math.sqrt(2.0 / math.pi) * (val + 0.044715 * (val ** 3))))
             output[i] = val * cdf
-            
     return output`;
 
 export const DEFAULT_TRITON_FUSION_INPUT: TritonFusionInput = {
@@ -88,6 +82,8 @@ export const TRITON_FUSION_EXAMPLES: ProblemExample<TritonFusionInput>[] = [
   },
 ];
 
+type ElementState = "default" | "active" | "sorted" | "compare";
+
 export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -97,7 +93,7 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
   if (N <= 0 || blockSize <= 0 || !X || !B || X.length < N || B.length < N) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 1,
+      codeLine: 3,
       explanation: {
         what: "Invalid Triton Kernel Fusion Input",
         why: "Elements, block size, and input vectors must be valid and matching in length.",
@@ -114,90 +110,193 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
 
   const numBlocks = Math.ceil(N / blockSize);
   const output: number[] = new Array(N).fill(0);
+  const computed: boolean[] = new Array(N).fill(false);
 
-  const elements: ArrayElement[] = Array.from({ length: N }, (_, idx) => ({
-    id: `elem-${idx}`,
-    value: idx,
-    state: "default",
-  }));
+  const createElements = (
+    activePid: number,
+    currentIdx?: number,
+    currentValState?: ElementState,
+  ): ArrayElement[] => {
+    return Array.from({ length: N }, (_, idx) => {
+      const blockId = Math.floor(idx / blockSize);
+      let state: ElementState = "default";
+      const pointers: string[] = [];
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    activeBlockId: number,
-    vars: Record<string, string | number | boolean>,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el, idx) => {
-          const blockId = Math.floor(idx / blockSize);
-          let state: ArrayElement["state"] = "default";
-          if (blockId === activeBlockId) state = "active";
-          else if (blockId < activeBlockId) state = "sorted";
+      if (computed[idx]) {
+        state = "sorted";
+      } else if (blockId === activePid) {
+        state = "active";
+      }
 
-          return {
-            ...el,
-            state,
-            pointers: blockId === activeBlockId ? [`Program Block #${blockId}`] : undefined,
-          };
-        }),
-      },
-      auxiliaryState: {
-        customState: {
-          numBlocks,
-          blockSize,
-          fusedOutput: output.map((v) => v.toFixed(3)).join(", "),
-          memoryReadsSaved: `Saved ${N * 4} bytes DRAM roundtrip`,
-        },
-      },
-      variables: vars,
+      if (idx === currentIdx && currentValState) {
+        state = currentValState;
+        pointers.push(`i=${idx}`);
+      }
+
+      if (idx === activePid * blockSize && activePid >= 0 && activePid < numBlocks) {
+        pointers.push(`Block #${activePid}`);
+      }
+
+      const valDisplay = computed[idx] ? output[idx].toFixed(3) : (X[idx] ?? 0).toFixed(2);
+
+      return {
+        id: `elem-${idx}`,
+        value: valDisplay,
+        label: `x[${idx}]`,
+        state,
+        pointers: pointers.length > 0 ? pointers : undefined,
+      };
     });
   };
 
-  addStep(
-    1,
-    "Initialize Triton Fused Kernel Execution Grid",
-    `Spawning ${numBlocks} GPU thread blocks with block size ${blockSize} to execute fused Bias+GELU.`,
-    -1,
-    { N, blockSize, numBlocks },
-  );
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 10,
+    explanation: {
+      what: "Initialize Triton Fused Kernel Execution Grid",
+      why: `Spawning ${numBlocks} GPU program blocks with block size ${blockSize} for vector of size ${N}. Fuses Bias + GELU operations into single SRAM kernel pass.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: createElements(-1),
+    },
+    auxiliaryState: {
+      customState: {
+        numBlocks,
+        blockSize,
+        inputVector: X.slice(0, N).join(", "),
+        biasVector: B.slice(0, N).join(", "),
+        memoryBandwidthSavings: `Saved ${N * 4 * 2} bytes DRAM roundtrip`,
+      },
+    },
+    variables: { N, blockSize, numBlocks },
+  });
 
   for (let pid = 0; pid < numBlocks; pid++) {
     const blockStart = pid * blockSize;
     const blockEnd = Math.min(N, blockStart + blockSize);
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 12,
+      explanation: {
+        what: `Launch GPU Program Block #${pid}`,
+        why: `Program block #${pid} assigned to process vector indices [${blockStart}..${blockEnd - 1}] in fast GPU SRAM registers.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: createElements(pid, blockStart, "active"),
+      },
+      auxiliaryState: {
+        customState: {
+          activeBlock: `Block #${pid}`,
+          blockRange: `[${blockStart}..${blockEnd - 1}]`,
+          fusedOutputSoFar:
+            output
+              .slice(0, blockStart)
+              .map((v) => v.toFixed(3))
+              .join(", ") || "None",
+        },
+      },
+      variables: { pid, blockStart, blockEnd: blockEnd - 1 },
+    });
+
     for (let i = blockStart; i < blockEnd; i++) {
       const val = (X[i] ?? 0) + (B[i] ?? 0);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 15,
+        explanation: {
+          what: `SRAM Bias Addition at Index ${i}`,
+          why: `x[${i}] (${(X[i] ?? 0).toFixed(2)}) + bias[${i}] (${(B[i] ?? 0).toFixed(2)}) = ${val.toFixed(4)}. Result resides in register/SRAM, avoiding DRAM write.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: createElements(pid, i, "compare"),
+        },
+        auxiliaryState: {
+          customState: {
+            registerVal: val.toFixed(4),
+            operation: `Bias Addition (x[${i}] + bias[${i}])`,
+            sramLocation: `Block #${pid} Register`,
+          },
+        },
+        variables: { pid, i, "x[i]": X[i] ?? 0, "bias[i]": B[i] ?? 0, val: Number(val.toFixed(4)) },
+      });
+
       const cdf =
         0.5 * (1.0 + Math.tanh(Math.sqrt(2.0 / Math.PI) * (val + 0.044715 * Math.pow(val, 3))));
-      output[i] = val * cdf;
-    }
 
-    addStep(
-      12,
-      `Executed GPU Program Block #${pid} (Indices ${blockStart}..${blockEnd - 1})`,
-      `Computed fused Bias addition and GELU activation directly in GPU registers/SRAM, bypassing DRAM intermediate allocation.`,
-      pid,
-      { programId: pid, blockStart, blockEnd: blockEnd - 1 },
-    );
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 16,
+        explanation: {
+          what: `SRAM GELU Approximation at Index ${i}`,
+          why: `Evaluates GELU CDF approximation cdf = ${cdf.toFixed(4)} directly on register value ${val.toFixed(4)} without intermediate DRAM read.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: createElements(pid, i, "active"),
+        },
+        auxiliaryState: {
+          customState: {
+            registerVal: val.toFixed(4),
+            geluCdf: cdf.toFixed(4),
+            operation: "Fast GELU Approximation",
+          },
+        },
+        variables: { pid, i, val: Number(val.toFixed(4)), cdf: Number(cdf.toFixed(4)) },
+      });
+
+      const res = val * cdf;
+      output[i] = res;
+      computed[i] = true;
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 17,
+        explanation: {
+          what: `Write Fused GELU Output at Index ${i}`,
+          why: `output[${i}] = val * cdf = ${res.toFixed(4)}. Single fused DRAM write complete.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: createElements(pid, i, "sorted"),
+        },
+        auxiliaryState: {
+          customState: {
+            fusedValue: res.toFixed(4),
+            operation: "Write to Output Vector DRAM",
+            fusedOutput: output.map((v, idx) => (computed[idx] ? v.toFixed(3) : "?")).join(", "),
+          },
+        },
+        variables: { pid, i, "output[i]": Number(res.toFixed(4)) },
+      });
+    }
   }
 
-  elements.forEach((el) => {
-    el.state = "sorted";
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 18,
+    explanation: {
+      what: "Triton Fused Kernel Execution Complete",
+      why: `Successfully computed fused Bias + GELU across ${N} elements in ${numBlocks} GPU thread blocks with 1 single DRAM write pass instead of 2 read/write passes.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: createElements(-1),
+    },
+    auxiliaryState: {
+      customState: {
+        totalElements: N,
+        totalBlocks: numBlocks,
+        finalOutput: output.map((v) => v.toFixed(3)).join(", "),
+        status: "Kernel Execution Finished",
+      },
+    },
+    variables: { totalElements: N, numBlocks },
   });
-
-  addStep(
-    20,
-    "Triton Fused Kernel Execution Complete",
-    `Successfully processed all ${N} elements across ${numBlocks} blocks with 1 single DRAM write pass.`,
-    numBlocks,
-    { totalElements: N, totalBlocks: numBlocks },
-  );
 
   return steps;
 }
@@ -205,12 +304,10 @@ export function generateTritonFusionSteps(input: TritonFusionInput): AlgorithmSt
 export const tritonKernelFusion: AlgorithmDefinition<TritonFusionInput> = {
   id: "triton-kernel-fusion",
   title: "Triton Kernel Operator Fusion",
-  category: "ml_hardware_kernels",
+  topicIds: ["ml_hardware_kernels"],
   difficulty: "Hard",
   description:
     "JIT-compiled GPU hardware kernel operator fusion (using OpenAI Triton / CUDA) that combines consecutive elementwise operations (e.g. Bias + GELU / LayerNorm) into a single SRAM block program to maximize memory bandwidth utilization.",
-  isMlInfra: true,
-  mlInfraLevel: 8,
   constraints: [
     "Number of elements N > 0",
     "Block size power of 2 (e.g. 128, 256, 1024)",

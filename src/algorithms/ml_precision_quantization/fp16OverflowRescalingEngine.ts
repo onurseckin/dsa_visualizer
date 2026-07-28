@@ -21,14 +21,53 @@ export const DEFAULT_FP16OVERFLOWRESCALINGENGINE_INPUT: fp16OverflowRescalingEng
   maxFp16: 65504.0,
 };
 
+const floatToFp16Bits = (val: number): number => {
+  if (val === 0) return Object.is(val, -0) ? 0x8000 : 0x0000;
+  const sign = val < 0 ? 1 : 0;
+  const absVal = Math.abs(val);
+
+  if (isNaN(val)) return (sign << 15) | 0x7e00;
+  if (!isFinite(absVal) || absVal > 65504) return (sign << 15) | 0x7c00;
+
+  if (absVal < 6.103515625e-5) {
+    const mant = Math.round((absVal / 6.103515625e-5) * 1024);
+    return (sign << 15) | mant;
+  }
+
+  let exp = Math.floor(Math.log2(absVal));
+  let mant = Math.round((absVal / Math.pow(2, exp) - 1) * 1024);
+  if (mant === 1024) {
+    exp += 1;
+    mant = 0;
+  }
+  const biasedExp = exp + 15;
+  if (biasedExp >= 31) return (sign << 15) | 0x7c00;
+  if (biasedExp <= 0) {
+    const subMant = Math.round((absVal / 6.103515625e-5) * 1024);
+    return (sign << 15) | subMant;
+  }
+  return (sign << 15) | (biasedExp << 10) | mant;
+};
+
 const toBitItems = (val: number): BitItem[] => {
-  const clamped = Math.max(-32768, Math.min(32767, Math.round(val)));
-  const uval = clamped < 0 ? (clamped + 65536) & 0xffff : clamped & 0xffff;
+  const uval = floatToFp16Bits(val);
   const bitStr = uval.toString(2).padStart(16, "0");
   return [
     { index: 15, label: "Sign", value: bitStr[0], state: "sign", bitGroup: "sign" },
-    { index: 14, label: "Exp [14:10]", value: bitStr.slice(1, 6), state: "exponent", bitGroup: "exp" },
-    { index: 9, label: "Mantissa [9:0]", value: bitStr.slice(6), state: "mantissa", bitGroup: "mant" },
+    {
+      index: 14,
+      label: "Exp [14:10]",
+      value: bitStr.slice(1, 6),
+      state: "exponent",
+      bitGroup: "exp",
+    },
+    {
+      index: 9,
+      label: "Mantissa [9:0]",
+      value: bitStr.slice(6),
+      state: "mantissa",
+      bitGroup: "mant",
+    },
   ];
 };
 
@@ -66,7 +105,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "quantization",
-        originalValue: currValue ?? arrayValues[0],
+        originalValue: currValue ?? (arrayValues.length > 0 ? arrayValues[0] : 0),
         quantizedValue: currRescaled ?? 0,
         scale: Number(scaleFactor.toFixed(6)),
         zeroPoint: 0,
@@ -92,7 +131,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
     "Initialize FP16 Overflow Rescaling Engine",
     `Preparing to evaluate FP16 overflow threshold max_fp16 = ${maxFp16} for ${arrayValues.length} activation values.`,
     { n: arrayValues.length, maxFp16 },
-    arrayValues[0],
+    arrayValues[0] ?? 0,
     0,
   );
 
@@ -102,7 +141,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
     "Allocate Empty Rescaled Buffer `rescaled = []`",
     "Initializing empty list `rescaled = []` to bank overflow-protected activation values.",
     { bufferSize: 0 },
-    arrayValues[0],
+    arrayValues[0] ?? 0,
     0,
   );
 
@@ -112,7 +151,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
     `Scan Peak Magnitude: max_val = max(|x|) = ${maxVal}`,
     `Scanned input array to discover peak absolute magnitude max_val = ${maxVal}.`,
     { maxVal, n: arrayValues.length },
-    arrayValues[0],
+    arrayValues[0] ?? 0,
     0,
   );
 
@@ -122,7 +161,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
     "Set Initial scale_factor = 1.0",
     "Defaulting downscaling scale_factor to 1.0 (no scaling needed unless overflow detected).",
     { scaleFactor: 1.0 },
-    arrayValues[0],
+    arrayValues[0] ?? 0,
     0,
   );
 
@@ -136,7 +175,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
       ? `Overflow detected! Peak magnitude ${maxVal} exceeds FP16 max representable bound ${maxFp16}. Downscaling required.`
       : `No overflow. Peak magnitude ${maxVal} fits safely within FP16 max bound ${maxFp16}.`,
     { maxVal, maxFp16, isOverflow },
-    arrayValues[0],
+    arrayValues[0] ?? 0,
     0,
   );
 
@@ -147,7 +186,7 @@ export const generateFp16OverflowRescalingEngineSteps = (
       `Calculate scale_factor = ${maxFp16} / ${maxVal} = ${scaleFactor.toFixed(6)}`,
       `Computed safe downscaling factor scale_factor = ${scaleFactor.toFixed(6)} to pull max magnitude ${maxVal} down to exactly ${maxFp16}.`,
       { maxVal, maxFp16, scaleFactor: Number(scaleFactor.toFixed(6)) },
-      arrayValues[0],
+      arrayValues[0] ?? 0,
       0,
     );
   }
@@ -192,16 +231,16 @@ export const generateFp16OverflowRescalingEngineSteps = (
     "Return Rescaled Activation Array & scale_factor `(rescaled, scale_factor)`",
     `Rescaling engine complete. Applied scale_factor = ${scaleFactor.toFixed(6)}, rescaled vector: [${rescaledBuffer.join(", ")}].`,
     { scaleFactor: Number(scaleFactor.toFixed(6)), resultCount: rescaledBuffer.length },
-    arrayValues[arrayValues.length - 1],
+    arrayValues[arrayValues.length - 1] ?? 0,
     rescaledBuffer[rescaledBuffer.length - 1] ?? 0,
   );
 
   addStep(
     9,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully completed FP16 overflow rescaling for all activation values.",
     { completed: true, totalSteps: stepIndex },
-    arrayValues[arrayValues.length - 1],
+    arrayValues[arrayValues.length - 1] ?? 0,
     rescaledBuffer[rescaledBuffer.length - 1] ?? 0,
   );
 
@@ -238,12 +277,8 @@ const FP16OVERFLOWRESCALINGENGINE_TRIVIA: TriviaMeta = {
 export const fp16OverflowRescalingEngine: AlgorithmDefinition<fp16OverflowRescalingEngineInput> = {
   id: "fp16-overflow-rescaling-engine",
   title: "Fp16 Overflow Rescaling Engine",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### FP16 Overflow Rescaling Engine
 
 In the IEEE-754 half-precision floating point standard (FP16), the maximum representable finite positive value is:
@@ -276,7 +311,8 @@ During deep neural network training and LLM inference (e.g. Mixed Precision Trai
       outputDisplay: "scale_factor = 0.770635, rescaled = [53944.4, -65504.0, 23119.0]",
       input: { values: [70000.0, -85000.0, 30000.0] },
       output: "scale = 0.770635, rescaled = [53944.4, -65504.0, 23119.0]",
-      explanation: "Detects max_val 85000 > 65504, applies downscaling scale_factor = 65504/85000 = 0.770635.",
+      explanation:
+        "Detects max_val 85000 > 65504, applies downscaling scale_factor = 65504/85000 = 0.770635.",
     },
     {
       kind: "complex",
@@ -332,11 +368,13 @@ During deep neural network training and LLM inference (e.g. Mixed Precision Trai
       },
       {
         term: "Gradient / Activation Scaling",
-        definition: "Multiplying tensors by scale factors to stay within hardware float dynamic ranges.",
+        definition:
+          "Multiplying tensors by scale factors to stay within hardware float dynamic ranges.",
       },
       {
         term: "Mixed Precision Training",
-        definition: "Executing neural network forward and backward passes in FP16/BF16 while maintaining FP32 master weights.",
+        definition:
+          "Executing neural network forward and backward passes in FP16/BF16 while maintaining FP32 master weights.",
       },
     ],
   },

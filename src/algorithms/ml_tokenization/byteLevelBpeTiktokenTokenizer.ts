@@ -13,35 +13,25 @@ export const DEFAULT_BYTE_LEVEL_BPE_INPUT: ByteLevelBpeTiktokenInput = {
 };
 
 export const BYTE_LEVEL_BPE_CODE = `def byte_level_bpe_tokenize(text: str, ranks: dict[str, int]) -> list[int]:
-    """
-    Byte-Level BPE Tokenizer (Tiktoken / GPT-4).
-    Converts raw UTF-8 string into byte tokens (0-255), then iteratively merges adjacent byte pairs
-    having the lowest rank score in the rank dictionary until no further merges apply.
-    """
-    # Step 1: Convert UTF-8 text to initial byte token list
     raw_bytes = list(text.encode("utf-8"))
     tokens = [[b] for b in raw_bytes]
 
     while len(tokens) > 1:
-        # Find adjacent pair with minimum rank
         min_rank = float("inf")
         best_pair_idx = -1
 
         for i in range(len(tokens) - 1):
-            # Pair key formatted as comma-separated byte string
             pair_key = f"{tokens[i][-1]},{tokens[i+1][0]}"
             if pair_key in ranks and ranks[pair_key] < min_rank:
                 min_rank = ranks[pair_key]
                 best_pair_idx = i
 
         if best_pair_idx == -1:
-            break // No more valid merges
+            break
 
-        # Merge tokens at best_pair_idx and best_pair_idx + 1
         new_token = tokens[best_pair_idx] + tokens[best_pair_idx + 1]
         tokens = tokens[:best_pair_idx] + [new_token] + tokens[best_pair_idx + 2:]
 
-    # Map merged byte arrays to token IDs
     token_ids = [sum(tok) % 100000 for tok in tokens]
     return token_ids`;
 
@@ -50,25 +40,30 @@ export const generateByteLevelBpeSteps = (input: ByteLevelBpeTiktokenInput): Alg
   const { text, ranks } = input;
   let stepIndex = 0;
 
-  const rawBytes = Array.from(Buffer.from(text, "utf-8"));
+  const rawBytes = Array.from(new TextEncoder().encode(text));
   let tokens: number[][] = rawBytes.map((b) => [b]);
+
+  const getByteLabel = (b: number) =>
+    b >= 32 && b <= 126
+      ? `'${String.fromCharCode(b)}' (${b})`
+      : `0x${b.toString(16).toUpperCase()}`;
 
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: `Initialize Byte-Level BPE Tokenizer (Tiktoken / GPT-4)`,
       why: `Converted input text "${text}" into ${rawBytes.length} raw UTF-8 byte tokens: [${rawBytes.join(
         ", ",
-      )}].`,
+      )}]. Each byte ranges from 0 to 255.`,
     },
     primarySnapshot: {
       kind: "array",
       elements: rawBytes.map((b, idx) => ({
         id: `byte-${idx}`,
         value: b,
-        label: `'${String.fromCharCode(b)}' (0x${b.toString(16).toUpperCase()})`,
+        label: getByteLabel(b),
         state: "default" as ElementState,
       })),
     },
@@ -98,17 +93,17 @@ export const generateByteLevelBpeSteps = (input: ByteLevelBpeTiktokenInput): Alg
     if (bestPairIdx === -1) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 18,
+        codeLine: 16,
         explanation: {
           what: "No Further Valid BPE Merges Available",
-          why: "No adjacent token pair exists in the priority merge rank table. Halting iterative merges.",
+          why: "No adjacent token pair exists in the priority merge rank table. Terminating iterative merge loop.",
         },
         primarySnapshot: {
           kind: "array",
           elements: tokens.map((tok, idx) => ({
             id: `tok-${idx}`,
             value: tok[0],
-            label: `[${tok.join(",")}]`,
+            label: tok.length === 1 ? getByteLabel(tok[0]) : `[${tok.join(",")}]`,
             state: "sorted" as ElementState,
           })),
         },
@@ -127,10 +122,10 @@ export const generateByteLevelBpeSteps = (input: ByteLevelBpeTiktokenInput): Alg
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 22,
+      codeLine: 19,
       explanation: {
-        what: `Merge Pair (${pairStr}) with Rank ${minRank}`,
-        why: `Merged token at index ${bestPairIdx} and ${bestPairIdx + 1} into combined token [${mergedTok.join(
+        what: `Merge Lowest Rank Pair (${pairStr}) with Rank ${minRank}`,
+        why: `Merged tokens at index ${bestPairIdx} and ${bestPairIdx + 1} into combined subword byte sequence [${mergedTok.join(
           ", ",
         )}].`,
       },
@@ -139,7 +134,7 @@ export const generateByteLevelBpeSteps = (input: ByteLevelBpeTiktokenInput): Alg
         elements: tokens.map((tok, idx) => ({
           id: `tok-${idx}`,
           value: tok[0],
-          label: `[${tok.join(",")}]`,
+          label: tok.length === 1 ? getByteLabel(tok[0]) : `[${tok.join(",")}]`,
           state: idx === bestPairIdx ? ("active" as ElementState) : ("visited" as ElementState),
           pointers: idx === bestPairIdx ? [`Merged (Rank ${minRank})`] : [],
         })),
@@ -156,28 +151,31 @@ export const generateByteLevelBpeSteps = (input: ByteLevelBpeTiktokenInput): Alg
     });
   }
 
+  const finalTokenIds = tokens.map((tok) => tok.reduce((a, b) => a + b, 0) % 100000);
+
   // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 22,
     explanation: {
-      what: `Byte-Level BPE Tokenization Complete: ${tokens.length} Tokens Produced`,
-      why: `Final subword token sequences: ${tokens
+      what: `Byte-Level BPE Tokenization Complete: ${tokens.length} Token(s) Produced`,
+      why: `Final subword token byte sequences: ${tokens
         .map((tok) => `[${tok.join(",")}]`)
-        .join(" | ")}. Encoded into LLM input IDs.`,
+        .join(" | ")}. Mapped token IDs: [${finalTokenIds.join(", ")}].`,
     },
     primarySnapshot: {
       kind: "array",
       elements: tokens.map((tok, rank) => ({
         id: `res-${rank}`,
-        value: tok[0],
-        label: `Token ${rank}: [${tok.join(",")}]`,
+        value: finalTokenIds[rank],
+        label: `Token ${rank}: [${tok.join(",")}] (ID: ${finalTokenIds[rank]})`,
         state: "sorted" as ElementState,
       })),
     },
     auxiliaryState: {
       customState: {
         finalTokens: tokens.map((tok) => `[${tok.join(",")}]`).join(" | "),
+        tokenIds: `[${finalTokenIds.join(", ")}]`,
         totalTokens: String(tokens.length),
         status: "Completed",
       },
@@ -189,14 +187,10 @@ export const generateByteLevelBpeSteps = (input: ByteLevelBpeTiktokenInput): Alg
 };
 
 export const byteLevelBpeTiktokenTokenizer: AlgorithmDefinition<ByteLevelBpeTiktokenInput> = {
-  id: "byteLevelBpeTiktokenTokenizer",
+  id: "byte-level-bpe-tiktoken-tokenizer",
   title: "Byte-Level BPE Tiktoken Tokenizer (GPT-4)",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization"],
+  topicIds: ["ml_tokenization"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Byte-Level Byte-Pair Encoding (BBPE) tokenizer algorithm used by OpenAI Tiktoken (cl100k_base / o200k_base for GPT-3.5, GPT-4, and GPT-4o). Operates directly on raw UTF-8 byte streams (0-255), completely eliminating Out-Of-Vocabulary (OOV) errors by falling back to byte tokens when no merge rule matches.\n\nInput Format:\n- text: Raw input string to tokenize.\n- ranks: Priority merge dictionary mapping byte pair string 'b1,b2' to integer rank score.\n\nOutput Format:\n- Returns list of final token IDs.\n\nEdge Cases & Constraints:\n- Multi-byte UTF-8 characters (emoji, CJK characters): Encoded as sequences of 2 to 4 raw byte tokens prior to merging.",
   constraints: ["ranks stores priority integer ranks (lower rank = higher merge priority)."],

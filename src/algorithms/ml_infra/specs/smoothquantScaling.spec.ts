@@ -10,9 +10,8 @@ import {
 describe("smoothquantScaling (Level 3 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(smoothquantScaling.id).toBe("smoothquant-scaling");
-    expect(smoothquantScaling.isMlInfra).toBe(true);
-    expect(smoothquantScaling.mlInfraLevel).toBe(3);
-    expect(smoothquantScaling.category).toBe("ml_precision_quantization");
+    expect(smoothquantScaling.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(smoothquantScaling.topicIds).toContain("ml_precision_quantization");
     expect(smoothquantScaling.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" },
     ]);
@@ -32,7 +31,7 @@ describe("smoothquantScaling (Level 3 ML Infra)", () => {
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+      expect(steps[i].primarySnapshot.kind).toBe("matrix");
     }
   });
 

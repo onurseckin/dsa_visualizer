@@ -8,10 +8,9 @@ import {
 describe("flatten-2d-grid (Flatten 2D Grid into 1D Contiguous Buffer)", () => {
   it("should have correct metadata", () => {
     expect(flatten2dGrid.id).toBe("flatten-2d-grid");
-    expect(flatten2dGrid.isMlInfra).toBe(true);
-    expect(flatten2dGrid.mlInfraLevel).toBe(1);
-    expect(flatten2dGrid.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(flatten2dGrid.categories).toContain("ml_tensor_algebra");
+    expect(flatten2dGrid.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(flatten2dGrid.topicIds).toContain("ml_tensor_algebra");
+    expect(flatten2dGrid.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {
@@ -19,7 +18,9 @@ describe("flatten-2d-grid (Flatten 2D Grid into 1D Contiguous Buffer)", () => {
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("2D Grid Flattening");
     expect(steps[0].primarySnapshot.kind).toBe("matrix");
-    expect(steps[steps.length - 1].explanation.what).toContain("Return Serialized 1D Contiguous Buffer");
+    expect(steps[steps.length - 1].explanation.what).toContain(
+      "Return Serialized 1D Contiguous Buffer",
+    );
   });
 
   it("should map every line of code in trivia lineExplanations", () => {

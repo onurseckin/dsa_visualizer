@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TriviaDeckBuilder } from "../../../ui";
-import type { AlgorithmDefinition, CategoryType } from "../../../types/dsa";
+import type { AlgorithmDefinition } from "../../../types/dsa";
 import * as registry from "../../../algorithms/registry";
 
 describe("TriviaDeckBuilder extra coverage", () => {
-  it("allows filtering by category, difficulty, search term, and resetting filters", () => {
+  it("allows filtering by topic, difficulty, search term, and resetting filters", () => {
     const onChange = vi.fn();
     render(<TriviaDeckBuilder deck={["bubble-sort"]} onChange={onChange} />);
 
@@ -14,9 +14,9 @@ describe("TriviaDeckBuilder extra coverage", () => {
     fireEvent.change(searchInput, { target: { value: "bubble" } });
     expect(screen.getByText(/1 shown/i)).toBeInTheDocument();
 
-    // Filter by Category
-    const categorySelect = screen.getByRole("combobox", { name: "Filter by category" });
-    fireEvent.change(categorySelect, { target: { value: "arrays_and_hashing" } });
+    // Filter by topic
+    const topicSelect = screen.getByRole("combobox", { name: "Filter by topic" });
+    fireEvent.change(topicSelect, { target: { value: "arrays_and_hashing" } });
 
     // Filter by Difficulty
     const difficultySelect = screen.getByRole("combobox", { name: "Filter by difficulty" });
@@ -26,7 +26,7 @@ describe("TriviaDeckBuilder extra coverage", () => {
     const resetButton = screen.getByRole("button", { name: "Reset filters" });
     fireEvent.click(resetButton);
 
-    expect(categorySelect).toHaveValue("ALL");
+    expect(topicSelect).toHaveValue("ALL");
     expect(difficultySelect).toHaveValue("ALL");
     expect(searchInput).toHaveValue("");
   });
@@ -49,12 +49,12 @@ describe("TriviaDeckBuilder extra coverage", () => {
     expect(screen.getByText("No algorithm matches that filter.")).toBeInTheDocument();
   });
 
-  it("handles algorithms with unknown category in search query matching", () => {
+  it("handles algorithms with a canonical topic in search query matching", () => {
     const spy = vi.spyOn(registry, "getAllAlgorithms").mockReturnValue([
       {
         id: "custom-alg",
         title: "Custom Alg",
-        category: "unknown_cat" as CategoryType,
+        topicIds: ["arrays_and_hashing"],
         difficulty: "Easy",
         description: "",
         constraints: [],
@@ -69,12 +69,12 @@ describe("TriviaDeckBuilder extra coverage", () => {
     spy.mockRestore();
   });
 
-  it("renders correctly when CATEGORIES entries are matched", () => {
+  it("renders correctly when TOPICS entries are matched", () => {
     const spy = vi.spyOn(registry, "getAllAlgorithms").mockReturnValue([
       {
         id: "two-sum",
         title: "Two Sum",
-        category: "arrays_and_hashing",
+        topicIds: ["arrays_and_hashing"],
         difficulty: "Easy",
         description: "",
         constraints: [],

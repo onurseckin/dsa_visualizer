@@ -10,9 +10,8 @@ import {
 describe("ropeRotaryPosition (Level 7 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(ropeRotaryPosition.id).toBe("rope-rotary-position");
-    expect(ropeRotaryPosition.isMlInfra).toBe(true);
-    expect(ropeRotaryPosition.mlInfraLevel).toBe(7);
-    expect(ropeRotaryPosition.category).toBe("ml_attention_geometry");
+    expect(ropeRotaryPosition.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(ropeRotaryPosition.topicIds).toContain("ml_attention_geometry");
     expect(ropeRotaryPosition.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" },
     ]);
@@ -32,7 +31,7 @@ describe("ropeRotaryPosition (Level 7 ML Infra)", () => {
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+      expect(steps[i].primarySnapshot.kind).toBe("matrix");
     }
   });
 

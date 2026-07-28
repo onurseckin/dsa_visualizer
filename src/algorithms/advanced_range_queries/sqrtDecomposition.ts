@@ -17,9 +17,6 @@ export interface SqrtDecompositionInput {
 export const SQRT_DECOMPOSITION_CODE = `import math
 
 class SqrtDecomposition:
-    """
-    SQRT Decomposition maintaining block sums for O(1) point updates and O(sqrt N) range queries.
-    """
     def __init__(self, arr: list[int]):
         self.arr = list(arr)
         self.n = len(arr)
@@ -64,13 +61,17 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arr = [...input.array];
+  const arr = input.array ? [...input.array] : [];
   const n = arr.length;
   const blockSize = n > 0 ? Math.max(1, Math.floor(Math.sqrt(n))) : 1;
   const numBlocks = n > 0 ? Math.ceil(n / blockSize) : 0;
   const blocks: number[] = Array(numBlocks).fill(0);
 
-  const makeElements = (activeIndices?: number[], highlightIndices?: number[]): ArrayElement[] => {
+  const makeElements = (
+    activeIndices?: number[],
+    highlightIndices?: number[],
+    pointerMap?: Record<number, string[]>,
+  ): ArrayElement[] => {
     return arr.map((val, idx) => {
       let state: ArrayElement["state"] = "default";
       if (activeIndices && activeIndices.includes(idx)) {
@@ -78,12 +79,12 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
       } else if (highlightIndices && highlightIndices.includes(idx)) {
         state = "compare";
       }
-      const blockIdx = Math.floor(idx / blockSize);
+      const ptrs = pointerMap && pointerMap[idx] ? pointerMap[idx] : undefined;
       return {
         id: `el-${idx}`,
         value: val,
         state,
-        pointers: [`b${blockIdx}`],
+        pointers: ptrs,
       };
     });
   };
@@ -95,6 +96,7 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
     variables: Record<string, string | number | boolean>,
     activeIndices?: number[],
     highlightIndices?: number[],
+    pointerMap?: Record<number, string[]>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -102,7 +104,7 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: makeElements(activeIndices, highlightIndices),
+        elements: makeElements(activeIndices, highlightIndices, pointerMap),
       },
       auxiliaryState: {
         customState: {
@@ -116,14 +118,14 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
   };
 
   addStep(
-    7,
+    4,
     "Initialize SQRT Decomposition",
     `Array length N = ${n}, calculated block size = floor(sqrt(${n})) = ${blockSize}. Total blocks = ${numBlocks}.`,
     { n, blockSize, numBlocks },
   );
 
   if (n === 0) {
-    addStep(9, "Array is empty", "No blocks to build for an empty array.", {
+    addStep(6, "Array is empty", "No blocks to build for an empty array.", {
       n: 0,
       blockSize: 1,
       numBlocks: 0,
@@ -135,16 +137,18 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
     const bIdx = Math.floor(i / blockSize);
     blocks[bIdx] += arr[i];
     addStep(
-      14,
+      11,
       `Add arr[${i}] = ${arr[i]} to block ${bIdx}`,
       `Accumulating element ${i} into block ${bIdx}. Current block ${bIdx} sum is ${blocks[bIdx]}.`,
       { i, val: arr[i], bIdx, currentBlockSum: blocks[bIdx] },
       [i],
+      undefined,
+      { [i]: [`i`, `b${bIdx}`] },
     );
   }
 
   addStep(
-    14,
+    11,
     "Block precomputation complete",
     `Precomputed sum for each block of size ${blockSize}: [${blocks.join(", ")}]. Each element belongs to block i // ${blockSize}.`,
     { blockSize, blockSums: blocks.join(", ") },
@@ -163,22 +167,26 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
       const diff = val - oldVal;
 
       addStep(
-        16,
+        13,
         `Update arr[${idx}] from ${oldVal} to ${val}`,
         `Element index ${idx} falls into block ${bIdx}. Updating arr[${idx}] and adjusting block ${bIdx} sum by delta ${diff}.`,
         { opIndex: opIdx + 1, idx, oldVal, val, bIdx, diff },
         [idx],
+        undefined,
+        { [idx]: [`idx`] },
       );
 
       arr[idx] = val;
       blocks[bIdx] += diff;
 
       addStep(
-        20,
+        17,
         `Block ${bIdx} sum updated to ${blocks[bIdx]}`,
         `Point update completed in O(1) time. Updated block sums: [${blocks.join(", ")}].`,
         { bIdx, newBlockSum: blocks[bIdx] },
         [idx],
+        undefined,
+        { [idx]: [`idx`, `b${bIdx}`] },
       );
     } else if (op.type === "query") {
       const L = Math.max(0, Math.min(op.left ?? 0, n - 1));
@@ -188,10 +196,13 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
       const bRight = Math.floor(R / blockSize);
 
       addStep(
-        22,
+        19,
         `Query range sum [${L}..${R}]`,
         `Left boundary L=${L} is in block ${bLeft}, right boundary R=${R} is in block ${bRight}.`,
         { opIndex: opIdx + 1, L, R, bLeft, bRight },
+        undefined,
+        undefined,
+        { [L]: [`L`], [R]: [`R`] },
       );
 
       let total = 0;
@@ -202,19 +213,23 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
           total += arr[i];
           scannedIndices.push(i);
           addStep(
-            28,
+            25,
             `Scan element arr[${i}] = ${arr[i]} in same block ${bLeft}`,
             `Single-block query: adding element ${i} to running total = ${total}.`,
             { i, val: arr[i], total },
             [i],
+            undefined,
+            { [L]: [`L`], [R]: [`R`], [i]: [`i`] },
           );
         }
         addStep(
-          28,
+          33,
           `Same block query [${L}..${R}] = ${total}`,
           `Both endpoints lie in block ${bLeft}. Scanned elements directly in O(sqrt(N)) time.`,
           { L, R, total },
           scannedIndices,
+          undefined,
+          { [L]: [`L`], [R]: [`R`] },
         );
       } else {
         // Left partial block
@@ -223,41 +238,51 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
           total += arr[i];
           scannedIndices.push(i);
           addStep(
-            31,
+            28,
             `Scan partial left element arr[${i}] = ${arr[i]} in block ${bLeft}`,
             `Partial head scan: adding element ${i} to running total = ${total}.`,
             { i, val: arr[i], total },
             [i],
+            undefined,
+            { [L]: [`L`], [R]: [`R`], [i]: [`i`] },
           );
         }
         addStep(
-          31,
+          28,
           `Partial left block [${L}..${leftEnd - 1}] sum = ${total}`,
           `Added partial tail of block ${bLeft}.`,
           { L, leftEnd: leftEnd - 1, currentTotal: total },
           scannedIndices,
+          undefined,
+          { [L]: [`L`], [R]: [`R`] },
         );
 
         // Whole intermediate blocks
         for (let b = bLeft + 1; b < bRight; b++) {
           total += blocks[b];
+          const blockIndices: number[] = [];
           for (let k = b * blockSize; k < (b + 1) * blockSize; k++) {
             scannedIndices.push(k);
+            blockIndices.push(k);
           }
           addStep(
-            33,
+            30,
             `Add full block ${b} sum = ${blocks[b]}`,
             `Full block skip: adding precomputed sum of block ${b} in O(1) time. Running total = ${total}.`,
             { block: b, blockSum: blocks[b], total },
-            [...scannedIndices],
+            blockIndices,
+            undefined,
+            { [L]: [`L`], [R]: [`R`] },
           );
         }
         addStep(
-          33,
-          `Full blocks [${bLeft + 1}..${bRight - 1}] added, sum = ${total}`,
+          30,
+          `Full blocks [${bLeft + 1}..${bRight - 1}] added, running sum = ${total}`,
           `Added precomputed block sums in O(1) per block instead of scanning element by element.`,
           { bLeft, bRight, currentTotal: total },
           scannedIndices,
+          undefined,
+          { [L]: [`L`], [R]: [`R`] },
         );
 
         // Right partial block
@@ -266,19 +291,23 @@ export const generateSqrtDecompositionSteps = (input: SqrtDecompositionInput): A
           total += arr[i];
           scannedIndices.push(i);
           addStep(
-            35,
+            32,
             `Scan partial right element arr[${i}] = ${arr[i]} in block ${bRight}`,
             `Partial tail scan: adding element ${i} to running total = ${total}.`,
             { i, val: arr[i], total },
             [i],
+            undefined,
+            { [L]: [`L`], [R]: [`R`], [i]: [`i`] },
           );
         }
         addStep(
-          35,
+          33,
           `Partial right block [${rightStart}..${R}] added, final sum = ${total}`,
           `Added partial head of block ${bRight}. Total range sum query finished in O(sqrt(N)) time.`,
           { rightStart, R, total },
           scannedIndices,
+          undefined,
+          { [L]: [`L`], [R]: [`R`] },
         );
       }
     }
@@ -315,25 +344,29 @@ export const SQRT_DECOMPOSITION_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Block Size (S = sqrt N)",
-      definition: "The optimal block size $S = \\lfloor \\sqrt{N} \\rfloor$ balancing partial block scans and full block aggregations.",
+      definition:
+        "The optimal block size $S = \\lfloor \\sqrt{N} \\rfloor$ balancing partial block scans and full block aggregations.",
     },
     {
       term: "Block Aggregate",
-      definition: "The precomputed aggregate value (e.g., sum, minimum) representing an entire block of $S$ elements.",
+      definition:
+        "The precomputed aggregate value (e.g., sum, minimum) representing an entire block of $S$ elements.",
     },
     {
       term: "Partial Block",
-      definition: "A boundary block only partially contained in query $[L \\dots R]$, requiring individual element iteration.",
+      definition:
+        "A boundary block only partially contained in query $[L \\dots R]$, requiring individual element iteration.",
     },
     {
       term: "Full Block",
-      definition: "A block completely contained inside query $[L \\dots R]$, permitting $O(1)$ aggregate additions.",
+      definition:
+        "A block completely contained inside query $[L \\dots R]$, permitting $O(1)$ aggregate additions.",
     },
   ],
 };
 
 export const SQRT_DECOMPOSITION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 15, 21],
+  skipLines: [2, 12, 18],
   distractors: [
     "self.block_size = max(1, self.n // 2)",
     "self.blocks[b_idx] = val",
@@ -341,11 +374,11 @@ export const SQRT_DECOMPOSITION_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 10,
+      line: 7,
       hint: "Block size is chosen as sqrt(N) to minimize search steps",
     },
     {
-      line: 20,
+      line: 17,
       hint: "Update block sum by adding difference (val - arr[idx])",
     },
   ],
@@ -353,47 +386,43 @@ export const SQRT_DECOMPOSITION_TRIVIA: TriviaMeta = {
     1: "Imports the math module for floor square root and ceiling operations.",
     2: "Blank line separating imports.",
     3: "Defines SqrtDecomposition class maintaining block aggregates for O(sqrt N) queries.",
-    4: "Docstring describing O(1) point updates and O(sqrt N) range queries.",
-    5: "Docstring continuation.",
-    6: "Docstring continuation.",
-    7: "Constructor taking input sequence arr.",
-    8: "Creates a copy of input array arr.",
-    9: "Stores array size n.",
-    10: "Calculates optimal block size as max(1, int(math.isqrt(n))).",
-    11: "Calculates number of blocks num_blocks = ceil(n / block_size).",
-    12: "Allocates blocks array initialized to 0 for block sum aggregates.",
-    13: "Loops over all array elements i to accumulate block totals.",
-    14: "Adds arr[i] to its corresponding block sum: blocks[i // block_size].",
-    15: "Blank line separating constructor.",
-    16: "Defines update(idx, val) to update element at index idx to new value val.",
-    17: "Determines parent block index: b_idx = idx // block_size.",
-    18: "Computes delta difference: diff = val - arr[idx].",
-    19: "Updates original array value arr[idx] = val.",
-    20: "Adjusts parent block total: blocks[b_idx] += diff in O(1) time.",
-    21: "Blank line separating update method.",
-    22: "Defines query(left, right) returning range sum over [left..right].",
-    23: "Determines starting block index b_left = left // block_size.",
-    24: "Determines ending block index b_right = right // block_size.",
-    25: "Initializes total sum accumulator variable to 0.",
-    26: "Checks if query range falls entirely within a single block (b_left == b_right).",
-    27: "Loops over elements from left to right within single block.",
-    28: "Accumulates element arr[i] directly into total.",
-    29: "Else branch when query spans multiple blocks.",
-    30: "Loops over partial head elements in block b_left from left to end of block.",
-    31: "Accumulates partial head elements arr[i] into total.",
-    32: "Loops over complete middle blocks b from b_left + 1 to b_right - 1.",
-    33: "Adds precomputed full block sums blocks[b] directly in O(1) time per block.",
-    34: "Loops over partial tail elements in block b_right from start of block to right.",
-    35: "Accumulates partial tail elements arr[i] into total.",
-    36: "Returns computed range sum total.",
+    4: "Constructor taking input sequence arr.",
+    5: "Creates a copy of input array arr.",
+    6: "Stores array size n.",
+    7: "Calculates optimal block size as max(1, int(math.isqrt(n))).",
+    8: "Calculates number of blocks num_blocks = ceil(n / block_size).",
+    9: "Allocates blocks array initialized to 0 for block sum aggregates.",
+    10: "Loops over all array elements i to accumulate block totals.",
+    11: "Adds arr[i] to its corresponding block sum: blocks[i // block_size].",
+    12: "Blank line separating constructor.",
+    13: "Defines update(idx, val) to update element at index idx to new value val.",
+    14: "Determines parent block index: b_idx = idx // block_size.",
+    15: "Computes delta difference: diff = val - arr[idx].",
+    16: "Updates original array value arr[idx] = val.",
+    17: "Adjusts parent block total: blocks[b_idx] += diff in O(1) time.",
+    18: "Blank line separating update method.",
+    19: "Defines query(left, right) returning range sum over [left..right].",
+    20: "Determines starting block index b_left = left // block_size.",
+    21: "Determines ending block index b_right = right // block_size.",
+    22: "Initializes total sum accumulator variable to 0.",
+    23: "Checks if query range falls entirely within a single block (b_left == b_right).",
+    24: "Loops over elements from left to right within single block.",
+    25: "Accumulates element arr[i] directly into total.",
+    26: "Else branch when query spans multiple blocks.",
+    27: "Loops over partial head elements in block b_left from left to end of block.",
+    28: "Accumulates partial head elements arr[i] into total.",
+    29: "Loops over complete middle blocks b from b_left + 1 to b_right - 1.",
+    30: "Adds precomputed full block sums blocks[b] directly in O(1) time per block.",
+    31: "Loops over partial tail elements in block b_right from start of block to right.",
+    32: "Accumulates partial tail elements arr[i] into total.",
+    33: "Returns computed range sum total.",
   },
 };
 
 export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
   id: "sqrt-decomposition",
   title: "SQRT Decomposition (Range Queries & Updates)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Medium",
   description:
     "**SQRT Decomposition** partitions an array into blocks of size $\\lfloor \\sqrt{N} \\rfloor$. Point updates take $O(1)$ time and range queries take $O(\\sqrt{N})$ time by combining precomputed block aggregates with partial block scans.",
@@ -470,4 +499,3 @@ export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
   defaultInput: DEFAULT_SQRT_DECOMPOSITION_INPUT,
   generateSteps: generateSqrtDecompositionSteps,
 };
-

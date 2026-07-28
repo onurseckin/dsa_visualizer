@@ -9,7 +9,7 @@ import {
 describe("coinChangeDp algorithm logic spec", () => {
   it("has category dp_1d and valid metadata", () => {
     expect(coinChangeDp.id).toBe("coin-change-dp");
-    expect(coinChangeDp.category).toBe("dp_1d");
+    expect(coinChangeDp.topicIds).toContain("dp_1d");
     expect(coinChangeDp.difficulty).toBe("Medium");
     expect(coinChangeDp.code).toContain("def coin_change");
   });

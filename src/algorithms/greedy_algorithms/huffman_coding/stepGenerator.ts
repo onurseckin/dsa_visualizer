@@ -79,8 +79,32 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     stepIndex: stepIndex++,
     codeLine: 16,
     explanation: {
-      what: `Build a min-heap of ${heap.length} leaves`,
-      why: "Each distinct character becomes a leaf weighted by its count. Keeping the leaves in a min-heap lets us grab the two rarest nodes instantly whenever we need to merge.",
+      what: `Create ${uniqueChars.length} leaf node instances`,
+      why: "Each distinct character becomes a leaf HuffmanNode weighted by its occurrence frequency.",
+    },
+    primarySnapshot: {
+      kind: "tree",
+      nodes: Array.from(allNodes.values()).map((n, idx) => ({
+        id: n.id,
+        val: n.freq,
+        state: "default",
+        x: (idx + 1) * 80,
+        y: 100,
+      })),
+    },
+    auxiliaryState: {
+      hashMap: Object.fromEntries(Object.entries(freqMap).map(([k, v]) => [`freq_${k}`, v])),
+      customState: { leafCount: heap.length },
+    },
+    variables: { leafCount: heap.length },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 17,
+    explanation: {
+      what: `Build a min-heap of ${heap.length} leaf nodes`,
+      why: "Heapifying the leaves in $O(K)$ time lets us efficiently extract the two lowest-frequency nodes in $O(\\log K)$ time at each merge step.",
     },
     primarySnapshot: {
       kind: "tree",
@@ -103,6 +127,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
   const buildVisualNodes = (
     activeIds: string[] = [],
     rootId?: string,
+    extraNodes: InternalHuffmanNode[] = [],
   ): { nodes: TreeNodeItem[]; rootId?: string } => {
     const treeNodes: TreeNodeItem[] = [];
 
@@ -112,7 +137,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       leftBound: number,
       rightBound: number,
     ) => {
-      const node = allNodes.get(nodeId)!;
+      const node = allNodes.get(nodeId);
+      if (!node) return;
 
       const midX = (leftBound + rightBound) / 2;
       const y = depth * 70 + 40;
@@ -134,8 +160,10 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
         y,
       });
 
-      if (node.leftId && node.rightId) {
+      if (node.leftId) {
         assignPositions(node.leftId, depth + 1, leftBound, midX);
+      }
+      if (node.rightId) {
         assignPositions(node.rightId, depth + 1, midX, rightBound);
       }
     };
@@ -143,9 +171,16 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     if (rootId && allNodes.has(rootId)) {
       assignPositions(rootId, 0, 50, 600);
     } else {
+      const rootsToRender: InternalHuffmanNode[] = [...heap];
+      for (const extra of extraNodes) {
+        if (!rootsToRender.some((n) => n.id === extra.id)) {
+          rootsToRender.push(extra);
+        }
+      }
       let idx = 0;
-      for (const node of heap) {
-        assignPositions(node.id, 0, idx * 100 + 40, (idx + 1) * 100 + 40);
+      const stepWidth = Math.max(80, 600 / Math.max(1, rootsToRender.length));
+      for (const node of rootsToRender) {
+        assignPositions(node.id, 0, idx * stepWidth + 40, (idx + 1) * stepWidth + 40);
         idx++;
       }
     }
@@ -160,7 +195,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       codeLine: 19,
       explanation: {
         what: `Check heap size (${heap.length} > 1)`,
-        why: "While more than one subtree remains, pop the two lightest nodes and combine them into a single parent.",
+        why: "While more than one subtree remains in the min-heap, extract the two lightest nodes and combine them into a single parent.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -185,7 +220,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       },
       primarySnapshot: {
         kind: "tree",
-        ...buildVisualNodes([left.id]),
+        ...buildVisualNodes([left.id], undefined, [left]),
       },
       auxiliaryState: {
         queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
@@ -206,7 +241,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       },
       primarySnapshot: {
         kind: "tree",
-        ...buildVisualNodes([left.id, right.id]),
+        ...buildVisualNodes([left.id, right.id], undefined, [left, right]),
       },
       auxiliaryState: {
         queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
@@ -235,12 +270,12 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 22,
       explanation: {
-        what: `Create parent node combining frequencies: ${left.freq} + ${right.freq} = ${mergedNode.freq}`,
-        why: "The new internal node holds no character and carries the sum of its children's frequencies.",
+        what: `Create internal parent node with combined frequency: ${left.freq} + ${right.freq} = ${mergedNode.freq}`,
+        why: "The new internal node carries no character label and stores the sum of frequencies of its child subtrees.",
       },
       primarySnapshot: {
         kind: "tree",
-        ...buildVisualNodes([parentId]),
+        ...buildVisualNodes([parentId], undefined, [mergedNode]),
       },
       auxiliaryState: {
         queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
@@ -252,6 +287,33 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       variables: {
         leftFreq: left.freq,
         rightFreq: right.freq,
+        parentFreq: mergedNode.freq,
+      },
+    });
+
+    // Step: Attach left and right child pointers
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 23,
+      explanation: {
+        what: `Attach left (${left.char ? `'${left.char}'` : left.id}) and right (${right.char ? `'${right.char}'` : right.id}) children`,
+        why:
+          "Set merged.left and merged.right child pointers, forming a combined binary subtree rooted at frequency weight " +
+          mergedNode.freq +
+          ".",
+      },
+      primarySnapshot: {
+        kind: "tree",
+        ...buildVisualNodes([parentId, left.id, right.id], undefined, [mergedNode]),
+      },
+      auxiliaryState: {
+        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
+        customState: {
+          attachedLeft: left.char || left.id,
+          attachedRight: right.char || right.id,
+        },
+      },
+      variables: {
         parentFreq: mergedNode.freq,
       },
     });
@@ -283,7 +345,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
   const huffmanCodes: Record<string, string> = {};
 
   const generateCodes = (nodeId: string, currentCode: string) => {
-    const node = allNodes.get(nodeId)!;
+    const node = allNodes.get(nodeId);
+    if (!node) return;
 
     if (node.char !== null) {
       huffmanCodes[node.char] = currentCode || "0";

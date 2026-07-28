@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface LstmGateWeights {
@@ -29,17 +29,13 @@ def lstm_cec_step(x: list[float], h_prev: list[float], c_prev: list[float], weig
     Wf, Wi, Wc, Wo = weights["Wf"], weights["Wi"], weights["Wc"], weights["Wo"]
     bf, bi, bc, bo = weights["bf"], weights["bi"], weights["bc"], weights["bo"]
     
-    # Step 1: Compute Forget gate (f_t) and Input gate (i_t) activations
     f_t = [sigmoid(sum(Wf[d][j] * x[j] for j in range(len(x))) + bf[d]) for d in range(dim)]
     i_t = [sigmoid(sum(Wi[d][j] * x[j] for j in range(len(x))) + bi[d]) for d in range(dim)]
     
-    # Step 2: Compute Candidate cell state (c_tilde)
     c_tilde = [math.tanh(sum(Wc[d][j] * x[j] for j in range(len(x))) + bc[d]) for d in range(dim)]
     
-    # Step 3: Constant Error Carousel (CEC) cell state update: c_t = f_t * c_prev + i_t * c_tilde
     c_t = [f_t[d] * c_prev[d] + i_t[d] * c_tilde[d] for d in range(dim)]
     
-    # Step 4: Compute Output gate (o_t) and new Hidden state h_t = o_t * tanh(c_t)
     o_t = [sigmoid(sum(Wo[d][j] * x[j] for j in range(len(x))) + bo[d]) for d in range(dim)]
     h_t = [o_t[d] * math.tanh(c_t[d]) for d in range(dim)]
     
@@ -97,21 +93,26 @@ export const generateLstmConstantErrorCarouselSteps = (
     codeLine: 11,
     explanation: {
       what: "Compute Forget (f_t) and Input (i_t) Gates",
-      why: `Forget gate f_t = [${f_t.map((v) => v.toFixed(3)).join(", ")}], Input gate i_t = [${i_t.map((v) => v.toFixed(3)).join(", ")}]. Forget gate f_t controls retention of previous cell state c_{t-1}.`,
+      why: `Forget gate f_t = [${f_t.map((v) => v.toFixed(3)).join(", ")}], Input gate i_t = [${i_t.map((v) => v.toFixed(3)).join(", ")}]. Forget gate controls retention of previous cell memory c_{t-1}, while input gate controls absorption of new candidate features.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: [
-        ...f_t.map((v, d) => ({
-          id: `f-${d}`,
-          value: Number((v * 100).toFixed(0)),
-          state: "active" as ElementState,
-        })),
-        ...i_t.map((v, d) => ({
-          id: `i-${d}`,
-          value: Number((v * 100).toFixed(0)),
-          state: "visited" as ElementState,
-        })),
+      kind: "vector",
+      planeTitle: "Forget (f_t) & Input (i_t) Gate Vectors",
+      vectors: [
+        {
+          id: "f_t",
+          label: `f_t [${f_t.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: f_t[0],
+          y: f_t[1] ?? 0,
+          state: "active",
+        },
+        {
+          id: "i_t",
+          label: `i_t [${i_t.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: i_t[0],
+          y: i_t[1] ?? 0,
+          state: "compared",
+        },
       ],
     },
     auxiliaryState: {
@@ -133,18 +134,23 @@ export const generateLstmConstantErrorCarouselSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 15,
+    codeLine: 14,
     explanation: {
       what: "Compute Candidate Cell State (c_tilde)",
-      why: `Candidate cell state c_tilde = [${c_tilde.map((v) => v.toFixed(3)).join(", ")}]. Candidate activation c_tilde compresses current input x_t and h_{t-1} via tanh into [-1.0, 1.0].`,
+      why: `Candidate cell state c_tilde = [${c_tilde.map((v) => v.toFixed(3)).join(", ")}]. Candidate activation c_tilde uses tanh to compress non-linear input features into [-1.0, 1.0].`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: c_tilde.map((v, d) => ({
-        id: `ctilde-${d}`,
-        value: Number((v * 100).toFixed(0)),
-        state: "active" as ElementState,
-      })),
+      kind: "vector",
+      planeTitle: "Candidate Cell State Vector (c_tilde)",
+      vectors: [
+        {
+          id: "c_tilde",
+          label: `c_tilde [${c_tilde.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: c_tilde[0],
+          y: c_tilde[1] ?? 0,
+          state: "active",
+        },
+      ],
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(
@@ -161,18 +167,30 @@ export const generateLstmConstantErrorCarouselSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 16,
     explanation: {
       what: "Update Constant Error Carousel (CEC) Cell State",
-      why: `Updated cell state c_t = f_t * c_{t-1} + i_t * c_tilde = [${c_t.map((v) => v.toFixed(3)).join(", ")}]. The Constant Error Carousel (CEC) adds linear memory shortcut c_t.`,
+      why: `Updated cell state c_t = f_t * c_{t-1} + i_t * c_tilde = [${c_t.map((v) => v.toFixed(3)).join(", ")}]. The Constant Error Carousel (CEC) provides a linear additive shortcut for internal memory, ensuring constant gradient propagation.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: c_t.map((v, d) => ({
-        id: `c-${d}`,
-        value: Number((v * 100).toFixed(0)),
-        state: "sorted" as ElementState,
-      })),
+      kind: "vector",
+      planeTitle: "Constant Error Carousel (CEC) Cell State (c_t)",
+      vectors: [
+        {
+          id: "c_prev",
+          label: `c_{t-1} [${input.cPrev.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: input.cPrev[0],
+          y: input.cPrev[1] ?? 0,
+          state: "inactive",
+        },
+        {
+          id: "c_t",
+          label: `c_t [${c_t.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: c_t[0],
+          y: c_t[1] ?? 0,
+          state: "result",
+        },
+      ],
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(c_t.map((v, d) => [`c_t[${d}]`, Number(v.toFixed(3))])),
@@ -190,18 +208,30 @@ export const generateLstmConstantErrorCarouselSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 18,
     explanation: {
       what: "Compute Output Gate (o_t) and Hidden State (h_t)",
-      why: `Output gate o_t = [${o_t.map((v) => v.toFixed(3)).join(", ")}], New Hidden state h_t = [${h_t.map((v) => v.toFixed(3)).join(", ")}]. Output gate o_t filters cell memory c_t into visible hidden state h_t.`,
+      why: `Output gate o_t = [${o_t.map((v) => v.toFixed(3)).join(", ")}], New Hidden state h_t = [${h_t.map((v) => v.toFixed(3)).join(", ")}]. Output gate o_t filters tanh-compressed cell memory c_t into the exposed recurrent hidden state h_t.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: h_t.map((v, d) => ({
-        id: `h-${d}`,
-        value: Number((v * 100).toFixed(0)),
-        state: "sorted" as ElementState,
-      })),
+      kind: "vector",
+      planeTitle: "Output Gate (o_t) & Hidden State Vector (h_t)",
+      vectors: [
+        {
+          id: "o_t",
+          label: `o_t [${o_t.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: o_t[0],
+          y: o_t[1] ?? 0,
+          state: "compared",
+        },
+        {
+          id: "h_t",
+          label: `h_t [${h_t.map((v) => v.toFixed(2)).join(", ")}]`,
+          x: h_t[0],
+          y: h_t[1] ?? 0,
+          state: "result",
+        },
+      ],
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries([
@@ -231,31 +261,27 @@ const LSTM_CONSTANT_ERROR_CAROUSEL_TRIVIA: TriviaMeta = {
       hint: "Compute forget gate f_t and input gate i_t activations using sigmoid activation.",
     },
     {
-      line: 18,
+      line: 16,
       hint: "Update cell state via Constant Error Carousel: c_t = f_t * c_prev + i_t * c_tilde.",
     },
     {
-      line: 22,
+      line: 18,
       hint: "Filter cell state into hidden representation h_t = o_t * tanh(c_t).",
     },
   ],
   lineExplanations: {
     1: "Defines LSTM Constant Error Carousel (CEC) cell update step.",
     11: "Calculates forget gate f_t and input gate i_t sigmoid probabilities.",
-    18: "Executes linear cell memory update preventing gradient vanishing.",
-    22: "Produces output gate and final recurrent hidden state h_t.",
+    16: "Executes linear cell memory update preventing gradient vanishing.",
+    18: "Produces output gate and final recurrent hidden state h_t.",
   },
 };
 
 export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCarouselInput> = {
   id: "lstm-constant-error-carousel",
   title: "LSTM Constant Error Carousel (CEC) & Gate Activations",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "ml_recurrent_gates"],
+  topicIds: ["ml_attention_geometry", "ml_recurrent_gates"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 6,
-  mlInfraCategory: "ml_attention_geometry",
   description:
     "Long Short-Term Memory (LSTM) networks introduced by Hochreiter & Schmidhuber (1997) solve the vanishing gradient problem using the Constant Error Carousel (CEC). The CEC provides an linear additive shortcut for internal cell memory $c_t = f_t \\odot c_{t-1} + i_t \\odot \\tilde{c}_t$, preserving error signals through backpropagation across arbitrary sequence lengths.\n\nInput Format:\n- x: Input vector at time step t.\n- hPrev: Hidden state vector from step t-1.\n- cPrev: Internal cell state vector from step t-1.\n- weights: Dict containing weight matrices (Wf, Wi, Wc, Wo) and bias vectors (bf, bi, bc, bo).\n\nOutput Format:\n- Returns tuple (c_t, h_t) containing updated cell state $c_t$ and output hidden state $h_t$.\n\nEdge Cases & Constraints:\n- Extreme bias values: Forget bias $b_f \\ll 0$ flushes cell state memory, resetting history context.\n- Vanishing candidate input: Input gate $i_t \\to 0$ blocks new input information from altering cell state.\n- Dimension matching: Dimensionality of inputs and weights must be consistent across state vectors.",
   constraints: ["len(x) == len(cPrev)", "weights dimensions match state vector length"],

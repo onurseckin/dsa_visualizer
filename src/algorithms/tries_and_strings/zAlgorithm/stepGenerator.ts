@@ -15,7 +15,12 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   const tLen = text.length;
 
   // Python line 1: def z_algorithm(text, pattern)
-  const addEmptyStep = (codeLine: number, what: string, why: string, variables: Record<string, string | number | boolean>) => {
+  const addEmptyStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+  ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
@@ -82,7 +87,7 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
 
       return {
         id: `el-${idx}`,
-        value: z[idx] > 0 ? z[idx] : char.charCodeAt(0),
+        value: z[idx],
         state,
         pointers,
       };
@@ -157,13 +162,13 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       i,
     );
 
-    // Python line 9: if i <= r
+    // Python line 9-10: if i <= r: z[i] = min(r - i + 1, z[i - l])
     if (i <= r) {
       const k = i - l;
       const rem = r - i + 1;
       z[i] = Math.min(rem, z[k]);
       addStep(
-        9,
+        10,
         `Reuse work from the window`,
         `Position ${i} sits inside [L=${l}, R=${r}], a stretch we already know mirrors the prefix, so we copy Z[${k}] = ${z[k]} from the mirrored position — capped at the ${rem} characters left in the window — and start Z[${i}] at ${z[i]} for free.`,
         { i, l, r, k, "Z[k]": z[k], remaining: rem, "Z[i]": z[i] },
@@ -229,17 +234,6 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
         i,
       );
     }
-  }
-
-  while (steps.length < 20) {
-    const padIdx = steps.length;
-    addStep(
-      18,
-      `Validate Z-array invariant (Step ${padIdx + 1})`,
-      `Re-verifying Z-box window [L=${l}, R=${r}] and prefix match lengths.`,
-      { totalMatches: matches.length, matches: matches.join(", ") },
-      "Validation",
-    );
   }
 
   // Python line 18: return matches

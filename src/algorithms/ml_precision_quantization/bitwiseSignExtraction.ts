@@ -30,8 +30,20 @@ const fp32ToBitItems = (val: number): BitItem[] => {
   const bitStr = u32.toString(2).padStart(32, "0");
   return [
     { index: 31, label: "Sign (MSB)", value: bitStr[0], state: "sign", bitGroup: "sign" },
-    { index: 30, label: "Exp [30:23]", value: bitStr.slice(1, 9), state: "exponent", bitGroup: "exp" },
-    { index: 22, label: "Mantissa [22:0]", value: bitStr.slice(9), state: "mantissa", bitGroup: "mant" },
+    {
+      index: 30,
+      label: "Exp [30:23]",
+      value: bitStr.slice(1, 9),
+      state: "exponent",
+      bitGroup: "exp",
+    },
+    {
+      index: 22,
+      label: "Mantissa [22:0]",
+      value: bitStr.slice(9),
+      state: "mantissa",
+      bitGroup: "mant",
+    },
   ];
 };
 
@@ -42,6 +54,12 @@ export const generateBitwiseSignExtractionSteps = (
   let stepIndex = 0;
   const arrayValues = input?.values || [1.2, -3.4, 5.5, -0.0, 0.0];
   const signsBuffer: number[] = [];
+
+  const formatVal = (v: number): string => {
+    if (Object.is(v, -0)) return "-0.0";
+    if (Object.is(v, 0)) return "0.0";
+    return String(v);
+  };
 
   const addStep = (
     codeLine: number,
@@ -68,7 +86,7 @@ export const generateBitwiseSignExtractionSteps = (
         visited: [...signsBuffer],
         customState: {
           signs: `[${signsBuffer.join(", ")}]`,
-          values: `[${arrayValues.join(", ")}]`,
+          values: `[${arrayValues.map(formatVal).join(", ")}]`,
         },
       },
       variables,
@@ -107,11 +125,12 @@ export const generateBitwiseSignExtractionSteps = (
 
   // Multi-step loop per scalar
   arrayValues.forEach((val, idx) => {
+    const formatted = formatVal(val);
     addStep(
       4,
-      `Inspect Element ${idx}: val = ${val}`,
-      `Reading FP32 scalar input ${val} at index ${idx}.`,
-      { idx, val, phase: "INSPECT_VAL" },
+      `Inspect Element ${idx}: val = ${formatted}`,
+      `Reading FP32 scalar input ${formatted} at index ${idx}.`,
+      { idx, val: formatted, phase: "INSPECT_VAL" },
       val,
       0,
     );
@@ -122,8 +141,8 @@ export const generateBitwiseSignExtractionSteps = (
     addStep(
       5,
       `Pack & Unpack IEEE-754 binary: bits = ${hexBits} (${u32Bits} uint32)`,
-      `Packed float ${val} into 4-byte IEEE-754 binary structure and unpacked as 32-bit unsigned integer ${hexBits}.`,
-      { idx, val, bitsUint32: u32Bits, bitsHex: hexBits, phase: "STRUCT_UNPACK" },
+      `Packed float ${formatted} into 4-byte IEEE-754 binary structure and unpacked as 32-bit unsigned integer ${hexBits}.`,
+      { idx, val: formatted, bitsUint32: u32Bits, bitsHex: hexBits, phase: "STRUCT_UNPACK" },
       val,
       0,
     );
@@ -134,7 +153,7 @@ export const generateBitwiseSignExtractionSteps = (
       6,
       `Bitwise Right Shift MSB: (bits >> 31) = ${u32Bits >>> 31}`,
       `Shifted 32-bit binary pattern right by 31 bits to position MSB sign bit at bit 0.`,
-      { idx, val, shiftedBit: u32Bits >>> 31, phase: "SHIFT_RIGHT_31" },
+      { idx, val: formatted, shiftedBit: u32Bits >>> 31, phase: "SHIFT_RIGHT_31" },
       val,
       signBit,
     );
@@ -143,7 +162,7 @@ export const generateBitwiseSignExtractionSteps = (
       6,
       `Extract Sign Bit: (bits >> 31) & 1 = ${signBit}`,
       `Masked shifted result with & 1. Extracted sign bit: ${signBit} (${signBit === 1 ? "Negative" : "Non-negative"}).`,
-      { idx, val, signBit, isNegative: signBit === 1, phase: "MASK_AND_1" },
+      { idx, val: formatted, signBit, isNegative: signBit === 1, phase: "MASK_AND_1" },
       val,
       signBit,
     );
@@ -173,7 +192,7 @@ export const generateBitwiseSignExtractionSteps = (
   addStep(
     8,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    `Successfully extracted sign bits for all ${arrayValues.length} FP32 scalar inputs.`,
     { completed: true, totalSteps: stepIndex },
     arrayValues[arrayValues.length - 1],
     signsBuffer[signsBuffer.length - 1] ?? 0,
@@ -193,7 +212,10 @@ const BITWISESIGNEXTRACTION_TRIVIA: TriviaMeta = {
   hints: [
     { line: 1, hint: "Defines function accepting list of floating-point values." },
     { line: 5, hint: "Reinterpret raw 32-bit float memory layout as unsigned integer." },
-    { line: 6, hint: "Right-shift bit pattern by 31 bits to move MSB sign bit to position 0, then mask with & 1." },
+    {
+      line: 6,
+      hint: "Right-shift bit pattern by 31 bits to move MSB sign bit to position 0, then mask with & 1.",
+    },
     { line: 7, hint: "Append single-bit sign indicator to output list." },
   ],
   lineExplanations: {
@@ -211,12 +233,8 @@ const BITWISESIGNEXTRACTION_TRIVIA: TriviaMeta = {
 export const bitwiseSignExtraction: AlgorithmDefinition<bitwiseSignExtractionInput> = {
   id: "bitwise-sign-extraction",
   title: "Bitwise Sign Extraction",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Bitwise Sign Extraction
 
 Bitwise Sign Extraction extracts the IEEE-754 1-bit sign indicator from a 32-bit floating point number (FP32) using bitwise right-shift and masking:
@@ -249,7 +267,8 @@ Evaluating floating point signs via comparison branches (\`if (x < 0)\`) introdu
       outputDisplay: "Sign Bits = [0, 1, 0]",
       input: { values: [1.2, -3.4, 5.5] },
       output: "[0, 1, 0]",
-      explanation: "Extracts sign bits: 1.2 -> 0 (positive), -3.4 -> 1 (negative), 5.5 -> 0 (positive).",
+      explanation:
+        "Extracts sign bits: 1.2 -> 0 (positive), -3.4 -> 1 (negative), 5.5 -> 0 (positive).",
     },
     {
       kind: "complex",
@@ -258,7 +277,8 @@ Evaluating floating point signs via comparison branches (\`if (x < 0)\`) introdu
       outputDisplay: "Sign Bits = [0, 1, 1, 0]",
       input: { values: [0.0, -0.0, -1e38, 1e38] },
       output: "[0, 1, 1, 0]",
-      explanation: "Correctly distinguishes positive zero (+0.0 -> 0) from negative zero (-0.0 -> 1).",
+      explanation:
+        "Correctly distinguishes positive zero (+0.0 -> 0) from negative zero (-0.0 -> 1).",
     },
     {
       kind: "negative",
@@ -290,11 +310,11 @@ Evaluating floating point signs via comparison branches (\`if (x < 0)\`) introdu
       },
       {
         heading: "Implementation Details & Bitwise Operations",
-        body: "Implementation packs float into 4-byte buffer, unpacks as uint32 integer $b$, shifts right by 31 bits ($b \\gg 31$), and applies bitwise AND (\`& 1\`).",
+        body: "Implementation packs float into 4-byte buffer, unpacks as uint32 integer $b$, shifts right by 31 bits ($b \\gg 31$), and applies bitwise AND (`& 1`).",
       },
       {
         heading: "Edge Case Analysis & Signed Zero",
-        body: "Edge cases include negative zero ($-0.0$), represented in IEEE-754 as \`0x80000000\`, which evaluates to sign bit 1.",
+        body: "Edge cases include negative zero ($-0.0$), represented in IEEE-754 as `0x80000000`, which evaluates to sign bit 1.",
       },
     ],
     keyTerms: [
@@ -304,7 +324,8 @@ Evaluating floating point signs via comparison branches (\`if (x < 0)\`) introdu
       },
       {
         term: "Branchless Execution",
-        definition: "Computing conditional results without branch instructions to prevent control-flow stalls.",
+        definition:
+          "Computing conditional results without branch instructions to prevent control-flow stalls.",
       },
       {
         term: "Signed Zero (-0.0)",

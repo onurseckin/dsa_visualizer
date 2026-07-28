@@ -167,12 +167,12 @@ describe("TriviaHeaderCard - View & Display", () => {
           name: "Session 1",
           createdAt: Date.now(),
           updatedAt: Date.now(),
-          config: { ...config, minBlanks: 1, maxBlanks: 1 },
+          config: { ...config, minBlanks: 1, maxBlanks: 2 },
           progress,
           lastScreen: "setup",
         }}
         level={1}
-        config={{ ...config, minBlanks: 1, maxBlanks: 1 }}
+        config={{ ...config, minBlanks: 1, maxBlanks: 2 }}
         progress={progress}
         sourcesCount={2}
         coverage={50}
@@ -183,6 +183,35 @@ describe("TriviaHeaderCard - View & Display", () => {
         onChangeSettings={vi.fn()}
       />,
     );
+    expect(screen.getByText("1–2 blanks")).toBeInTheDocument();
+  });
+
+  it("shows a singular fixed blank level without a range separator", () => {
+    const fixedConfig = { ...config, minBlanks: 1, maxBlanks: 1 };
+    render(
+      <TriviaHeaderCard
+        activeSession={{
+          id: "s1",
+          name: "Session 1",
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          config: fixedConfig,
+          progress,
+          lastScreen: "setup",
+        }}
+        level={1}
+        config={fixedConfig}
+        progress={progress}
+        sourcesCount={1}
+        coverage={100}
+        isDeckEmpty={false}
+        onStartDrilling={vi.fn()}
+        onBackToHome={vi.fn()}
+        deckLineCounts={[1]}
+        onChangeSettings={vi.fn()}
+      />,
+    );
+
     expect(screen.getByText("1 blank")).toBeInTheDocument();
   });
 

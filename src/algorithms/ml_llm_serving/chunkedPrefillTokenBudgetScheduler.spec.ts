@@ -9,13 +9,16 @@ import type { MatrixVisualSnapshot } from "../../types/dsa";
 describe("chunked-prefill-token-budget-scheduler (Chunked Prefill Token Budget Scheduler)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(chunkedPrefillTokenBudgetScheduler.id).toBe("chunked-prefill-token-budget-scheduler");
-    expect(chunkedPrefillTokenBudgetScheduler.isMlInfra).toBe(true);
-    expect(chunkedPrefillTokenBudgetScheduler.mlInfraLevel).toBe(12);
-    expect(chunkedPrefillTokenBudgetScheduler.mlInfraCategory).toBe("ml_llm_serving");
-    expect(chunkedPrefillTokenBudgetScheduler.categories).toContain("ml_llm_serving");
+    expect(
+      chunkedPrefillTokenBudgetScheduler.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(chunkedPrefillTokenBudgetScheduler.topicIds).toContain("ml_llm_serving");
+    expect(chunkedPrefillTokenBudgetScheduler.topicIds).toContain("ml_llm_serving");
 
     const codeLines = chunkedPrefillTokenBudgetScheduler.code.trim().split("\n").length;
-    const explanationKeys = Object.keys(chunkedPrefillTokenBudgetScheduler.trivia?.lineExplanations || {}).map(Number);
+    const explanationKeys = Object.keys(
+      chunkedPrefillTokenBudgetScheduler.trivia?.lineExplanations || {},
+    ).map(Number);
     expect(explanationKeys.length).toBe(codeLines);
     for (let i = 1; i <= codeLines; i++) {
       expect(chunkedPrefillTokenBudgetScheduler.trivia?.lineExplanations?.[i]).toBeDefined();
@@ -34,4 +37,3 @@ describe("chunked-prefill-token-budget-scheduler (Chunked Prefill Token Budget S
     expect(snap.kind).toBe("matrix");
   });
 });
-

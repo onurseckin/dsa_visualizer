@@ -55,7 +55,7 @@ describe("convexHull algorithm logic spec", () => {
 
   it("verifies algorithm definition metadata and Python representation", () => {
     expect(convexHull.id).toBe("convex-hull");
-    expect(convexHull.category).toBe("geometry_and_sweep_line");
+    expect(convexHull.topicIds).toContain("geometry_and_sweep_line");
     expect(convexHull.difficulty).toBe("Hard");
     expect(convexHull.code).toBe(PYTHON_CONVEX_HULL_CODE);
     expect(convexHull.code).toContain("def convex_hull(");

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { flashAttention3TmaWarpSpecializedKernel } from "./flashAttention3TmaWarpSpecializedKernel";
 
-describe("flashAttention3TmaWarpSpecializedKernel", () => {
+describe("flash-attention-3-tma-warp-specialized-kernel", () => {
   it("should have valid metadata", () => {
     expect(flashAttention3TmaWarpSpecializedKernel.id).toBeDefined();
     expect(flashAttention3TmaWarpSpecializedKernel.title).toBeDefined();

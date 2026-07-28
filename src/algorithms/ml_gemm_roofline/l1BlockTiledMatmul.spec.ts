@@ -5,14 +5,14 @@ import {
   generateL1BlockTiledMatmulSteps,
   L1BLOCKTILEDMATMUL_CODE,
 } from "./l1BlockTiledMatmul";
+import { requireLineExplanations } from "../specs/assertions";
 
 describe("l1-block-tiled-matmul (L1 Cache Block-Tiled MatMul Engine)", () => {
   it("should have correct metadata", () => {
     expect(l1BlockTiledMatmul.id).toBe("l1-block-tiled-matmul");
-    expect(l1BlockTiledMatmul.isMlInfra).toBe(true);
-    expect(l1BlockTiledMatmul.mlInfraLevel).toBe(2);
-    expect(l1BlockTiledMatmul.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(l1BlockTiledMatmul.categories).toContain("ml_gemm_roofline");
+    expect(l1BlockTiledMatmul.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(l1BlockTiledMatmul.topicIds).toContain("ml_gemm_roofline");
+    expect(l1BlockTiledMatmul.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {
@@ -25,14 +25,12 @@ describe("l1-block-tiled-matmul (L1 Cache Block-Tiled MatMul Engine)", () => {
 
   it("should map every line of code in lineExplanations", () => {
     const codeLines = L1BLOCKTILEDMATMUL_CODE.split("\n");
-    const trivia = l1BlockTiledMatmul.trivia;
-    expect(trivia).toBeDefined();
-    if (!trivia) return;
+    const explanations = requireLineExplanations(l1BlockTiledMatmul);
 
     for (let i = 1; i <= codeLines.length; i++) {
-      expect(trivia.lineExplanations[i]).toBeDefined();
-      expect(typeof trivia.lineExplanations[i]).toBe("string");
-      expect(trivia.lineExplanations[i].length).toBeGreaterThan(0);
+      expect(explanations[i]).toBeDefined();
+      expect(typeof explanations[i]).toBe("string");
+      expect(explanations[i].length).toBeGreaterThan(0);
     }
   });
 });

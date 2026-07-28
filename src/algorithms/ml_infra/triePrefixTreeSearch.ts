@@ -14,12 +14,12 @@ export const TRIE_PREFIX_TREE_SEARCH_CODE = `def trie_prefix_search(words: list[
             if ch not in node:
                 node[ch] = {}
             node = node[ch]
-        node["#"] = True  # End of word mark
+        node["#"] = True
         
     node = trie
     for ch in search_prefix:
         if ch not in node:
-            return []  # Prefix not found
+            return []
         node = node[ch]
         
     results = []
@@ -61,11 +61,10 @@ export const generateTriePrefixTreeSearchSteps = (
     children: {},
   };
 
-  // Build tree nodes for TreeVisualSnapshot
   const flattenedTreeNodes = (activeId: string | null, visitedIds: Set<string>): TreeNodeItem[] => {
     const list: TreeNodeItem[] = [];
 
-    const traverse = (n: InternalTrieNode, depth: number, posIndex: number) => {
+    const traverse = (n: InternalTrieNode, depth: number, xMin: number, xMax: number) => {
       let state: TreeNodeItem["state"] = "default";
       if (n.id === activeId) state = "active";
       else if (visitedIds.has(n.id)) state = "visited";
@@ -75,22 +74,30 @@ export const generateTriePrefixTreeSearchSteps = (
       const firstChildKey = childKeys[0];
       const secondChildKey = childKeys[1];
 
+      const cx = (xMin + xMax) / 2;
+      const cy = 40 + depth * 70;
+
       list.push({
         id: n.id,
         val: n.ch === "ROOT" ? 0 : n.ch.charCodeAt(0),
         state,
         leftId: firstChildKey ? n.children[firstChildKey].id : undefined,
         rightId: secondChildKey ? n.children[secondChildKey].id : undefined,
-        x: posIndex * 20,
-        y: depth * 20,
+        x: cx,
+        y: cy,
       });
 
-      childKeys.forEach((k, idx) => {
-        traverse(n.children[k], depth + 1, posIndex * 2 + idx);
-      });
+      if (childKeys.length > 0) {
+        const sliceWidth = (xMax - xMin) / childKeys.length;
+        childKeys.forEach((k, idx) => {
+          const childXMin = xMin + idx * sliceWidth;
+          const childXMax = childXMin + sliceWidth;
+          traverse(n.children[k], depth + 1, childXMin, childXMax);
+        });
+      }
     };
 
-    traverse(root, 0, 0);
+    traverse(root, 0, 40, 560);
     return list;
   };
 
@@ -128,18 +135,39 @@ export const generateTriePrefixTreeSearchSteps = (
 
   addStep(
     2,
-    `Initialize Trie Token Tree construction`,
-    `Building prefix tree for vocabulary: [${words.join(", ")}].`,
+    `Initialize Trie prefix tree root`,
+    `Building Trie for vocabulary: [${words.join(", ")}].`,
     "node-root",
     visited,
     [],
-    { vocabSize: words.length },
+    { vocabSize: words.length, phase: "build_trie" },
   );
 
   // Insert words into Trie
   for (const word of words) {
+    addStep(
+      3,
+      `Start inserting vocabulary word "${word}" into Trie`,
+      `Iterating through characters of word "${word}".`,
+      "node-root",
+      visited,
+      [],
+      { currentWord: word, phase: "insert" },
+    );
+
     let curr = root;
+    addStep(
+      4,
+      `Set node pointer to root for word "${word}"`,
+      `Begin character path insertion from Trie root.`,
+      curr.id,
+      visited,
+      [],
+      { currentWord: word, nodeChar: curr.ch },
+    );
+
     for (const ch of word) {
+      let isNewNode = false;
       if (!curr.children[ch]) {
         nodeCounter++;
         curr.children[ch] = {
@@ -148,39 +176,83 @@ export const generateTriePrefixTreeSearchSteps = (
           isEnd: false,
           children: {},
         };
+        isNewNode = true;
       }
+      addStep(
+        isNewNode ? 7 : 6,
+        isNewNode
+          ? `Create new Trie node for character '${ch}'`
+          : `Character '${ch}' already exists under current node`,
+        isNewNode
+          ? `Allocated new node ID node-${nodeCounter} for character '${ch}'.`
+          : `Reusing existing branch node for character '${ch}'.`,
+        curr.children[ch].id,
+        visited,
+        [],
+        { char: ch, isNewNode },
+      );
+
       curr = curr.children[ch];
       visited.add(curr.id);
+
+      addStep(
+        8,
+        `Advance pointer to child node '${ch}'`,
+        `Traversed to node '${ch}' (ID: ${curr.id}).`,
+        curr.id,
+        visited,
+        [],
+        { char: ch, nodeId: curr.id },
+      );
     }
     curr.isEnd = true;
+    addStep(
+      9,
+      `Mark end-of-word indicator '#' for "${word}"`,
+      `Set terminal marker on node '${curr.ch}' indicating complete word "${word}".`,
+      curr.id,
+      visited,
+      [],
+      { word, isEnd: true },
+    );
   }
-
-  addStep(
-    9,
-    `Trie construction complete (${nodeCounter + 1} total nodes)`,
-    `Inserted all ${words.length} vocabulary words into the Trie tree.`,
-    "node-root",
-    visited,
-    [],
-    { nodeCount: nodeCounter + 1 },
-  );
 
   // Search prefix
   let searchCurr: InternalTrieNode | null = root;
   const pathVisited = new Set<string>();
   pathVisited.add("node-root");
 
+  addStep(
+    11,
+    `Reset pointer to root to search prefix "${searchPrefix}"`,
+    `Begin matching characters of search prefix "${searchPrefix}" down the Trie tree.`,
+    searchCurr.id,
+    pathVisited,
+    [],
+    { searchPrefix, phase: "search" },
+  );
+
   for (let i = 0; i < searchPrefix.length; i++) {
     const ch = searchPrefix[i];
+    addStep(
+      12,
+      `Inspect character '${ch}' of search prefix "${searchPrefix}"`,
+      `Checking if character '${ch}' exists at step ${i + 1}/${searchPrefix.length}.`,
+      searchCurr ? searchCurr.id : null,
+      pathVisited,
+      [],
+      { char: ch, depth: i + 1 },
+    );
+
     if (!searchCurr || !searchCurr.children[ch]) {
       addStep(
         14,
-        `Prefix character '${ch}' not found in Trie!`,
+        `Prefix character '${ch}' not found in Trie! Return []`,
         `No tokens match prefix "${searchPrefix}". Search aborted.`,
         searchCurr ? searchCurr.id : null,
         pathVisited,
         [],
-        { searchPrefix, found: false },
+        { searchPrefix, found: false, matches: 0, complete: true },
       );
       return steps;
     }
@@ -195,34 +267,64 @@ export const generateTriePrefixTreeSearchSteps = (
       searchCurr.id,
       new Set(pathVisited),
       [],
-      { char: ch, depth: i + 1 },
+      { char: ch, depth: i + 1, found: true },
     );
   }
 
   // Collect completions
   const completions: string[] = [];
+  addStep(
+    17,
+    `Initialize results list for token completions`,
+    `Preparing to collect all vocabulary tokens extending prefix "${searchPrefix}".`,
+    searchCurr ? searchCurr.id : null,
+    pathVisited,
+    [],
+    { searchPrefix, phase: "collect" },
+  );
 
   const collect = (n: InternalTrieNode, prefixAcc: string) => {
     if (n.isEnd) {
       completions.push(prefixAcc);
+      addStep(
+        20,
+        `Found end-of-word '#'! Append token "${prefixAcc}" to results`,
+        `Reached valid terminal token "${prefixAcc}". Added to match list.`,
+        n.id,
+        pathVisited,
+        [...completions],
+        { match: prefixAcc, totalMatches: completions.length },
+      );
     }
+
     for (const k of Object.keys(n.children)) {
+      pathVisited.add(n.children[k].id);
       collect(n.children[k], prefixAcc + k);
     }
   };
+
+  addStep(
+    25,
+    `Invoke DFS collect() from prefix node '${searchCurr ? searchCurr.ch : "ROOT"}'`,
+    `Recursively traversing subtree below prefix "${searchPrefix}" to gather all completions.`,
+    searchCurr ? searchCurr.id : null,
+    pathVisited,
+    [],
+    { searchPrefix, phase: "collect_dfs" },
+  );
 
   if (searchCurr) {
     collect(searchCurr, searchPrefix);
   }
 
   addStep(
-    22,
+    26,
     `Prefix completion search complete (${completions.length} tokens found)`,
     `Found tokens starting with prefix "${searchPrefix}": [${completions.join(", ")}].`,
     searchCurr ? searchCurr.id : null,
     pathVisited,
     completions,
-    { matches: completions.length, complete: true },
+    { matches: completions.length, complete: true, results: `[${completions.join(", ")}]` },
   );
 
   return steps;
@@ -232,7 +334,7 @@ export const TRIE_PREFIX_TREE_SEARCH_TRIVIA: TriviaMeta = {
   skipLines: [2],
   hints: [
     { line: 6, hint: "Check if character exists in child node dictionary" },
-    { line: 8, hint: "Mark end-of-word indicator '#' on terminal node" },
+    { line: 9, hint: "Mark end-of-word indicator '#' on terminal node" },
     { line: 18, hint: "Recursively collect words matching search prefix" },
   ],
   distractors: [
@@ -245,10 +347,8 @@ export const TRIE_PREFIX_TREE_SEARCH_TRIVIA: TriviaMeta = {
 export const triePrefixTreeSearch: AlgorithmDefinition<TriePrefixTreeSearchInput> = {
   id: "trie-prefix-tree-search",
   title: "Trie Prefix Tree Token Search",
-  category: "ml_tokenization",
+  topicIds: ["ml_tokenization"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 5,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Build a Trie (prefix tree) vocabulary and execute fast subword token prefix matches.",

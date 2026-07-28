@@ -170,9 +170,16 @@ export const generateActivationCheckpointingSteps = (
     16,
     `return {checkpoints, vram_saved_mb=${vramSavedMb}MB, recomputed_flops_gflop=${recomputedFlopsGflop.toFixed(1)}}`,
     `Activation checkpointing complete. Saved ${vramSavedMb}MB VRAM at the cost of ${recomputedFlopsGflop.toFixed(1)} GFLOPs recomputation overhead.`,
-    { vram_saved_mb: vramSavedMb, recomputed_flops_gflop: recomputedFlopsGflop, checkpoints_count: checkpoints.length },
+    {
+      vram_saved_mb: vramSavedMb,
+      recomputed_flops_gflop: recomputedFlopsGflop,
+      checkpoints_count: checkpoints.length,
+    },
     scheduledElements.map((el) => ({ ...el, state: "sorted", pointers: ["CHECKPOINT READY"] })),
-    { vramSavedMb: `${vramSavedMb} MB`, recomputedFlops: `${recomputedFlopsGflop.toFixed(1)} GFLOPs` },
+    {
+      vramSavedMb: `${vramSavedMb} MB`,
+      recomputedFlops: `${recomputedFlopsGflop.toFixed(1)} GFLOPs`,
+    },
   );
 
   return steps;
@@ -211,10 +218,8 @@ const ACTIVATION_CHECKPOINTING_TRIVIA: TriviaMeta = {
 export const activationCheckpointing: AlgorithmDefinition<ActivationCheckpointingInput> = {
   id: "activation-checkpointing",
   title: "Activation Checkpointing & Recomputation Scheduler",
-  category: "ml_autograd_dags",
+  topicIds: ["ml_autograd_dags"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 2,
   description:
     "Trades FLOP compute for GPU VRAM by storing forward activations only at designated checkpoint layers and recomputing omitted activations on-the-fly during the backward pass.",
   constraints: [

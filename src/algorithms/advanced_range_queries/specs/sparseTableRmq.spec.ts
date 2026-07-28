@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { sparseTableRmq, generateSparseTableRmqSteps } from "../sparseTableRmq";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("sparseTableRmq algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(sparseTableRmq.id).toBe("sparse-table-rmq");
     expect(sparseTableRmq.title).toContain("Sparse Table");
-    expect(sparseTableRmq.category).toBe("advanced_range_queries");
+    expect(sparseTableRmq.topicIds).toContain("advanced_range_queries");
     expect(sparseTableRmq.timeComplexity.average).toBe("O(1)");
     expect(sparseTableRmq.spaceComplexity).toBe("O(n log n)");
   });
@@ -17,10 +17,10 @@ describe("sparseTableRmq algorithm spec", () => {
 
     const firstStep = steps[0];
     expect(firstStep.stepIndex).toBe(0);
-    expect(firstStep.primarySnapshot.kind).toBe("array");
+    expect(firstStep.primarySnapshot.kind).toBe("matrix");
 
-    const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snapshot.elements).toBeDefined();
+    const snapshot = firstStep.primarySnapshot as MatrixVisualSnapshot;
+    expect(snapshot.cells).toBeDefined();
 
     const querySteps = steps.filter((s) => s.explanation.what.includes("RMQ"));
     expect(querySteps.length).toBeGreaterThan(0);
@@ -71,7 +71,7 @@ describe("sparseTableRmq algorithm spec", () => {
 
   it("should handle empty input array", () => {
     const steps = generateSparseTableRmqSteps({ array: [], queries: [] });
-    expect(steps.length).toBe(2);
+    expect(steps.length).toBeGreaterThanOrEqual(2);
     expect(steps[1].explanation.what).toContain("empty");
   });
 

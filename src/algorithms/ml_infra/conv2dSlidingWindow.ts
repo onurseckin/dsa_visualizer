@@ -14,7 +14,6 @@ export const CONV2D_SLIDING_WINDOW_CODE = `def conv2d_sliding_window(input_matri
     H, W = len(input_matrix), len(input_matrix[0])
     kH, kW = len(kernel), len(kernel[0])
     
-    # Apply zero padding
     if padding > 0:
         padded = [[0] * (W + 2 * padding) for _ in range(H + 2 * padding)]
         for r in range(H):
@@ -156,7 +155,7 @@ export const generateConv2dSlidingWindowSteps = (
   const output: number[][] = Array.from({ length: outH }, () => Array(outW).fill(0));
 
   addStep(
-    1,
+    4,
     `Initialize 2D Convolution (Input: ${H}x${W}, Kernel: ${kH}x${kW}, Stride: ${stride}, Pad: ${padding})`,
     `H=${H}, W=${W}, kH=${kH}, kW=${kW}. Reading input tensor dimensions and kernel shape.`,
     null,
@@ -166,7 +165,7 @@ export const generateConv2dSlidingWindowSteps = (
   );
 
   addStep(
-    17,
+    16,
     `Compute Output Dimensions: out_H=${outH}, out_W=${outW}`,
     `out_H = (${pH} - ${kH}) // ${stride} + 1 = ${outH}. out_W = (${pW} - ${kW}) // ${stride} + 1 = ${outW}.`,
     null,
@@ -176,7 +175,7 @@ export const generateConv2dSlidingWindowSteps = (
   );
 
   addStep(
-    23,
+    22,
     `Initialize output = [[0]*${outW} for _ in range(${outH})]`,
     `Output feature map of shape (${outH}, ${outW}) initialized to zeros.`,
     null,
@@ -186,7 +185,7 @@ export const generateConv2dSlidingWindowSteps = (
   );
 
   addStep(
-    24,
+    23,
     `Begin sliding window: for r in range(0, ${pH}-${kH}+1, ${stride})`,
     `Outer loop over padded input rows with stride ${stride}.`,
     null,
@@ -212,7 +211,7 @@ export const generateConv2dSlidingWindowSteps = (
       output[outR][outC] = dotProd;
 
       addStep(
-        29,
+        28,
         `Slide kernel to padded position (${r}, ${c}) -> Out[${outR}][${outC}] = ${dotProd}`,
         `Convolved ${kH}x${kW} receptive field at top-left (${r}, ${c}) to compute output value ${dotProd}.`,
         r,
@@ -224,7 +223,7 @@ export const generateConv2dSlidingWindowSteps = (
   }
 
   addStep(
-    31,
+    30,
     `output[out_r][out_c] = val — 2D Convolution Sliding Window Complete`,
     `Computed all ${outH * outW} elements of output feature map.`,
     null,
@@ -234,7 +233,7 @@ export const generateConv2dSlidingWindowSteps = (
   );
 
   addStep(
-    33,
+    32,
     `return output`,
     `Returning completed ${outH}x${outW} convolution output feature map.`,
     null,
@@ -250,8 +249,8 @@ export const CONV2D_SLIDING_WINDOW_TRIVIA: TriviaMeta = {
   skipLines: [2, 4],
   hints: [
     { line: 16, hint: "Formula for Conv2D output size: (Padded_Dim - Kernel_Dim) // Stride + 1" },
-    { line: 22, hint: "Step window by Stride across height and width" },
-    { line: 27, hint: "Compute dot product of receptive field patch and kernel filter" },
+    { line: 23, hint: "Step window by Stride across height and width" },
+    { line: 28, hint: "Compute dot product of receptive field patch and kernel filter" },
   ],
   distractors: [
     "out_H = (H + kH) * stride",
@@ -263,10 +262,8 @@ export const CONV2D_SLIDING_WINDOW_TRIVIA: TriviaMeta = {
 export const conv2dSlidingWindow: AlgorithmDefinition<Conv2dSlidingWindowInput> = {
   id: "conv2d-sliding-window",
   title: "2D Convolution Sliding Window",
-  category: "ml_convolutions",
+  topicIds: ["ml_convolutions"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 6,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Slide a 2D filter kernel over an input image tensor with stride and padding to compute the output feature map.",

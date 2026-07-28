@@ -8,10 +8,11 @@ import {
 describe("as-strided-tensor-view-engine (PyTorch ATen as_strided Zero-Copy View Engine)", () => {
   it("should have correct metadata", () => {
     expect(asStridedTensorViewEngine.id).toBe("as-strided-tensor-view-engine");
-    expect(asStridedTensorViewEngine.isMlInfra).toBe(true);
-    expect(asStridedTensorViewEngine.mlInfraLevel).toBe(1);
-    expect(asStridedTensorViewEngine.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(asStridedTensorViewEngine.categories).toContain("ml_tensor_algebra");
+    expect(asStridedTensorViewEngine.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(asStridedTensorViewEngine.topicIds).toContain("ml_tensor_algebra");
+    expect(asStridedTensorViewEngine.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {

@@ -6,7 +6,7 @@ describe("moAlgorithm algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(moAlgorithm.id).toBe("mo-algorithm");
     expect(moAlgorithm.title).toContain("Mo's Algorithm");
-    expect(moAlgorithm.category).toBe("advanced_range_queries");
+    expect(moAlgorithm.topicIds).toContain("advanced_range_queries");
     expect(moAlgorithm.timeComplexity.average).toContain("sqrt");
     expect(moAlgorithm.spaceComplexity).toBe("O(n + q)");
   });
@@ -69,8 +69,9 @@ describe("moAlgorithm algorithm spec", () => {
 
   it("should handle empty input array", () => {
     const steps = generateMoAlgorithmSteps({ array: [], queries: [] });
-    expect(steps.length).toBe(2);
+    expect(steps.length).toBe(3);
     expect(steps[1].explanation.what).toContain("empty");
+    expect(steps[2].explanation.what).toContain("Return empty list");
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {

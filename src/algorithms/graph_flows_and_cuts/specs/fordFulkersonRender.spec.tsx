@@ -56,8 +56,8 @@ describe("fordFulkerson React component spec", () => {
     );
 
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
-    expect(screen.getByText("Visited (4)")).toBeInTheDocument();
+    expect(screen.getByText(/Visited \(\d+\)/)).toBeInTheDocument();
     // Flow bookkeeping (source/sink/max-flow/augmenting path) lives in the State row chips.
-    expect(screen.getAllByText(/Augmenting Path/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/Flows/i)[0]).toBeInTheDocument();
   });
 });

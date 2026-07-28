@@ -1,4 +1,4 @@
-import { GridCellNode, ElementState } from "../../../types/dsa";
+import { GridCellNode, ElementState, elementStateToken } from "../../../types/dsa";
 
 export interface GridVisualizerProps {
   grid: GridCellNode[][];
@@ -74,11 +74,12 @@ export const getCellAppearance = (cell: GridCellNode): CellAppearance => {
   }
 
   const state: ElementState = cell.state || "default";
+  const token = elementStateToken(state);
   return {
-    bg: `var(--state-${state}-bg)`,
-    border: `var(--state-${state})`,
-    color: state === "default" ? "var(--text-muted)" : "var(--text-primary)",
+    bg: `var(--state-${token}-bg)`,
+    border: `var(--state-${token})`,
+    color: token === "default" ? "var(--text-muted)" : "var(--text-primary)",
     symbol: "",
-    strokeWidth: state === "default" ? 1 : 2,
+    strokeWidth: token === "default" ? 1 : 2,
   };
 };

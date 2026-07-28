@@ -12,40 +12,25 @@ export interface relativePositionInnerProductPreservationInput {
 export const RELATIVEPOSITIONINNERPRODUCTPRESERVATION_CODE = `import math
 
 def rope_relative_inner_product_proof(
-    q: list[float],  # Query vector [q0, q1]
-    k: list[float],  # Key vector [k0, k1]
-    m: int,          # Query absolute token position
-    n: int,          # Key absolute token position
+    q: list[float],
+    k: list[float],
+    m: int,
+    n: int,
     theta: float = 10000.0
 ) -> tuple[float, float, float]:
-    """
-    Verifies RoPE relative position inner product preservation identity:
-    <R_m * q, R_n * k> == <q, R_{n-m} * k>
-    """
     freq = 1.0 / (theta ** (0.0 / 2.0))
-
-    # 1. Rotate q by position m
     angle_m = m * freq
     cos_m, sin_m = math.cos(angle_m), math.sin(angle_m)
     qm = [q[0] * cos_m - q[1] * sin_m, q[0] * sin_m + q[1] * cos_m]
-
-    # 2. Rotate k by position n
     angle_n = n * freq
     cos_n, sin_n = math.cos(angle_n), math.sin(angle_n)
     kn = [k[0] * cos_n - k[1] * sin_n, k[0] * sin_n + k[1] * cos_n]
-
-    # Direct inner product of absolute rotations
     direct_dot = qm[0] * kn[0] + qm[1] * kn[1]
-
-    # 3. Rotate k by relative distance (n - m)
     rel_pos = n - m
     angle_rel = rel_pos * freq
     cos_r, sin_r = math.cos(angle_rel), math.sin(angle_rel)
     k_rel = [k[0] * cos_r - k[1] * sin_r, k[0] * sin_r + k[1] * cos_r]
-
-    # Relative inner product
     relative_dot = q[0] * k_rel[0] + q[1] * k_rel[1]
-
     abs_diff = abs(direct_dot - relative_dot)
     return direct_dot, relative_dot, abs_diff`;
 
@@ -153,26 +138,18 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     const m = trial;
     const n = trial + 3;
 
-    addStep(
-      14,
-      `Begin Trial ${trial}: positions m=${m}, n=${n}`,
-      `Evaluating position m=${m} and key position n=${n} with base frequency theta=${theta}.`,
-      { trial, m, n },
-      trial,
-    );
-
     const freq = 1.0;
+    matrixValues[trial][0] = `m=${m}, n=${n}`;
+    matrixStates[trial][0] = "pivot";
+
     addStep(
-      14,
-      `Compute Frequency Scale: freq = 1.0 / (theta^0) = ${freq}`,
-      "Calculated base frequency scale for first dimension pair.",
-      { freq },
+      10,
+      `[Trial ${trial}] Compute Base Frequency Scale: freq = 1.0`,
+      `Calculating base frequency scale factor freq = 1.0 / (theta^0) for position pair m=${m}, n=${n}.`,
+      { trial, m, n, theta, freq },
       trial,
       0,
     );
-
-    matrixValues[trial][0] = `m=${m}, n=${n}`;
-    matrixStates[trial][0] = "pivot";
 
     const angleM = m * freq;
     const cosM = Math.cos(angleM);
@@ -180,10 +157,10 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     const qm = [q[0] * cosM - q[1] * sinM, q[0] * sinM + q[1] * cosM];
 
     addStep(
-      17,
-      `Rotate Query Vector q by Position m=${m}`,
-      `Calculated angle_m = ${m} * 1.0 = ${angleM.toFixed(3)}. Rotated q -> qm = [${qm[0].toFixed(3)}, ${qm[1].toFixed(3)}].`,
-      { trial, m, angleM: +angleM.toFixed(3) },
+      13,
+      `[Trial ${trial}] Rotate Query Vector q by Position m=${m}`,
+      `Angle angle_m = ${m} * 1.0 = ${angleM.toFixed(3)} rad. Rotated query vector qm = [${qm[0].toFixed(3)}, ${qm[1].toFixed(3)}].`,
+      { trial, m, angleM: +angleM.toFixed(3), qm_0: +qm[0].toFixed(3), qm_1: +qm[1].toFixed(3) },
       trial,
       0,
     );
@@ -194,10 +171,10 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     const kn = [k[0] * cosN - k[1] * sinN, k[0] * sinN + k[1] * cosN];
 
     addStep(
-      22,
-      `Rotate Key Vector k by Position n=${n}`,
-      `Calculated angle_n = ${n} * 1.0 = ${angleN.toFixed(3)}. Rotated k -> kn = [${kn[0].toFixed(3)}, ${kn[1].toFixed(3)}].`,
-      { trial, n, angleN: +angleN.toFixed(3) },
+      16,
+      `[Trial ${trial}] Rotate Key Vector k by Position n=${n}`,
+      `Angle angle_n = ${n} * 1.0 = ${angleN.toFixed(3)} rad. Rotated key vector kn = [${kn[0].toFixed(3)}, ${kn[1].toFixed(3)}].`,
+      { trial, n, angleN: +angleN.toFixed(3), kn_0: +kn[0].toFixed(3), kn_1: +kn[1].toFixed(3) },
       trial,
       0,
     );
@@ -207,8 +184,8 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     matrixStates[trial][2] = "compared";
 
     addStep(
-      27,
-      `Compute Direct Absolute Inner Product: <R_${m} q, R_${n} k> = ${directDot.toFixed(4)}`,
+      17,
+      `[Trial ${trial}] Compute Direct Inner Product: <R_${m} q, R_${n} k> = ${directDot.toFixed(4)}`,
       `Dot product of individually rotated vectors qm @ kn = ${directDot.toFixed(4)}.`,
       { trial, directDot: +directDot.toFixed(4) },
       trial,
@@ -216,28 +193,34 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     );
 
     const relPos = n - m;
+    matrixValues[trial][1] = `rel=${relPos}`;
+    matrixStates[trial][1] = "pivot";
+
+    addStep(
+      18,
+      `[Trial ${trial}] Compute Relative Distance: rel_pos = n - m = ${relPos}`,
+      `Spatial displacement between key position ${n} and query position ${m} is ${relPos}.`,
+      { trial, m, n, relPos },
+      trial,
+      1,
+    );
+
     const angleRel = relPos * freq;
     const cosR = Math.cos(angleRel);
     const sinR = Math.sin(angleRel);
     const kRel = [k[0] * cosR - k[1] * sinR, k[0] * sinR + k[1] * cosR];
 
-    matrixValues[trial][1] = `rel=${relPos}`;
-    matrixStates[trial][1] = "pivot";
-
     addStep(
-      30,
-      `Compute Relative Distance rel_pos = n - m = ${relPos}`,
-      `Relative offset between key position ${n} and query position ${m} is ${relPos}.`,
-      { trial, relPos },
-      trial,
-      1,
-    );
-
-    addStep(
-      33,
-      `Rotate Key Vector k by Relative Distance (${relPos})`,
-      `Rotated key vector k by relative angle ${angleRel.toFixed(3)} -> k_rel = [${kRel[0].toFixed(3)}, ${kRel[1].toFixed(3)}].`,
-      { trial, relPos, angleRel: +angleRel.toFixed(3) },
+      21,
+      `[Trial ${trial}] Rotate Key Vector k by Relative Distance (${relPos})`,
+      `Relative angle angle_rel = ${angleRel.toFixed(3)} rad. Rotated key vector k_rel = [${kRel[0].toFixed(3)}, ${kRel[1].toFixed(3)}].`,
+      {
+        trial,
+        relPos,
+        angleRel: +angleRel.toFixed(3),
+        kRel_0: +kRel[0].toFixed(3),
+        kRel_1: +kRel[1].toFixed(3),
+      },
       trial,
       1,
     );
@@ -247,9 +230,9 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     matrixStates[trial][3] = "compared";
 
     addStep(
-      36,
-      `Compute Relative Inner Product: <q, R_${relPos} k> = ${relativeDot.toFixed(4)}`,
-      `Dot product of un-rotated q against relatively-rotated k_rel = ${relativeDot.toFixed(4)}.`,
+      22,
+      `[Trial ${trial}] Compute Relative Inner Product: <q, R_${relPos} k> = ${relativeDot.toFixed(4)}`,
+      `Dot product of un-rotated query q against relatively-rotated key k_rel = ${relativeDot.toFixed(4)}.`,
       { trial, relativeDot: +relativeDot.toFixed(4) },
       trial,
       3,
@@ -260,9 +243,9 @@ export const generateRelativePositionInnerProductPreservationSteps = (
     matrixStates[trial][4] = "sorted";
 
     addStep(
-      38,
-      `Verify Preservation Identity: Abs Diff = ${absDiff.toExponential(2)}`,
-      `Direct dot product (${directDot.toFixed(4)}) equals relative dot product (${relativeDot.toFixed(4)}) up to machine float precision.`,
+      23,
+      `[Trial ${trial}] Verify Preservation Identity: Abs Diff = ${absDiff.toExponential(2)}`,
+      `Direct dot product (${directDot.toFixed(4)}) equals relative dot product (${relativeDot.toFixed(4)}) within float precision limit.`,
       { trial, absDiff },
       trial,
       4,
@@ -271,7 +254,7 @@ export const generateRelativePositionInnerProductPreservationSteps = (
 
   while (steps.length < 19) {
     addStep(
-      38,
+      23,
       "Finalize RoPE Proof Matrix Padding",
       `Step ${steps.length + 1}: Finalizing RoPE relative inner product preservation proof.`,
       { completed: false },
@@ -281,7 +264,7 @@ export const generateRelativePositionInnerProductPreservationSteps = (
   }
 
   addStep(
-    39,
+    24,
     "Execution Complete",
     `RoPE relative position inner product preservation identity mathematically verified across all ${numTrials} position pairs!`,
     { completed: true, verified: true },
@@ -291,20 +274,26 @@ export const generateRelativePositionInnerProductPreservationSteps = (
 };
 
 const RELATIVEPOSITIONINNERPRODUCTPRESERVATION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 10, 11, 12, 13, 15, 16, 20, 21, 25, 26, 28, 29, 34, 35, 37],
+  skipLines: [2, 4, 5, 6, 7, 8, 9],
   distractors: [
     "direct_dot = qm[0] * kn[1] - qm[1] * kn[0]",
     "angle_rel = (n + m) * freq",
     "abs_diff = direct_dot + relative_dot",
   ],
   hints: [
-    { line: 17, hint: "Rotate query vector by angle m * freq." },
-    { line: 22, hint: "Rotate key vector by angle n * freq." },
-    { line: 30, hint: "Rotate key vector directly by relative distance angle (n - m) * freq." },
+    { line: 11, hint: "Calculate query rotation angle angle_m = m * freq." },
+    { line: 13, hint: "Rotate query vector q by angle m * freq using 2D rotation matrix." },
+    { line: 14, hint: "Calculate key rotation angle angle_n = n * freq." },
+    { line: 16, hint: "Rotate key vector k by angle n * freq using 2D rotation matrix." },
+    { line: 17, hint: "Compute direct dot product qm[0]*kn[0] + qm[1]*kn[1]." },
+    { line: 18, hint: "Calculate relative position difference rel_pos = n - m." },
+    { line: 21, hint: "Rotate key vector k directly by relative distance angle (n - m) * freq." },
+    { line: 22, hint: "Compute relative dot product q[0]*k_rel[0] + q[1]*k_rel[1]." },
+    { line: 23, hint: "Compute absolute error difference abs(direct_dot - relative_dot)." },
   ],
   lineExplanations: {
     1: "Imports Python math library for trigonometric cosine and sine functions.",
-    2: "Empty whitespace separator line.",
+    2: "Empty whitespace line.",
     3: "Defines entry point for RoPE relative inner product preservation proof.",
     4: "Specifies type annotation for input Query vector.",
     5: "Specifies type annotation for input Key vector.",
@@ -312,36 +301,21 @@ const RELATIVEPOSITIONINNERPRODUCTPRESERVATION_TRIVIA: TriviaMeta = {
     7: "Specifies type annotation for Key token position index n.",
     8: "Specifies type annotation for base rotation frequency constant theta.",
     9: "Specifies return tuple type for direct dot, relative dot, and error diff.",
-    10: "Docstring opening delimiter tag.",
-    11: "Describes RoPE relative position inner product preservation identity proof.",
-    12: "Shows mathematical equality <R_m * q, R_n * k> == <q, R_{n-m} * k>.",
-    13: "Docstring closing tag.",
-    14: "Calculates base frequency scale for first dimension pair.",
-    15: "Empty whitespace separator line.",
-    16: "Comment indicating Query vector rotation by position m.",
-    17: "Calculates rotation angle for position m: angle_m = m * freq.",
-    18: "Computes cosine and sine values for angle_m.",
-    19: "Applies 2D rotation matrix R_m to query vector q.",
-    20: "Empty whitespace separator line.",
-    21: "Comment indicating Key vector rotation by position n.",
-    22: "Calculates rotation angle for position n: angle_n = n * freq.",
-    23: "Computes cosine and sine values for angle_n.",
-    24: "Applies 2D rotation matrix R_n to key vector k.",
-    25: "Empty whitespace separator line.",
-    26: "Comment indicating direct inner product computation of absolute rotations.",
-    27: "Computes direct dot product qm[0]*kn[0] + qm[1]*kn[1].",
-    28: "Empty whitespace separator line.",
-    29: "Comment indicating Key vector rotation by relative distance n - m.",
-    30: "Calculates relative distance offset rel_pos = n - m.",
-    31: "Calculates relative rotation angle angle_rel = rel_pos * freq.",
-    32: "Computes cosine and sine values for relative angle.",
-    33: "Applies relative 2D rotation matrix R_{n-m} to key vector k.",
-    34: "Empty whitespace separator line.",
-    35: "Comment indicating relative inner product computation.",
-    36: "Computes relative dot product of un-rotated q with relatively rotated k_rel.",
-    37: "Empty whitespace separator line.",
-    38: "Calculates absolute difference abs_diff between direct and relative dot products.",
-    39: "Returns direct dot product, relative dot product, and floating-point error difference.",
+    10: "Calculates base frequency scale factor freq = 1.0 / (theta ** 0.0) = 1.0.",
+    11: "Calculates rotation angle for query token position m: angle_m = m * freq.",
+    12: "Computes cosine and sine values for query rotation angle_m.",
+    13: "Applies 2D rotation matrix R_m to query vector q: qm = R_m * q.",
+    14: "Calculates rotation angle for key token position n: angle_n = n * freq.",
+    15: "Computes cosine and sine values for key rotation angle_n.",
+    16: "Applies 2D rotation matrix R_n to key vector k: kn = R_n * k.",
+    17: "Computes direct inner product of absolute rotations: direct_dot = qm · kn.",
+    18: "Computes relative distance offset rel_pos = n - m.",
+    19: "Calculates relative rotation angle angle_rel = rel_pos * freq.",
+    20: "Computes cosine and sine values for relative rotation angle.",
+    21: "Applies 2D rotation matrix R_{n-m} directly to key vector k: k_rel = R_{n-m} * k.",
+    22: "Computes relative inner product of un-rotated q with relatively rotated k_rel.",
+    23: "Calculates absolute difference abs_diff = |direct_dot - relative_dot|.",
+    24: "Returns direct dot product, relative dot product, and floating-point error difference.",
   },
 };
 
@@ -349,12 +323,8 @@ export const relativePositionInnerProductPreservation: AlgorithmDefinition<relat
   {
     id: "relative-position-inner-product-preservation",
     title: "Relative Position Inner Product Preservation Proof",
-    category: "ml_attention_geometry",
-    categories: ["ml_attention_geometry", "math_and_number_theory"],
+    topicIds: ["ml_attention_geometry", "math_and_number_theory"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 7,
-    mlInfraCategory: "ml_attention_geometry",
     description:
       "Rotary Position Embedding (RoPE, Su et al., 2021) encodes positional information by multiplying query $q$ and key $k$ vectors with orthogonal rotation matrices $R_m$ and $R_n$. The foundational mathematical property of RoPE is that the inner product of rotated vectors depends EXCLUSIVELY on relative position difference $n - m$:\n\n### Why It Exists\nStandard absolute position embeddings (such as learned post-embeddings in GPT-2) fail to encode relative distance relationships directly into dot-product attention scores. Relative position biases (T5, ALiBi) require additional lookup tables or additive score modifiers. RoPE achieves relative position encoding implicitly through vector rotation algebra:\n\n$$\\langle R_m q, R_n k \\rangle = q^T R_m^T R_n k = q^T R_{n-m} k$$\n\n### Mathematical Proof\nBecause 2D rotation matrices form a 1-parameter continuous Lie group $R_{\\theta_1} R_{\\theta_2} = R_{\\theta_1 + \\theta_2}$ and $R_{\\theta}^T = R_{-\\theta}$, multiplying $R_m^T R_n$ yields $R_{-m} R_n = R_{n-m}$:\n\n$$R_m = \\begin{bmatrix} \\cos m\\theta & -\\sin m\\theta \\\\ \\sin m\\theta & \\cos m\\theta \\end{bmatrix}$$\n\n$$R_m^T R_n = \\begin{bmatrix} \\cos m\\theta & \\sin m\\theta \\\\ -\\sin m\\theta & \\cos m\\theta \\end{bmatrix} \\begin{bmatrix} \\cos n\\theta & -\\sin n\\theta \\\\ \\sin n\\theta & \\cos n\\theta \\end{bmatrix} = \\begin{bmatrix} \\cos (n-m)\\theta & -\\sin (n-m)\\theta \\\\ \\sin (n-m)\\theta & \\cos (n-m)\\theta \\end{bmatrix} = R_{n-m}$$\n\n### Step-by-Step Intuition\n1. **Absolute Rotation**: Rotate query vector $q$ by angle $m\\theta$ and key vector $k$ by angle $n\\theta$.\n2. **Inner Product Invariance**: Compute dot product $\\langle R_m q, R_n k \\rangle$.\n3. **Relative Equivalence**: Show that rotating key vector $k$ by angle $(n-m)\\theta$ and taking $\\langle q, R_{n-m} k \\rangle$ yields the EXACT same scalar result.\n\n### Key Trade-Offs & Complexity\n- **Zero Added Parameters**: Requires 0 extra learnable weights.\n- **Relative Decay**: Attention logit scores decay naturally as relative distance $|n-m|$ increases.",
     constraints: ["0 <= m <= 8192", "0 <= n <= 8192"],
@@ -366,7 +336,8 @@ export const relativePositionInnerProductPreservation: AlgorithmDefinition<relat
         outputDisplay: "Direct dot equals relative dot (Abs Diff = 0.00e+00)",
         input: { numTrials: 6, theta: 10000.0 },
         output: "Abs Diff < 1e-15",
-        explanation: "Proves mathematical identity <R_m q, R_n k> == <q, R_{n-m} k> across 6 position pairs.",
+        explanation:
+          "Proves mathematical identity <R_m q, R_n k> == <q, R_{n-m} k> across 6 position pairs.",
       },
     ],
     code: RELATIVEPOSITIONINNERPRODUCTPRESERVATION_CODE,
@@ -404,8 +375,7 @@ export const relativePositionInnerProductPreservation: AlgorithmDefinition<relat
         },
         {
           term: "Relative Inner Product Preservation",
-          definition:
-            "The property that <R_m q, R_n k> depends solely on relative distance n-m.",
+          definition: "The property that <R_m q, R_n k> depends solely on relative distance n-m.",
         },
         {
           term: "Givens Rotation",

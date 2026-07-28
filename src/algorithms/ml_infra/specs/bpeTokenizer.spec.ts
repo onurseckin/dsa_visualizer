@@ -9,9 +9,8 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("bpeTokenizer algorithm spec", () => {
   it("should have correct ML Infra Level 5 metadata", () => {
     expect(bpeTokenizer.id).toBe("bpe-tokenizer");
-    expect(bpeTokenizer.isMlInfra).toBe(true);
-    expect(bpeTokenizer.mlInfraLevel).toBe(5);
-    expect(bpeTokenizer.category).toBe("ml_tokenization");
+    expect(bpeTokenizer.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(bpeTokenizer.topicIds).toContain("ml_tokenization");
     expect(bpeTokenizer.defaultInput).toEqual(DEFAULT_BPE_TOKENIZER_INPUT);
     expect(bpeTokenizer.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 5" },
@@ -46,7 +45,7 @@ describe("bpeTokenizer algorithm spec", () => {
       numMerges: 3,
     };
     const steps = generateBpeTokenizerSteps(uniqueInput);
-    const stopStep = steps.find((s) => s.codeLine === 20);
+    const stopStep = steps.find((s) => s.codeLine === 17);
     expect(stopStep).toBeDefined();
     expect(stopStep?.variables.maxCount).toBe(1);
 

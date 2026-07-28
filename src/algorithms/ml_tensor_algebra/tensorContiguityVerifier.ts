@@ -7,9 +7,6 @@ export interface tensorContiguityVerifierInput {
 }
 
 export const TENSORCONTIGUITYVERIFIER_CODE = `def tensor_contiguity_verifier(shape, strides):
-    """
-    Verifies C-style row-major tensor contiguity and calculates expected strides.
-    """
     dims = len(shape)
     is_contiguous = True
     expected_stride = 1
@@ -41,10 +38,7 @@ export const generateTensorContiguityVerifierSteps = (
   let expectedStride = 1;
   let isContiguous = true;
 
-  const buildMatrixSnapshot = (
-    activeDim: number | null,
-    title: string,
-  ) => {
+  const buildMatrixSnapshot = (activeDim: number | null, title: string) => {
     const cells: MatrixCellItem[] = [];
     // Row 0: Shape
     for (let c = 0; c < dims; c++) {
@@ -53,7 +47,8 @@ export const generateTensorContiguityVerifierSteps = (
         col: c,
         value: shape[c],
         label: `d${c}`,
-        state: c === activeDim ? "active" : activeDim !== null && c > activeDim ? "sorted" : "default",
+        state:
+          c === activeDim ? "active" : activeDim !== null && c > activeDim ? "sorted" : "default",
       });
     }
     // Row 1: Actual Strides
@@ -63,7 +58,8 @@ export const generateTensorContiguityVerifierSteps = (
         col: c,
         value: strides[c],
         label: `act${c}`,
-        state: c === activeDim ? "compared" : activeDim !== null && c > activeDim ? "sorted" : "default",
+        state:
+          c === activeDim ? "compared" : activeDim !== null && c > activeDim ? "sorted" : "default",
       });
     }
     // Row 2: Expected Strides
@@ -73,7 +69,8 @@ export const generateTensorContiguityVerifierSteps = (
         col: c,
         value: currentExpectedStrides[c],
         label: `exp${c}`,
-        state: c === activeDim ? "pivot" : activeDim !== null && c > activeDim ? "sorted" : "default",
+        state:
+          c === activeDim ? "pivot" : activeDim !== null && c > activeDim ? "sorted" : "default",
       });
     }
 
@@ -100,7 +97,10 @@ export const generateTensorContiguityVerifierSteps = (
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: buildMatrixSnapshot(activeDim, `Tensor Contiguity Verification (Rank ${dims})`),
+      primarySnapshot: buildMatrixSnapshot(
+        activeDim,
+        `Tensor Contiguity Verification (Rank ${dims})`,
+      ),
       auxiliaryState: {
         customState: {
           shape: `[${shape.join(", ")}]`,
@@ -122,54 +122,31 @@ export const generateTensorContiguityVerifierSteps = (
     { dims, is_contiguous: true, expected_stride: 1 },
   );
 
+  // Line 2: Read dims
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Verifies C-style row-major tensor contiguity and calculates expected strides.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: Read dims
-  addStep(
-    5,
     `dims = len(shape) -> ${dims}`,
     "Determined tensor rank (number of dimensions). Verification will proceed right-to-left.",
     { dims },
   );
 
-  // Line 6: is_contiguous = True
-  addStep(
-    6,
-    "is_contiguous = True",
-    "Initialized contiguity state flag to True.",
-    { dims, is_contiguous: true },
-  );
+  // Line 3: is_contiguous = True
+  addStep(3, "is_contiguous = True", "Initialized contiguity state flag to True.", {
+    dims,
+    is_contiguous: true,
+  });
 
-  // Line 7: expected_stride = 1
+  // Line 4: expected_stride = 1
   addStep(
-    7,
+    4,
     "expected_stride = 1",
     "Innermost dimension (dim D-1) in row-major layout must always have unit stride 1.",
     { dims, is_contiguous: true, expected_stride: 1 },
   );
 
-  // Line 8: expected_strides = [0] * dims
+  // Line 5: expected_strides = [0] * dims
   addStep(
-    8,
+    5,
     `expected_strides = [${currentExpectedStrides.join(", ")}]`,
     "Allocated zero-initialized expected stride array.",
     { dims, is_contiguous: true, expected_stride: 1 },
@@ -177,29 +154,29 @@ export const generateTensorContiguityVerifierSteps = (
 
   // Loop backward across dimensions
   for (let i = dims - 1; i >= 0; i--) {
-    // Line 10: Loop header
+    // Line 7: Loop header
     addStep(
-      10,
+      7,
       `Loop iteration: dim i = ${i} (shape[${i}] = ${shape[i]}, stride[${i}] = ${strides[i]})`,
       `Evaluating dimension ${i} from right to left to verify row-major memory stride.`,
       { i, dims, "shape[i]": shape[i], "strides[i]": strides[i], expected_stride: expectedStride },
       i,
     );
 
-    // Line 11: Assign expected stride
+    // Line 8: Assign expected stride
     currentExpectedStrides[i] = expectedStride;
     addStep(
-      11,
+      8,
       `expected_strides[${i}] = expected_stride -> ${expectedStride}`,
       `Recorded expected stride ${expectedStride} for dimension ${i}.`,
       { i, "expected_strides[i]": expectedStride, expected_stride: expectedStride },
       i,
     );
 
-    // Line 12: Check stride match
+    // Line 9: Check stride match
     const match = strides[i] === expectedStride;
     addStep(
-      12,
+      9,
       `Check strides[${i}] (${strides[i]}) == expected_stride (${expectedStride}) -> ${match}`,
       match
         ? `Actual stride for dim ${i} matches expected C-contiguous stride ${expectedStride}.`
@@ -210,9 +187,9 @@ export const generateTensorContiguityVerifierSteps = (
 
     if (!match) {
       isContiguous = false;
-      // Line 13: is_contiguous = False
+      // Line 10: is_contiguous = False
       addStep(
-        13,
+        10,
         "is_contiguous = False",
         `Flagged tensor as non-contiguous due to stride mismatch at dimension ${i}.`,
         { i, is_contiguous: false },
@@ -220,11 +197,11 @@ export const generateTensorContiguityVerifierSteps = (
       );
     }
 
-    // Line 14: Update expected stride multiplier
+    // Line 11: Update expected stride multiplier
     const prevStride = expectedStride;
     expectedStride *= shape[i];
     addStep(
-      14,
+      11,
       `expected_stride *= shape[${i}] -> ${prevStride} * ${shape[i]} = ${expectedStride}`,
       `Accumulated stride multiplier for outer dimension ${i - 1}.`,
       { i, "shape[i]": shape[i], new_expected_stride: expectedStride },
@@ -232,9 +209,9 @@ export const generateTensorContiguityVerifierSteps = (
     );
   }
 
-  // Line 16: Return step
+  // Line 13: Return step
   addStep(
-    16,
+    13,
     `Return (is_contiguous=${isContiguous}, expected_strides=[${currentExpectedStrides.join(", ")}])`,
     `Completed contiguity verification across all ${dims} dimensions. Tensor is ${isContiguous ? "C-contiguous" : "NON-contiguous"}.`,
     { is_contiguous: isContiguous, completed: true },
@@ -250,38 +227,30 @@ const TENSORCONTIGUITYVERIFIER_TRIVIA: TriviaMeta = {
     "return is_contiguous, strides",
     "is_contiguous = strides == expected_strides",
   ],
-  hints: [{ line: 12, hint: "Compare actual stride with expected unit row-major stride." }],
+  hints: [{ line: 9, hint: "Compare actual stride with expected unit row-major stride." }],
   lineExplanations: {
     1: "Defines entry point for verifying C-style row-major tensor memory contiguity.",
-    2: "Docstring opening for tensor contiguity algorithm.",
-    3: "Describes verification of row-major contiguity and stride vector calculation.",
-    4: "Docstring closing tag.",
-    5: "Calculates tensor rank (number of dimensions) from shape length.",
-    6: "Initializes contiguity status boolean flag to True.",
-    7: "Sets baseline innermost dimension expected stride to 1 element offset.",
-    8: "Allocates array initialized to zero for holding expected strides per dimension.",
-    9: "Blank line preceding reverse dimension traversal loop.",
-    10: "Iterates backward through dimensions from innermost (dims - 1) to outermost (0).",
-    11: "Assigns accumulated expected stride to expected_strides[i].",
-    12: "Checks if actual tensor stride[i] matches computed row-major expected_stride.",
-    13: "Flags tensor as non-contiguous when actual stride deviates from expected stride.",
-    14: "Multiplies accumulated expected stride by current dimension size shape[i].",
-    15: "Blank line preceding return statement.",
-    16: "Returns contiguity boolean flag and array of expected contiguous strides.",
+    2: "Calculates tensor rank (number of dimensions) from shape length.",
+    3: "Initializes contiguity status boolean flag to True.",
+    4: "Sets baseline innermost dimension expected stride to 1 element offset.",
+    5: "Allocates array initialized to zero for holding expected strides per dimension.",
+    6: "Blank line preceding reverse dimension traversal loop.",
+    7: "Iterates backward through dimensions from innermost (dims - 1) to outermost (0).",
+    8: "Assigns accumulated expected stride to expected_strides[i].",
+    9: "Checks if actual tensor stride[i] matches computed row-major expected_stride.",
+    10: "Flags tensor as non-contiguous when actual stride deviates from expected stride.",
+    11: "Multiplies accumulated expected stride by current dimension size shape[i].",
+    12: "Blank line preceding return statement.",
+    13: "Returns contiguity boolean flag and array of expected contiguous strides.",
   },
 };
 
 export const tensorContiguityVerifier: AlgorithmDefinition<tensorContiguityVerifierInput> = {
   id: "tensor-contiguity-verifier",
   title: "PyTorch-Style Tensor Contiguity Verifier",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
-  description:
-    `In deep learning frameworks like PyTorch (ATen C++ runtime) and ML compilers (Triton, CUDA, TVM), tensors are logical multi-dimensional views over contiguous 1D physical memory allocations. A tensor is C-contiguous (row-major) if consecutive elements along the innermost dimension sit adjacently in physical DRAM addresses.
+  description: `In deep learning frameworks like PyTorch (ATen C++ runtime) and ML compilers (Triton, CUDA, TVM), tensors are logical multi-dimensional views over contiguous 1D physical memory allocations. A tensor is C-contiguous (row-major) if consecutive elements along the innermost dimension sit adjacently in physical DRAM addresses.
 
 Operations such as \`tensor.transpose()\`, \`tensor.permute()\`, or slicing create virtual non-contiguous views by altering metadata strides without physically reordering DRAM buffers. High-performance GPU kernels require C-contiguous inputs for coalesced 128-bit SIMD vector reads. For a rank-$D$ tensor with shape $(N_0, N_1, \\dots, N_{D-1})$, theoretical row-major strides satisfy:
 $$s_{D-1} = 1, \\quad s_{k} = s_{k+1} \\times N_{k+1}$$
@@ -306,7 +275,8 @@ This algorithm implements PyTorch's \`is_contiguous()\` verifier, calculating ex
       outputDisplay: "(False, [4, 1])",
       input: { shape: [3, 4], strides: [1, 3] },
       output: "(False, [4, 1])",
-      explanation: "Matrix transpose swapped strides from [4, 1] to [1, 3], violating C-contiguity.",
+      explanation:
+        "Matrix transpose swapped strides from [4, 1] to [1, 3], violating C-contiguity.",
     },
     {
       kind: "negative",
@@ -353,19 +323,23 @@ This algorithm implements PyTorch's \`is_contiguous()\` verifier, calculating ex
     keyTerms: [
       {
         term: "C-Contiguity",
-        definition: "Row-major memory layout where adjacent elements along the last dimension sit continuously in physical memory.",
+        definition:
+          "Row-major memory layout where adjacent elements along the last dimension sit continuously in physical memory.",
       },
       {
         term: "Stride Metadata",
-        definition: "Array of integers defining how many physical DRAM scalar elements to skip when advancing along each dimension.",
+        definition:
+          "Array of integers defining how many physical DRAM scalar elements to skip when advancing along each dimension.",
       },
       {
         term: "Zero-Copy View",
-        definition: "A new tensor header sharing existing underlying DRAM buffer while modifying shape/stride metadata.",
+        definition:
+          "A new tensor header sharing existing underlying DRAM buffer while modifying shape/stride metadata.",
       },
       {
         term: "Coalesced Memory Access",
-        definition: "Hardware GPU execution pattern where threads in a warp access consecutive contiguous DRAM addresses in one bus transaction.",
+        definition:
+          "Hardware GPU execution pattern where threads in a warp access consecutive contiguous DRAM addresses in one bus transaction.",
       },
     ],
   },

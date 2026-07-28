@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { greedyDecisionTreeBuilder } from "./greedyDecisionTreeBuilder";
 
-describe("greedyDecisionTreeBuilder", () => {
+describe("greedy-decision-tree-builder", () => {
   it("should have valid metadata", () => {
     expect(greedyDecisionTreeBuilder.id).toBeDefined();
     expect(greedyDecisionTreeBuilder.title).toBeDefined();
@@ -12,9 +12,7 @@ describe("greedyDecisionTreeBuilder", () => {
   });
 
   it("should generate at least 20 steps", () => {
-    const steps = greedyDecisionTreeBuilder.generateSteps(
-      greedyDecisionTreeBuilder.defaultInput,
-    );
+    const steps = greedyDecisionTreeBuilder.generateSteps(greedyDecisionTreeBuilder.defaultInput);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].primarySnapshot.kind).toBeDefined();
     expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();

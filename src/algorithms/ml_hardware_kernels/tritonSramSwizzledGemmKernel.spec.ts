@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tritonSramSwizzledGemmKernel } from "./tritonSramSwizzledGemmKernel";
 
-describe("tritonSramSwizzledGemmKernel", () => {
+describe("triton-sram-swizzled-gemm-kernel", () => {
   it("should have valid metadata", () => {
     expect(tritonSramSwizzledGemmKernel.id).toBeDefined();
     expect(tritonSramSwizzledGemmKernel.title).toBeDefined();

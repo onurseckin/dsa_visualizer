@@ -10,9 +10,8 @@ import {
 describe("flashAttentionTiling (Level 7 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(flashAttentionTiling.id).toBe("flash-attention-tiling");
-    expect(flashAttentionTiling.isMlInfra).toBe(true);
-    expect(flashAttentionTiling.mlInfraLevel).toBe(7);
-    expect(flashAttentionTiling.category).toBe("ml_hardware_kernels");
+    expect(flashAttentionTiling.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(flashAttentionTiling.topicIds).toContain("ml_hardware_kernels");
     expect(flashAttentionTiling.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" },
     ]);
@@ -32,7 +31,7 @@ describe("flashAttentionTiling (Level 7 ML Infra)", () => {
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+      expect(steps[i].primarySnapshot.kind).toBe("matrix");
     }
   });
 

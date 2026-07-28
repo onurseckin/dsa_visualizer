@@ -268,16 +268,13 @@ const PERCHANNELSYMMETRICQUANTIZER_TRIVIA: TriviaMeta = {
   },
 };
 
-export const perChannelSymmetricQuantizer: AlgorithmDefinition<perChannelSymmetricQuantizerInput> = {
-  id: "per-channel-symmetric-quantizer",
-  title: "Per Channel Symmetric Quantizer",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
-  difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
-  description: `### Per-Channel Symmetric Quantizer
+export const perChannelSymmetricQuantizer: AlgorithmDefinition<perChannelSymmetricQuantizerInput> =
+  {
+    id: "per-channel-symmetric-quantizer",
+    title: "Per Channel Symmetric Quantizer",
+    topicIds: ["ml_precision_quantization", "bit_manipulation"],
+    difficulty: "Hard",
+    description: `### Per-Channel Symmetric Quantizer
 
 Per-Channel Symmetric Weight Quantization computes an independent scale factor $S_c$ for each individual output channel $c$ (row in a weight matrix $\\mathbf{W} \\in \\mathbb{R}^{C_{\\text{out}} \\times C_{\\text{in}}}$).
 
@@ -298,97 +295,107 @@ In per-tensor quantization, a single global scale factor $S = \\frac{\\max(|W|)}
 - **Time Complexity**: $\\mathcal{O}(C_{\\text{out}} \\cdot C_{\\text{in}})$ linear time over all matrix elements.
 - **Space Complexity**: $\\mathcal{O}(C_{\\text{out}} + C_{\\text{out}} \\cdot C_{\\text{in}})$ for channel scale vector and INT8 matrix.
 - **Trade-Off**: Eliminates precision loss for quiet channels in wide weight matrices at the cost of storing a 1D vector of $C_{\\text{out}}$ scale factors.`,
-  constraints: ["1 <= weightMatrix.length <= 1000", "-10^9 <= weightMatrix[i][j] <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "3-Channel Weight Matrix Quantization",
-      inputDisplay: "W = [[1.2, -3.4, 5.5], [0.5, -1.5, 2.5], [10.0, -20.0, 15.0]]",
-      outputDisplay: "S_c = [0.0433, 0.0197, 0.1575], Q = [[28, -79, 127], [25, -76, 127], [63, -127, 95]]",
-      input: {
-        weightMatrix: [
-          [1.2, -3.4, 5.5],
-          [0.5, -1.5, 2.5],
-          [10.0, -20.0, 15.0],
-        ],
-      },
-      output: "scales = [0.0433, 0.0197, 0.1575], Q = [[28, -79, 127], [25, -76, 127], [63, -127, 95]]",
-      explanation: "Computes independent scale factor S_c for each channel row, preserving INT8 dynamic range for every channel.",
-    },
-    {
-      kind: "complex",
-      title: "Asymmetric Channel Magnitudes",
-      inputDisplay: "W = [[0.1, -0.2], [100.0, -50.0]]",
-      outputDisplay: "S_c = [0.00157, 0.7874]",
-      input: {
-        weightMatrix: [
-          [0.1, -0.2],
-          [100.0, -50.0],
-        ],
-      },
-      output: "scales = [0.00157, 0.7874], Q = [[64, -127], [127, -63]]",
-      explanation: "Evaluates per-channel scaling across two channels with 1000x magnitude variance.",
-    },
-    {
-      kind: "negative",
-      title: "Zero Weight Channel Edge Case",
-      inputDisplay: "W = [[0.0, 0.0], [5.0, -5.0]]",
-      outputDisplay: "S_c = [1.0, 0.03937]",
-      input: {
-        weightMatrix: [
-          [0.0, 0.0],
-          [5.0, -5.0],
-        ],
-      },
-      output: "scales = [1.0, 0.03937], Q = [[0, 0], [127, -127]]",
-      explanation: "Handles zero weight channel with fallback scale factor S_c = 1.0.",
-    },
-  ],
-  code: PERCHANNELSYMMETRICQUANTIZER_CODE,
-  timeComplexity: { best: "O(C_out * C_in)", average: "O(C_out * C_in)", worst: "O(C_out * C_in)" },
-  spaceComplexity: "O(C_out + C_out * C_in)",
-  complexityAnalysis: {
-    time: "Linear time O(C_out * C_in) pass across all weight elements.",
-    space: "Requires linear space for output scale vector and quantized INT8 matrix.",
-  },
-  topicGuide: {
-    overview:
-      "Per-Channel Weight Quantization is standard for Convolutional layers (`Conv2d`) and Linear layers in PyTorch (`torch.ao.quantization`) and ONNX Runtime to prevent accuracy loss when channels have widely varying weight magnitudes.",
-    sections: [
+    constraints: ["1 <= weightMatrix.length <= 1000", "-10^9 <= weightMatrix[i][j] <= 10^9"],
+    examples: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, for channel $c$, $\\alpha_c = \\max_j |W_{c,j}|$. Scale $S_c = \\alpha_c / 127.0$. Quantized weights $Q_{c,j} = \\text{clamp}(\\text{round}(W_{c,j} / S_c), -128, 127)$.",
+        kind: "basic",
+        title: "3-Channel Weight Matrix Quantization",
+        inputDisplay: "W = [[1.2, -3.4, 5.5], [0.5, -1.5, 2.5], [10.0, -20.0, 15.0]]",
+        outputDisplay:
+          "S_c = [0.0433, 0.0197, 0.1575], Q = [[28, -79, 127], [25, -76, 127], [63, -127, 95]]",
+        input: {
+          weightMatrix: [
+            [1.2, -3.4, 5.5],
+            [0.5, -1.5, 2.5],
+            [10.0, -20.0, 15.0],
+          ],
+        },
+        output:
+          "scales = [0.0433, 0.0197, 0.1575], Q = [[28, -79, 127], [25, -76, 127], [63, -127, 95]]",
+        explanation:
+          "Computes independent scale factor S_c for each channel row, preserving INT8 dynamic range for every channel.",
       },
       {
-        heading: "Practical Applications in ML Systems",
-        body: "TensorRT and ONNX Runtime apply per-channel quantization to weight tensors to maintain accuracy in large language models (e.g. LLaMA, Mistral).",
+        kind: "complex",
+        title: "Asymmetric Channel Magnitudes",
+        inputDisplay: "W = [[0.1, -0.2], [100.0, -50.0]]",
+        outputDisplay: "S_c = [0.00157, 0.7874]",
+        input: {
+          weightMatrix: [
+            [0.1, -0.2],
+            [100.0, -50.0],
+          ],
+        },
+        output: "scales = [0.00157, 0.7874], Q = [[64, -127], [127, -63]]",
+        explanation:
+          "Evaluates per-channel scaling across two channels with 1000x magnitude variance.",
       },
       {
-        heading: "Implementation Details & Row Scans",
-        body: "Implementation loops through matrix rows, finds maximum magnitude per row, computes dedicated scale, and quantizes row elements.",
-      },
-      {
-        heading: "Edge Case Analysis & Zero Weight Rows",
-        body: "Edge cases include zero-weight rows where $\\alpha_c = 0$, enforcing scale fallback $S_c = 1.0$.",
+        kind: "negative",
+        title: "Zero Weight Channel Edge Case",
+        inputDisplay: "W = [[0.0, 0.0], [5.0, -5.0]]",
+        outputDisplay: "S_c = [1.0, 0.03937]",
+        input: {
+          weightMatrix: [
+            [0.0, 0.0],
+            [5.0, -5.0],
+          ],
+        },
+        output: "scales = [1.0, 0.03937], Q = [[0, 0], [127, -127]]",
+        explanation: "Handles zero weight channel with fallback scale factor S_c = 1.0.",
       },
     ],
-    keyTerms: [
-      {
-        term: "Per-Channel Quantization",
-        definition: "Assigning dedicated scale factors S_c to individual output channel weight vectors.",
-      },
-      {
-        term: "Per-Tensor Quantization",
-        definition: "Assigning a single global scale factor to an entire weight matrix.",
-      },
-      {
-        term: "Outlier Isolation",
-        definition: "Preventing outlier weights in one channel from squashing the precision of adjacent channels.",
-      },
-    ],
-  },
-  trivia: PERCHANNELSYMMETRICQUANTIZER_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
-  defaultInput: DEFAULT_PERCHANNELSYMMETRICQUANTIZER_INPUT,
-  generateSteps: generatePerChannelSymmetricQuantizerSteps,
-};
+    code: PERCHANNELSYMMETRICQUANTIZER_CODE,
+    timeComplexity: {
+      best: "O(C_out * C_in)",
+      average: "O(C_out * C_in)",
+      worst: "O(C_out * C_in)",
+    },
+    spaceComplexity: "O(C_out + C_out * C_in)",
+    complexityAnalysis: {
+      time: "Linear time O(C_out * C_in) pass across all weight elements.",
+      space: "Requires linear space for output scale vector and quantized INT8 matrix.",
+    },
+    topicGuide: {
+      overview:
+        "Per-Channel Weight Quantization is standard for Convolutional layers (`Conv2d`) and Linear layers in PyTorch (`torch.ao.quantization`) and ONNX Runtime to prevent accuracy loss when channels have widely varying weight magnitudes.",
+      sections: [
+        {
+          heading: "Core Concept & Mathematical Formulation",
+          body: "Mathematically, for channel $c$, $\\alpha_c = \\max_j |W_{c,j}|$. Scale $S_c = \\alpha_c / 127.0$. Quantized weights $Q_{c,j} = \\text{clamp}(\\text{round}(W_{c,j} / S_c), -128, 127)$.",
+        },
+        {
+          heading: "Practical Applications in ML Systems",
+          body: "TensorRT and ONNX Runtime apply per-channel quantization to weight tensors to maintain accuracy in large language models (e.g. LLaMA, Mistral).",
+        },
+        {
+          heading: "Implementation Details & Row Scans",
+          body: "Implementation loops through matrix rows, finds maximum magnitude per row, computes dedicated scale, and quantizes row elements.",
+        },
+        {
+          heading: "Edge Case Analysis & Zero Weight Rows",
+          body: "Edge cases include zero-weight rows where $\\alpha_c = 0$, enforcing scale fallback $S_c = 1.0$.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Per-Channel Quantization",
+          definition:
+            "Assigning dedicated scale factors S_c to individual output channel weight vectors.",
+        },
+        {
+          term: "Per-Tensor Quantization",
+          definition: "Assigning a single global scale factor to an entire weight matrix.",
+        },
+        {
+          term: "Outlier Isolation",
+          definition:
+            "Preventing outlier weights in one channel from squashing the precision of adjacent channels.",
+        },
+      ],
+    },
+    trivia: PERCHANNELSYMMETRICQUANTIZER_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
+    defaultInput: DEFAULT_PERCHANNELSYMMETRICQUANTIZER_INPUT,
+    generateSteps: generatePerChannelSymmetricQuantizerSteps,
+  };

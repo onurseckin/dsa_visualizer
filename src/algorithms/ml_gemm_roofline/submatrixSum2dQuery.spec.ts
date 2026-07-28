@@ -9,10 +9,9 @@ import {
 describe("submatrix-sum-2d-query (2D Submatrix Region Sum Query Engine)", () => {
   it("should have correct metadata", () => {
     expect(submatrixSum2dQuery.id).toBe("submatrix-sum-2d-query");
-    expect(submatrixSum2dQuery.isMlInfra).toBe(true);
-    expect(submatrixSum2dQuery.mlInfraLevel).toBe(2);
-    expect(submatrixSum2dQuery.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(submatrixSum2dQuery.categories).toContain("ml_gemm_roofline");
+    expect(submatrixSum2dQuery.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(submatrixSum2dQuery.topicIds).toContain("ml_gemm_roofline");
+    expect(submatrixSum2dQuery.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 steps with matrix snapshot for default input", () => {

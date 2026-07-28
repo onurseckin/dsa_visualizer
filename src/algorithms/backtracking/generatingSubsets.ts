@@ -19,10 +19,10 @@ const SUBSETS_TRIVIA: TriviaMeta = {
     6: "Append current subset copy to result list.",
     7: "Return from current recursive stack frame after saving complete subset.",
     8: "Blank line separating base case from branching logic.",
-    9: "Comment indicating Branch 1: exclude element at current index.",
+    9: "Exclude branch: prepare to explore path without current element.",
     10: "Branch 1: exclude elements[index] and recurse to next index.",
     11: "Blank line separating exclusion branch from inclusion branch.",
-    12: "Comment indicating Branch 2: include element at current index.",
+    12: "Include branch: prepare to explore path with current element.",
     13: "Branch 2: append elements[index] to current_subset.",
     14: "Recurse with updated current_subset containing elements[index].",
     15: "Un-choose: pop element to restore current_subset before unwinding.",
@@ -33,7 +33,7 @@ const SUBSETS_TRIVIA: TriviaMeta = {
 };
 
 export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): AlgorithmStep[] => {
-  const nums = input.elements && input.elements.length > 0 ? input.elements.slice(0, 6) : [1, 2, 3];
+  const nums = input && Array.isArray(input.elements) ? input.elements.slice(0, 6) : [1, 2, 3];
   const n = nums.length;
 
   const steps: AlgorithmStep[] = [];
@@ -46,11 +46,15 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
     const elements: ArrayElement[] = nums.map((val, idx) => {
       const isActive = idx === activeIdx;
       const isIncluded = includedIndices.has(idx);
+      const pointers: string[] = [];
+      if (isActive) pointers.push("i");
+      if (isIncluded) pointers.push("in");
+
       return {
         id: `elem-${idx}`,
         value: val,
         state: isActive ? "active" : isIncluded ? "sorted" : "default",
-        pointers: isActive ? ["i"] : isIncluded ? ["in"] : undefined,
+        pointers: pointers.length > 0 ? pointers : undefined,
       };
     });
 
@@ -61,8 +65,8 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
     stepIndex: stepIdx++,
     codeLine: 2,
     explanation: {
-      what: `Initialized subset generator for ${n} elements: [${nums.join(", ")}].`,
-      why: "There are 2^N = 2^" + n + " = " + Math.pow(2, n) + " total subsets in the power set.",
+      what: `Initialized subset generator for ${n} element${n === 1 ? "" : "s"}: [${nums.join(", ")}].`,
+      why: `There are 2^N = 2^${n} = ${Math.pow(2, n)} total subsets in the power set.`,
     },
     primarySnapshot: buildArraySnapshot(-1, new Set()),
     auxiliaryState: {
@@ -83,9 +87,10 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
       codeLine: 5,
       explanation: {
         what: `Check base case: index (${idx}) == len(nums) (${n})?`,
-        why: idx === n
-          ? `Reached index N (${n}); current subset [${currSubset.join(", ")}] is complete.`
-          : `Standing at index ${idx} looking at element ${nums[idx]}.`,
+        why:
+          idx === n
+            ? `Reached end of array (index ${idx}); current subset [${currSubset.join(", ")}] is complete.`
+            : `Standing at index ${idx} looking at element ${nums[idx]}.`,
       },
       primarySnapshot: buildArraySnapshot(idx, included),
       auxiliaryState: {
@@ -93,6 +98,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
           "Current Index": idx,
           "Current Subset": `[${currSubset.join(", ")}]`,
         },
+        visited: allSubsets.map((s) => `[${s.join(",")}]`),
       },
       variables: {
         idx,
@@ -140,6 +146,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
           "Current Subset": `[${currSubset.join(", ")}]`,
           Action: `Exclude ${nums[idx]}`,
         },
+        visited: allSubsets.map((s) => `[${s.join(",")}]`),
       },
       variables: {
         idx,
@@ -168,6 +175,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
           "Current Subset": `[${currSubset.join(", ")}]`,
           Action: `Include ${nums[idx]}`,
         },
+        visited: allSubsets.map((s) => `[${s.join(",")}]`),
       },
       variables: {
         idx,
@@ -193,6 +201,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
           "Current Subset": `[${currSubset.join(", ")}]`,
           Action: `Un-choose ${nums[idx]}`,
         },
+        visited: allSubsets.map((s) => `[${s.join(",")}]`),
       },
       variables: {
         idx,
@@ -230,8 +239,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
 export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   id: "generating-subsets",
   title: "Generating Subsets (Power Set)",
-  category: "backtracking",
-  categories: ["backtracking"],
+  topicIds: ["backtracking"],
   difficulty: "Easy",
   description:
     "Generate all $2^N$ possible subsets (the power set) of an array of unique elements using recursive binary decision branching.\n\n### Problem Statement\nGiven an integer array `elements` of $N$ unique integers, return all possible subsets (the power set) of the array in any order.\n\nThe power set of a set contains all subsets including the empty set and the set itself. The solution set must not contain duplicate subsets. Using depth-first search with recursive backtracking, each element presents a binary choice: either include it in the current subset or exclude it.\n\n### Input Parameters\n- `elements` (list[int]): An array of $N$ unique integers.\n\n### Output\n- list[list[int]]: A list containing all $2^N$ unique subsets.\n\n### Constraints & Edge Cases\n- `1 <= elements.length <= 10`\n- `-10 <= elements[i] <= 10`\n- All elements of `elements` are unique.",
@@ -277,10 +285,10 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
             result.append(current_subset.copy())
             return
 
-        # Branch 1: Exclude nums[index]
+
         backtrack(index + 1, current_subset)
 
-        # Branch 2: Include nums[index]
+
         current_subset.append(nums[index])
         backtrack(index + 1, current_subset)
         current_subset.pop()

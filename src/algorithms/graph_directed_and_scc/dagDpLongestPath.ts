@@ -58,31 +58,47 @@ export const DAG_DP_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 9,
+      line: 10,
       hint: "Topological sorting processes nodes in an order where all incoming dependencies precede target nodes.",
     },
     {
-      line: 18,
+      line: 20,
       hint: "Initialize DP array dp[u] = 0 for all nodes.",
     },
     {
-      line: 23,
+      line: 24,
       hint: "Relax edges u -> v: if dp[u] + weight > dp[v], update dp[v] and track predecessor.",
     },
     {
-      line: 26,
+      line: 28,
       hint: "The maximum value in the DP table yields the longest path length in the DAG.",
     },
   ],
   lineExplanations: {
     1: "Imports deque for Kahn's topological sort queue.",
     3: "Defines the DAG longest path dynamic programming algorithm.",
-    9: "Initializes Kahn's queue with in-degree 0 source vertices.",
-    11: "Builds a valid topological ordering of the DAG.",
-    18: "Initializes DP distance array dp[u] = 0 and parent pointers for path reconstruction.",
-    20: "Iterates over vertices in topological order to relax outgoing directed edges.",
-    22: "Updates dp[v] if a longer path ending at node v is found via node u.",
-    26: "Identifies the node with maximum DP score and reconstructs the longest path.",
+    4: "Initializes adjacency list for directed graph representation.",
+    5: "Initializes in-degree counters for all vertices.",
+    6: "Populates adjacency list and computes in-degrees for each vertex.",
+    10: "Initializes Kahn's queue with in-degree 0 source vertices.",
+    11: "Initializes list to store topological ordering.",
+    12: "Processes nodes from the queue until empty.",
+    13: "Pops next vertex from queue.",
+    14: "Appends vertex to topological ordering.",
+    15: "Iterates through outgoing edges of current vertex.",
+    16: "Decrements in-degree of neighboring vertex.",
+    17: "Checks if neighboring vertex has no remaining incoming edges.",
+    18: "Adds neighbor to queue once in-degree reaches 0.",
+    20: "Initializes DP distance array dp[u] = 0.",
+    21: "Initializes parent pointers for path reconstruction.",
+    22: "Iterates over vertices in topological order.",
+    23: "Iterates over outgoing edges from current vertex.",
+    24: "Checks if path through u yields a longer path to v.",
+    25: "Updates dp[v] with new maximal path weight.",
+    26: "Stores predecessor pointer parent[v] = u.",
+    28: "Identifies the node with maximum DP score.",
+    31: "Reconstructs longest path by backtracking parent pointers.",
+    36: "Returns maximum path length and path sequence.",
   },
 };
 
@@ -129,10 +145,10 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 1,
+    codeLine: 3,
     explanation: {
       what: "Initialized DAG Longest Path DP algorithm.",
-      why: `Graph has ${nodes.length} nodes and ${edges.length} edges.`,
+      why: `Graph contains ${nodes.length} nodes and ${edges.length} directed weighted edges. Built adjacency list and in-degree table.`,
     },
     primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
     auxiliaryState: {
@@ -147,16 +163,16 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
     variables: { totalNodes: nodes.length, totalEdges: edges.length },
   });
 
-  // Kahn's Topological Sort
+  // Kahn's Topological Sort Queue Init
   const queue: string[] = nodes.filter((n) => inDegree[n.id] === 0).map((n) => n.id);
   const topoOrder: string[] = [];
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 8,
+    codeLine: 10,
     explanation: {
-      what: `Sources with in-degree 0: [${queue.join(", ")}].`,
-      why: "Initial nodes for Kahn's topological sorting queue.",
+      what: `Identified source nodes with in-degree 0: [${queue.join(", ")}].`,
+      why: "In Kahn's algorithm, vertices with zero incoming dependencies form the initial topological sorting queue.",
     },
     primarySnapshot: {
       kind: "graph",
@@ -170,7 +186,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
       queue: [...queue],
       customState: { "Topo Order": "[]" },
     },
-    variables: { queueLength: queue.length },
+    variables: { initialQueue: queue.join(", ") },
   });
 
   const inDegCopy = { ...inDegree };
@@ -178,21 +194,83 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
     const u = queue.shift()!;
     topoOrder.push(u);
 
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 13,
+      explanation: {
+        what: `Popped node ${u} from queue and added to Topological Order.`,
+        why: `Node ${u} has no remaining unprocessed incoming edges. Current topological order: [${topoOrder.join(", ")}].`,
+      },
+      primarySnapshot: {
+        kind: "graph",
+        nodes: nodes.map((n) => ({
+          ...n,
+          state:
+            n.id === u
+              ? "active"
+              : topoOrder.includes(n.id)
+                ? "visited"
+                : queue.includes(n.id)
+                  ? "queued"
+                  : "default",
+        })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        queue: [...queue],
+        customState: { "Topo Order": `[${topoOrder.join(", ")}]` },
+      },
+      variables: { current: u, topoOrder: topoOrder.join(" -> ") },
+    });
+
     for (const item of adj[u]) {
       const v = item.to;
       inDegCopy[v]--;
       if (inDegCopy[v] === 0) {
         queue.push(v);
+        steps.push({
+          stepIndex: stepIdx++,
+          codeLine: 18,
+          explanation: {
+            what: `In-degree of node ${v} reached 0 after removing edge ${u} -> ${v}. Pushed ${v} to queue.`,
+            why: `All incoming dependencies for node ${v} have been processed in the topological sorting stage.`,
+          },
+          primarySnapshot: {
+            kind: "graph",
+            nodes: nodes.map((n) => ({
+              ...n,
+              state:
+                n.id === v
+                  ? "queued"
+                  : n.id === u
+                    ? "active"
+                    : topoOrder.includes(n.id)
+                      ? "visited"
+                      : queue.includes(n.id)
+                        ? "queued"
+                        : "default",
+            })),
+            edges: edges.map((e) => ({
+              ...e,
+              isPath: e.from === u && e.to === v,
+            })),
+          },
+          auxiliaryState: {
+            queue: [...queue],
+            customState: { "Topo Order": `[${topoOrder.join(", ")}]` },
+          },
+          variables: { u, v, newInDegree: 0 },
+        });
       }
     }
   }
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 10,
+    codeLine: 14,
     explanation: {
       what: `Topological Order computed: [${topoOrder.join(", ")}].`,
-      why: "Processing DAG in topological order guarantees sub-problems are solved before dependent transitions.",
+      why: "Evaluating DP transitions in topological order guarantees all path sub-problems ending at predecessors are solved beforehand.",
     },
     primarySnapshot: {
       kind: "graph",
@@ -215,10 +293,10 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 18,
+    codeLine: 20,
     explanation: {
-      what: "Initialized DP values dp[u] = 0 for all nodes.",
-      why: "Base case for longest path DAG dynamic programming.",
+      what: "Initialized DP array dp[u] = 0 and parent[u] = null for all nodes.",
+      why: "Base case: a single node path has length 0. All vertices begin with initial candidate length 0.",
     },
     primarySnapshot: {
       kind: "graph",
@@ -234,10 +312,10 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
   for (const u of topoOrder) {
     steps.push({
       stepIndex: stepIdx++,
-      codeLine: 21,
+      codeLine: 22,
       explanation: {
         what: `Processing node ${u} (dp[${u}] = ${dp[u]}).`,
-        why: "Relaxing outgoing edges from current topological vertex.",
+        why: `Relaxing outgoing directed edges from current topological vertex ${u}.`,
       },
       primarySnapshot: {
         kind: "graph",
@@ -268,10 +346,10 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
         steps.push({
           stepIndex: stepIdx++,
-          codeLine: 24,
+          codeLine: 25,
           explanation: {
             what: `Relaxed edge ${u} -> ${v} (weight ${w}): updated dp[${v}] = ${dp[v]}.`,
-            why: `Found longer path to ${v} via ${u} with total length ${dp[v]}.`,
+            why: `Found a longer path ending at ${v} via vertex ${u}: dp[${u}] (${dp[u]} - ${w}) = ${dp[v]} > previous dp[${v}].`,
           },
           primarySnapshot: {
             kind: "graph",
@@ -312,10 +390,10 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 27,
+    codeLine: 36,
     explanation: {
       what: `Longest Path in DAG: ${longestPathNodes.join(" -> ")} (Length = ${dp[maxNode]}).`,
-      why: `Node ${maxNode} achieves maximum path weight of ${dp[maxNode]}.`,
+      why: `Vertex ${maxNode} achieves the maximum total path weight of ${dp[maxNode]} in the DAG. Backtracked parent pointers to reconstruct the exact path.`,
     },
     primarySnapshot: {
       kind: "graph",
@@ -351,8 +429,7 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
 export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   id: "dag-dp-longest-path",
   title: "Longest Path in a DAG (DP)",
-  category: "graph_directed_and_scc",
-  categories: ["graph_directed_and_scc"],
+  topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
     "Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear O(V + E) time using Dynamic Programming combined with Topological Sort. Given a DAG with V vertices and E weighted edges, compute the length of the longest path along with the sequence of vertices forming that path. While finding the longest path in general graphs is NP-hard, DAG acyclicity allows evaluating DP transitions in topological order: dp[v] = max(dp[v], dp[u] + weight(u, v)). Return the maximum path length in the DAG.",
@@ -423,7 +500,8 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
     time: "Topological sorting takes $\\mathcal{O}(V + E)$ using Kahn's algorithm. DP edge relaxation visits each edge once, taking $\\mathcal{O}(V + E)$. Total time is linear $\\mathcal{O}(V + E)$.",
-    space: "Adjacency lists, DP arrays, and topological sorting queues consume $\\mathcal{O}(V + E)$ memory.",
+    space:
+      "Adjacency lists, DP arrays, and topological sorting queues consume $\\mathcal{O}(V + E)$ memory.",
   },
   topicGuide: {
     overview:

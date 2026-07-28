@@ -8,18 +8,17 @@ import {
 describe("parallel-course-critical-path (Critical Path Latency Bounds in Computational Graph)", () => {
   it("should have correct metadata", () => {
     expect(parallelCourseCriticalPath.id).toBe("parallel-course-critical-path");
-    expect(parallelCourseCriticalPath.isMlInfra).toBe(true);
-    expect(parallelCourseCriticalPath.mlInfraLevel).toBe(3);
-    expect(parallelCourseCriticalPath.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(parallelCourseCriticalPath.categories).toContain("ml_autograd_dags");
+    expect(parallelCourseCriticalPath.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(parallelCourseCriticalPath.topicIds).toContain("ml_autograd_dags");
+    expect(parallelCourseCriticalPath.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {
     const steps = generateParallelCourseCriticalPathSteps(DEFAULT_PARALLELCOURSECRITICALPATH_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    expect(steps[0].explanation.what).toContain(
-      "Critical Path Latency Bounds Calculator",
-    );
+    expect(steps[0].explanation.what).toContain("Critical Path Latency Bounds Calculator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
   });
 

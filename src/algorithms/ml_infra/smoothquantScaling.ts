@@ -1,9 +1,4 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  ProblemExample,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ProblemExample } from "../../types/dsa";
 
 export interface SmoothquantInput {
   alpha: number; // migration strength, e.g. 0.5
@@ -20,19 +15,16 @@ export const SMOOTHQUANT_SCALING_CODE = `def smoothquant_scaling(
     channels = len(X[0])
     out_features = len(W[0])
     
-    # 1. Maximum activation magnitude per channel
     max_act = [
         max(abs(X[i][c]) for i in range(num_tokens))
         for c in range(channels)
     ]
     
-    # 2. Maximum weight magnitude per channel
     max_weight = [
         max(abs(W[c][j]) for j in range(out_features))
         for c in range(channels)
     ]
     
-    # 3. Compute per-channel scale s_c = (max_act_c ^ alpha) / (max_weight_c ^ (1 - alpha))
     scales = []
     for c in range(channels):
         ma = max(max_act[c], 1e-5)
@@ -40,13 +32,11 @@ export const SMOOTHQUANT_SCALING_CODE = `def smoothquant_scaling(
         s_c = (ma ** alpha) / (mw ** (1.0 - alpha))
         scales.append(s_c)
         
-    # 4. Scale activations: X_hat[:, c] = X[:, c] / s_c
     X_hat = [
         [X[i][c] / scales[c] for c in range(channels)]
         for i in range(num_tokens)
     ]
     
-    # 5. Scale weights: W_hat[c, :] = W[c, :] * s_c
     W_hat = [
         [W[c][j] * scales[c] for j in range(out_features)]
         for c in range(channels)
@@ -130,6 +120,51 @@ export const SMOOTHQUANT_EXAMPLES: ProblemExample<SmoothquantInput>[] = [
   },
 ];
 
+function createMatrixSnapshot(
+  matrix: number[][],
+  rowHeaders: string[],
+  colHeaders: string[],
+  title: string,
+  activeRow?: number,
+  activeCol?: number,
+  highlightState: "active" | "sorted" | "compared" | "pivot" = "active",
+) {
+  const rows = matrix.length;
+  const cols = matrix[0]?.length || 0;
+  const cells = [];
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let state: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive" = "default";
+      if (activeRow !== undefined && activeCol !== undefined) {
+        if (r === activeRow && c === activeCol) state = highlightState;
+      } else if (activeRow !== undefined && r === activeRow) {
+        state = highlightState;
+      } else if (activeCol !== undefined && c === activeCol) {
+        state = highlightState;
+      }
+
+      const val = matrix[r][c];
+      cells.push({
+        row: r,
+        col: c,
+        value: typeof val === "number" ? Number(val.toFixed(3)) : val,
+        state,
+      });
+    }
+  }
+
+  return {
+    kind: "matrix" as const,
+    rows,
+    cols,
+    cells,
+    rowHeaders,
+    colHeaders,
+    title,
+  };
+}
+
 export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -145,8 +180,11 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
         why: "Activations and weights must be non-empty 2D matrices.",
       },
       primarySnapshot: {
-        kind: "array",
-        elements: [],
+        kind: "matrix",
+        rows: 0,
+        cols: 0,
+        cells: [],
+        title: "Invalid Input Matrices",
       },
       auxiliaryState: { customState: { error: "Empty input matrices" } },
       variables: {},
@@ -158,58 +196,50 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
   const channels = X[0].length;
   const outFeatures = W[0].length;
 
-  const elements: ArrayElement[] = Array.from({ length: channels }, (_, idx) => ({
-    id: `channel-${idx}`,
-    value: idx,
-    state: "default",
-  }));
+  const tokenHeaders = Array.from({ length: numTokens }, (_, i) => `T${i}`);
+  const channelHeaders = Array.from({ length: channels }, (_, c) => `C${c}`);
+  const featureHeaders = Array.from({ length: outFeatures }, (_, j) => `F${j}`);
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    maxAct: number[],
-    maxWeight: number[],
-    scales: number[],
+    snapshot: ReturnType<typeof createMatrixSnapshot>,
+    customState: Record<string, string>,
     vars: Record<string, string | number | boolean>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          alpha: alpha.toFixed(2),
-          maxActPerChannel: maxAct.map((v) => v.toFixed(2)).join(", "),
-          maxWeightPerChannel: maxWeight.map((v) => v.toFixed(2)).join(", "),
-          scalingVector_s: scales.map((v) => v.toFixed(3)).join(", "),
-        },
-      },
+      primarySnapshot: snapshot,
+      auxiliaryState: { customState },
       variables: vars,
     });
   };
 
+  // Line 1: Init
   addStep(
     1,
     "Initialize SmoothQuant Outlier Mitigation",
-    `Preparing channel-wise activation/weight outlier analysis across ${channels} channels with migration alpha ${alpha}.`,
-    [],
-    [],
-    [],
+    `Preparing channel-wise activation/weight outlier analysis across ${channels} channels with migration strength alpha=${alpha}.`,
+    createMatrixSnapshot(
+      X,
+      tokenHeaders,
+      channelHeaders,
+      "Activation Matrix X [tokens x channels]",
+    ),
+    {
+      alpha: alpha.toFixed(2),
+      numTokens: String(numTokens),
+      channels: String(channels),
+      outFeatures: String(outFeatures),
+    },
     { numTokens, channels, outFeatures, alpha },
   );
 
-  // 1. Compute per-channel max activations and weights
+  // Line 10: Calculate per-channel max_act
   const maxAct: number[] = [];
-  const maxWeight: number[] = [];
-
   for (let c = 0; c < channels; c++) {
     let ma = 0;
     for (let i = 0; i < numTokens; i++) {
@@ -217,24 +247,60 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
     }
     maxAct.push(ma);
 
+    addStep(
+      10,
+      `Calculate Max Activation Magnitude for Channel ${c} (max_act[${c}])`,
+      `Scanned column channel ${c} across all ${numTokens} tokens to find peak absolute activation ${ma.toFixed(3)}.`,
+      createMatrixSnapshot(
+        X,
+        tokenHeaders,
+        channelHeaders,
+        `Activation Matrix X (Channel ${c} Column Active)`,
+        undefined,
+        c,
+        "active",
+      ),
+      {
+        channel: `C${c}`,
+        maxActVal: ma.toFixed(3),
+        maxActSoFar: maxAct.map((v) => v.toFixed(3)).join(", "),
+      },
+      { c, maxAct: Number(ma.toFixed(3)) },
+    );
+  }
+
+  // Line 15: Calculate per-channel max_weight
+  const maxWeight: number[] = [];
+  for (let c = 0; c < channels; c++) {
     let mw = 0;
     for (let j = 0; j < outFeatures; j++) {
       mw = Math.max(mw, Math.abs(W[c][j] ?? 0));
     }
     maxWeight.push(mw);
+
+    addStep(
+      15,
+      `Calculate Max Weight Magnitude for Channel ${c} (max_weight[${c}])`,
+      `Scanned row channel ${c} across all ${outFeatures} weight output features to find peak absolute weight ${mw.toFixed(3)}.`,
+      createMatrixSnapshot(
+        W,
+        channelHeaders,
+        featureHeaders,
+        `Weight Matrix W (Channel ${c} Row Active)`,
+        c,
+        undefined,
+        "active",
+      ),
+      {
+        channel: `C${c}`,
+        maxWeightVal: mw.toFixed(3),
+        maxWeightSoFar: maxWeight.map((v) => v.toFixed(3)).join(", "),
+      },
+      { c, maxWeight: Number(mw.toFixed(3)) },
+    );
   }
 
-  addStep(
-    11,
-    "Calculated Per-Channel Max Activation Magnitudes (max_act)",
-    "Analyzed max absolute activation values X_max for each feature channel.",
-    maxAct,
-    maxWeight,
-    [],
-    { channels },
-  );
-
-  // 2. Compute scaling vector s
+  // Line 20-25: Compute scaling vector s_c
   const scales: number[] = [];
   for (let c = 0; c < channels; c++) {
     const ma = Math.max(maxAct[c], 1e-5);
@@ -242,72 +308,87 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
     const sC = Math.pow(ma, alpha) / Math.pow(mw, 1.0 - alpha);
     scales.push(sC);
 
-    elements[c].state = "active";
-    elements[c].pointers = [`s_${c}=${sC.toFixed(2)}`];
+    addStep(
+      24,
+      `Compute Channel ${c} Scaling Factor s_${c}`,
+      `Calculated scale factor s_${c} = (${ma.toFixed(2)}^${alpha}) / (${mw.toFixed(2)}^${(1 - alpha).toFixed(2)}) = ${sC.toFixed(3)}.`,
+      createMatrixSnapshot(
+        [scales],
+        ["Vector s"],
+        channelHeaders,
+        "Per-Channel Scale Vector s",
+        0,
+        c,
+        "pivot",
+      ),
+      {
+        channel: `C${c}`,
+        ma: ma.toFixed(3),
+        mw: mw.toFixed(3),
+        alpha: alpha.toFixed(2),
+        s_c: sC.toFixed(3),
+      },
+      { c, ma: Number(ma.toFixed(3)), mw: Number(mw.toFixed(3)), scale: Number(sC.toFixed(3)) },
+    );
   }
 
+  // Line 27: Scale activations X_hat = X / s
+  const XHat = X.map((row) => row.map((val, c) => val / (scales[c] || 1.0)));
+
   addStep(
-    17,
-    "Calculated Per-Channel Max Weight Magnitudes (max_weight)",
-    `Analyzed max weight magnitudes W_max for each feature channel (${channels} channels, ${outFeatures} output features).`,
-    maxAct,
-    maxWeight,
-    [],
+    27,
+    "Scale Activations Down: X_hat = X / diag(s)",
+    `Dividing each activation channel c by s_c reduces peak outlier magnitudes, fitting activation range into INT8 cleanly.`,
+    createMatrixSnapshot(
+      XHat,
+      tokenHeaders,
+      channelHeaders,
+      "Smoothed Activation Matrix X_hat [tokens x channels]",
+      undefined,
+      undefined,
+      "sorted",
+    ),
+    {
+      maxOriginalAct: Math.max(...X.flat().map(Math.abs)).toFixed(3),
+      maxScaledAct: Math.max(...XHat.flat().map(Math.abs)).toFixed(3),
+    },
+    { numTokens, channels },
+  );
+
+  // Line 32: Scale weights W_hat = W * s
+  const WHat = W.map((row, c) => row.map((val) => val * (scales[c] || 1.0)));
+
+  addStep(
+    32,
+    "Scale Weights Up: W_hat = diag(s) * W",
+    `Multiplying weight row c by scale s_c absorbs activation outlier difficulty into weight channels while maintaining X_hat * W_hat == X * W.`,
+    createMatrixSnapshot(
+      WHat,
+      channelHeaders,
+      featureHeaders,
+      "Smoothed Weight Matrix W_hat [channels x outFeatures]",
+      undefined,
+      undefined,
+      "sorted",
+    ),
+    {
+      maxOriginalWeight: Math.max(...W.flat().map(Math.abs)).toFixed(3),
+      maxScaledWeight: Math.max(...WHat.flat().map(Math.abs)).toFixed(3),
+    },
     { channels, outFeatures },
   );
 
-  addStep(
-    23,
-    "Computed Diagonal Scaling Vector s",
-    `Formed scale factors s_c = (X_max^${alpha.toFixed(2)}) / (W_max^${(1 - alpha).toFixed(2)}) to divide activation spikes into weights.`,
-    maxAct,
-    maxWeight,
-    scales,
-    { alpha, totalScales: scales.length },
-  );
-
-  // 3. Transform X and W
-  const XHat = X.map((row) => row.map((val, c) => val / (scales[c] || 1.0)));
-  const WHat = W.map((row, c) => row.map((val) => val * (scales[c] || 1.0)));
-
-  elements.forEach((el) => {
-    el.state = "sorted";
-    el.pointers = undefined;
-  });
-
-  addStep(
-    31,
-    "Computed X_hat = X × diag(s)^-1 (Scale Activations Down)",
-    `X_hat divides each activation channel by s_c, reducing outlier magnitudes so INT8 quantization is clean.`,
-    maxAct,
-    maxWeight,
-    scales,
-    { tokens: numTokens, channels, maxScaledAct: Math.max(...XHat.flat().map(Math.abs)).toFixed(2) },
-  );
-
+  // Line 37: Return
   addStep(
     37,
-    "SmoothQuant Equivalent Transformation Complete: W_hat = diag(s) × W",
-    "Successfully computed X_hat = X * diag(s)^-1 and W_hat = diag(s) * W. Both matrices can now be quantized cleanly to INT8 with minimal accuracy loss.",
-    maxAct,
-    maxWeight,
-    scales,
-    {
-      tokens: numTokens,
-      channels,
-      maxScaledAct: Math.max(...XHat.flat().map(Math.abs)).toFixed(2),
-      maxScaledWeight: Math.max(...WHat.flat().map(Math.abs)).toFixed(2),
-    },
-  );
-
-  addStep(
-    42,
     "Return (scales, X_hat, W_hat)",
-    "Returning the per-channel scale vector and the equivalently-transformed activation/weight matrices.",
-    maxAct,
-    maxWeight,
-    scales,
-    { result: "scales, X_hat, W_hat" },
+    "SmoothQuant equivalent matrix transformation complete. Returning scale vector and smoothed activation/weight matrices ready for W8A8 INT8 quantization.",
+    createMatrixSnapshot([scales], ["Scales"], channelHeaders, "Final Channel Scaling Vector s"),
+    {
+      scales: `[${scales.map((s) => s.toFixed(3)).join(", ")}]`,
+      status: "complete",
+    },
+    { completed: true },
   );
 
   return steps;
@@ -316,12 +397,10 @@ export function generateSmoothquantSteps(input: SmoothquantInput): AlgorithmStep
 export const smoothquantScaling: AlgorithmDefinition<SmoothquantInput> = {
   id: "smoothquant-scaling",
   title: "SmoothQuant Activation Scaling Matrix",
-  category: "ml_precision_quantization",
+  topicIds: ["ml_precision_quantization"],
   difficulty: "Hard",
   description:
     "Mathematically shifts quantization difficulty from activation outliers to weight matrices via a per-channel diagonal scale factor s, enabling 8-bit integer (INT8) quantization for large language models.",
-  isMlInfra: true,
-  mlInfraLevel: 3,
   constraints: [
     "Migration hyperparameter alpha in [0.0, 1.0]",
     "Activations non-empty [numTokens x channels]",

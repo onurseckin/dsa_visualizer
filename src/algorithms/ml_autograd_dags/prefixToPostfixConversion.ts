@@ -7,9 +7,6 @@ export interface prefixToPostfixConversionInput {
 }
 
 export const PREFIXTOPOSTFIXCONVERSION_CODE = `def prefix_to_postfix_conversion(tokens):
-    """
-    Converts Polish prefix notation tokens to RPN postfix expression format.
-    """
     stack = []
     for token in reversed(tokens):
         if token in ["+", "-", "*", "/"]:
@@ -33,8 +30,16 @@ export const generatePrefixToPostfixConversionSteps = (
   const arrayData = input?.data || [10, 20, 30, 40, 50];
   const target = input?.target ?? 30;
 
-  // Construct a prefix expression token sequence: ["*", "+", "A", "B", "-", "C", "D"]
-  const prefixTokens: string[] = ["*", "+", String(arrayData[0] ?? 10), String(arrayData[1] ?? 20), "-", String(arrayData[2] ?? 30), String(arrayData[3] ?? 40)];
+  // Construct a prefix expression token sequence: ["*", "+", String(arrayData[0] ?? 10), String(arrayData[1] ?? 20), "-", String(arrayData[2] ?? 30), String(arrayData[3] ?? 40)]
+  const prefixTokens: string[] = [
+    "*",
+    "+",
+    String(arrayData[0] ?? 10),
+    String(arrayData[1] ?? 20),
+    "-",
+    String(arrayData[2] ?? 30),
+    String(arrayData[3] ?? 40),
+  ];
 
   const elements: ArrayElement[] = prefixTokens.map((tok, idx) => ({
     id: `p-tok-${idx}`,
@@ -75,43 +80,24 @@ export const generatePrefixToPostfixConversionSteps = (
     });
   };
 
-  // Step 1: Init Prefix to Postfix Converter
+  // Step 1: Function definition call
   addStep(
     1,
     "Initialize Prefix to Postfix Expression Converter Engine",
     "Setting up stack execution environment for right-to-left prefix token translation.",
     { tokenCount: prefixTokens.length, target, phase: "INIT_PREFIX_CONVERTER" },
     undefined,
-    { status: "INITIALIZING", stack_depth: "0" },
-  );
-
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Converts Polish prefix notation tokens to RPN postfix expression format.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
+    { status: "INITIALIZING", stack_depth: 0 },
   );
 
   // Step 2: Init stack array
   addStep(
-    5,
+    2,
     "Allocate String Stack `stack = []`",
     "Initializing stack to hold intermediate sub-expression string tokens.",
     { phase: "ALLOC_STRING_STACK" },
+    undefined,
+    { status: "STACK_READY", stack_depth: 0 },
   );
 
   // Reverse right-to-left traversal pass
@@ -121,22 +107,22 @@ export const generatePrefixToPostfixConversionSteps = (
     const isOp = ["+", "-", "*", "/"].includes(tok);
 
     const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === origIdx) return { ...el, state: "compare", pointers: [`reversed_${rIdx}`] };
+      if (i === origIdx) return { ...el, state: "compare", pointers: [`scan_${origIdx}`] };
       if (i > origIdx) return { ...el, state: "visited" };
       return el;
     });
 
     addStep(
-      6,
-      `Reversed Iteration ${rIdx}: Read Token "${tok}"`,
-      `Scanning prefix token stream right-to-left. Token at index ${origIdx} is "${tok}".`,
+      3,
+      `Reversed Loop Iteration ${rIdx}: Read Token "${tok}" at index ${origIdx}`,
+      `Scanning prefix token stream right-to-left. Token at original index ${origIdx} is "${tok}".`,
       { rIdx, origIdx, token: tok, isOperator: isOp, phase: "READ_REVERSED_TOKEN" },
       stateA,
       { activeToken: tok },
     );
 
     addStep(
-      7,
+      4,
       `Check Token Type: token in ["+", "-", "*", "/"] -> ${isOp}`,
       isOp
         ? `Token "${tok}" is an operator. Popping top two sub-expressions from stack.`
@@ -148,7 +134,7 @@ export const generatePrefixToPostfixConversionSteps = (
     if (isOp) {
       const op1 = stack.pop() || "0";
       addStep(
-        8,
+        5,
         `Pop First Sub-expression: op1 = "${op1}"`,
         `Popped left operand sub-expression "${op1}" from stack.`,
         { op1, stackDepth: stack.length, phase: "POP_OP1" },
@@ -158,7 +144,7 @@ export const generatePrefixToPostfixConversionSteps = (
 
       const op2 = stack.pop() || "0";
       addStep(
-        9,
+        6,
         `Pop Second Sub-expression: op2 = "${op2}"`,
         `Popped right operand sub-expression "${op2}" from stack.`,
         { op1, op2, stackDepth: stack.length, phase: "POP_OP2" },
@@ -176,9 +162,9 @@ export const generatePrefixToPostfixConversionSteps = (
       });
 
       addStep(
-        10,
+        7,
         `Format Postfix Sub-expression: f"{op1} {op2} {tok}" -> "${combined}"`,
-        `Combined sub-expression into postfix format "${combined}" and pushed onto stack.`,
+        `Combined sub-expressions into postfix format "${combined}" and pushed onto stack.`,
         { combined, stackDepth: stack.length, phase: "FORMAT_POSTFIX" },
         stateB,
         { stackTop: combined },
@@ -192,7 +178,7 @@ export const generatePrefixToPostfixConversionSteps = (
       });
 
       addStep(
-        12,
+        9,
         `Push Operand String onto Stack: "${tok}"`,
         `Pushed operand token "${tok}" onto stack. Stack depth now ${stack.length}.`,
         { token: tok, stackDepth: stack.length, phase: "PUSH_OPERAND" },
@@ -208,9 +194,9 @@ export const generatePrefixToPostfixConversionSteps = (
     state: "sorted",
   }));
 
-  // Step final-1: Return final postfix expression string
+  // Step final: Return final postfix expression string
   addStep(
-    13,
+    10,
     `Return Final Converted Postfix Expression: stack[0] = "${finalResult}"`,
     `Prefix to Postfix conversion complete. Resulting RPN string: "${finalResult}".`,
     { postfixResult: finalResult },
@@ -218,20 +204,11 @@ export const generatePrefixToPostfixConversionSteps = (
     { result_rpn: finalResult },
   );
 
-  // Step final: Complete
-  addStep(
-    13,
-    "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
-    { completed: true, totalSteps: stepIndex },
-    finalElements,
-  );
-
   return steps;
 };
 
 const PREFIXTOPOSTFIXCONVERSION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 11],
+  skipLines: [8],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -239,36 +216,29 @@ const PREFIXTOPOSTFIXCONVERSION_TRIVIA: TriviaMeta = {
     "stack.append(f'{token} {op1} {op2}')",
   ],
   hints: [
-    { line: 5, hint: "Initialize empty string stack." },
-    { line: 6, hint: "Iterate through input prefix tokens in reverse right-to-left order." },
-    { line: 10, hint: "Format postfix string as f'{op1} {op2} {token}' and push onto stack." },
+    { line: 2, hint: "Initialize empty string stack." },
+    { line: 3, hint: "Iterate through input prefix tokens in reverse right-to-left order." },
+    { line: 7, hint: "Format postfix string as f'{op1} {op2} {token}' and push onto stack." },
   ],
   lineExplanations: {
     1: "Defines entry point for prefix_to_postfix_conversion RPN compiler pass.",
-    2: "Docstring opening: describes Polish prefix notation to RPN postfix format conversion.",
-    3: "Docstring body: converts prefix expression tokens to RPN postfix format using a right-to-left stack traversal.",
-    4: "Docstring closing.",
-    5: "Initializes empty string list stack to hold intermediate postfix sub-expression strings.",
-    6: "Iterates through tokens in reversed right-to-left order (reversed(tokens)).",
-    7: "Checks if current token is one of the four binary operator symbols (+, -, *, /).",
-    8: "Pops top left sub-expression string op1 from stack.",
-    9: "Pops top right sub-expression string op2 from stack.",
-    10: "Formats postfix sub-expression f'{op1} {op2} {token}' and pushes result onto stack.",
-    11: "Else branch handling non-operator operand token strings.",
-    12: "Pushes operand token string directly onto stack.",
-    13: "Returns final fully assembled postfix expression string from stack[0].",
+    2: "Initializes empty string list stack to hold intermediate postfix sub-expression strings.",
+    3: "Iterates through tokens in reversed right-to-left order (reversed(tokens)).",
+    4: "Checks if current token is one of the four binary operator symbols (+, -, *, /).",
+    5: "Pops top left sub-expression string op1 from stack.",
+    6: "Pops top right sub-expression string op2 from stack.",
+    7: "Formats postfix sub-expression f'{op1} {op2} {token}' and pushes result onto stack.",
+    8: "Else branch handling non-operator operand token strings.",
+    9: "Pushes operand token string directly onto stack.",
+    10: "Returns final fully assembled postfix expression string from stack[0].",
   },
 };
 
 export const prefixToPostfixConversion: AlgorithmDefinition<prefixToPostfixConversionInput> = {
   id: "prefix-to-postfix-conversion",
   title: "Prefix to Postfix Expression Converter",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Prefix to Postfix Expression Converter
 
 In machine learning graph compilers (**PyTorch TorchScript**, **XLA IR Transpilers**, and **Syntax Tree Rewriters**), converting mathematical expressions between **Polish Prefix Notation** (operators precede operands: \`+ A B\`) and **Reverse Polish Notation (RPN Postfix)** (operators follow operands: \`A B +\`) enables stack-based execution optimization.
@@ -340,7 +310,7 @@ By converting Prefix to Postfix via a right-to-left stack pass:
     sections: [
       {
         heading: "Core Concept & Mathematical Formulation",
-        body: "Scanning prefix tokens right-to-left processes leaves before operators. Encountering operator $\\text{Op}$ pops top two operands $\\text{op1}$ and $\\text{op2}$ and pushes combined string \`f\"{op1} {op2} {Op}\"\`. Time complexity is $\\mathcal{O}(N)$.",
+        body: 'Scanning prefix tokens right-to-left processes leaves before operators. Encountering operator $\\text{Op}$ pops top two operands $\\text{op1}$ and $\\text{op2}$ and pushes combined string `f"{op1} {op2} {Op}"`. Time complexity is $\\mathcal{O}(N)$.',
       },
       {
         heading: "Practical Applications in ML Systems",

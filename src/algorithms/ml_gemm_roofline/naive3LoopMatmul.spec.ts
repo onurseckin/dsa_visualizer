@@ -9,10 +9,9 @@ import {
 describe("naive-3-loop-matmul (Naive Triply-Nested Loop GEMM O(N^3))", () => {
   it("should have correct metadata", () => {
     expect(naive3LoopMatmul.id).toBe("naive-3-loop-matmul");
-    expect(naive3LoopMatmul.isMlInfra).toBe(true);
-    expect(naive3LoopMatmul.mlInfraLevel).toBe(2);
-    expect(naive3LoopMatmul.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(naive3LoopMatmul.categories).toContain("ml_gemm_roofline");
+    expect(naive3LoopMatmul.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(naive3LoopMatmul.topicIds).toContain("ml_gemm_roofline");
+    expect(naive3LoopMatmul.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {

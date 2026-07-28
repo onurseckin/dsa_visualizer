@@ -5,14 +5,15 @@ import {
   generateMatrixMultiplicationNaiveSteps,
   matrixMultiplicationNaive,
 } from "../matrixMultiplicationNaive";
-import type { GridVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("matrixMultiplicationNaive algorithm spec", () => {
   it("should have correct ML Infra Level 1 metadata", () => {
     expect(matrixMultiplicationNaive.id).toBe("matrix-multiplication-naive");
-    expect(matrixMultiplicationNaive.isMlInfra).toBe(true);
-    expect(matrixMultiplicationNaive.mlInfraLevel).toBe(1);
-    expect(matrixMultiplicationNaive.category).toBe("ml_gemm_roofline");
+    expect(matrixMultiplicationNaive.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(matrixMultiplicationNaive.topicIds).toContain("ml_gemm_roofline");
     expect(matrixMultiplicationNaive.defaultInput).toEqual(
       DEFAULT_MATRIX_MULTIPLICATION_NAIVE_INPUT,
     );
@@ -27,13 +28,15 @@ describe("matrixMultiplicationNaive algorithm spec", () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.complete).toBe(true);
 
-    const snap = lastStep.primarySnapshot as GridVisualSnapshot;
-    expect(snap.kind).toBe("grid");
+    const snap = lastStep.primarySnapshot as MatrixVisualSnapshot;
+    expect(snap.kind).toBe("matrix");
     // Matrix C values: [[19, 22], [43, 50]]
-    expect(snap.grid[0][0].distance).toBe(19);
-    expect(snap.grid[0][1].distance).toBe(22);
-    expect(snap.grid[1][0].distance).toBe(43);
-    expect(snap.grid[1][1].distance).toBe(50);
+    const getVal = (r: number, c: number) =>
+      snap.cells.find((cell) => cell.row === r && cell.col === c)?.value;
+    expect(getVal(0, 0)).toBe(19);
+    expect(getVal(0, 1)).toBe(22);
+    expect(getVal(1, 0)).toBe(43);
+    expect(getVal(1, 1)).toBe(50);
   });
 
   it("should detect inner dimension mismatch", () => {

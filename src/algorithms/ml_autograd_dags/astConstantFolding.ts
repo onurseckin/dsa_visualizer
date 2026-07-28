@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface astConstantFoldingInput {
@@ -7,9 +12,6 @@ export interface astConstantFoldingInput {
 }
 
 export const ASTCONSTANTFOLDING_CODE = `def ast_constant_folding(expr_tree):
-    """
-    Evaluates constant expressions in AST subtrees to optimize computation DAG.
-    """
     if not isinstance(expr_tree, dict):
         return expr_tree
 
@@ -35,20 +37,42 @@ export const generateAstConstantFoldingSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
-  const target = input?.target ?? 30;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const v0 = arrayData[0] ?? 10;
+  const v1 = arrayData[1] ?? 20;
+  const v2 = arrayData[2] ?? 30;
+  const v3 = arrayData[3] ?? 40;
+
+  const leftFolded = v0 + v1;
+  const rightFolded = v2 - v3;
+  const rootFolded = leftFolded * rightFolded;
+
+  const initialNodes: GraphNodeItem[] = [
+    { id: "root", label: "*", state: "default", x: 300, y: 50 },
+    { id: "left_op", label: "+", state: "default", x: 180, y: 150 },
+    { id: "right_op", label: "-", state: "default", x: 420, y: 150 },
+    { id: "leaf_0", label: String(v0), state: "default", x: 120, y: 250 },
+    { id: "leaf_1", label: String(v1), state: "default", x: 240, y: 250 },
+    { id: "leaf_2", label: String(v2), state: "default", x: 360, y: 250 },
+    { id: "leaf_3", label: String(v3), state: "default", x: 480, y: 250 },
+  ];
+
+  const initialEdges: GraphEdgeItem[] = [
+    { from: "root", to: "left_op" },
+    { from: "root", to: "right_op" },
+    { from: "left_op", to: "leaf_0" },
+    { from: "left_op", to: "leaf_1" },
+    { from: "right_op", to: "leaf_2" },
+    { from: "right_op", to: "leaf_3" },
+  ];
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    customNodes?: GraphNodeItem[],
+    customEdges?: GraphEdgeItem[],
     customState?: Record<string, string | number>,
   ) => {
     steps.push({
@@ -56,17 +80,16 @@ export const generateAstConstantFoldingSteps = (
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "graph",
+        nodes: customNodes || initialNodes,
+        edges: customEdges || initialEdges,
       },
       auxiliaryState: {
         customState: {
-          data: `[${arrayData.join(", ")}]`,
-          target: String(target),
-          foldedCount: String(variables.foldedCount ?? 0),
+          expression: `(${v0} + ${v1}) * (${v2} - ${v3})`,
+          leftFolded: String(leftFolded),
+          rightFolded: String(rightFolded),
+          rootFolded: String(rootFolded),
           ...customState,
         },
       },
@@ -74,140 +97,428 @@ export const generateAstConstantFoldingSteps = (
     });
   };
 
-  // Step 1: Init compiler pass
+  // 1: Function Entry
   addStep(
     1,
     "Initialize AST Constant Folding Compiler Pass",
-    "Setting up recursion stack and constant propagation symbol table for graph optimization.",
-    { n: arrayData.length, target, foldedCount: 0, currentPass: "AST_ANALYSIS" },
+    "Setting up post-order recursive AST traversal to evaluate compile-time constant expressions in the computation DAG.",
+    { expr_tree: "Op(*)", phase: "INIT" },
   );
 
+  // 2: Inspect root
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Evaluates constant expressions in AST subtrees to optimize computation DAG.",
-    {},
+    "Inspect Root Node `expr_tree`",
+    "Checking whether root AST node is a primitive scalar constant or an operator dictionary node `{'op': '*', ...}`.",
+    { isDict: true, op: "*" },
   );
 
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
+  // 3: Recurse left child of root
+  const edgesStep3: GraphEdgeItem[] = initialEdges.map((e) =>
+    e.from === "root" && e.to === "left_op" ? { ...e, isTraversed: true, isPath: true } : e,
   );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
+  const nodesStep3: GraphNodeItem[] = initialNodes.map((n) =>
+    n.id === "root"
+      ? { ...n, state: "visited" }
+      : n.id === "left_op"
+        ? { ...n, state: "active" }
+        : n,
   );
-
-  // Step 2: Begin AST traversal pass
   addStep(
     5,
-    "Inspect Root AST Expression Node",
-    "Checking whether expression DAG root is a dictionary operator node or primitive constant scalar.",
-    { isDict: true, nodeType: "BinaryOp", foldedCount: 0 },
+    "Recurse into Left Subtree of Root (`+`)",
+    "Post-order traversal requires evaluating children before parent operator evaluation. Calling ast_constant_folding(expr_tree.left).",
+    { currentSubtree: "left", op: "+" },
+    nodesStep3,
+    edgesStep3,
   );
 
-  // Detailed multi-step simulation per element in arrayData
-  let foldedAccumulator = 0;
-  arrayData.forEach((val, idx) => {
-    const isTarget = val === target;
-    
-    // Sub-step A: Fetch child node
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`node=${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      8,
-      `Fetch Left Subtree Node [Index ${idx}]: value = ${val}`,
-      `Recursively traversing left child of AST node ${idx}. Evaluating constant status.`,
-      { idx, val, isConstant: typeof val === "number", phase: "EVAL_LEFT" },
-      stateA,
-      { currentNode: `Node_${idx}`, nodeVal: String(val) },
-    );
-
-    // Sub-step B: Fetch right child & operator
-    const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "active", pointers: [`node=${idx}`, "op=*"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      10,
-      `Inspect Operator for Node ${idx}: op = "${idx % 2 === 0 ? "+" : "*"}"`,
-      "Retrieving binary operator symbol. Preparing operands for constant simplification.",
-      { idx, leftVal: val, rightVal: idx * 2, op: idx % 2 === 0 ? "+" : "*", phase: "INSPECT_OP" },
-      stateB,
-      { left: String(val), right: String(idx * 2), op: idx % 2 === 0 ? "+" : "*" },
-    );
-
-    // Sub-step C: Check constant folding condition
-    addStep(
-      12,
-      `Check Foldability for Node ${idx}`,
-      "Evaluating isinstance(left, numeric) and isinstance(right, numeric). Both children are compile-time constants.",
-      { leftIsConst: true, rightIsConst: true, satisfiesRule: true, phase: "CHECK_TYPES" },
-      stateB,
-    );
-
-    // Sub-step D: Execute arithmetic fold
-    foldedAccumulator += idx % 2 === 0 ? val + idx * 2 : val * Math.max(1, idx * 2);
-    const stateD: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "sorted", value: isTarget ? val : foldedAccumulator, pointers: ["folded"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      13,
-      `Perform Constant Folding for Node ${idx}: Result = ${foldedAccumulator}`,
-      "Replacing subtree op(left, right) with pre-computed scalar constant node in the DAG.",
-      { idx, foldedVal: foldedAccumulator, foldedCount: idx + 1, phase: "FOLD_EXECUTE" },
-      stateD,
-      { foldedValue: String(foldedAccumulator) },
-    );
-
-    // Sub-step E: Replace node in AST
-    addStep(
-      17,
-      `Update AST DAG with Folded Constant Node [Index ${idx}]`,
-      "Subtree successfully replaced. Node converted from BinaryOp AST node to Literal Scalar.",
-      { idx, nodeStatus: "FOLDED_SCALAR", totalFolded: idx + 1 },
-      stateD,
-    );
-  });
-
-  // Step final-1: Final Graph Pass Verification
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  // 4: Inspect left_op
   addStep(
-    17,
-    "Verify Graph Topology After Constant Folding Pass",
-    "Verifying that all constant subtrees have been eliminated and no redundant runtime operations remain.",
-    { totalNodesFolded: arrayData.length, graphOptimized: true },
-    finalElements,
+    2,
+    "Inspect Left Subtree Node `+`",
+    "Checking whether left subtree node `+` is a primitive scalar constant or operator dictionary.",
+    { isDict: true, op: "+" },
+    nodesStep3,
+    edgesStep3,
   );
 
-  // Step final: Complete
+  // 5: Recurse into leaf_0
+  const edgesStep5: GraphEdgeItem[] = edgesStep3.map((e) =>
+    e.from === "left_op" && e.to === "leaf_0" ? { ...e, isTraversed: true, isPath: true } : e,
+  );
+  const nodesStep5: GraphNodeItem[] = nodesStep3.map((n) =>
+    n.id === "left_op"
+      ? { ...n, state: "visited" }
+      : n.id === "leaf_0"
+        ? { ...n, state: "active" }
+        : n,
+  );
   addStep(
-    17,
+    5,
+    `Recurse into Left Operand of \`+\` (\`leaf_0\` = ${v0})`,
+    "Navigating to leaf node containing scalar constant value.",
+    { currentLeaf: v0 },
+    nodesStep5,
+    edgesStep5,
+  );
+
+  // 6: Inspect leaf_0
+  const nodesStep6: GraphNodeItem[] = nodesStep5.map((n) =>
+    n.id === "leaf_0" ? { ...n, state: "compare" } : n,
+  );
+  addStep(
+    2,
+    `Inspect Leaf Node \`leaf_0\` (${v0})`,
+    "Checking type of leaf_0: it is a primitive numeric scalar constant.",
+    { isDict: false, leafVal: v0 },
+    nodesStep6,
+    edgesStep5,
+  );
+
+  // 7: Base case return leaf_0
+  const nodesStep7: GraphNodeItem[] = nodesStep5.map((n) =>
+    n.id === "leaf_0"
+      ? { ...n, state: "visited" }
+      : n.id === "left_op"
+        ? { ...n, state: "active" }
+        : n,
+  );
+  addStep(
+    3,
+    `Base Case: Return Leaf Constant ${v0}`,
+    "isinstance(leaf_0, dict) is False. Returning primitive scalar value directly to caller.",
+    { returnedVal: v0 },
+    nodesStep7,
+    edgesStep5,
+  );
+
+  // 8: Recurse into leaf_1
+  const edgesStep8: GraphEdgeItem[] = edgesStep5.map((e) =>
+    e.from === "left_op" && e.to === "leaf_1" ? { ...e, isTraversed: true, isPath: true } : e,
+  );
+  const nodesStep8: GraphNodeItem[] = nodesStep7.map((n) =>
+    n.id === "leaf_1" ? { ...n, state: "active" } : n,
+  );
+  addStep(
+    6,
+    `Recurse into Right Operand of \`+\` (\`leaf_1\` = ${v1})`,
+    "Navigating to right leaf node of addition operator.",
+    { currentLeaf: v1 },
+    nodesStep8,
+    edgesStep8,
+  );
+
+  // 9: Inspect leaf_1
+  const nodesStep9: GraphNodeItem[] = nodesStep8.map((n) =>
+    n.id === "leaf_1" ? { ...n, state: "compare" } : n,
+  );
+  addStep(
+    2,
+    `Inspect Leaf Node \`leaf_1\` (${v1})`,
+    "Checking type of leaf_1: it is a primitive numeric scalar constant.",
+    { isDict: false, leafVal: v1 },
+    nodesStep9,
+    edgesStep8,
+  );
+
+  // 10: Base case return leaf_1
+  const nodesStep10: GraphNodeItem[] = nodesStep8.map((n) =>
+    n.id === "leaf_1"
+      ? { ...n, state: "visited" }
+      : n.id === "left_op"
+        ? { ...n, state: "active" }
+        : n,
+  );
+  addStep(
+    3,
+    `Base Case: Return Leaf Constant ${v1}`,
+    "isinstance(leaf_1, dict) is False. Returning primitive scalar value directly to caller.",
+    { returnedVal: v1 },
+    nodesStep10,
+    edgesStep8,
+  );
+
+  // 11: Get operator for left_op
+  addStep(
+    7,
+    "Retrieve Operator for Left Subtree: `op = '+'`",
+    "Both child operands left and right returned. Extracting binary operator symbol '+'.",
+    { left: v0, right: v1, op: "+" },
+    nodesStep10,
+    edgesStep8,
+  );
+
+  // 12: Check type for left_op
+  const nodesStep12: GraphNodeItem[] = nodesStep10.map((n) =>
+    n.id === "left_op"
+      ? { ...n, state: "compare" }
+      : n.id === "leaf_0" || n.id === "leaf_1"
+        ? { ...n, state: "compare" }
+        : n,
+  );
+  addStep(
+    9,
+    "Validate Constant Fold Condition for Subtree `+`",
+    "Checking isinstance(left, (int, float)) and isinstance(right, (int, float)). Both operands are pre-computed scalar constants.",
+    { leftIsConst: true, rightIsConst: true, satisfiesFoldRule: true },
+    nodesStep12,
+    edgesStep8,
+  );
+
+  // 13: Fold addition
+  const nodesStep13: GraphNodeItem[] = nodesStep10.map((n) =>
+    n.id === "left_op"
+      ? { ...n, label: String(leftFolded), state: "sorted" }
+      : n.id === "leaf_0" || n.id === "leaf_1"
+        ? { ...n, state: "visited" }
+        : n,
+  );
+  addStep(
+    10,
+    `Execute Constant Fold: ${v0} + ${v1} = ${leftFolded}`,
+    "Evaluating addition at compile time. Subtree '+' collapses into a single scalar literal node in the AST.",
+    { foldedValue: leftFolded, totalFolded: 1 },
+    nodesStep13,
+    edgesStep8,
+  );
+
+  // 14: Recurse into right subtree of root
+  const edgesStep14: GraphEdgeItem[] = edgesStep8.map((e) =>
+    e.from === "root" && e.to === "right_op" ? { ...e, isTraversed: true, isPath: true } : e,
+  );
+  const nodesStep14: GraphNodeItem[] = nodesStep13.map((n) =>
+    n.id === "root"
+      ? { ...n, state: "visited" }
+      : n.id === "right_op"
+        ? { ...n, state: "active" }
+        : n,
+  );
+  addStep(
+    6,
+    "Recurse into Right Subtree of Root (`-`)",
+    "Left child of root folded to scalar constant. Now recursing into right child expression subtree 30 - 40.",
+    { currentSubtree: "right", op: "-" },
+    nodesStep14,
+    edgesStep14,
+  );
+
+  // 15: Inspect right_op
+  addStep(
+    2,
+    "Inspect Right Subtree Node `-`",
+    "Checking whether right subtree node `-` is a primitive scalar constant or operator dictionary.",
+    { isDict: true, op: "-" },
+    nodesStep14,
+    edgesStep14,
+  );
+
+  // 16: Recurse leaf_2
+  const edgesStep16: GraphEdgeItem[] = edgesStep14.map((e) =>
+    e.from === "right_op" && e.to === "leaf_2" ? { ...e, isTraversed: true, isPath: true } : e,
+  );
+  const nodesStep16: GraphNodeItem[] = nodesStep14.map((n) =>
+    n.id === "right_op"
+      ? { ...n, state: "visited" }
+      : n.id === "leaf_2"
+        ? { ...n, state: "active" }
+        : n,
+  );
+  addStep(
+    5,
+    `Recurse into Left Operand of \`-\` (\`leaf_2\` = ${v2})`,
+    "Navigating to left leaf node of subtraction operator.",
+    { currentLeaf: v2 },
+    nodesStep16,
+    edgesStep16,
+  );
+
+  // 17: Inspect leaf_2
+  const nodesStep17: GraphNodeItem[] = nodesStep16.map((n) =>
+    n.id === "leaf_2" ? { ...n, state: "compare" } : n,
+  );
+  addStep(
+    2,
+    `Inspect Leaf Node \`leaf_2\` (${v2})`,
+    "Checking type of leaf_2: it is a primitive numeric scalar constant.",
+    { isDict: false, leafVal: v2 },
+    nodesStep17,
+    edgesStep16,
+  );
+
+  // 18: Base case return leaf_2
+  const nodesStep18: GraphNodeItem[] = nodesStep16.map((n) =>
+    n.id === "leaf_2"
+      ? { ...n, state: "visited" }
+      : n.id === "right_op"
+        ? { ...n, state: "active" }
+        : n,
+  );
+  addStep(
+    3,
+    `Base Case: Return Leaf Constant ${v2}`,
+    "isinstance(leaf_2, dict) is False. Returning primitive scalar value directly to caller.",
+    { returnedVal: v2 },
+    nodesStep18,
+    edgesStep16,
+  );
+
+  // 19: Recurse leaf_3
+  const edgesStep19: GraphEdgeItem[] = edgesStep16.map((e) =>
+    e.from === "right_op" && e.to === "leaf_3" ? { ...e, isTraversed: true, isPath: true } : e,
+  );
+  const nodesStep19: GraphNodeItem[] = nodesStep18.map((n) =>
+    n.id === "leaf_3" ? { ...n, state: "active" } : n,
+  );
+  addStep(
+    6,
+    `Recurse into Right Operand of \`-\` (\`leaf_3\` = ${v3})`,
+    "Navigating to right leaf node of subtraction operator.",
+    { currentLeaf: v3 },
+    nodesStep19,
+    edgesStep19,
+  );
+
+  // 20: Inspect leaf_3
+  const nodesStep20: GraphNodeItem[] = nodesStep19.map((n) =>
+    n.id === "leaf_3" ? { ...n, state: "compare" } : n,
+  );
+  addStep(
+    2,
+    `Inspect Leaf Node \`leaf_3\` (${v3})`,
+    "Checking type of leaf_3: it is a primitive numeric scalar constant.",
+    { isDict: false, leafVal: v3 },
+    nodesStep20,
+    edgesStep19,
+  );
+
+  // 21: Base case return leaf_3
+  const nodesStep21: GraphNodeItem[] = nodesStep19.map((n) =>
+    n.id === "leaf_3"
+      ? { ...n, state: "visited" }
+      : n.id === "right_op"
+        ? { ...n, state: "active" }
+        : n,
+  );
+  addStep(
+    3,
+    `Base Case: Return Leaf Constant ${v3}`,
+    "isinstance(leaf_3, dict) is False. Returning primitive scalar value directly to caller.",
+    { returnedVal: v3 },
+    nodesStep21,
+    edgesStep19,
+  );
+
+  // 22: Get operator right_op
+  addStep(
+    7,
+    "Retrieve Operator for Right Subtree: `op = '-'`",
+    "Both child operands left and right returned. Extracting binary operator symbol '-'.",
+    { left: v2, right: v3, op: "-" },
+    nodesStep21,
+    edgesStep19,
+  );
+
+  // 23: Check type for right_op
+  const nodesStep23: GraphNodeItem[] = nodesStep21.map((n) =>
+    n.id === "right_op"
+      ? { ...n, state: "compare" }
+      : n.id === "leaf_2" || n.id === "leaf_3"
+        ? { ...n, state: "compare" }
+        : n,
+  );
+  addStep(
+    9,
+    "Validate Constant Fold Condition for Subtree `-`",
+    "Checking isinstance(left, (int, float)) and isinstance(right, (int, float)). Both operands are pre-computed scalar constants.",
+    { leftIsConst: true, rightIsConst: true, satisfiesFoldRule: true },
+    nodesStep23,
+    edgesStep19,
+  );
+
+  // 24: Fold subtraction
+  const nodesStep24: GraphNodeItem[] = nodesStep21.map((n) =>
+    n.id === "right_op"
+      ? { ...n, label: String(rightFolded), state: "sorted" }
+      : n.id === "leaf_2" || n.id === "leaf_3"
+        ? { ...n, state: "visited" }
+        : n,
+  );
+  addStep(
+    11,
+    `Execute Constant Fold: ${v2} - ${v3} = ${rightFolded}`,
+    "Evaluating subtraction at compile time. Subtree '-' collapses into a single scalar literal node in the AST.",
+    { foldedValue: rightFolded, totalFolded: 2 },
+    nodesStep24,
+    edgesStep19,
+  );
+
+  // 25: Retrieve operator for root node
+  const nodesStep25: GraphNodeItem[] = nodesStep24.map((n) =>
+    n.id === "root" ? { ...n, state: "active" } : n,
+  );
+  addStep(
+    7,
+    "Retrieve Operator for Root Node: `op = '*'`",
+    "Both child subtrees collapsed to scalars (left = " +
+      leftFolded +
+      ", right = " +
+      rightFolded +
+      "). Reading root operator '*'.",
+    { left: leftFolded, right: rightFolded, op: "*" },
+    nodesStep25,
+    edgesStep19,
+  );
+
+  // 26: Validate fold for root
+  const nodesStep26: GraphNodeItem[] = nodesStep25.map((n) =>
+    n.id === "root" || n.id === "left_op" || n.id === "right_op" ? { ...n, state: "compare" } : n,
+  );
+  addStep(
+    9,
+    "Validate Constant Fold Condition for Root Node `*`",
+    "Both evaluated child values (" +
+      leftFolded +
+      " and " +
+      rightFolded +
+      ") are numeric constants. Satisfies fold rule.",
+    { leftIsConst: true, rightIsConst: true, satisfiesFoldRule: true },
+    nodesStep26,
+    edgesStep19,
+  );
+
+  // 27: Fold root
+  const nodesStep27: GraphNodeItem[] = nodesStep24.map((n) =>
+    n.id === "root"
+      ? { ...n, label: String(rootFolded), state: "sorted" }
+      : { ...n, state: "visited" },
+  );
+  addStep(
+    12,
+    `Execute Constant Fold for Root: ${leftFolded} * ${rightFolded} = ${rootFolded}`,
+    "Evaluating multiplication at compile time. Entire AST DAG collapses into a single scalar literal " +
+      rootFolded +
+      ".",
+    { rootValue: rootFolded, totalFolded: 3, passCompleted: true },
+    nodesStep27,
+    edgesStep19,
+  );
+
+  // 28: Execution Complete
+  addStep(
+    12,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
-    { completed: true, totalSteps: stepIndex },
-    finalElements,
+    "Successfully performed post-order AST constant folding pass across all computation DAG nodes.",
+    { completed: true, result: rootFolded, totalSteps: stepIndex },
+    nodesStep27,
+    edgesStep19,
   );
 
   return steps;
 };
 
 const ASTCONSTANTFOLDING_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 7, 11, 16],
+  skipLines: [4, 8, 13],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -215,40 +526,33 @@ const ASTCONSTANTFOLDING_TRIVIA: TriviaMeta = {
     "expr_tree.left = expr_tree.right",
   ],
   hints: [
-    { line: 5, hint: "Check if node is primitive scalar constant." },
-    { line: 8, hint: "Recursively fold left subtree." },
-    { line: 12, hint: "Check if both folded children are numeric constants." },
+    { line: 2, hint: "Check if node is primitive scalar constant." },
+    { line: 5, hint: "Recursively fold left subtree." },
+    { line: 9, hint: "Check if both folded children are numeric constants." },
   ],
   lineExplanations: {
     1: "Defines entry point for ast_constant_folding recursive AST compiler pass.",
-    2: "Docstring opening: explains function purpose for constant sub-expression evaluation.",
-    3: "Docstring body: constant expressions are evaluated to optimize computation DAGs.",
-    4: "Docstring closing.",
-    5: "Base case: checks if current AST node is a leaf constant or variable (not a dict operator node).",
-    6: "Returns leaf value directly without further recursive decomposition.",
-    7: "Empty line separating base case from recursive child traversals.",
-    8: "Recursively visits left child subtree to perform post-order constant folding.",
-    9: "Recursively visits right child subtree to perform post-order constant folding.",
-    10: "Retrieves string binary operator ('+', '-', '*') from AST node dictionary.",
-    11: "Empty line separating operand retrieval from constant folding evaluation.",
-    12: "Validates if both left and right folded subtrees reduced to numeric scalar constants.",
-    13: "Folds addition node by computing scalar sum (left + right).",
-    14: "Folds subtraction node by computing scalar difference (left - right).",
-    15: "Folds multiplication node by computing scalar product (left * right).",
-    16: "Empty line before returning reconstructed non-foldable operator node.",
-    17: "Returns reconstructed AST node dictionary with simplified left and right child subtrees.",
+    2: "Base case: checks if current AST node is a primitive constant scalar (not a dict operator node).",
+    3: "Returns leaf constant scalar directly without further recursive decomposition.",
+    4: "Empty line separating base case check from recursive child node traversals.",
+    5: "Recursively visits left child subtree to evaluate and fold constant sub-expressions.",
+    6: "Recursively visits right child subtree to evaluate and fold constant sub-expressions.",
+    7: "Retrieves binary operator string ('+', '-', '*') from current AST node dictionary.",
+    8: "Empty line separating operator retrieval from constant folding type checks.",
+    9: "Validates whether both left and right folded subtrees reduced to numeric scalar constants.",
+    10: "Folds addition node by computing scalar sum (left + right).",
+    11: "Folds subtraction node by computing scalar difference (left - right).",
+    12: "Folds multiplication node by computing scalar product (left * right).",
+    13: "Empty line before returning reconstructed non-foldable operator node.",
+    14: "Returns reconstructed AST node dictionary with recursively simplified children.",
   },
 };
 
 export const astConstantFolding: AlgorithmDefinition<astConstantFoldingInput> = {
   id: "ast-constant-folding",
   title: "AST Constant Folding Compiler Pass",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### AST Constant Folding Compiler Pass
 
 In modern deep learning graph compilers (**PyTorch Inductor**, **TorchScript**, **XLA**, and **TVM**), **Constant Folding** is an essential static optimization pass executed before code generation (Triton/CUDA).
@@ -280,10 +584,10 @@ With constant folding:
     {
       kind: "basic",
       title: "Standard Autograd Pass",
-      inputDisplay: "data = [10, 20, 30], target = 30",
+      inputDisplay: "data = [10, 20, 30, 40], target = 30",
       outputDisplay: "Evaluated Graph State",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
+      input: { data: [10, 20, 30, 40], target: 30 },
+      output: "[10, 20, 30, 40]",
       explanation: "Standard execution pass over computation graph.",
     },
     {
@@ -298,10 +602,10 @@ With constant folding:
     {
       kind: "negative",
       title: "Edge Case DAG",
-      inputDisplay: "data = [5, 10, 15], target = 99",
+      inputDisplay: "data = [5, 10, 15, 20], target = 99",
       outputDisplay: "Evaluated Graph State",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
+      input: { data: [5, 10, 15, 20], target: 99 },
+      output: "[5, 10, 15, 20]",
       explanation: "Edge case handling completes safely.",
     },
   ],
@@ -361,4 +665,3 @@ With constant folding:
   defaultInput: DEFAULT_ASTCONSTANTFOLDING_INPUT,
   generateSteps: generateAstConstantFoldingSteps,
 };
-

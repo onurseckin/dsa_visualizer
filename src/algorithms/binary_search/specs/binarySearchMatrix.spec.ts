@@ -10,7 +10,7 @@ describe("binarySearchMatrix algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(binarySearchMatrix.id).toBe("binary-search-matrix");
     expect(binarySearchMatrix.title).toBe("Search a 2D Matrix");
-    expect(binarySearchMatrix.category).toBe("binary_search");
+    expect(binarySearchMatrix.topicIds).toContain("binary_search");
     expect(binarySearchMatrix.difficulty).toBe("Medium");
     expect(binarySearchMatrix.defaultInput).toEqual(DEFAULT_BINARY_SEARCH_MATRIX_INPUT);
   });

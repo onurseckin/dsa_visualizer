@@ -7,18 +7,6 @@ export interface ringNeighborRankCalculatorInput {
 }
 
 export const RINGNEIGHBORRANKCALCULATOR_CODE = `def calculate_ring_neighbors(rank, world_size, stride=1):
-    """
-    Calculates the left (predecessor) and right (successor) neighbor ranks
-    in a logical or physical communication ring topology under circular modulo arithmetic.
-
-    Args:
-        rank: Current GPU rank index (0 <= rank < world_size)
-        world_size: Total number of ranks in the ring (N)
-        stride: Optional stride multiplier for multi-ring or hierarchical topologies
-
-    Returns:
-        Tuple (left_neighbor, right_neighbor)
-    """
     if world_size <= 1:
         return (rank, rank)
 
@@ -81,8 +69,26 @@ export const generateRingNeighborRankCalculatorSteps = (
     [...elements],
   );
 
+  if (N <= 1) {
+    addStep(
+      2,
+      "Check Single Rank Guard (world_size <= 1)",
+      `world_size = ${N} <= 1. Ring topology has only one node or is empty.`,
+      { world_size: N, is_single_node: true },
+      [...elements],
+    );
+    addStep(
+      3,
+      "Return Self Tuple (rank, rank)",
+      `In a single-node topology, left and right neighbors are both rank 0.`,
+      { left_neighbor: 0, right_neighbor: 0, completed: true },
+      elements.map((el) => ({ ...el, state: "sorted" as const, pointers: ["Self-Loop"] })),
+    );
+    return steps;
+  }
+
   addStep(
-    14,
+    2,
     "Check Single Rank Guard (world_size <= 1)",
     `Validating ring world size: ${N} > 1. Proceeding with circular neighbor calculation.`,
     { world_size: N, is_single_node: false },
@@ -107,7 +113,7 @@ export const generateRingNeighborRankCalculatorSteps = (
     });
 
     addStep(
-      17,
+      5,
       `Compute Left Neighbor for Rank ${rank}: (${rank} - 1 + ${N}) % ${N} = ${left}`,
       `Evaluating circular predecessor rank under modulo arithmetic to handle rank 0 wrap-around safely.`,
       { rank, stride: 1, world_size: N, left_neighbor: left, isTarget },
@@ -115,7 +121,7 @@ export const generateRingNeighborRankCalculatorSteps = (
     );
 
     addStep(
-      18,
+      6,
       `Compute Right Neighbor for Rank ${rank}: (${rank} + 1) % ${N} = ${right}`,
       `Evaluating circular successor rank under modulo arithmetic: (${rank} + 1) % ${N} = ${right}.`,
       { rank, stride: 1, world_size: N, right_neighbor: right, isTarget },
@@ -130,8 +136,8 @@ export const generateRingNeighborRankCalculatorSteps = (
   }));
 
   addStep(
-    19,
-    "Return Predecessor and Successor Neighbor Tuple",
+    7,
+    "Return Predecessor and Successor Neighbor Tuple Mapping",
     `Successfully resolved circular neighbor rank mapping across all ${N} participating nodes.`,
     { completed: true, world_size: N },
     finalElements,
@@ -141,7 +147,7 @@ export const generateRingNeighborRankCalculatorSteps = (
 };
 
 const RINGNEIGHBORRANKCALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16],
+  skipLines: [4],
   distractors: [
     "left_neighbor = (rank - 1) % world_size",
     "right_neighbor = (rank + 1) / world_size",
@@ -150,46 +156,30 @@ const RINGNEIGHBORRANKCALCULATOR_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 17,
+      line: 5,
       hint: "Add world_size before modulo when computing left neighbor: (rank - stride + world_size) % world_size.",
     },
     {
-      line: 18,
+      line: 6,
       hint: "Compute right neighbor using circular modulo arithmetic: (rank + stride) % world_size.",
     },
   ],
   lineExplanations: {
     1: "Function signature for calculate_ring_neighbors taking rank, world_size, and optional stride.",
-    2: "Docstring start describing predecessor and successor neighbor rank calculations.",
-    3: "Describes left and right neighbor calculation in logical/physical ring topology.",
-    4: "Explains circular modulo arithmetic properties.",
-    5: "Blank line in docstring.",
-    6: "Docstring args section header.",
-    7: "Explains rank parameter representing current GPU rank index.",
-    8: "Explains world_size parameter representing total ranks in the ring (N).",
-    9: "Explains stride parameter for multi-ring or hierarchical topologies.",
-    10: "Blank line in docstring.",
-    11: "Docstring returns section header.",
-    12: "Explains return tuple of (left_neighbor, right_neighbor).",
-    13: "Docstring close.",
-    14: "Checks edge case guard if world_size is less than or equal to 1.",
-    15: "Returns self tuple (rank, rank) for single-node topologies.",
-    16: "Blank line before neighbor calculation.",
-    17: "Calculates left neighbor with positive modulo wrapping: (rank - stride + world_size) % world_size.",
-    18: "Calculates right neighbor with modulo wrapping: (rank + stride) % world_size.",
-    19: "Returns tuple (left_neighbor, right_neighbor).",
+    2: "Checks single rank guard condition (world_size <= 1).",
+    3: "Returns self tuple (rank, rank) for single-node topologies.",
+    4: "Blank line separating single-node check from neighbor rank calculations.",
+    5: "Calculates left neighbor with positive modulo wrapping: (rank - stride + world_size) % world_size.",
+    6: "Calculates right neighbor with modulo wrapping: (rank + stride) % world_size.",
+    7: "Returns tuple (left_neighbor, right_neighbor).",
   },
 };
 
 export const ringNeighborRankCalculator: AlgorithmDefinition<ringNeighborRankCalculatorInput> = {
   id: "ring-neighbor-rank-calculator",
   title: "Ring Topology Neighbor Rank Calculator",
-  category: "ml_distributed_systems",
-  categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+  topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 11,
-  mlInfraCategory: "ml_distributed_systems",
   description:
     "Calculates the immediate predecessor (left) and successor (right) GPU rank indices in a logical circular communication ring for distributed deep learning operations (e.g. PyTorch DDP, NVIDIA NCCL, DeepSpeed).\n\n### Mathematical Formulation & Modulo Wrap-Around\nIn a distributed cluster of $N$ GPU ranks numbered $0, 1, \\dots, N-1$:\n- **Right Neighbor (Successor)**:\n$$\\text{Right}(r) = (r + \\text{stride}) \\pmod N$$\n- **Left Neighbor (Predecessor)**:\n$$\\text{Left}(r) = (r - \\text{stride} + N) \\pmod N$$\n\nAdding $N$ before applying modulo when computing the left neighbor prevents negative modulo results in languages like C++/Python when rank $r=0$.\n\nIn hierarchical hardware topologies (e.g., 8-GPU nodes connected via NVLink internally and InfiniBand externally), multi-ring algorithms use non-unit strides (e.g., $\\text{stride} = 8$ for inter-node rings across corresponding GPUs) to construct distinct, non-overlapping communication rings that saturate available interconnect bandwidth.\n\nInput Format:\n- `data`: Array representing GPU rank indices or shard identifiers in the ring.\n- `target`: Optional target rank or search marker.\n\nOutput Format:\n- Returns predecessor and successor rank pairs for each node in the ring.\n\nEdge Cases & Constraints:\n- Single GPU ($N=1$): Left and right neighbors both resolve to self ($r$).\n- Rank 0 Wrap-around: Predecessor of rank 0 resolves to rank $N-1$.\n- Multi-rail Ring Strides: Strided topologies must satisfy $\\gcd(\\text{stride}, N) = 1$ or operate over coprime subgroups to form closed single rings.",
   constraints: ["1 <= data.length <= 1000", "0 <= data[i] <= 10^9"],

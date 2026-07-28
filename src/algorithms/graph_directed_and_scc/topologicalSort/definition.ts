@@ -114,8 +114,7 @@ const TOPOLOGICAL_SORT_TRIVIA: TriviaMeta = {
 export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   id: "topological-sort",
   title: "Topological Sort (Kahn's Algorithm)",
-  category: "graph_directed_and_scc",
-  categories: ["graph_directed_and_scc"],
+  topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
     "Kahn's algorithm produces a linear ordering of the vertices in a **Directed Acyclic Graph (DAG)** $G = (V, E)$ such that for every edge $u \\to v$, vertex $u$ appears before vertex $v$. It works by tracking each node's in-degree $\\text{in\\_degree}[v]$ and repeatedly dequeuing nodes with no remaining prerequisites ($\text{in\\_degree} = 0$). This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning in $\\mathcal{O}(V + E)$ time.",

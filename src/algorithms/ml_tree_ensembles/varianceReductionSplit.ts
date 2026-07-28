@@ -22,10 +22,6 @@ export const VARIANCE_REDUCTION_SPLIT_CODE = `def compute_variance(values: list[
     return sum((x - mean_val) ** 2 for x in values) / len(values)
 
 def variance_reduction_split(targets: list[float], split_index: int) -> tuple[float, float, float, float]:
-    """
-    Computes Variance Reduction split score for regression decision trees.
-    Variance Reduction = Var(Parent) - (N_left / N) * Var(Left) - (N_right / N) * Var(Right).
-    """
     left = targets[:split_index + 1]
     right = targets[split_index + 1:]
 
@@ -90,7 +86,7 @@ export const generateVarianceReductionSteps = (
       customState: {
         "Total Samples N": String(n),
         "Split Index": String(splitIndex),
-        "Status": "Initialized",
+        Status: "Initialized",
       },
     },
     variables: { n, splitIndex },
@@ -99,7 +95,7 @@ export const generateVarianceReductionSteps = (
   // Step 2: Slice left
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 12,
+    codeLine: 8,
     explanation: {
       what: `Slice Left Partition: targets[0..${splitIndex}]`,
       why: `Created left child regression partition containing ${nLeft} targets [${left.join(", ")}].`,
@@ -113,14 +109,16 @@ export const generateVarianceReductionSteps = (
         state: idx <= splitIndex ? ("visited" as ElementState) : ("default" as ElementState),
       })),
     },
-    auxiliaryState: { customState: { "Left Targets": `[${left.join(", ")}]`, "n_left": String(nLeft) } },
+    auxiliaryState: {
+      customState: { "Left Targets": `[${left.join(", ")}]`, n_left: String(nLeft) },
+    },
     variables: { n_left: nLeft },
   });
 
   // Step 3: Slice right
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 9,
     explanation: {
       what: `Slice Right Partition: targets[${splitIndex + 1}..${n - 1}]`,
       why: `Created right child regression partition containing ${nRight} targets [${right.join(", ")}].`,
@@ -138,7 +136,7 @@ export const generateVarianceReductionSteps = (
       customState: {
         "Left Targets": `[${left.join(", ")}]`,
         "Right Targets": `[${right.join(", ")}]`,
-        "n_right": String(nRight),
+        n_right: String(nRight),
       },
     },
     variables: { n_right: nRight },
@@ -147,7 +145,7 @@ export const generateVarianceReductionSteps = (
   // Compute Parent Variance step-by-step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 15,
+    codeLine: 11,
     explanation: {
       what: "Compute Parent Target Variance: Call compute_variance(targets)",
       why: "Computing mean and squared error variance for all parent targets.",
@@ -161,7 +159,7 @@ export const generateVarianceReductionSteps = (
         state: "active" as ElementState,
       })),
     },
-    auxiliaryState: { customState: { "Target": "Parent Variance" } },
+    auxiliaryState: { customState: { Target: "Parent Variance" } },
     variables: { target: "Parent" },
   });
 
@@ -174,9 +172,14 @@ export const generateVarianceReductionSteps = (
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "active" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "active" as ElementState,
+      })),
     },
-    auxiliaryState: { customState: { "Target": "Parent Variance" } },
+    auxiliaryState: { customState: { Target: "Parent Variance" } },
     variables: { fn: "compute_variance" },
   });
 
@@ -189,7 +192,12 @@ export const generateVarianceReductionSteps = (
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "active" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "active" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { "Empty Check": "False" } },
     variables: { is_empty: false },
@@ -205,7 +213,12 @@ export const generateVarianceReductionSteps = (
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "active" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "active" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { "Parent Mean": parentMean.toFixed(4) } },
     variables: { parentMean },
@@ -220,7 +233,12 @@ export const generateVarianceReductionSteps = (
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "visited" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "visited" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { "Parent Variance": parentVar.toFixed(4) } },
     variables: { parentVar },
@@ -229,7 +247,7 @@ export const generateVarianceReductionSteps = (
   // Step Left Var
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 12,
     explanation: {
       what: `Compute Left Child Target Variance: Var(Left) = ${leftVar.toFixed(4)}`,
       why: `Evaluated variance on ${nLeft} left targets [${left.join(", ")}]: Var(Left) = ${leftVar.toFixed(4)}.`,
@@ -255,7 +273,7 @@ export const generateVarianceReductionSteps = (
   // Step Right Var
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 17,
+    codeLine: 13,
     explanation: {
       what: `Compute Right Child Target Variance: Var(Right) = ${rightVar.toFixed(4)}`,
       why: `Evaluated variance on ${nRight} right targets [${right.join(", ")}]: Var(Right) = ${rightVar.toFixed(4)}.`,
@@ -279,17 +297,22 @@ export const generateVarianceReductionSteps = (
     variables: { rightVar },
   });
 
-  // Extract lengths (19..21)
+  // Extract lengths (15..17)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 19,
+    codeLine: 15,
     explanation: {
       what: `Extract Dataset Length: n = ${n}`,
       why: `Total sample count n = ${n}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "default" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { n: String(n) } },
     variables: { n },
@@ -297,14 +320,19 @@ export const generateVarianceReductionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 20,
+    codeLine: 16,
     explanation: {
       what: `Extract Left Child Length: n_left = ${nLeft}`,
       why: `Left child sample count n_left = ${nLeft}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "default" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { n_left: String(nLeft) } },
     variables: { n_left: nLeft },
@@ -312,23 +340,28 @@ export const generateVarianceReductionSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 21,
+    codeLine: 17,
     explanation: {
       what: `Extract Right Child Length: n_right = ${nRight}`,
       why: `Right child sample count n_right = ${nRight}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: targets.map((y, idx) => ({ id: `y-${idx}`, value: Math.round(y * 10), label: `y=${y}`, state: "default" as ElementState })),
+      elements: targets.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: Math.round(y * 10),
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { n_right: String(nRight) } },
     variables: { n_right: nRight },
   });
 
-  // Weighted child variance (23)
+  // Weighted child variance (19)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 23,
+    codeLine: 19,
     explanation: {
       what: `Calculate Weighted Child Variance = ${weightedChildVar.toFixed(4)}`,
       why: `Evaluated weighted child variance = (${nLeft}/${n}) * ${leftVar.toFixed(4)} + (${nRight}/${n}) * ${rightVar.toFixed(4)} = ${weightedChildVar.toFixed(4)}.`,
@@ -351,10 +384,10 @@ export const generateVarianceReductionSteps = (
     variables: { weightedChildVar },
   });
 
-  // Variance Reduction (24)
+  // Variance Reduction (20)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 24,
+    codeLine: 20,
     explanation: {
       what: `Calculate Variance Reduction = ${varianceReduction.toFixed(4)}`,
       why: `Evaluated Variance Reduction = Var(Parent) (${parentVar.toFixed(4)}) - Weighted Child Var (${weightedChildVar.toFixed(4)}) = ${varianceReduction.toFixed(4)}.`,
@@ -378,11 +411,11 @@ export const generateVarianceReductionSteps = (
     variables: { varianceReduction },
   });
 
-  // Return step (26)
+  // Return step (22)
   const finalReduction = Math.round(varianceReduction * 10000) / 10000;
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 26,
+    codeLine: 22,
     explanation: {
       what: `Execution Complete: Return Variance Reduction Summary`,
       why: `Returned tuple (Parent Var=${parentVar.toFixed(4)}, Left Var=${leftVar.toFixed(4)}, Right Var=${rightVar.toFixed(4)}, Reduction=${finalReduction}).`,
@@ -411,7 +444,7 @@ export const generateVarianceReductionSteps = (
 };
 
 const VARIANCE_REDUCTION_SPLIT_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 6, 8, 9, 10, 11, 14, 18, 22, 25],
+  skipLines: [2, 3, 6, 10, 14, 18, 21],
   distractors: [
     "variance_reduction = weighted_child_var - parent_var",
     "mean_val = sum(values)",
@@ -420,7 +453,7 @@ const VARIANCE_REDUCTION_SPLIT_TRIVIA: TriviaMeta = {
   ],
   hints: [
     { line: 4, hint: "Compute mean of target values: sum(values) / len(values)." },
-    { line: 24, hint: "Variance Reduction equation: Var(Parent) - Weighted_Child_Var." },
+    { line: 20, hint: "Variance Reduction equation: Var(Parent) - Weighted_Child_Var." },
   ],
   lineExplanations: {
     1: "Defines helper function compute_variance calculating variance of continuous values.",
@@ -430,53 +463,43 @@ const VARIANCE_REDUCTION_SPLIT_TRIVIA: TriviaMeta = {
     5: "Evaluates and returns mean squared error variance sum((x - mean)^2) / len(values).",
     6: "Blank line before main split function definition.",
     7: "Defines entry point for variance_reduction_split function.",
-    8: "Docstring opening delimiter tag.",
-    9: "Describes Variance Reduction split score computation for regression decision trees.",
-    10: "Docstring Variance Reduction formula line.",
-    11: "Docstring closing delimiter tag.",
-    12: "Slices left child target values list targets[:split_index + 1].",
-    13: "Slices right child target values list targets[split_index + 1:].",
-    14: "Blank line before variance computations.",
-    15: "Calls compute_variance on full parent targets list.",
-    16: "Calls compute_variance on left child targets list.",
-    17: "Calls compute_variance on right child targets list.",
-    18: "Blank line before sample size extraction.",
-    19: "Extracts total parent sample count n.",
-    20: "Extracts left child sample count n_left.",
-    21: "Extracts right child sample count n_right.",
-    22: "Blank line before weighted variance subtraction.",
-    23: "Calculates weighted child target variance sum: (n_left/n)*left_var + (n_right/n)*right_var.",
-    24: "Calculates Variance Reduction: parent_var - weighted_child_var.",
-    25: "Blank line before return statement.",
-    26: "Returns tuple of (parent_var, left_var, right_var, rounded variance_reduction).",
+    8: "Slices left child target values list targets[:split_index + 1].",
+    9: "Slices right child target values list targets[split_index + 1:].",
+    10: "Blank line before variance computations.",
+    11: "Calls compute_variance on full parent targets list.",
+    12: "Calls compute_variance on left child targets list.",
+    13: "Calls compute_variance on right child targets list.",
+    14: "Blank line before sample size extraction.",
+    15: "Extracts total parent sample count n.",
+    16: "Extracts left child sample count n_left.",
+    17: "Extracts right child sample count n_right.",
+    18: "Blank line before weighted variance subtraction.",
+    19: "Calculates weighted child target variance sum: (n_left/n)*left_var + (n_right/n)*right_var.",
+    20: "Calculates Variance Reduction: parent_var - weighted_child_var.",
+    21: "Blank line before return statement.",
+    22: "Returns tuple of (parent_var, left_var, right_var, rounded variance_reduction).",
   },
 };
 
 export const varianceReductionSplit: AlgorithmDefinition<VarianceReductionSplitInput> = {
-  id: "varianceReductionSplit",
+  id: "variance-reduction-split",
   title: "Variance Reduction Split Evaluator",
-  category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "advanced_range_queries"],
+  topicIds: ["ml_tree_ensembles", "advanced_range_queries"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_tree_ensembles",
   description:
     "The Variance Reduction Split Evaluator measures the reduction in continuous target variance (MSE Gain) achieved when splitting a regression decision tree node using the **CART (Regression Trees)** algorithm. In regression trees, leaf node predictions equal the sample mean $\\bar{y}$, and split quality is measured by how much the split reduces target variance across children.\n\n### Why It Exists\nRegression decision trees (DecisionTreeRegressor in Scikit-Learn, LightGBM, Gradient Boosting Regressor) fit continuous response surfaces $y \\in \\mathbb{R}$. Variance Reduction selects threshold splits that minimize Mean Squared Error (MSE), grouping similar target values into tight, low-variance clusters.\n\n### Mathematical Formulation\nFor a node containing $N$ continuous target values $y \\in \\mathbb{R}^N$ with mean $\\bar{y} = \\frac{1}{N} \\sum y_i$:\n\n$$1. \\quad \\text{Var}(\\text{Node}) = \\frac{1}{N} \\sum_{i=1}^{N} (y_i - \\bar{y})^2 \\quad (\\text{Mean Squared Error Variance})$$\n\n$$2. \\quad \\text{Weighted Child Var} = \\frac{N_L}{N} \\text{Var}(L) + \\frac{N_R}{N} \\text{Var}(R)$$\n\n$$3. \\quad \\text{Variance Reduction} = \\text{Var}(\\text{Parent}) - \\left[ \\frac{N_L}{N} \\text{Var}(L) + \\frac{N_R}{N} \\text{Var}(R) \\right]$$\n\n### Step-by-Step Intuition\n1. **Parent Variance**: Compute mean $\\bar{y}$ and variance $\\text{Var}(\\text{Parent})$ for all targets in the node.\n2. **Partition Slicing**: Divide target values into Left child $y_L = y[0..idx]$ and Right child $y_R = y[idx+1..end]$.\n3. **Child Variances**: Compute $\\text{Var}(y_L)$ and $\\text{Var}(y_R)$ independently.\n4. **Weighted Reduction**: Subtract sample-weighted average child variance from parent variance.\n\n### Key Trade-Offs & Hardware Execution\n- **Equivalence to Sum of Squares**: Minimizing Variance is mathematically equivalent to minimizing Sum of Squared Errors (SSE): $SSE = N \\cdot \\text{Var}$.\n- **Single-Pass Running Means**: Running sums $\\sum y_i$ and $\\sum y_i^2$ allow updating variance across pre-sorted split candidates in $O(1)$ time per split.",
-  constraints: [
-    "1 <= N <= 1000000",
-    "0 <= splitIndex < N",
-    "Target values are finite floats",
-  ],
+  constraints: ["1 <= N <= 1000000", "0 <= splitIndex < N", "Target values are finite floats"],
   examples: [
     {
       kind: "basic",
       title: "6-Sample Regression Target Split",
       inputDisplay: "Targets = [1.0, 1.2, 1.1, 10.0, 10.2, 9.8], Split at Index 2",
-      outputDisplay: "Parent Var = 19.3492, Left Var = 0.0067, Right Var = 0.0267, Reduction = 19.3325",
+      outputDisplay:
+        "Parent Var = 19.3492, Left Var = 0.0067, Right Var = 0.0267, Reduction = 19.3325",
       input: DEFAULT_VARIANCE_REDUCTION_INPUT,
       output: "(19.3492, 0.0067, 0.0267, 19.3325)",
-      explanation: "Splitting between 1.1 and 10.0 isolates low targets (~1.1) from high targets (~10.0), reducing target variance by 19.3325.",
+      explanation:
+        "Splitting between 1.1 and 10.0 isolates low targets (~1.1) from high targets (~10.0), reducing target variance by 19.3325.",
     },
   ],
   code: VARIANCE_REDUCTION_SPLIT_CODE,
@@ -510,19 +533,23 @@ export const varianceReductionSplit: AlgorithmDefinition<VarianceReductionSplitI
     keyTerms: [
       {
         term: "Variance Reduction",
-        definition: "MSE loss reduction achieved by splitting regression targets: Var(Parent) - Weighted_Child_Var.",
+        definition:
+          "MSE loss reduction achieved by splitting regression targets: Var(Parent) - Weighted_Child_Var.",
       },
       {
         term: "Mean Squared Error (MSE)",
-        definition: "Average squared difference between continuous target values and node sample mean.",
+        definition:
+          "Average squared difference between continuous target values and node sample mean.",
       },
       {
         term: "CART Regression Tree",
-        definition: "Regression tree model introduced by Breiman et al. fitting continuous response surfaces.",
+        definition:
+          "Regression tree model introduced by Breiman et al. fitting continuous response surfaces.",
       },
       {
         term: "Running Statistics",
-        definition: "Maintaining sum(y) and sum(y^2) to compute variance across candidate splits in O(1) time.",
+        definition:
+          "Maintaining sum(y) and sum(y^2) to compute variance across candidate splits in O(1) time.",
       },
     ],
   },

@@ -4,14 +4,15 @@ import {
   DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT,
   generateLstmConstantErrorCarouselSteps,
 } from "../lstmConstantErrorCarousel";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { VectorVisualSnapshot } from "../../../types/dsa";
 
 describe("lstmConstantErrorCarousel algorithm spec", () => {
   it("should have correct ML Infra Level 6 metadata", () => {
     expect(lstmConstantErrorCarousel.id).toBe("lstm-constant-error-carousel");
-    expect(lstmConstantErrorCarousel.isMlInfra).toBe(true);
-    expect(lstmConstantErrorCarousel.mlInfraLevel).toBe(6);
-    expect(lstmConstantErrorCarousel.categories).toContain("ml_recurrent_gates");
+    expect(lstmConstantErrorCarousel.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(lstmConstantErrorCarousel.topicIds).toContain("ml_recurrent_gates");
     expect(lstmConstantErrorCarousel.defaultInput).toEqual(
       DEFAULT_LSTM_CONSTANT_ERROR_CAROUSEL_INPUT,
     );
@@ -24,16 +25,16 @@ describe("lstmConstantErrorCarousel algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(22);
+    expect(lastStep.codeLine).toBe(18);
 
     const distTable = lastStep.auxiliaryState.distanceTable;
     expect(distTable).toBeDefined();
     expect(distTable?.["c_t[0]"]).toBeCloseTo(2.145, 2);
     expect(distTable?.["h_t[0]"]).toBeCloseTo(0.711, 2);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    expect(snap.elements.length).toBe(2);
+    const snap = lastStep.primarySnapshot as VectorVisualSnapshot;
+    expect(snap.kind).toBe("vector");
+    expect(snap.vectors.length).toBe(2);
   });
 
   it("should clear historic cell state when forget gate is zero", () => {

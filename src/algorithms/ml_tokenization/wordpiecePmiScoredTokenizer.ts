@@ -23,11 +23,6 @@ export const DEFAULT_WORDPIECE_PMI_INPUT: WordpiecePmiScoredTokenizerInput = {
 export const WORDPIECE_PMI_CODE = `import math
 
 def compute_wordpiece_pmi_scores(token_counts: dict[str, int], pair_counts: dict[str, int]) -> list[tuple[float, str]]:
-    """
-    WordPiece candidate pair selection via Pointwise Mutual Information (PMI).
-    Score(A, B) = count(A, B) / (count(A) * count(B)).
-    Selects candidate pair with highest PMI score for merging into vocabulary.
-    """
     pmi_scores = []
 
     for pair_str, pair_freq in pair_counts.items():
@@ -35,7 +30,6 @@ def compute_wordpiece_pmi_scores(token_counts: dict[str, int], pair_counts: dict
         count_a = token_counts.get(sym_a, 1)
         count_b = token_counts.get(sym_b, 1)
 
-        # WordPiece PMI likelihood ratio score formula
         pmi_score = pair_freq / (count_a * count_b)
         pmi_scores.append((round(pmi_score, 6), f"('{sym_a}', '{sym_b}')"))
 
@@ -97,7 +91,7 @@ export const generateWordpiecePmiSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 11,
+      codeLine: 10,
       explanation: {
         what: `Calculate WordPiece PMI Score for Pair ("${symA}", "${symB}")`,
         why: `PMI Score = count("${symA}","${symB}") / (count("${symA}") * count("${symB}")) = ${pairFreq} / (${countA} * ${countB}) = ${pmiScore.toFixed(
@@ -130,18 +124,16 @@ export const generateWordpiecePmiSteps = (
   // Step Final: Sorted
   pmiResults.sort((a, b) => b.score - a.score);
   const best = pmiResults[0];
+  const topPairStr = best ? best.pairStr.replace(",", " + ") : "N/A";
+  const topPairFormatted = best ? `("${best.pairStr.replace(",", `", "`)}")` : "N/A";
+  const topScoreStr = best ? best.score.toFixed(6) : "0.000000";
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 13,
     explanation: {
-      what: `WordPiece Pair Selection Complete: Top Pair ${best?.pairStr.replace(",", "+")} (Score = ${best?.score.toFixed(
-        6,
-      )})`,
-      why: `Selected highest PMI pair ("${best?.pairStr.replace(
-        ",",
-        `", "`,
-      )}") for inclusion in WordPiece vocabulary. Maximum mutual likelihood ratio achieved.`,
+      what: `WordPiece Pair Selection Complete: Top Pair ${topPairStr} (Score = ${topScoreStr})`,
+      why: `Selected highest PMI pair ${topPairFormatted} for inclusion in WordPiece vocabulary. Maximum mutual likelihood ratio achieved.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -155,26 +147,22 @@ export const generateWordpiecePmiSteps = (
     },
     auxiliaryState: {
       customState: {
-        topPair: `("${best?.pairStr.replace(",", `", "`)}")`,
-        topPmiScore: best?.score.toFixed(6),
+        topPair: topPairFormatted,
+        topPmiScore: topScoreStr,
         status: "Completed",
       },
     },
-    variables: { bestPair: best?.pairStr, topScore: best?.score, complete: true },
+    variables: { bestPair: best?.pairStr ?? "N/A", topScore: best?.score ?? 0, complete: true },
   });
 
   return steps;
 };
 
 export const wordpiecePmiScoredTokenizer: AlgorithmDefinition<WordpiecePmiScoredTokenizerInput> = {
-  id: "wordpiecePmiScoredTokenizer",
+  id: "wordpiece-pmi-scored-tokenizer",
   title: "WordPiece PMI-Scored Tokenizer Engine",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization"],
+  topicIds: ["ml_tokenization"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Executes candidate pair scoring for WordPiece tokenization (Schuster & Nakajima 2012 / Devlin et al. BERT 2018). Unlike BPE which selects pairs based purely on raw co-occurrence frequency count(A, B), WordPiece maximizes Pointwise Mutual Information (PMI) Score(A, B) = count(A, B) / (count(A) * count(B)), prioritizing pairs whose constituents appear together more frequently than expected by chance.\n\nInput Format:\n- tokenCounts: Dictionary mapping individual subword tokens to unigram frequencies.\n- pairCounts: Dictionary mapping pair string 'A,B' to co-occurrence frequency counts.\n\nOutput Format:\n- Returns sorted list of (pmiScore, pairString) candidates in descending order.",
   constraints: ["tokenCounts contains non-zero unigram frequency counts for constituents."],

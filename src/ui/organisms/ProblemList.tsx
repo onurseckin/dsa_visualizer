@@ -1,25 +1,25 @@
 import React from "react";
-import { CategoryType } from "../../types/dsa";
+import { TopicId } from "../../types/dsa";
 import { useProblemListState } from "../../components/problem-list/hooks/useProblemListState";
 import { ProblemListFilterToolbar } from "./ProblemListFilterToolbar";
 import { ProblemTable } from "./ProblemTable";
 
 interface ProblemListProps {
-  onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
-  category?: CategoryType | "All";
-  onCategoryChange?: (category: CategoryType | "All") => void;
+  onSelectAlgorithm: (algorithmId: string) => void;
+  topic?: TopicId | "All";
+  onTopicChange?: (topic: TopicId | "All") => void;
 }
 
 export const ProblemList: React.FC<ProblemListProps> = ({
   onSelectAlgorithm,
-  category,
-  onCategoryChange,
+  topic,
+  onTopicChange,
 }) => {
   const {
     searchTerm,
     setSearchTerm,
-    selectedCategory,
-    handleCategorySelect,
+    selectedTopic,
+    handleTopicSelect,
     selectedDifficulty,
     setSelectedDifficulty,
     selectedSource,
@@ -33,7 +33,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     setCurrentPage,
     totalPages,
     ITEMS_PER_PAGE,
-  } = useProblemListState({ category: category ?? "All", onCategoryChange });
+  } = useProblemListState({ topic: topic ?? "All", onTopicChange });
 
   return (
     <main
@@ -50,8 +50,8 @@ export const ProblemList: React.FC<ProblemListProps> = ({
       <ProblemListFilterToolbar
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
-        selectedCategory={selectedCategory}
-        onCategorySelect={handleCategorySelect}
+        selectedTopic={selectedTopic}
+        onTopicSelect={handleTopicSelect}
         selectedDifficulty={selectedDifficulty}
         onDifficultySelect={setSelectedDifficulty}
         selectedSource={selectedSource}

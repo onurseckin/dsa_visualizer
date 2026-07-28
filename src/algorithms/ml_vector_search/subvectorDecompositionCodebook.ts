@@ -1,4 +1,10 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorVisualSnapshot,
+  VectorItem,
+  QuantizationVisualSnapshot,
+} from "../../types/dsa";
 
 export interface SubvectorDecompositionCodebookInput {
   vector: number[];
@@ -27,11 +33,6 @@ def l2_distance_sq(v1: list[float], v2: list[float]) -> float:
     return sum((a - b) ** 2 for a, b in zip(v1, v2))
 
 def subvector_decomposition_quantize(vector: list[float], subvector_dim: int, codebooks: list[list[list[float]]]) -> list[int]:
-    """
-    Product Quantization (PQ) vector encoding.
-    Splits input vector of dimension D into M subvectors of dimension subvector_dim.
-    Quantizes each subvector to its closest centroid in subbook m, returning byte codes.
-    """
     num_subvectors = len(vector) // subvector_dim
     quantized_codes = []
 
@@ -61,23 +62,78 @@ export const generateSubvectorDecompositionSteps = (
   const l2DistSq = (v1: number[], v2: number[]) =>
     v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0);
 
+  const makeVectorSnapshot = (
+    subvectorIdx: number,
+    subvec: number[],
+    currentK: number | null,
+    bestK: number | null,
+    title: string,
+  ): VectorVisualSnapshot => {
+    const vectors: VectorItem[] = [];
+
+    vectors.push({
+      id: `subvec-${subvectorIdx}`,
+      label: `Subvec ${subvectorIdx}`,
+      x: subvec[0] ?? 0,
+      y: subvec[1] ?? 0,
+      state: "active",
+      subText: `[${subvec.map((v) => v.toFixed(2)).join(", ")}]`,
+    });
+
+    if (codebooks[subvectorIdx]) {
+      codebooks[subvectorIdx].forEach((cent, k) => {
+        let state: VectorItem["state"] = "default";
+        if (k === currentK) {
+          state = "compared";
+        } else if (k === bestK) {
+          state = "result";
+        } else {
+          state = "inactive";
+        }
+
+        vectors.push({
+          id: `cent-${subvectorIdx}-${k}`,
+          label: `Centroid ${k}`,
+          x: cent[0] ?? 0,
+          y: cent[1] ?? 0,
+          state,
+          subText: `[${cent.map((v) => v.toFixed(2)).join(", ")}]`,
+        });
+      });
+    }
+
+    return {
+      kind: "vector",
+      planeTitle: title,
+      vectors,
+    };
+  };
+
   // Step 0: Init
+  const initVectors: VectorItem[] = [];
+  for (let m = 0; m < numSubvectors; m++) {
+    const sv = vector.slice(m * subvectorDim, (m + 1) * subvectorDim);
+    initVectors.push({
+      id: `init-subvec-${m}`,
+      label: `Subvec ${m}`,
+      x: sv[0] ?? 0,
+      y: sv[1] ?? 0,
+      state: "default",
+      subText: `[${sv.map((v) => v.toFixed(2)).join(", ")}]`,
+    });
+  }
+
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 7,
     explanation: {
-      what: `Initialize Product Quantization (PQ) Subvector Decomposition`,
-      why: `Vector dimension D = ${vector.length}, splitting into M = ${numSubvectors} subvectors of dimension d_sub = ${subvectorDim}.`,
+      what: `Initialize Product Quantization (PQ) Vector Encoding`,
+      why: `Input vector of dim D = ${vector.length} is decomposed into M = ${numSubvectors} subvectors of dimension d_sub = ${subvectorDim}. Initializing empty output array quantized_codes = [].`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: vector.map((val, idx) => ({
-        id: `v-${idx}`,
-        value: val,
-        label: `x[${idx}]`,
-        state: "default" as ElementState,
-        pointers: idx % subvectorDim === 0 ? [`Subvector ${Math.floor(idx / subvectorDim)}`] : [],
-      })),
+      kind: "vector",
+      planeTitle: `PQ Vector Subspace Decomposition (D=${vector.length}, M=${numSubvectors})`,
+      vectors: initVectors,
     },
     auxiliaryState: {
       customState: {
@@ -97,12 +153,90 @@ export const generateSubvectorDecompositionSteps = (
     let bestCode = -1;
     let minDSq = Infinity;
 
-    for (let k = 0; k < codebooks[m].length; k++) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 11,
+      explanation: {
+        what: `Extract Subvector m=${m}: [${subvec.join(", ")}]`,
+        why: `Sliced vector indices [${m * subvectorDim} : ${(m + 1) * subvectorDim}]. Preparing to search Codebook ${m} (${codebooks[m]?.length ?? 0} centroids) for nearest match.`,
+      },
+      primarySnapshot: makeVectorSnapshot(
+        m,
+        subvec,
+        null,
+        null,
+        `Subspace m=${m}: Extracted Subvector [${subvec.join(", ")}]`,
+      ),
+      auxiliaryState: {
+        customState: {
+          activeSubvector: `Subvector ${m} [${subvec.join(", ")}]`,
+          bestCode: "None",
+          minDistSq: "Infinity",
+          codesSoFar: `[${codes.join(", ")}]`,
+        },
+      },
+      variables: { m, subvectorDim },
+    });
+
+    for (let k = 0; k < (codebooks[m]?.length ?? 0); k++) {
       const cent = codebooks[m][k];
       const dSq = l2DistSq(subvec, cent);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 16,
+        explanation: {
+          what: `Compute L2 Distance Sq: Subvector ${m} to Centroid ${k}`,
+          why: `Calculated squared distance ||subvec - C_${m}[${k}]||^2 = ${dSq.toFixed(4)} between [${subvec.join(", ")}] and Centroid ${k} [${cent.join(", ")}].`,
+        },
+        primarySnapshot: makeVectorSnapshot(
+          m,
+          subvec,
+          k,
+          bestCode >= 0 ? bestCode : null,
+          `Subspace m=${m}: Comparing Centroid ${k} (dist_sq = ${dSq.toFixed(4)})`,
+        ),
+        auxiliaryState: {
+          customState: {
+            activeSubvector: `Subvector ${m} [${subvec.join(", ")}]`,
+            testingCentroid: `Centroid ${k} [${cent.join(", ")}]`,
+            distSq: dSq.toFixed(4),
+            currentMinDistSq: minDSq === Infinity ? "inf" : minDSq.toFixed(4),
+            bestCode: bestCode >= 0 ? String(bestCode) : "None",
+          },
+        },
+        variables: { m, k_idx: k, dist_sq: Math.round(dSq * 1000) / 1000 },
+      });
+
       if (dSq < minDSq) {
+        const prevMin = minDSq;
         minDSq = dSq;
         bestCode = k;
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 18,
+          explanation: {
+            what: `Found Closer Centroid: Update best_code = ${bestCode} (dist_sq = ${minDSq.toFixed(4)})`,
+            why: `Squared distance ${minDSq.toFixed(4)} is strictly less than previous minimum ${prevMin === Infinity ? "infinity" : prevMin.toFixed(4)}. Updated best_code to ${bestCode}.`,
+          },
+          primarySnapshot: makeVectorSnapshot(
+            m,
+            subvec,
+            null,
+            bestCode,
+            `Subspace m=${m}: Updated Best Centroid -> Code ${bestCode}`,
+          ),
+          auxiliaryState: {
+            customState: {
+              activeSubvector: `Subvector ${m} [${subvec.join(", ")}]`,
+              bestCentroid: `Centroid ${bestCode} [${cent.join(", ")}]`,
+              minDistSq: minDSq.toFixed(4),
+              codesSoFar: `[${codes.join(", ")}]`,
+            },
+          },
+          variables: { m, best_code: bestCode, min_dist_sq: Math.round(minDSq * 1000) / 1000 },
+        });
       }
     }
 
@@ -110,65 +244,54 @@ export const generateSubvectorDecompositionSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 14,
+      codeLine: 21,
       explanation: {
-        what: `Quantize Subvector ${m} [${subvec.join(", ")}] -> Assigned Centroid ${bestCode}`,
-        why: `Subvector ${m} matches closest codebook centroid ${bestCode} [${codebooks[m][
-          bestCode
-        ].join(", ")}] (squared dist = ${minDSq.toFixed(3)}). Assigned code index ${bestCode}.`,
+        what: `Quantize Subvector ${m} -> Quantized Code Index ${bestCode}`,
+        why: `Completed codebook search for subvector ${m}. Assigned discrete byte code ${bestCode}. Appended ${bestCode} to quantized_codes array.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: vector.map((v, idx) => {
-          const isSub = Math.floor(idx / subvectorDim) === m;
-          return {
-            id: `v-${idx}`,
-            value: v,
-            label: `x[${idx}]`,
-            state: isSub
-              ? ("active" as ElementState)
-              : Math.floor(idx / subvectorDim) < m
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-            pointers: isSub ? [`Code ${bestCode}`] : [],
-          };
-        }),
-      },
+      primarySnapshot: makeVectorSnapshot(
+        m,
+        subvec,
+        null,
+        bestCode,
+        `Subspace m=${m}: Quantized to Code ${bestCode}`,
+      ),
       auxiliaryState: {
         customState: {
-          activeSubvector: `Subvector ${m} [${subvec.join(", ")}]`,
-          assignedCentroid: `Centroid ${bestCode} [${codebooks[m][bestCode].join(", ")}]`,
-          minSquaredDist: minDSq.toFixed(3),
+          quantizedSubvector: `Subvector ${m} -> Code ${bestCode}`,
           quantizedCodesSoFar: `[${codes.join(", ")}]`,
         },
       },
-      variables: { subvector: m, code: bestCode, minDSq: Math.round(minDSq * 100) / 100 },
+      variables: { m, bestCode, codes: codes.join(", ") },
     });
   }
 
-  // Step Final: Complete
+  const quantizationSnapshot: QuantizationVisualSnapshot = {
+    kind: "quantization",
+    title: "Product Quantization Complete: Codebook Indices",
+    originalValue: `[${vector.join(", ")}]`,
+    quantizedValue: `[${codes.join(", ")}]`,
+    bits: codes.map((c, idx) => ({
+      index: idx,
+      label: `Subvec ${idx}`,
+      value: `Code ${c}`,
+      state: "quantized",
+    })),
+  };
+
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 20,
+    codeLine: 23,
     explanation: {
-      what: `Product Quantization Complete: Compressed Code [${codes.join(", ")}]`,
-      why: `Vector [${vector.join(", ")}] encoded into ${codes.length}-byte discrete code array [${codes.join(
-        ", ",
-      )}]. Storage compressed from float32 array to byte indices.`,
+      what: `Product Quantization Complete: Output Code Array [${codes.join(", ")}]`,
+      why: `Continuous ${vector.length}-dim float32 vector compressed into ${codes.length}-element byte index code array [${codes.join(", ")}].`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: codes.map((c, idx) => ({
-        id: `code-${idx}`,
-        value: c,
-        label: `Subvector ${idx} Code: ${c}`,
-        state: "sorted" as ElementState,
-      })),
-    },
+    primarySnapshot: quantizationSnapshot,
     auxiliaryState: {
       customState: {
         compressedCodes: `[${codes.join(", ")}]`,
         originalVector: `[${vector.join(", ")}]`,
+        compressionRatio: `${(vector.length * 4) / codes.length}x`,
         status: "Completed",
       },
     },
@@ -180,14 +303,10 @@ export const generateSubvectorDecompositionSteps = (
 
 export const subvectorDecompositionCodebook: AlgorithmDefinition<SubvectorDecompositionCodebookInput> =
   {
-    id: "subvectorDecompositionCodebook",
+    id: "subvector-decomposition-codebook",
     title: "Product Quantization Subvector Decomposition & Codebook Encoding",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search", "ml_precision_quantization"],
+    topicIds: ["ml_vector_search", "ml_precision_quantization"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "Product Quantization (PQ, Jegou et al. 2011) vector encoding engine. Splits a high-dimensional vector x in R^D into M lower-dimensional subvectors in R^(D/M). Maps each subvector to its nearest codebook centroid, compressing a floating-point vector into M 1-byte integer codebook indices.\n\nInput Format:\n- vector: Continuous floating-point vector of dimension D.\n- subvectorDim: Dimension d_sub = D / M of each subvector.\n- codebooks: M subvector codebooks containing K_sub centroids.\n\nOutput Format:\n- Returns array of M quantized integer code indices `[c_0, c_1, ..., c_{M-1}]`.\n\nEdge Cases & Constraints:\n- subvectorDim must evenly divide vector length D.",
     constraints: [

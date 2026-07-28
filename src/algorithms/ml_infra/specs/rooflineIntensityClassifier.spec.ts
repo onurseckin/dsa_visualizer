@@ -8,9 +8,10 @@ import {
 describe("rooflineIntensityClassifier algorithm definition", () => {
   it("has valid metadata and ML Infra markers", () => {
     expect(rooflineIntensityClassifier.id).toBe("roofline-intensity-classifier");
-    expect(rooflineIntensityClassifier.category).toBe("ml_gemm_roofline");
-    expect(rooflineIntensityClassifier.isMlInfra).toBe(true);
-    expect(rooflineIntensityClassifier.mlInfraLevel).toBe(1);
+    expect(rooflineIntensityClassifier.topicIds).toContain("ml_gemm_roofline");
+    expect(rooflineIntensityClassifier.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
     expect(rooflineIntensityClassifier.sources?.[0].type).toBe("ml_infra");
   });
 

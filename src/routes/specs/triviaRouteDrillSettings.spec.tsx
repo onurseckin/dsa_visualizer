@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
@@ -27,7 +27,9 @@ const renderTriviaRoute = async () => {
     history: createMemoryHistory({ initialEntries: ["/trivia"] }),
   });
   const res = render(<RouterProvider router={router} />);
-  await router.load();
+  await act(async () => {
+    await router.load();
+  });
   return res;
 };
 
@@ -92,12 +94,12 @@ describe("/trivia route drill settings", () => {
       deck: ["bubble-sort"],
       mode: "choice",
       minBlanks: 1,
-      maxBlanks: 1,
+      maxBlanks: 2,
       includeDistractors: false,
     };
     const finishedProgress: TriviaProgress = {
-      level: 1,
-      drilled: { "bubble-sort": { "1": allBlankable } },
+      level: 2,
+      drilled: { "bubble-sort": { "2": allBlankable } },
       stats: {},
       completed: true,
       roundsPlayed: allBlankable.length,
@@ -110,14 +112,14 @@ describe("/trivia route drill settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Adjust settings to keep going" }));
     expect(await screen.findByText("Build your deck")).toBeInTheDocument();
 
-    const beforeDrilled = readActiveSessionRecord().progress.drilled["bubble-sort"]?.["1"] ?? [];
+    const beforeDrilled = readActiveSessionRecord().progress.drilled["bubble-sort"]?.["2"] ?? [];
 
-    fireEvent.change(screen.getByLabelText("Hardest level"), { target: { value: "2" } });
-    await waitFor(() => expect(readActiveSessionRecord().config.maxBlanks).toBe(2));
+    fireEvent.change(screen.getByLabelText("Hardest level"), { target: { value: "3" } });
+    await waitFor(() => expect(readActiveSessionRecord().config.maxBlanks).toBe(3));
 
     const revived = readActiveSessionRecord();
     expect(revived.progress.completed).toBe(false);
-    expect(revived.progress.drilled["bubble-sort"]?.["1"]).toEqual(beforeDrilled);
+    expect(revived.progress.drilled["bubble-sort"]?.["2"]).toEqual(beforeDrilled);
 
     fireEvent.click(screen.getByRole("button", { name: "Start drilling" }));
     expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();

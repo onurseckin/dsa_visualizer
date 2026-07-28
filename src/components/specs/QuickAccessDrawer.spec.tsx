@@ -9,17 +9,17 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("renders title, counts subtitle, autofocused search, and collapsed categories", () => {
+  it("renders title, counts subtitle, autofocused search, and collapsed topics", () => {
     render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Algorithms" })).toBeInTheDocument();
-    expect(screen.getByText(/algorithms across \d+ categories/i)).toBeInTheDocument();
+    expect(screen.getByText(/algorithms across \d+ topics/i)).toBeInTheDocument();
 
     const searchInput = screen.getByLabelText("Search algorithms");
     expect(searchInput).toHaveFocus();
 
-    // No active algorithm: every category starts collapsed, so no rows are visible.
+    // No active algorithm: every topic starts collapsed, so no rows are visible.
     expect(screen.getByRole("button", { name: /1\. Arrays & Hashing/i })).toHaveAttribute(
       "aria-expanded",
       "false",
@@ -27,7 +27,7 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(screen.queryByText("Two Sum")).not.toBeInTheDocument();
   });
 
-  it("expands a collapsed category on header click to reveal its rows", () => {
+  it("expands a collapsed topic on header click to reveal its rows", () => {
     render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
 
     const header = screen.getByRole("button", { name: /1\. Arrays & Hashing/i });
@@ -38,7 +38,7 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(screen.getAllByText("Easy").length).toBeGreaterThan(0);
   });
 
-  it("opens only the active algorithm category by default and marks its row selected", () => {
+  it("opens only the active algorithm topic by default and marks its row selected", () => {
     render(
       <QuickAccessDrawer
         isOpen={true}
@@ -62,20 +62,27 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(screen.queryByText(/Dijkstra's Shortest Path Algorithm/i)).not.toBeInTheDocument();
   });
 
-  it("search auto-expands matching categories and hides the rest", () => {
+  it("search keeps every matching topic and auto-expands it", () => {
     render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText("Search algorithms"), {
       target: { value: "dijkstra" },
     });
 
-    // Match's category renders force-open, its row visible without any manual toggle.
+    // The matching topic renders force-open, with its row visible without manual toggling.
     expect(screen.getByRole("button", { name: /13\. Graph Shortest Paths/i })).toHaveAttribute(
       "aria-expanded",
       "true",
     );
     expect(screen.getByText(/Dijkstra's Shortest Path Algorithm/i)).toBeInTheDocument();
-    expect(screen.queryByText(/1\. Arrays & Hashing/i)).not.toBeInTheDocument();
+
+    // Valid Neighbor Grid Bounds belongs to Arrays & Hashing and mentions Dijkstra in its
+    // searchable description, so that topic is also a real match rather than stale UI state.
+    expect(screen.getByRole("button", { name: /1\. Arrays & Hashing/i })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getAllByText("Valid 2D Grid Neighbor Bounds Check")).toHaveLength(2);
   });
 
   it("shows an empty state when no algorithm matches the search", () => {
@@ -88,7 +95,7 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(screen.getByText(/No algorithms match/i)).toBeInTheDocument();
   });
 
-  it("invokes onSelectAlgorithm with id and category, then onClose, when a row is clicked", () => {
+  it("invokes onSelectAlgorithm with the canonical id, then closes, when a row is clicked", () => {
     const handleSelect = vi.fn();
     const handleClose = vi.fn();
 
@@ -101,11 +108,11 @@ describe("QuickAccessDrawer Component Spec", () => {
     });
     fireEvent.click(screen.getByText(/Dijkstra's Shortest Path Algorithm/i));
 
-    expect(handleSelect).toHaveBeenCalledWith("dijkstra-shortest-path", "graph_shortest_paths");
+    expect(handleSelect).toHaveBeenCalledWith("dijkstra-shortest-path");
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it("gives every category section a visible border against the drawer surface", () => {
+  it("gives every topic section a visible border against the drawer surface", () => {
     render(<QuickAccessDrawer isOpen={true} onClose={vi.fn()} onSelectAlgorithm={vi.fn()} />);
 
     // The drawer portals out of the render container, so query the document.
@@ -159,7 +166,7 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(handleClose).toHaveBeenCalledTimes(3);
   });
 
-  it("collapses an open category when clicked again when not searching", () => {
+  it("collapses an open topic when clicked again when not searching", () => {
     render(
       <QuickAccessDrawer
         isOpen={true}
@@ -193,7 +200,7 @@ describe("QuickAccessDrawer Component Spec", () => {
       {
         id: "no-diff",
         title: "No Diff Alg",
-        category: "arrays_and_hashing",
+        topicIds: ["arrays_and_hashing"],
         description: "No diff desc",
         constraints: [],
         examples: [],

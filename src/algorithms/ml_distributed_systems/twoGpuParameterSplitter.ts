@@ -7,16 +7,6 @@ export interface twoGpuParameterSplitterInput {
 }
 
 export const TWOGPUPARAMETERSPLITTER_CODE = `def split_model_parameters_2gpu(layer_weights, split_ratio=0.5):
-    """
-    Splits neural network layers across 2 GPUs for pipeline parallelism or model sharding.
-
-    Args:
-        layer_weights: List of layer parameter counts or weight sizes
-        split_ratio: Target fraction of parameters allocated to GPU 0 (default 0.5)
-
-    Returns:
-        Tuple (gpu0_layers, gpu1_layers) containing parameter lists for each device.
-    """
     total_layers = len(layer_weights)
     if total_layers == 0:
         return ([], [])
@@ -73,7 +63,6 @@ export const generateTwoGpuParameterSplitterSteps = (
 
   const totalLayers = input.data.length;
   const splitRatio = 0.5;
-  const splitIdx = Math.max(1, Math.min(totalLayers - 1, Math.floor(totalLayers * splitRatio)));
 
   addStep(
     1,
@@ -83,64 +72,104 @@ export const generateTwoGpuParameterSplitterSteps = (
   );
 
   addStep(
-    12,
+    2,
     `Compute Total Layers count = ${totalLayers}`,
     `Loaded ${totalLayers} neural network layers for pipeline stage assignment.`,
     { total_layers: totalLayers },
   );
 
   addStep(
-    13,
+    3,
     `Check Empty Layers Guard (total_layers == 0)`,
-    `Total layers = ${totalLayers} > 0, continuing execution.`,
-    { total_layers: totalLayers, is_empty: false },
+    totalLayers === 0
+      ? "Total layers = 0, taking empty return path."
+      : `Total layers = ${totalLayers} > 0, continuing execution.`,
+    { total_layers: totalLayers, is_empty: totalLayers === 0 },
   );
 
+  if (totalLayers === 0) {
+    addStep(
+      4,
+      "Return Empty Partitions ([], [])",
+      "No layers provided; returning empty parameter sublists for both GPUs.",
+      { total_layers: 0, completed: true },
+    );
+    return steps;
+  }
+
+  const splitIdx = Math.max(1, Math.min(totalLayers - 1, Math.floor(totalLayers * splitRatio)));
+
   addStep(
-    16,
+    6,
     `Calculate Split Index split_idx = ${splitIdx}`,
     `Applying split_ratio = 0.5 to total_layers = ${totalLayers}: split_idx = max(1, min(${totalLayers - 1}, int(${totalLayers} * 0.5))) = ${splitIdx}.`,
     { split_idx: splitIdx, total_layers: totalLayers, split_ratio: splitRatio },
   );
 
   let gpu0Sum = 0;
-  let gpu1Sum = 0;
-
-  input.data.forEach((val, idx) => {
-    const isGpu0 = idx < splitIdx;
-    if (isGpu0) gpu0Sum += val;
-    else gpu1Sum += val;
-
+  for (let idx = 0; idx < splitIdx; idx++) {
+    const val = input.data[idx];
+    gpu0Sum += val;
     const isTarget = val === input.target;
+
     const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
+      if (i === idx) {
         return {
           ...el,
-          state: isTarget ? ("active" as const) : ("compare" as const),
-          pointers: [`Layer_${idx}`, isGpu0 ? "GPU 0" : "GPU 1"],
+          state: isTarget ? ("active" as const) : ("visited" as const),
+          pointers: [`Layer_${idx}`, "GPU 0"],
         };
+      }
       if (i < idx) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      17,
-      `Assign Layer ${idx} (${val} MB parameters) to GPU ${isGpu0 ? 0 : 1}`,
-      `Evaluating pipeline layer placement index ${idx} relative to split pivot ${splitIdx}. Running parameter sum: GPU 0 = ${gpu0Sum} MB, GPU 1 = ${gpu1Sum} MB.`,
-      { idx, layer_size: val, assigned_gpu: isGpu0 ? 0 : 1, isTarget, gpu0Sum, gpu1Sum },
+      7,
+      `Assign Layer ${idx} (${val} MB parameters) to GPU 0`,
+      `Evaluating pipeline layer placement index ${idx} (< split_idx ${splitIdx}). Running GPU 0 parameter sum: ${gpu0Sum} MB.`,
+      { idx, layer_size: val, assigned_gpu: 0, isTarget, gpu0Sum },
       currentElements,
     );
-  });
+  }
 
   addStep(
-    17,
+    7,
     `Slice GPU 0 Parameter Sublist [0..${splitIdx - 1}]`,
     `Extracted ${splitIdx} layers containing total parameter payload of ${gpu0Sum} MB for GPU 0.`,
     { split_idx: splitIdx, gpu0_layers_count: splitIdx, gpu0_total_mb: gpu0Sum },
   );
 
+  let gpu1Sum = 0;
+  for (let idx = splitIdx; idx < totalLayers; idx++) {
+    const val = input.data[idx];
+    gpu1Sum += val;
+    const isTarget = val === input.target;
+
+    const currentElements: ArrayElement[] = elements.map((el, i) => {
+      if (i < splitIdx) return { ...el, state: "visited" as const, pointers: ["GPU 0"] };
+      if (i === idx) {
+        return {
+          ...el,
+          state: isTarget ? ("active" as const) : ("compare" as const),
+          pointers: [`Layer_${idx}`, "GPU 1"],
+        };
+      }
+      if (i < idx) return { ...el, state: "compare" as const, pointers: ["GPU 1"] };
+      return el;
+    });
+
+    addStep(
+      8,
+      `Assign Layer ${idx} (${val} MB parameters) to GPU 1`,
+      `Evaluating pipeline layer placement index ${idx} (>= split_idx ${splitIdx}). Running GPU 1 parameter sum: ${gpu1Sum} MB.`,
+      { idx, layer_size: val, assigned_gpu: 1, isTarget, gpu1Sum },
+      currentElements,
+    );
+  }
+
   addStep(
-    18,
+    8,
     `Slice GPU 1 Parameter Sublist [${splitIdx}..${totalLayers - 1}]`,
     `Extracted ${totalLayers - splitIdx} layers containing total parameter payload of ${gpu1Sum} MB for GPU 1.`,
     { split_idx: splitIdx, gpu1_layers_count: totalLayers - splitIdx, gpu1_total_mb: gpu1Sum },
@@ -153,10 +182,16 @@ export const generateTwoGpuParameterSplitterSteps = (
   }));
 
   addStep(
-    19,
-    "Execution Complete",
+    9,
+    "Return (gpu0_params, gpu1_params)",
     `Pipeline splitting complete. GPU 0 receives ${splitIdx} layers (${gpu0Sum} MB); GPU 1 receives ${totalLayers - splitIdx} layers (${gpu1Sum} MB).`,
-    { completed: true, gpu0_layers: splitIdx, gpu1_layers: totalLayers - splitIdx, gpu0Sum, gpu1Sum },
+    {
+      completed: true,
+      gpu0_layers: splitIdx,
+      gpu1_layers: totalLayers - splitIdx,
+      gpu0Sum,
+      gpu1Sum,
+    },
     finalElements,
   );
 
@@ -164,7 +199,7 @@ export const generateTwoGpuParameterSplitterSteps = (
 };
 
 const TWOGPUPARAMETERSPLITTER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  skipLines: [5],
   distractors: [
     "split_idx = total_layers * 2",
     "gpu0_params = layer_weights",
@@ -172,43 +207,29 @@ const TWOGPUPARAMETERSPLITTER_TRIVIA: TriviaMeta = {
     "split_idx = total_layers // 4",
   ],
   hints: [
-    { line: 16, hint: "Calculate split pivot index while bounding within [1, total_layers-1]." },
-    { line: 17, hint: "Slice parameter list into GPU 0 parameter sublist." },
-    { line: 18, hint: "Slice parameter list into GPU 1 parameter sublist." },
-    { line: 19, hint: "Return tuple containing GPU 0 and GPU 1 layer assignment lists." },
+    { line: 6, hint: "Calculate split pivot index while bounding within [1, total_layers-1]." },
+    { line: 7, hint: "Slice parameter list into GPU 0 parameter sublist." },
+    { line: 8, hint: "Slice parameter list into GPU 1 parameter sublist." },
+    { line: 9, hint: "Return tuple containing GPU 0 and GPU 1 layer assignment lists." },
   ],
   lineExplanations: {
     1: "Defines entry point for split_model_parameters_2gpu taking layer_weights list and split_ratio.",
-    2: "Docstring start describing 2-GPU pipeline parallel layer partitioning.",
-    3: "Describes splitting neural network layers across 2 GPUs for model sharding.",
-    4: "Blank line in docstring.",
-    5: "Docstring parameter section header.",
-    6: "Explains layer_weights input list containing parameter counts.",
-    7: "Explains split_ratio fraction allocated to GPU 0.",
-    8: "Blank line in docstring.",
-    9: "Docstring returns section header.",
-    10: "Explains return tuple containing parameter lists for GPU 0 and GPU 1.",
-    11: "Docstring close.",
-    12: "Calculates total number of model layers total_layers = len(layer_weights).",
-    13: "Checks edge case guard for empty layer weight array.",
-    14: "Returns empty tuples for both GPU devices if total_layers is 0.",
-    15: "Blank line before split index computation.",
-    16: "Computes split pivot index split_idx while bounding within [1, total_layers-1].",
-    17: "Slices parameter list layer_weights[:split_idx] for GPU 0 stage.",
-    18: "Slices parameter list layer_weights[split_idx:] for GPU 1 stage.",
-    19: "Returns tuple (gpu0_params, gpu1_params) containing partitioned layer lists.",
+    2: "Calculates total number of model layers total_layers = len(layer_weights).",
+    3: "Checks edge case guard for empty layer weight array.",
+    4: "Returns empty tuples for both GPU devices if total_layers is 0.",
+    5: "Blank line before split index computation.",
+    6: "Computes split pivot index split_idx while bounding within [1, total_layers-1].",
+    7: "Slices parameter list layer_weights[:split_idx] for GPU 0 stage.",
+    8: "Slices parameter list layer_weights[split_idx:] for GPU 1 stage.",
+    9: "Returns tuple (gpu0_params, gpu1_params) containing partitioned layer lists.",
   },
 };
 
 export const twoGpuParameterSplitter: AlgorithmDefinition<twoGpuParameterSplitterInput> = {
   id: "two-gpu-parameter-splitter",
   title: "2-GPU Model Layer Pipeline Splitter",
-  category: "ml_distributed_systems",
-  categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+  topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 11,
-  mlInfraCategory: "ml_distributed_systems",
   description:
     "Partitions neural network transformer layers across a 2-GPU pipeline parallel cluster to balance memory footprint and compute workload.\n\n### Mathematical Formulation & Pipeline Balancing\nWhen a deep learning model's memory requirements exceed the VRAM capacity of a single GPU, Pipeline Parallelism (PP) partitions the model depth-wise across $N = 2$ devices:\n- **Stage 0 (GPU 0)**: Holds embedding layers and initial transformer layers $L_0 \\dots L_{k-1}$ with total parameter weight $M_0 = \\sum_{i=0}^{k-1} w_i$.\n- **Stage 1 (GPU 1)**: Holds subsequent transformer layers $L_k \\dots L_{N_{\\text{total}}-1}$ and output head with total weight $M_1 = \\sum_{i=k}^{N_{\\text{total}}-1} w_i$.\n\nFor a target split ratio $\\rho \\in (0, 1)$ (default $\\rho = 0.5$):\n$$k = \\max\\left(1, \\min\\left(N_{\\text{total}} - 1, \\lfloor N_{\\text{total}} \\cdot \\rho \\rfloor\\right)\\right)$$\nMemory imbalance ratio $\\Delta M$ between GPU 0 and GPU 1 is computed as:\n$$\\Delta M = \\frac{|M_0 - M_1|}{M_0 + M_1}$$\n\nIn a 1F1B (One Forward, One Backward) pipeline schedule, intermediate activation tensors $A_k \\in \\mathbb{R}^{B \\times S \\times h}$ computed at stage boundary $L_{k-1}$ are transferred across NVLink ($B_{\\text{NVLink}} \\approx 900\\text{ GB/s}$) from GPU 0 to GPU 1 during the forward pass, and activation gradients $\\frac{\\partial \\mathcal{L}}{\\partial A_k}$ are passed back during backward propagation.\n\nInput Format:\n- `data`: Array of parameter counts or weight memory sizes per layer in MB/GB.\n- `target`: Optional target layer size or search marker.\n\nOutput Format:\n- Returns partitioned layer lists assigned to GPU 0 (Pipeline Stage 0) and GPU 1 (Pipeline Stage 1).\n\nEdge Cases & Constraints:\n- Single Layer ($M=1$): Cannot be split; retained on GPU 0.\n- Uneven layer sizes: Embedding + Output Head layers often carry extra parameters, requiring custom split ratios beyond 50/50.",
   constraints: ["1 <= data.length <= 1000", "0 <= data[i] <= 10^9"],

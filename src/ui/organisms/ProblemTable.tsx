@@ -1,8 +1,8 @@
 import React from "react";
 import { ArrowUpDown, Code2, Play } from "lucide-react";
-import { AlgorithmDefinition, CategoryType, getAlgorithmSources } from "../../types/dsa";
+import { AlgorithmDefinition, getAlgorithmSources } from "../../types/dsa";
 
-import { CATEGORY_LABELS, getAlgorithmPrimaryCategory } from "../../app/categories";
+import { getAlgorithmTopicLabels } from "../../app/topics";
 import { ProblemListSortField } from "../../components/problem-list/problemListUtils";
 import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../index";
 
@@ -15,7 +15,7 @@ interface ProblemTableProps {
   itemsPerPage?: number;
   sortBy: ProblemListSortField;
   onToggleSort: (field: ProblemListSortField) => void;
-  onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
+  onSelectAlgorithm: (algorithmId: string) => void;
 }
 
 export const ProblemTable: React.FC<ProblemTableProps> = ({
@@ -58,7 +58,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                 #
               </th>
               {sortableHeader("Problem title", "title")}
-              {sortableHeader("Topic / category", "category")}
+              {sortableHeader("Topic", "topic")}
               {sortableHeader("Difficulty", "difficulty")}
               <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)]">
                 Time complexity
@@ -83,8 +83,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
               </tr>
             ) : (
               displayAlgorithms.map((alg, index) => {
-                const primaryCat = getAlgorithmPrimaryCategory(alg);
-                const catLabel = CATEGORY_LABELS[primaryCat] || primaryCat;
+                const topicLabels = getAlgorithmTopicLabels(alg);
                 const rowNum = (currentPage - 1) * itemsPerPage + index + 1;
 
                 return (
@@ -93,11 +92,11 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                     role="row"
                     tabIndex={0}
                     aria-label={`Open visualization for ${alg.title}`}
-                    onClick={() => onSelectAlgorithm(alg.id, alg.category)}
+                    onClick={() => onSelectAlgorithm(alg.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        onSelectAlgorithm(alg.id, alg.category);
+                        onSelectAlgorithm(alg.id);
                       }
                     }}
                     className="group bg-[var(--bg-inset)] border-b border-[var(--border-subtle)] hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer outline-none focus:bg-[var(--bg-surface-hover)] focus:outline-2 focus:-outline-offset-2 focus:outline-[var(--border-accent)]"
@@ -117,9 +116,13 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                       </span>
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
-                      <Badge variant="neutral" size="sm">
-                        {catLabel}
-                      </Badge>
+                      <span className="flex flex-wrap gap-1">
+                        {topicLabels.map((label) => (
+                          <Badge key={label} variant="neutral" size="sm">
+                            {label}
+                          </Badge>
+                        ))}
+                      </span>
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
                       {alg.difficulty && (
@@ -139,7 +142,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                         className="bg-[var(--bg-inset)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-strong)] px-4 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-2 mx-auto cursor-pointer transition-all"
                         onClick={(e) => {
                           e.stopPropagation();
-                          onSelectAlgorithm(alg.id, alg.category);
+                          onSelectAlgorithm(alg.id);
                         }}
                       >
                         <Play size={14} fill="currentColor" />

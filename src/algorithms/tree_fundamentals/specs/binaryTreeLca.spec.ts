@@ -9,7 +9,7 @@ describe("binaryTreeLca algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(binaryTreeLca.id).toBe("binary-tree-lca");
     expect(binaryTreeLca.title).toBe("Lowest Common Ancestor of a Binary Tree");
-    expect(binaryTreeLca.category).toBe("tree_fundamentals");
+    expect(binaryTreeLca.topicIds).toContain("tree_fundamentals");
     expect(binaryTreeLca.difficulty).toBe("Medium");
     expect(binaryTreeLca.defaultInput).toEqual(DEFAULT_BINARY_TREE_LCA_INPUT);
     expect(binaryTreeLca.constraints).toBeDefined();
@@ -21,7 +21,9 @@ describe("binaryTreeLca algorithm spec", () => {
     expect(defaultSteps.length).toBeGreaterThanOrEqual(20);
 
     for (const example of binaryTreeLca.examples!) {
-      const steps = generateBinaryTreeLcaSteps(example.input as typeof DEFAULT_BINARY_TREE_LCA_INPUT);
+      const steps = generateBinaryTreeLcaSteps(
+        example.input as typeof DEFAULT_BINARY_TREE_LCA_INPUT,
+      );
       expect(steps.length).toBeGreaterThanOrEqual(20);
     }
   });
@@ -35,7 +37,9 @@ describe("binaryTreeLca algorithm spec", () => {
     }
 
     for (const example of binaryTreeLca.examples!) {
-      const steps = generateBinaryTreeLcaSteps(example.input as typeof DEFAULT_BINARY_TREE_LCA_INPUT);
+      const steps = generateBinaryTreeLcaSteps(
+        example.input as typeof DEFAULT_BINARY_TREE_LCA_INPUT,
+      );
       for (const step of steps) {
         expect(step.codeLine).toBeGreaterThanOrEqual(1);
         expect(step.codeLine).toBeLessThanOrEqual(numLines);

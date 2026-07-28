@@ -192,6 +192,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     const nodeObj = currentNodes.find((n) => n.id === u);
     if (nodeObj) {
       nodeObj.state = "compare";
+      nodeObj.group = sccs.length + 1;
     }
 
     addStep(
@@ -231,11 +232,19 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
       dfs2(u, component);
       sccs.push(component);
 
+      const compSet = new Set(component);
       component.forEach((nodeId) => {
         const nodeObj = currentNodes.find((n) => n.id === nodeId);
         if (nodeObj) {
           nodeObj.state = "sorted";
           nodeObj.val = sccs.length;
+          nodeObj.group = sccs.length;
+        }
+      });
+      currentEdges.forEach((e) => {
+        if (compSet.has(e.from) && compSet.has(e.to)) {
+          e.group = sccs.length;
+          e.isPath = true;
         }
       });
 

@@ -7,11 +7,12 @@ import {
 
 describe("conv2dPaddingStrideOutputShape (2D Conv Output Shape Calculator)", () => {
   it("should have correct metadata", () => {
-    expect(conv2dPaddingStrideOutputShape.id).toBe("conv2dPaddingStrideOutputShape");
-    expect(conv2dPaddingStrideOutputShape.isMlInfra).toBe(true);
-    expect(conv2dPaddingStrideOutputShape.mlInfraLevel).toBe(8);
-    expect(conv2dPaddingStrideOutputShape.mlInfraCategory).toBe("ml_convolutions");
-    expect(conv2dPaddingStrideOutputShape.categories).toContain("ml_convolutions");
+    expect(conv2dPaddingStrideOutputShape.id).toBe("conv2d-padding-stride-output-shape");
+    expect(
+      conv2dPaddingStrideOutputShape.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(conv2dPaddingStrideOutputShape.topicIds).toContain("ml_convolutions");
+    expect(conv2dPaddingStrideOutputShape.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface cudaTritonSramTiledGemmInput {
@@ -10,9 +15,6 @@ export interface cudaTritonSramTiledGemmInput {
 }
 
 export const CUDATRITONSRAMTILEDGEMM_CODE = `def cuda_triton_sram_tiled_gemm(matrix_a, matrix_b, tile_k=2):
-    """
-    Computes block-tiled GEMM in SRAM iterating over K-dimension blocks.
-    """
     m, k_dim = len(matrix_a), len(matrix_a[0])
     n = len(matrix_b[0])
     matrix_c = [[0] * n for _ in range(m)]
@@ -134,7 +136,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
     });
   };
 
-  // Line 1: Setup
+  // Line 1: Setup function header
   addStep(
     1,
     "Initialize CUDA/Triton SRAM Tiled GEMM Engine",
@@ -142,56 +144,35 @@ export const generateCudaTritonSramTiledGemmSteps = (
     { m, kDim, n, tileK },
   );
 
+  // Line 2: Read M and K dimensions
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Computes block-tiled GEMM in SRAM iterating over K-dimension blocks.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: Read M and K dimensions
-  addStep(
-    5,
     "Inspect Matrix A Dimensions",
     `Matrix A has ${m} rows and ${kDim} columns (K-dimension).`,
     { m, k_dim: kDim },
   );
 
-  // Line 6: Read N dimension
+  // Line 3: Read N dimension
   addStep(
-    6,
+    3,
     "Inspect Matrix B Dimensions",
     `Matrix B has ${n} columns. Output matrix C will be ${m}x${n}.`,
     { n },
   );
 
-  // Line 7: Allocate matrix C
+  // Line 4: Allocate matrix C
   addStep(
-    7,
+    4,
     "Allocate Accumulator Matrix C",
     `Allocated ${m}x${n} output matrix C initialized to zeroes in fast register/SRAM storage.`,
     { m, n },
   );
 
-  // Lines 8-12: K-tile loop nest
+  // Lines 5-9: K-tile loop nest
   for (let kStart = 0; kStart < kDim; kStart += tileK) {
     const kEnd = Math.min(kDim, kStart + tileK);
     addStep(
-      8,
+      5,
       `Begin K-Tile Block [${kStart}..${kEnd - 1}]`,
       `Loading sub-block tile of K contraction dimension [k_start=${kStart} to ${kEnd - 1}] into SRAM.`,
       { k_start: kStart, k_end: kEnd, tile_k: tileK },
@@ -203,7 +184,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
 
     for (let r = 0; r < m; r++) {
       addStep(
-        9,
+        6,
         `Iterate Row r=${r}`,
         `Processing row ${r} of Matrix A across current K-tile block.`,
         { r, k_start: kStart },
@@ -215,7 +196,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
 
       for (let c = 0; c < n; c++) {
         addStep(
-          10,
+          7,
           `Iterate Column c=${c}`,
           `Accumulating inner dot products into Output C[${r}, ${c}].`,
           { r, c, k_start: kStart },
@@ -227,7 +208,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
 
         for (let k = kStart; k < kEnd; k++) {
           addStep(
-            11,
+            8,
             `Fetch Contraction Element k=${k}`,
             `Reading A[${r}, ${k}] = ${matrixA[r][k]} and B[${k}, ${c}] = ${matrixB[k][c]} from SRAM tile.`,
             { r, c, k, a_val: matrixA[r][k], b_val: matrixB[k][c] },
@@ -241,7 +222,7 @@ export const generateCudaTritonSramTiledGemmSteps = (
           matrixC[r][c] += prod;
 
           addStep(
-            12,
+            9,
             `Multiply-Accumulate (MAC): C[${r},${c}] += ${matrixA[r][k]} * ${matrixB[k][c]} (+${prod})`,
             `Added product ${prod} to accumulator C[${r},${c}]. New value = ${matrixC[r][c]}.`,
             { r, c, k, prod, c_val: matrixC[r][c] },
@@ -255,9 +236,9 @@ export const generateCudaTritonSramTiledGemmSteps = (
     }
   }
 
-  // Line 13: Return matrix C
+  // Line 10: Return matrix C
   addStep(
-    13,
+    10,
     "SRAM Tiled GEMM Complete",
     "Successfully computed matrix multiplication product C = A @ B using SRAM block tiling.",
     { completed: true },
@@ -273,40 +254,39 @@ export const generateCudaTritonSramTiledGemmSteps = (
 const CUDATRITONSRAMTILEDGEMM_TRIVIA: TriviaMeta = {
   skipLines: [],
   distractors: [
-    "matrix_c[r][c] = matrix_a[r][c] * matrix_b[r][c]  # Hadamard product error",
-    "for k_start in range(k_dim):  # Missing tile_k step size",
+    "matrix_c[r][c] = matrix_a[r][c] * matrix_b[r][c]",
+    "for k_start in range(k_dim):",
     "return matrix_a",
   ],
   hints: [
-    { line: 8, hint: "Loop over the K contraction dimension in blocks of tile_k to fit SRAM capacity." },
-    { line: 12, hint: "Accumulate partial products into matrix_c[r][c] across successive K tile blocks." },
+    {
+      line: 5,
+      hint: "Loop over the K contraction dimension in blocks of tile_k to fit SRAM capacity.",
+    },
+    {
+      line: 9,
+      hint: "Accumulate partial products into matrix_c[r][c] across successive K tile blocks.",
+    },
   ],
   lineExplanations: {
     1: "Defines cuda_triton_sram_tiled_gemm function taking matrix_a, matrix_b, and tile_k parameters.",
-    2: "Starts docstring describing SRAM block-tiled GEMM matrix multiplication.",
-    3: "Explains partitioning K contraction dimension into SRAM-sized blocks.",
-    4: "Closes function docstring.",
-    5: "Gets rows M and inner contraction dimension K of matrix A.",
-    6: "Gets columns N of matrix B.",
-    7: "Allocates M x N output accumulator matrix C initialized to zero vectors.",
-    8: "Iterates over K contraction dimension starting at k_start with block stride tile_k.",
-    9: "Iterates through row index r from 0 to M - 1.",
-    10: "Iterates through column index c from 0 to N - 1.",
-    11: "Iterates through inner contraction offset k within current tile block [k_start..k_start + tile_k].",
-    12: "Executes MAC step accumulating matrix_a[r][k] * matrix_b[k][c] into matrix_c[r][c].",
-    13: "Returns completed M x N output matrix product matrix_c.",
+    2: "Gets rows M and inner contraction dimension K of matrix A.",
+    3: "Gets columns N of matrix B.",
+    4: "Allocates M x N output accumulator matrix C initialized to zero vectors.",
+    5: "Iterates over K contraction dimension starting at k_start with block stride tile_k.",
+    6: "Iterates through row index r from 0 to M - 1.",
+    7: "Iterates through column index c from 0 to N - 1.",
+    8: "Iterates through inner contraction offset k within current tile block [k_start..k_start + tile_k].",
+    9: "Executes MAC step accumulating matrix_a[r][k] * matrix_b[k][c] into matrix_c[r][c].",
+    10: "Returns completed M x N output matrix product matrix_c.",
   },
 };
 
 export const cudaTritonSramTiledGemm: AlgorithmDefinition<cudaTritonSramTiledGemmInput> = {
   id: "cuda-triton-sram-tiled-gemm",
   title: "CUDA/Triton SRAM Tiled GEMM Engine",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description: `In high-performance GPU computing (NVIDIA CUDA CUTLASS, OpenAI Triton, cuBLAS), **SRAM Tiled Matrix Multiplication (GEMM)** is the core algorithm used to achieve peak TFLOPS performance.
 
 Standard naive matrix multiplication $C = A \\times B$ requires reading $2 \\times M \\times N \\times K$ elements from High Bandwidth Memory (HBM/DRAM), placing the kernel in a severe memory bandwidth bound regime. 
@@ -323,7 +303,8 @@ By reusing SRAM data $B_{\\text{tile}}$ times inside warp registers, HBM memory 
       outputDisplay: "Matrix C (3x2) Computed via 2 K-Tiles",
       input: DEFAULT_CUDATRITONSRAMTILEDGEMM_INPUT,
       output: "Matrix C (3x2) Computed via 2 K-Tiles",
-      explanation: "Computes 3x2 matrix product by accumulating partial products across 2 K-tiles of size 2.",
+      explanation:
+        "Computes 3x2 matrix product by accumulating partial products across 2 K-tiles of size 2.",
     },
     {
       kind: "complex",

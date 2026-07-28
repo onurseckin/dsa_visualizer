@@ -9,7 +9,7 @@ import {
 describe("spragueGrundyTheorem algorithm logic spec", () => {
   it("has categories ['game_theory'] and valid metadata", () => {
     expect(spragueGrundyTheorem.id).toBe("sprague-grundy-theorem");
-    expect(spragueGrundyTheorem.categories).toEqual(["game_theory"]);
+    expect(spragueGrundyTheorem.topicIds).toEqual(["math_and_number_theory", "game_theory"]);
     expect(spragueGrundyTheorem.difficulty).toBe("Medium");
     expect(spragueGrundyTheorem.code).toContain("def sprague_grundy");
   });

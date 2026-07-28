@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { hbmVsSramBandwidthCalculator } from "./hbmVsSramBandwidthCalculator";
 
-describe("hbmVsSramBandwidthCalculator", () => {
+describe("hbm-vs-sram-bandwidth-calculator", () => {
   it("should have valid metadata", () => {
     expect(hbmVsSramBandwidthCalculator.id).toBeDefined();
     expect(hbmVsSramBandwidthCalculator.title).toBeDefined();

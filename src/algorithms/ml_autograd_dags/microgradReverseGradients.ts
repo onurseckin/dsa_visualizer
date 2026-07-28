@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface microgradReverseGradientsInput {
@@ -7,9 +12,6 @@ export interface microgradReverseGradientsInput {
 }
 
 export const MICROGRADREVERSEGRADIENTSS_CODE = `def micrograd_reverse_gradients(nodes, edges):
-    """
-    Topologically sorts computation DAG and triggers reverse-mode gradient propagation.
-    """
     topo = []
     visited = set()
 
@@ -47,19 +49,75 @@ export const generateMicrogradReverseGradientsSteps = (
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
   const target = input?.target ?? 30;
+  const numNodes = arrayData.length;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const edgesMap: Record<number, number[]> = {};
+  const allEdgePairs: [number, number][] = [];
+  for (let i = 0; i < numNodes; i++) {
+    edgesMap[i] = [];
+    if (i > 0) {
+      edgesMap[i].push(i - 1);
+      allEdgePairs.push([i, i - 1]);
+    }
+  }
+  if (numNodes >= 5) {
+    edgesMap[4].push(2);
+    allEdgePairs.push([4, 2]);
+  }
+
+  const buildGraphSnapshot = (
+    activeNode: number | null,
+    activeChild: number | null,
+    visitedSet: Set<number>,
+    gradients: Record<number, number>,
+    traversedEdges: Set<string>,
+    currentEdge: string | null,
+  ): { nodes: GraphNodeItem[]; edges: GraphEdgeItem[] } => {
+    const nodes: GraphNodeItem[] = arrayData.map((val, idx) => {
+      let state: GraphNodeItem["state"] = "default";
+      if (idx === activeNode) state = "active";
+      else if (idx === activeChild) state = "compare";
+      else if (visitedSet.has(idx)) state = "visited";
+
+      const gradVal = gradients[idx] ?? 0.0;
+      return {
+        id: `node-${idx}`,
+        label: `v${idx} (val:${val}) dL:${gradVal}`,
+        val: gradVal,
+        state,
+        x: 80 + idx * 130,
+        y: idx % 2 === 0 ? 120 : 200,
+      };
+    });
+
+    const edgeItems: GraphEdgeItem[] = allEdgePairs.map(([u, v]) => {
+      const edgeKey = `${u}->${v}`;
+      const isCurrent = currentEdge === edgeKey;
+      const isTraversed = traversedEdges.has(edgeKey);
+      return {
+        from: `node-${u}`,
+        to: `node-${v}`,
+        isTraversed,
+        isPath: isCurrent,
+      };
+    });
+
+    return { nodes, edges: edgeItems };
+  };
+
+  const topoList: number[] = [];
+  const visitedSet = new Set<number>();
+  const gradients: Record<number, number> = {};
+  const traversedEdges = new Set<string>();
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeNode: number | null = null,
+    activeChild: number | null = null,
+    currentEdge: string | null = null,
     customState?: Record<string, string | number>,
   ) => {
     steps.push({
@@ -67,16 +125,22 @@ export const generateMicrogradReverseGradientsSteps = (
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "graph",
+        ...buildGraphSnapshot(
+          activeNode,
+          activeChild,
+          visitedSet,
+          gradients,
+          traversedEdges,
+          currentEdge,
+        ),
       },
       auxiliaryState: {
         customState: {
           data: `[${arrayData.join(", ")}]`,
           target: String(target),
+          topo: `[${topoList.join(", ")}]`,
+          gradients: JSON.stringify(gradients),
           ...customState,
         },
       },
@@ -84,165 +148,188 @@ export const generateMicrogradReverseGradientsSteps = (
     });
   };
 
-  // Step 1: Init Reverse Mode Autograd Engine
+  // Step 1: Line 1 - Init Micrograd Engine
   addStep(
     1,
     "Initialize Micrograd Reverse-Mode Autograd Engine",
     "Setting up topological sorting structures and gradient accumulation map for reverse-mode backpropagation.",
-    { nodeCount: arrayData.length, target, phase: "INIT_REVERSE_AUTOGRAD" },
-    undefined,
-    { topo_order: "[]", visited_count: "0" },
+    { nodeCount: numNodes, target, phase: "INIT_REVERSE_AUTOGRAD" },
   );
 
+  // Line 2: topo = []
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Topologically sorts computation DAG and triggers reverse-mode gradient propagati",
-    {},
+    "Allocate `topo = []`",
+    "Initializing post-order DFS stack for graph topological sorting.",
+    { phase: "ALLOC_TOPO_STACK" },
   );
 
+  // Line 3: visited = set()
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
+    "Allocate `visited = set()`",
+    "Initializing visited set to track graph nodes during DFS traversal.",
+    { phase: "ALLOC_VISITED_SET" },
   );
 
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Step 2: Init topo list and visited set
-  addStep(
-    5,
-    "Allocate `topo = []` and `visited = set()`",
-    "Initializing post-order DFS stacks for graph topological sorting.",
-    { phase: "ALLOC_TOPO_STACKS" },
-  );
-
-  // Phase 1: Build Topological Sort Order
-  const topoOrder: number[] = [];
-  arrayData.forEach((val, idx) => {
-    topoOrder.push(idx);
-
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`DFS_${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
+  // Phase 1: Build Topological Sort Order via DFS
+  const buildTopoDFS = (v: number) => {
     addStep(
-      9,
-      `Build Topo DFS Visit Node ${idx}`,
-      `Checking if node ${idx} is in visited set. Adding to visited set and traversing children.`,
-      { node: idx, isVisited: false, phase: "DFS_VISIT" },
-      stateA,
-      { activeNode: `Node_${idx}` },
+      6,
+      `DFS Check: Is Node ${v} visited?`,
+      `Checking if Node ${v} has already been processed in topological DFS traversal.`,
+      { node: v, isVisited: visitedSet.has(v) },
+      v,
     );
 
+    if (!visitedSet.has(v)) {
+      visitedSet.add(v);
+      addStep(
+        7,
+        `Mark Node ${v} as Visited`,
+        `Added Node ${v} to visited set to prevent cycle traversal.`,
+        { node: v, visitedCount: visitedSet.size },
+        v,
+      );
+
+      const children = edgesMap[v] || [];
+      addStep(
+        8,
+        `Inspect Children of Node ${v}`,
+        `Node ${v} has children: [${children.join(", ")}]. Traversing child subtrees.`,
+        { node: v, childrenCount: children.length },
+        v,
+      );
+
+      for (const child of children) {
+        addStep(
+          9,
+          `Recursively Visit Child Node ${child}`,
+          `Invoking build_topo(${child}) to process child dependency before Node ${v}.`,
+          { parent: v, child },
+          v,
+          child,
+          `${v}->${child}`,
+        );
+
+        buildTopoDFS(child);
+      }
+
+      topoList.push(v);
+      addStep(
+        10,
+        ["Append Node", v, "to `topo` List"].join(" "),
+        `All downstream dependencies of Node ${v} visited; appending Node ${v} to topological sort order.`,
+        { node: v, topoLength: topoList.length },
+        v,
+      );
+    }
+  };
+
+  for (let i = 0; i < numNodes; i++) {
     addStep(
-      13,
-      `Append Node ${idx} to ` + "`topo`" + ` List`,
-      `Post-order DFS complete for Node_${idx}. Appended to topological ordering.`,
-      { node: idx, topoLength: topoOrder.length, phase: "TOPO_APPEND" },
-      stateA,
-      { topo_order: `[${topoOrder.join(", ")}]` },
+      12,
+      `Outer DFS Loop: Select Graph Node ${i}`,
+      `Iterating through input nodes to trigger DFS topological traversal for component Node ${i}.`,
+      { node: i, phase: "OUTER_DFS_LOOP" },
+      i,
     );
-  });
 
-  // Step 3: Initialize gradients map
-  const gradMap: Record<number, number> = {};
-  arrayData.forEach((_, idx) => {
-    gradMap[idx] = 0.0;
-  });
+    buildTopoDFS(i);
+  }
 
+  for (let i = 0; i < numNodes; i++) {
+    gradients[i] = 0.0;
+  }
   addStep(
-    18,
+    15,
     "Initialize `gradients = {v: 0.0}` for All Graph Nodes",
     "Allocating gradient map with initial zero partial derivative values for all graph nodes.",
-    { nodeCount: arrayData.length, phase: "INIT_GRADIENTS_MAP" },
+    { nodeCount: numNodes, phase: "INIT_GRADIENTS_MAP" },
   );
-
-  // Step 4: Seed loss node gradient
-  const lossNode = topoOrder[topoOrder.length - 1] ?? 0;
-  gradMap[lossNode] = 1.0;
 
   addStep(
-    20,
-    `Seed Upstream Loss Gradient: gradients[Node_${lossNode}] = 1.0`,
-    `Setting output loss node derivative dL/dL = 1.0 to begin reverse-mode autograd chain rule traversal.`,
-    { lossNode, lossGrad: 1.0, phase: "SEED_LOSS_GRAD" },
-    undefined,
-    { loss_node: `Node_${lossNode}` },
+    16,
+    "Check if Topological Order List `topo` is Non-Empty",
+    "Verifying topological sort produced node sequence for reverse gradient propagation.",
+    { topoLength: topoList.length, isNonEmpty: topoList.length > 0 },
   );
 
-  // Phase 2: Reverse Topological Gradient Backpropagation Pass
-  for (let tIdx = topoOrder.length - 1; tIdx >= 0; tIdx--) {
-    const v = topoOrder[tIdx];
-    const g = gradMap[v];
-    const isTarget = arrayData[v] === target;
+  const lossNode = topoList.length > 0 ? topoList[topoList.length - 1] : 0;
+  gradients[lossNode] = 1.0;
+  addStep(
+    17,
+    `Seed Upstream Loss Gradient: gradients[Node ${lossNode}] = 1.0`,
+    `Setting output loss node derivative dL/dL = 1.0 to seed reverse-mode autograd chain rule backpropagation.`,
+    { lossNode, lossGrad: 1.0, phase: "SEED_LOSS_GRAD" },
+    lossNode,
+  );
 
-    const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === v) return { ...el, state: isTarget ? "active" : "sorted", value: g, pointers: [`dL/d_${v}=${g}`] };
-      if (i > v) return { ...el, state: "visited" };
-      return el;
-    });
+  for (let tIdx = topoList.length - 1; tIdx >= 0; tIdx--) {
+    const v = topoList[tIdx];
 
     addStep(
-      23,
-      `Fetch Accumulated Gradient for Node ${v}: g = ${g}`,
-      `Traversing in reverse topological order. Node ${v} total accumulated upstream gradient dL/d_${v} = ${g}.`,
-      { node: v, g, phase: "FETCH_NODE_GRAD" },
-      stateB,
-      { currentNode: `Node_${v}`, currentGrad: String(g) },
+      19,
+      `Reverse Topological Loop: Process Node ${v}`,
+      `Evaluating Node ${v} in reverse topological order guarantees all upstream gradients are accumulated before propagating downstream.`,
+      { node: v, phase: "REVERSE_TOPO_NEXT" },
+      v,
     );
 
-    if (v > 0) {
-      const child = v - 1;
-      gradMap[child] = Number((gradMap[child] + g).toFixed(4));
+    const g = gradients[v];
+    addStep(
+      20,
+      `Fetch Accumulated Gradient for Node ${v}: g = ${g}`,
+      `Retrieved total accumulated upstream gradient dL/dv = ${g} for Node ${v}.`,
+      { node: v, g, phase: "FETCH_NODE_GRAD" },
+      v,
+    );
+
+    const children = edgesMap[v] || [];
+    addStep(
+      21,
+      `Inspect Downstream Children of Node ${v}`,
+      `Node ${v} has child dependencies [${children.join(", ")}]. Propagating gradient g = ${g}.`,
+      { node: v, childCount: children.length },
+      v,
+    );
+
+    for (const child of children) {
+      const edgeKey = `${v}->${child}`;
+      traversedEdges.add(edgeKey);
+      gradients[child] = Number((gradients[child] + g).toFixed(4));
 
       addStep(
-        25,
-        `Propagate Gradient to Child Node ${child}: gradients[${child}] += ${g} -> ${gradMap[child]}`,
-        `Applying multivariable chain rule sum: sending gradient contribution ${g} from Node_${v} to child Node_${child}.`,
-        { parentNode: v, childNode: child, propagatedGrad: g, updatedChildGrad: gradMap[child], phase: "PROPAGATE_CHILD_GRAD" },
-        stateB,
-        { [`dL/d_${child}`]: String(gradMap[child]) },
+        22,
+        `Propagate Gradient to Child Node ${child}: gradients[${child}] += ${g} -> ${gradients[child]}`,
+        `Multivariable chain rule: propagating upstream gradient ${g} from Node ${v} to child Node ${child}. New dL/d_${child} = ${gradients[child]}.`,
+        { parentNode: v, childNode: child, propagatedGrad: g, updatedChildGrad: gradients[child] },
+        v,
+        child,
+        edgeKey,
       );
     }
   }
 
-  // Step final-1: Verify Backprop Completion
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
   addStep(
-    27,
+    24,
     "Verify Full Micrograd Reverse Backpropagation Pass",
-    "Checking that all nodes received accumulated gradients in reverse topological order.",
-    { totalNodesProcessed: arrayData.length, backpropComplete: true },
-    finalElements,
+    "Checking that all graph nodes received accumulated gradients in reverse topological order.",
+    { totalNodesProcessed: numNodes, backpropComplete: true },
   );
 
-  // Step final: Complete
   addStep(
-    27,
+    24,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully completed reverse-mode automatic differentiation on computation graph.",
     { completed: true, totalSteps: stepIndex },
-    finalElements,
   );
 
   return steps;
 };
 
 const MICROGRADREVERSEGRADIENTSS_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 7, 14, 17, 21, 26],
+  skipLines: [4, 11, 14, 18, 23],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -250,51 +337,44 @@ const MICROGRADREVERSEGRADIENTSS_TRIVIA: TriviaMeta = {
     "gradients[child] = g",
   ],
   hints: [
-    { line: 8, hint: "Perform post-order DFS to build topological sort order topo." },
-    { line: 20, hint: "Seed output loss node gradient (topo[-1]) to 1.0 (dL/dL = 1.0)." },
-    { line: 22, hint: "Iterate through nodes v in reverse topological order." },
-    { line: 25, hint: "Accumulate gradient g into child nodes: gradients[child] += g." },
+    { line: 5, hint: "Perform post-order DFS to build topological sort order topo." },
+    { line: 17, hint: "Seed output loss node gradient (topo[-1]) to 1.0 (dL/dL = 1.0)." },
+    { line: 19, hint: "Iterate through nodes v in reverse topological order." },
+    { line: 22, hint: "Accumulate gradient g into child nodes: gradients[child] += g." },
   ],
   lineExplanations: {
     1: "Defines entry point for micrograd_reverse_gradients backpropagation function.",
-    2: "Docstring opening: describes topological sorting and reverse-mode gradient propagation.",
-    3: "Docstring body: topologically sorts computation DAG and triggers backward autograd pass.",
-    4: "Docstring closing.",
-    5: "Initializes list topo to store nodes in topological sorting order.",
-    6: "Initializes set visited to track DFS visited graph nodes.",
-    7: "Empty line separating topological variables from recursive DFS helper function.",
-    8: "Defines recursive post-order depth-first search helper function build_topo(v).",
-    9: "Checks if graph node v has not yet been visited in DFS traversal.",
-    10: "Adds node v to visited set.",
-    11: "Iterates through child dependency nodes in adjacency dictionary edges.get(v, []).",
-    12: "Recursively invokes build_topo(child) for unvisited child node.",
-    13: "Appends node v to topo list in post-order after visiting all downstream child subtrees.",
-    14: "Empty line separating DFS helper definition from outer graph traversal loop.",
-    15: "Iterates through all nodes in input graph to process disconnected components.",
-    16: "Invokes build_topo(node) for each seed graph node.",
-    17: "Empty line separating topological ordering from gradient dictionary allocation.",
-    18: "Allocates gradients dictionary initializing all graph node partial derivatives to 0.0.",
-    19: "Checks if topo list contains nodes.",
-    20: "Seeds output loss node (last node in topo) gradient to 1.0 (dL/dL = 1.0).",
-    21: "Empty line separating gradient initialization from reverse topological backpropagation loop.",
-    22: "Iterates through graph nodes v in reverse topological order (reversed(topo)).",
-    23: "Fetches total accumulated upstream gradient g = gradients[v] for current node v.",
-    24: "Iterates through child dependency nodes in adjacency dictionary edges.get(v, []).",
-    25: "Accumulates gradient contribution into child node: gradients[child] += g.",
-    26: "Empty line before returning computed gradient map.",
-    27: "Returns gradients dictionary mapping all graph node IDs to their computed loss derivatives.",
+    2: "Initializes list topo to store graph nodes in topological sorting order.",
+    3: "Initializes set visited to track DFS visited graph nodes.",
+    4: "Blank line separating topological structures from recursive DFS helper function.",
+    5: "Defines recursive post-order depth-first search helper function build_topo(v).",
+    6: "Checks if graph node v has not yet been visited in DFS traversal.",
+    7: "Adds node v to visited set.",
+    8: "Iterates through child dependency nodes in adjacency dictionary edges.get(v, []).",
+    9: "Recursively invokes build_topo(child) for unvisited child node.",
+    10: "Appends node v to topo list in post-order after visiting all downstream child subtrees.",
+    11: "Blank line separating DFS helper definition from outer graph traversal loop.",
+    12: "Iterates through all nodes in input graph to process disconnected components.",
+    13: "Invokes build_topo(node) for each seed graph node.",
+    14: "Blank line separating topological ordering from gradient dictionary allocation.",
+    15: "Allocates gradients dictionary initializing all graph node partial derivatives to 0.0.",
+    16: "Checks if topo list contains nodes.",
+    17: "Seeds output loss node (last node in topo) gradient to 1.0 (dL/dL = 1.0).",
+    18: "Blank line separating gradient initialization from reverse topological backpropagation loop.",
+    19: "Iterates through graph nodes v in reverse topological order (reversed(topo)).",
+    20: "Fetches total accumulated upstream gradient g = gradients[v] for current node v.",
+    21: "Iterates through child dependency nodes in adjacency dictionary edges.get(v, []).",
+    22: "Accumulates gradient contribution into child node: gradients[child] += g.",
+    23: "Blank line before returning computed gradient map.",
+    24: "Returns gradients dictionary mapping all graph node IDs to their computed loss derivatives.",
   },
 };
 
 export const microgradReverseGradients: AlgorithmDefinition<microgradReverseGradientsInput> = {
   id: "micrograd-reverse-gradients",
   title: "Micrograd Reverse-Mode Automatic Differentiation",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Micrograd Reverse-Mode Automatic Differentiation
 
 Reverse-mode automatic differentiation (**backpropagation**) computes the partial derivatives of a scalar output loss $L$ with respect to all leaf input weight parameters ($W, b$) in a single $\\mathcal{O}(V + E)$ pass.

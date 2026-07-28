@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { edmondsKarpMaxFlow, generateEdmondsKarpSteps, EDMONDS_KARP_CODE } from "../edmondsKarpMaxFlow";
+import {
+  edmondsKarpMaxFlow,
+  generateEdmondsKarpSteps,
+  EDMONDS_KARP_CODE,
+} from "../edmondsKarpMaxFlow";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("edmondsKarpMaxFlow step generator and code line alignment", () => {
   const lineCount = EDMONDS_KARP_CODE.split("\n").length;
@@ -24,8 +29,12 @@ describe("edmondsKarpMaxFlow step generator and code line alignment", () => {
   });
 
   it("should generate valid steps with 1-indexed codeLine within bounds for all examples", () => {
-    for (const example of edmondsKarpMaxFlow.examples) {
-      const steps = generateEdmondsKarpSteps(example.input);
+    for (const input of requireExampleInputs(
+      edmondsKarpMaxFlow,
+      (value): value is typeof edmondsKarpMaxFlow.defaultInput =>
+        typeof value === "object" && value !== null,
+    )) {
+      const steps = generateEdmondsKarpSteps(input);
       expect(steps.length).toBeGreaterThan(0);
 
       for (const step of steps) {

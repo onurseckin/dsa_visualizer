@@ -8,10 +8,11 @@ import {
 describe("target-model-parallel-verification-pass (Speculative Decoding Target Model Parallel Verification Pass)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(targetModelParallelVerificationPass.id).toBe("target-model-parallel-verification-pass");
-    expect(targetModelParallelVerificationPass.isMlInfra).toBe(true);
-    expect(targetModelParallelVerificationPass.mlInfraLevel).toBe(12);
-    expect(targetModelParallelVerificationPass.mlInfraCategory).toBe("ml_llm_serving");
-    expect(targetModelParallelVerificationPass.categories).toContain("ml_llm_serving");
+    expect(
+      targetModelParallelVerificationPass.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(targetModelParallelVerificationPass.topicIds).toContain("ml_llm_serving");
+    expect(targetModelParallelVerificationPass.topicIds).toContain("ml_llm_serving");
     expect(targetModelParallelVerificationPass.defaultInput).toEqual(
       DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT,
     );
@@ -22,9 +23,7 @@ describe("target-model-parallel-verification-pass (Speculative Decoding Target M
     ).map(Number);
     expect(explanationKeys.length).toBe(codeLines);
     for (let i = 1; i <= codeLines; i++) {
-      expect(
-        targetModelParallelVerificationPass.trivia?.lineExplanations?.[i],
-      ).toBeDefined();
+      expect(targetModelParallelVerificationPass.trivia?.lineExplanations?.[i]).toBeDefined();
     }
   });
 
@@ -34,6 +33,6 @@ describe("target-model-parallel-verification-pass (Speculative Decoding Target M
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(16);
+    expect(steps[steps.length - 1].codeLine).toBe(12);
   });
 });

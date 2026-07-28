@@ -5,14 +5,13 @@ import {
   generateIm2col4dTo2dUnrollerSteps,
 } from "./im2col4dTo2dUnroller";
 
-describe("im2col4dTo2dUnroller", () => {
+describe("im2col-4d-to-2d-unroller", () => {
   it("should have correct metadata", () => {
-    expect(im2col4dTo2dUnroller.id).toBe("im2col4dTo2dUnroller");
-    expect(im2col4dTo2dUnroller.isMlInfra).toBe(true);
-    expect(im2col4dTo2dUnroller.mlInfraLevel).toBe(8);
-    expect(im2col4dTo2dUnroller.mlInfraCategory).toBe("ml_convolutions");
-    expect(im2col4dTo2dUnroller.categories).toContain("ml_convolutions");
-    expect(im2col4dTo2dUnroller.categories).toContain("ml_gemm_roofline");
+    expect(im2col4dTo2dUnroller.id).toBe("im2col-4d-to-2d-unroller");
+    expect(im2col4dTo2dUnroller.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(im2col4dTo2dUnroller.topicIds).toContain("ml_convolutions");
+    expect(im2col4dTo2dUnroller.topicIds).toContain("ml_convolutions");
+    expect(im2col4dTo2dUnroller.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
@@ -10,7 +10,9 @@ const renderTriviaRoute = async (initialPath = "/trivia") => {
     history: createMemoryHistory({ initialEntries: [initialPath] }),
   });
   const view = render(<RouterProvider router={router} />);
-  await router.load();
+  await act(async () => {
+    await router.load();
+  });
   return { router, view };
 };
 
@@ -108,14 +110,14 @@ describe("useTriviaPage hook & route integration", () => {
       deck: ["bubble-sort"],
       mode: "choice",
       minBlanks: 1,
-      maxBlanks: 1,
+      maxBlanks: 2,
       includeDistractors: false,
     });
     updateSession(s.id, {
       lastScreen: "drill",
       progress: {
-        level: 1,
-        drilled: { "bubble-sort": { "1": [1, 2, 3, 4, 5, 6, 7, 8] } },
+        level: 2,
+        drilled: { "bubble-sort": { "2": [1, 2, 3, 4, 5, 6, 7, 8] } },
         stats: {},
         completed: true,
         roundsPlayed: 10,

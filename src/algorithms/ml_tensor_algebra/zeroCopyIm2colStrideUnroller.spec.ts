@@ -9,10 +9,11 @@ import {
 describe("zero-copy-im2col-stride-unroller (Zero-Copy im2col Stride Receptive Field Unroller)", () => {
   it("should have correct metadata", () => {
     expect(zeroCopyIm2colStrideUnroller.id).toBe("zero-copy-im2col-stride-unroller");
-    expect(zeroCopyIm2colStrideUnroller.isMlInfra).toBe(true);
-    expect(zeroCopyIm2colStrideUnroller.mlInfraLevel).toBe(1);
-    expect(zeroCopyIm2colStrideUnroller.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(zeroCopyIm2colStrideUnroller.categories).toContain("ml_tensor_algebra");
+    expect(zeroCopyIm2colStrideUnroller.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(zeroCopyIm2colStrideUnroller.topicIds).toContain("ml_tensor_algebra");
+    expect(zeroCopyIm2colStrideUnroller.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 steps with matrix primarySnapshot for default input", () => {
@@ -28,7 +29,7 @@ describe("zero-copy-im2col-stride-unroller (Zero-Copy im2col Stride Receptive Fi
   it("should map every line of code in lineExplanations", () => {
     const codeLines = ZEROCOPYIM2COLSTRIDEUNROLLER_CODE.trim().split("\n");
     const totalLines = codeLines.length;
-    expect(totalLines).toBe(20);
+    expect(totalLines).toBe(17);
 
     const lineExplanations = zeroCopyIm2colStrideUnroller.trivia?.lineExplanations || {};
     for (let lineNum = 1; lineNum <= totalLines; lineNum++) {

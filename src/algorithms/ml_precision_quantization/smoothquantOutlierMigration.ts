@@ -73,6 +73,8 @@ export const generateSmoothquantOutlierMigrationSteps = (
           activations: `[${activations.join(", ")}]`,
           weights: `[${weights.join(", ")}]`,
           sVector: `[${sVector.map((s) => s.toFixed(4)).join(", ")}]`,
+          smoothedAct: `[${smoothedAct.map((a) => a.toFixed(4)).join(", ")}]`,
+          smoothedWeights: `[${smoothedWeights.map((w) => w.toFixed(4)).join(", ")}]`,
           alpha: String(alpha),
         },
       },
@@ -170,7 +172,13 @@ export const generateSmoothquantOutlierMigrationSteps = (
       4,
       `Scale Up Weight: smoothed_weights[${idx}] = ${w} * ${s.toFixed(4)} -> ${smWFixed}`,
       `Multiplied weight ${w} by smoothing scale ${s.toFixed(4)} to absorb activation difficulty into weight channel ${smWFixed}.`,
-      { idx, weight: w, s: Number(s.toFixed(4)), smoothedWeight: smWFixed, phase: "WEIGHT_SCALE_MUL" },
+      {
+        idx,
+        weight: w,
+        s: Number(s.toFixed(4)),
+        smoothedWeight: smWFixed,
+        phase: "WEIGHT_SCALE_MUL",
+      },
       w,
       smWFixed,
       s,
@@ -191,7 +199,7 @@ export const generateSmoothquantOutlierMigrationSteps = (
   addStep(
     5,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully migrated activation quantization difficulty to weights across all channels.",
     { completed: true, totalSteps: stepIndex },
     activations[activations.length - 1],
     smoothedAct[smoothedAct.length - 1] ?? 0,
@@ -210,10 +218,19 @@ const SMOOTHQUANTOUTLIERMIGRATION_TRIVIA: TriviaMeta = {
     "return activations + weights",
   ],
   hints: [
-    { line: 1, hint: "Defines function accepting activations, weights, and hyperparameter alpha = 0.5." },
+    {
+      line: 1,
+      hint: "Defines function accepting activations, weights, and hyperparameter alpha = 0.5.",
+    },
     { line: 2, hint: "Compute per-channel scale vector s_vector = |activations|^alpha." },
-    { line: 3, hint: "Divide activations by smoothing scale vector to compress activation dynamic range." },
-    { line: 4, hint: "Multiply weights by smoothing scale vector to absorb difficulty into weight channels." },
+    {
+      line: 3,
+      hint: "Divide activations by smoothing scale vector to compress activation dynamic range.",
+    },
+    {
+      line: 4,
+      hint: "Multiply weights by smoothing scale vector to absorb difficulty into weight channels.",
+    },
   ],
   lineExplanations: {
     1: "Declares function signature smoothquant_outlier_migration accepting activations, weights, and alpha = 0.5.",
@@ -227,12 +244,8 @@ const SMOOTHQUANTOUTLIERMIGRATION_TRIVIA: TriviaMeta = {
 export const smoothquantOutlierMigration: AlgorithmDefinition<smoothquantOutlierMigrationInput> = {
   id: "smoothquant-outlier-migration",
   title: "Smoothquant Outlier Migration",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### SmoothQuant Outlier Migration
 
 SmoothQuant (Xiao et al., 2023) is a post-training quantization (PTQ) algorithm designed for Large Language Models (LLMs like OPT, LLaMA, Falcon). It solves the fundamental barrier in W8A8 INT8 LLM serving: **activation channel outliers**.
@@ -261,14 +274,16 @@ $$\\mathbf{Y} = \\mathbf{X} \\cdot \\mathbf{W} = \\left(\\mathbf{X} \\mathbf{S}^
       kind: "basic",
       title: "SmoothQuant Outlier Migration",
       inputDisplay: "activations = [10.0, -25.0, 4.0], weights = [0.5, 0.2, 1.5], alpha = 0.5",
-      outputDisplay: "s = [3.1623, 5.0, 2.0], act_sm = [3.1623, -5.0, 2.0], w_sm = [1.5811, 1.0, 3.0]",
+      outputDisplay:
+        "s = [3.1623, 5.0, 2.0], act_sm = [3.1623, -5.0, 2.0], w_sm = [1.5811, 1.0, 3.0]",
       input: {
         activations: [10.0, -25.0, 4.0],
         weights: [0.5, 0.2, 1.5],
         alpha: 0.5,
       },
       output: "s = [3.1623, 5.0, 2.0], act_sm = [3.1623, -5.0, 2.0], w_sm = [1.5811, 1.0, 3.0]",
-      explanation: "Scales down activation outlier -25.0 to -5.0 while scaling up weight 0.2 to 1.0, preserving exact product -5.0 * 1.0 = -5.0.",
+      explanation:
+        "Scales down activation outlier -25.0 to -5.0 while scaling up weight 0.2 to 1.0, preserving exact product -5.0 * 1.0 = -5.0.",
     },
     {
       kind: "complex",
@@ -281,7 +296,8 @@ $$\\mathbf{Y} = \\mathbf{X} \\cdot \\mathbf{W} = \\left(\\mathbf{X} \\mathbf{S}^
         alpha: 1.0,
       },
       output: "s = [16.0, 9.0], act_sm = [1.0, 1.0], w_sm = [16.0, 9.0]",
-      explanation: "Full migration alpha = 1.0 collapses all activation dynamic range into weights.",
+      explanation:
+        "Full migration alpha = 1.0 collapses all activation dynamic range into weights.",
     },
     {
       kind: "negative",
@@ -332,11 +348,13 @@ $$\\mathbf{Y} = \\mathbf{X} \\cdot \\mathbf{W} = \\left(\\mathbf{X} \\mathbf{S}^
       },
       {
         term: "Migration Scale (S)",
-        definition: "Per-channel scaling factor shifting numerical dynamic range from activations to weights.",
+        definition:
+          "Per-channel scaling factor shifting numerical dynamic range from activations to weights.",
       },
       {
         term: "W8A8 INT8 GEMM",
-        definition: "Matrix multiplication where both weights and activations are stored and computed in 8-bit integers.",
+        definition:
+          "Matrix multiplication where both weights and activations are stored and computed in 8-bit integers.",
       },
     ],
   },

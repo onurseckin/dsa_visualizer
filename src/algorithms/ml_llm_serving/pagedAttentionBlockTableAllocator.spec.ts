@@ -8,10 +8,11 @@ import {
 describe("paged-attention-block-table-allocator", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(pagedAttentionBlockTableAllocator.id).toBe("paged-attention-block-table-allocator");
-    expect(pagedAttentionBlockTableAllocator.isMlInfra).toBe(true);
-    expect(pagedAttentionBlockTableAllocator.mlInfraLevel).toBe(12);
-    expect(pagedAttentionBlockTableAllocator.mlInfraCategory).toBe("ml_llm_serving");
-    expect(pagedAttentionBlockTableAllocator.categories).toContain("ml_llm_serving");
+    expect(
+      pagedAttentionBlockTableAllocator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(pagedAttentionBlockTableAllocator.topicIds).toContain("ml_llm_serving");
+    expect(pagedAttentionBlockTableAllocator.topicIds).toContain("ml_llm_serving");
     expect(pagedAttentionBlockTableAllocator.defaultInput).toEqual(
       DEFAULT_PAGEDATTENTIONBLOCKTABLEALLOCATOR_INPUT,
     );

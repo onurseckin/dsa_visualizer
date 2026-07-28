@@ -14,18 +14,11 @@ export const DEFAULT_SENTENCEPIECE_BYTE_FALLBACK_INPUT: SentencepieceByteFallbac
 };
 
 export const SENTENCEPIECE_BYTE_FALLBACK_CODE = `def sentencepiece_byte_fallback_encode(text: str, subword_vocab: dict[str, int]) -> list[str]:
-    """
-    SentencePiece Byte-Fallback Subword Encoder.
-    Attempts to match subword tokens from vocabulary.
-    When an Out-of-Vocabulary (OOV) character or emoji (e.g. '🚀') is encountered,
-    falls back to raw UTF-8 byte tokens '<0xXX>'.
-    """
     tokens = []
     idx = 0
 
     while idx < len(text):
         matched = False
-        # Try greedy subword match
         for l in range(min(10, len(text) - idx), 0, -1):
             sub = text[idx : idx + l]
             if sub in subword_vocab:
@@ -35,7 +28,6 @@ export const SENTENCEPIECE_BYTE_FALLBACK_CODE = `def sentencepiece_byte_fallback
                 break
 
         if not matched:
-            # Fall back to raw UTF-8 byte representation for OOV char
             oov_char = text[idx]
             utf8_bytes = oov_char.encode("utf-8")
             for b in utf8_bytes:
@@ -49,19 +41,20 @@ export const generateByteFallbackSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   const { text, subwordVocab } = input;
+  const chars = Array.from(text);
   let stepIndex = 0;
 
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: "Initialize SentencePiece Byte-Fallback Subword Encoder",
-      why: `Encoding text "${text}" using subword vocabulary with ${Object.keys(subwordVocab).length} tokens and UTF-8 byte fallback.`,
+      why: `Encoding text "${text}" (${chars.length} characters) using subword vocabulary (${Object.keys(subwordVocab).length} tokens) with UTF-8 byte fallback for OOV characters.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: text.split("").map((ch, idx) => ({
+      elements: chars.map((ch, idx) => ({
         id: `c-${idx}`,
         value: idx,
         label: `'${ch}'`,
@@ -73,33 +66,66 @@ export const generateByteFallbackSteps = (
         text: `"${text}"`,
         subwordVocabSize: String(Object.keys(subwordVocab).length),
         status: "Initialized",
+        tokensSoFar: "[]",
       },
     },
-    variables: { textLen: text.length },
+    variables: { textLen: chars.length, idx: 0, tokensCount: 0 },
   });
 
   const tokens: string[] = [];
   let idx = 0;
 
-  while (idx < text.length) {
+  while (idx < chars.length) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 5,
+      explanation: {
+        what: `Check loop condition: idx (${idx}) < len(text) (${chars.length})`,
+        why: `Position ${idx} is within bounds. Attempting subword matching starting at character '${chars[idx]}'.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: chars.map((ch, i) => ({
+          id: `c-${i}`,
+          value: i,
+          label: `'${ch}'`,
+          state:
+            i === idx
+              ? ("active" as ElementState)
+              : i < idx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: i === idx ? [`idx=${idx}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          idx: String(idx),
+          currentChar: `'${chars[idx]}'`,
+          tokensSoFar: `[${tokens.map((t) => `"${t}"`).join(", ")}]`,
+        },
+      },
+      variables: { idx, currentTokenCount: tokens.length },
+    });
+
     let matched = false;
 
-    for (let l = Math.min(10, text.length - idx); l > 0; l--) {
-      const sub = text.substring(idx, idx + l);
+    for (let l = Math.min(10, chars.length - idx); l > 0; l--) {
+      const sub = chars.slice(idx, idx + l).join("");
       if (sub in subwordVocab) {
         tokens.push(sub);
         matched = true;
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 16,
+          codeLine: 9,
           explanation: {
-            what: `Subword Match: "${sub}" (Token ID ${subwordVocab[sub]})`,
-            why: `Matched vocabulary subword token "${sub}" at position ${idx}.`,
+            what: `Subword Match Found: "${sub}" (Token ID: ${subwordVocab[sub]})`,
+            why: `Prefix "${sub}" (length ${l}) exists in subword vocabulary. Appending "${sub}" to output token list.`,
           },
           primarySnapshot: {
             kind: "array",
-            elements: text.split("").map((ch, i) => ({
+            elements: chars.map((ch, i) => ({
               id: `c-${i}`,
               value: i,
               label: `'${ch}'`,
@@ -109,26 +135,54 @@ export const generateByteFallbackSteps = (
                   : i < idx
                     ? ("visited" as ElementState)
                     : ("default" as ElementState),
-              pointers: i === idx ? [`Token "${sub}"`] : [],
+              pointers: i === idx ? [`Matched "${sub}"`] : [],
             })),
           },
           auxiliaryState: {
             customState: {
               type: "Subword Match",
-              matchedToken: `"${sub}"`,
+              matchedSubword: `"${sub}"`,
               tokenId: String(subwordVocab[sub]),
+              tokensSoFar: `[${tokens.map((t) => `"${t}"`).join(", ")}]`,
             },
           },
-          variables: { idx, matchedToken: sub },
+          variables: { idx, matchedSubword: sub, tokenLength: l },
         });
 
         idx += l;
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 11,
+          explanation: {
+            what: `Advance Index by ${l}`,
+            why: `Moved pointer forward past matched subword "${sub}". New idx = ${idx}.`,
+          },
+          primarySnapshot: {
+            kind: "array",
+            elements: chars.map((ch, i) => ({
+              id: `c-${i}`,
+              value: i,
+              label: `'${ch}'`,
+              state: i < idx ? ("visited" as ElementState) : ("default" as ElementState),
+              pointers: i === idx ? [`idx=${idx}`] : [],
+            })),
+          },
+          auxiliaryState: {
+            customState: {
+              idx: String(idx),
+              tokensSoFar: `[${tokens.map((t) => `"${t}"`).join(", ")}]`,
+            },
+          },
+          variables: { idx, totalTokens: tokens.length },
+        });
+
         break;
       }
     }
 
     if (!matched) {
-      const oovChar = text[idx];
+      const oovChar = chars[idx];
       const utf8Bytes = Array.from(Buffer.from(oovChar, "utf-8"));
       const byteTokens: string[] = [];
 
@@ -140,16 +194,14 @@ export const generateByteFallbackSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 24,
+        codeLine: 17,
         explanation: {
           what: `OOV Character '${oovChar}': Byte Fallback Triggered`,
-          why: `Character '${oovChar}' not in subword vocabulary. Converted to ${utf8Bytes.length} raw UTF-8 byte tokens: [${byteTokens.join(
-            ", ",
-          )}].`,
+          why: `Character '${oovChar}' not in subword vocabulary. Converted into ${utf8Bytes.length} UTF-8 byte tokens: [${byteTokens.join(", ")}].`,
         },
         primarySnapshot: {
           kind: "array",
-          elements: text.split("").map((ch, i) => ({
+          elements: chars.map((ch, i) => ({
             id: `c-${i}`,
             value: i,
             label: `'${ch}'`,
@@ -159,7 +211,7 @@ export const generateByteFallbackSteps = (
                 : i < idx
                   ? ("visited" as ElementState)
                   : ("default" as ElementState),
-            pointers: i === idx ? [`Byte Fallback [${byteTokens.join(",")}]`] : [],
+            pointers: i === idx ? [`Byte Fallback (${byteTokens.length} bytes)`] : [],
           })),
         },
         auxiliaryState: {
@@ -167,22 +219,49 @@ export const generateByteFallbackSteps = (
             type: "Byte Fallback (OOV)",
             oovCharacter: `'${oovChar}'`,
             generatedByteTokens: byteTokens.join(", "),
+            tokensSoFar: `[${tokens.map((t) => `"${t}"`).join(", ")}]`,
           },
         },
-        variables: { idx, oovChar, byteCount: utf8Bytes.length },
+        variables: { idx, oovChar, byteCount: utf8Bytes.length, generatedTokens: byteTokens },
       });
 
       idx += 1;
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 20,
+        explanation: {
+          what: `Advance Index by 1`,
+          why: `Finished byte fallback for '${oovChar}'. Advanced pointer past position ${idx - 1} to idx = ${idx}.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: chars.map((ch, i) => ({
+            id: `c-${i}`,
+            value: i,
+            label: `'${ch}'`,
+            state: i < idx ? ("visited" as ElementState) : ("default" as ElementState),
+            pointers: i === idx ? [`idx=${idx}`] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            idx: String(idx),
+            tokensSoFar: `[${tokens.map((t) => `"${t}"`).join(", ")}]`,
+          },
+        },
+        variables: { idx, totalTokens: tokens.length },
+      });
     }
   }
 
   // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 27,
+    codeLine: 22,
     explanation: {
       what: `SentencePiece Encoding Complete: Produced ${tokens.length} Tokens`,
-      why: `Final token sequence: [${tokens.map((t) => `"${t}"`).join(", ")}]. 100% loss-free encoding achieved.`,
+      why: `Final token sequence: [${tokens.map((t) => `"${t}"`).join(", ")}]. Zero loss encoding achieved.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -208,14 +287,10 @@ export const generateByteFallbackSteps = (
 
 export const sentencepieceByteFallbackEncoder: AlgorithmDefinition<SentencepieceByteFallbackEncoderInput> =
   {
-    id: "sentencepieceByteFallbackEncoder",
+    id: "sentencepiece-byte-fallback-encoder",
     title: "SentencePiece Byte-Fallback Subword Encoder",
-    category: "ml_tokenization",
-    categories: ["ml_tokenization"],
+    topicIds: ["ml_tokenization"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_tokenization",
     description:
       "Executes SentencePiece byte-fallback subword encoding (Kudo & Richardson, 2018). Greedily matches subword tokens from vocabulary. When an Out-of-Vocabulary (OOV) character or rare emoji is encountered, the algorithm decomposes the character into its underlying UTF-8 byte representation, emitting byte tokens `<0xXX>` to ensure zero UNK token losses.\n\nInput Format:\n- text: Input text string.\n- subwordVocab: Subword token vocabulary dictionary.\n\nOutput Format:\n- Returns list of token strings `[t_1, t_2, ..., t_K]`.\n\nEdge Cases & Constraints:\n- OOV Emoji / CJK characters: Gracefully decomposes into 3-4 byte tokens `<0xXX>`.",
     constraints: ["subwordVocab keys are valid UTF-8 subword strings."],

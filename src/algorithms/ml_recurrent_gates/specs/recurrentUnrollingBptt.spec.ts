@@ -9,9 +9,8 @@ import type { MatrixVisualSnapshot } from "../../../types/dsa";
 describe("recurrentUnrollingBptt algorithm spec", () => {
   it("should have correct ML Infra Level 6 metadata", () => {
     expect(recurrentUnrollingBptt.id).toBe("recurrent-unrolling-bptt");
-    expect(recurrentUnrollingBptt.isMlInfra).toBe(true);
-    expect(recurrentUnrollingBptt.mlInfraLevel).toBe(6);
-    expect(recurrentUnrollingBptt.categories).toContain("ml_recurrent_gates");
+    expect(recurrentUnrollingBptt.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(recurrentUnrollingBptt.topicIds).toContain("ml_recurrent_gates");
     expect(recurrentUnrollingBptt.defaultInput).toEqual(DEFAULT_RECURRENT_UNROLLING_BPTT_INPUT);
   });
 

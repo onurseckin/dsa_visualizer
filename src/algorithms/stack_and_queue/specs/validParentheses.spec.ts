@@ -9,7 +9,7 @@ describe("validParentheses algorithm spec", () => {
   it("should have valid metadata", () => {
     expect(validParentheses.id).toBe("valid-parentheses");
     expect(validParentheses.title).toBe("Valid Parentheses");
-    expect(validParentheses.category).toBe("stack_and_queue");
+    expect(validParentheses.topicIds).toContain("stack_and_queue");
     expect(validParentheses.difficulty).toBe("Easy");
     expect(validParentheses.defaultInput).toEqual(DEFAULT_VALID_PARENTHESES_INPUT);
   });

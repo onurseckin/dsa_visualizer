@@ -277,7 +277,12 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
         `Executing 'return left if left else right'. Result to return: ${result ? `Node(${resNodeVal})` : "None"}.`,
         currentId,
         undefined,
-        { current: currentNode.val, left: leftResNode ? leftResNode.val : "None", right: rightResNode ? rightResNode.val : "None", result: resNodeVal },
+        {
+          current: currentNode.val,
+          left: leftResNode ? leftResNode.val : "None",
+          right: rightResNode ? rightResNode.val : "None",
+          result: resNodeVal,
+        },
       );
 
       addStep(
@@ -321,14 +326,20 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
   // Ensure generateSteps produces >= 20 steps per input
   let extraIndex = 1;
-  const finalLcaNode = steps[steps.length - 1]?.variables?.lcaVal ?? "None";
+  const rawFinalLcaNode = steps[steps.length - 1]?.variables?.lcaVal;
+  const finalLcaNode =
+    typeof rawFinalLcaNode === "string" || typeof rawFinalLcaNode === "number"
+      ? rawFinalLcaNode
+      : "None";
   while (steps.length < 20) {
     addStep(
       10,
       `Verification Step ${extraIndex}: LCA Path Audit`,
       `Auditing tree traversal result (LCA Node ${finalLcaNode}) to ensure correctness across ancestor boundaries.`,
       undefined,
-      typeof finalLcaNode === "number" || typeof finalLcaNode === "string" ? String(finalLcaNode) : undefined,
+      typeof finalLcaNode === "number" || typeof finalLcaNode === "string"
+        ? String(finalLcaNode)
+        : undefined,
       { lcaVal: finalLcaNode, verifyStep: extraIndex },
     );
     extraIndex++;

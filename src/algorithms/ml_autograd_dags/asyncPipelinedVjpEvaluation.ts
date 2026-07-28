@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface asyncPipelinedVjpEvaluationInput {
@@ -7,9 +13,6 @@ export interface asyncPipelinedVjpEvaluationInput {
 }
 
 export const ASYNCPIPELINEDVJPEVALUATION_CODE = `def async_pipelined_vjp_evaluation(num_stages=4):
-    """
-    Simulates async pipelined Vector-Jacobian Product (VJP) backward evaluation.
-    """
     stage_grads = []
     accumulated_vjp = 1.0
 
@@ -32,36 +35,98 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
   const target = input?.target ?? 30;
+  const numStages = arrayData.length || 5;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const buildGraphSnapshot = (
+    activeStage: number | null,
+    computedJacobianStage: number | null,
+    processedStages: Set<number>,
+    stageJacobians: Record<number, number>,
+    stageVjps: Record<number, number>,
+    activeEdge: string | null,
+    isComplete = false,
+  ): { nodes: GraphNodeItem[]; edges: GraphEdgeItem[] } => {
+    const nodes: GraphNodeItem[] = [];
+    for (let s = 0; s < numStages; s++) {
+      let state: ElementState = "default";
+      if (isComplete) {
+        state = "sorted";
+      } else if (s === activeStage) {
+        state = "active";
+      } else if (s === computedJacobianStage) {
+        state = "compare";
+      } else if (processedStages.has(s)) {
+        state = "visited";
+      }
+
+      const jStr = stageJacobians[s] !== undefined ? `J:${stageJacobians[s]}` : `J:?`;
+      const vjpStr = stageVjps[s] !== undefined ? `vjp:${stageVjps[s]}` : `vjp:?`;
+
+      nodes.push({
+        id: `gpu-${s}`,
+        label: `GPU_${s} (${jStr}, ${vjpStr})`,
+        val: stageVjps[s] ?? 0,
+        state,
+        x: 80 + s * 140,
+        y: 150,
+      });
+    }
+
+    const edges: GraphEdgeItem[] = [];
+    for (let s = numStages - 1; s > 0; s--) {
+      const edgeKey = `gpu-${s}->gpu-${s - 1}`;
+      const isPath = activeEdge === edgeKey;
+      const isTraversed = processedStages.has(s) || isComplete;
+      edges.push({
+        from: `gpu-${s}`,
+        to: `gpu-${s - 1}`,
+        isTraversed,
+        isPath,
+      });
+    }
+
+    return { nodes, edges };
+  };
+
+  const processedStages = new Set<number>();
+  const stageJacobians: Record<number, number> = {};
+  const stageVjps: Record<number, number> = {};
+  const stageGrads: Array<[number, number, number]> = [];
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeStage: number | null = null,
+    computedJacobianStage: number | null = null,
+    activeEdge: string | null = null,
     customState?: Record<string, string | number>,
+    isComplete = false,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "graph",
+        ...buildGraphSnapshot(
+          activeStage,
+          computedJacobianStage,
+          processedStages,
+          stageJacobians,
+          stageVjps,
+          activeEdge,
+          isComplete,
+        ),
       },
       auxiliaryState: {
         customState: {
+          pipeline_schedule: "1F1B_ASYNC",
+          total_gpus: String(numStages),
           data: `[${arrayData.join(", ")}]`,
           target: String(target),
+          stage_grads_count: String(stageGrads.length),
           accumulated_vjp: String(variables.accumulated_vjp ?? 1.0),
           ...customState,
         },
@@ -70,137 +135,129 @@ export const generateAsyncPipelinedVjpEvaluationSteps = (
     });
   };
 
-  // Step 1: Init Pipelined Multi-GPU VJP Evaluator
+  // Step 1: Line 1 - Init Pipelined Multi-GPU VJP Engine
   addStep(
     1,
     "Initialize Async Pipelined Multi-GPU VJP Engine",
     "Setting up 1F1B backward pipeline schedule across distributed GPU ranks (Rank 0 .. Rank N-1).",
-    { numStages: 5, target, phase: "PIPELINE_INIT" },
-    undefined,
-    { pipeline_schedule: "1F1B_ASYNC", total_gpus: "5" },
+    { numStages, target, phase: "PIPELINE_INIT" },
   );
 
+  // Step 2: Line 2 - stage_grads = []
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Simulates async pipelined Vector-Jacobian Product (VJP) backward evaluation.",
-    {},
+    "Initialize Stage Gradient Buffer `stage_grads = []`",
+    "Allocating buffer to record per-GPU stage VJP tuples (stage, jacobian_val, accumulated_vjp).",
+    { stageGradsCount: 0, phase: "ALLOC_BUFFER" },
   );
 
+  // Step 3: Line 3 - accumulated_vjp = 1.0
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
+    "Initialize Initial Loss Gradient `accumulated_vjp = 1.0`",
+    "Seeding output loss node VJP gradient scalar v = dL/dL = 1.0 at final GPU rank.",
+    { accumulated_vjp: 1.0, phase: "LOSS_VJP_SET" },
   );
 
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Step 2: Init stage_grads and initial loss VJP gradient
-  addStep(
-    5,
-    "Initialize Gradient Buffer & Loss VJP (v = 1.0)",
-    "Allocating stage gradient log `stage_grads = []` and setting initial output loss gradient scalar `accumulated_vjp = 1.0`.",
-    { stageGradsCount: 0, accumulated_vjp: 1.0, phase: "LOSS_VJP_SET" },
-  );
-
-  // Reverse stage traversal simulation (stage 4 down to 0)
+  // Reverse stage traversal simulation (stage numStages-1 down to 0)
   let vjpAccumulator = 1.0;
-  const numStages = arrayData.length;
 
   for (let sIdx = numStages - 1; sIdx >= 0; sIdx--) {
-    const val = arrayData[sIdx];
     const jacobianVal = Number((0.5 + sIdx * 0.1).toFixed(2));
-    const isTarget = val === target;
 
-    // Sub-step A: Enter Pipeline Stage
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === sIdx) return { ...el, state: "compare", pointers: [`GPU_${sIdx}`] };
-      if (i > sIdx) return { ...el, state: "visited" };
-      return el;
-    });
+    // Sub-step A: Enter Pipeline Stage (Line 5)
     addStep(
-      8,
+      5,
       `Enter Pipeline Stage ${sIdx} (GPU Rank ${sIdx})`,
       `Iterating in reverse topological autograd order. Active rank: GPU_${sIdx}.`,
       { stage: sIdx, gpuRank: sIdx, phase: "ENTER_STAGE" },
-      stateA,
-      { activeStage: `Stage_${sIdx}` },
+      sIdx,
     );
 
-    // Sub-step B: Compute local stage Jacobian
-    const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === sIdx) return { ...el, state: "active", pointers: [`J_${sIdx}=${jacobianVal}`] };
-      if (i > sIdx) return { ...el, state: "visited" };
-      return el;
-    });
+    // Sub-step B: Compute local stage Jacobian (Line 6)
+    stageJacobians[sIdx] = jacobianVal;
     addStep(
-      9,
-      `Compute Local Jacobian Matrix: J_${sIdx} = ${jacobianVal}`,
-      `Evaluating local layer derivatives on GPU_${sIdx} yielding Jacobian factor ${jacobianVal}.`,
+      6,
+      `Compute Local Stage Jacobian: jacobian_val = ${jacobianVal}`,
+      `Evaluating local layer derivative factor J_${sIdx} = 0.5 + ${sIdx} * 0.1 = ${jacobianVal} on GPU_${sIdx}.`,
       { stage: sIdx, jacobian_val: jacobianVal, phase: "COMPUTE_JACOBIAN" },
-      stateB,
+      null,
+      sIdx,
+      null,
       { stageJacobian: String(jacobianVal) },
     );
 
-    // Sub-step C: Vector-Jacobian Product (VJP) Accumulation
+    // Sub-step C: Vector-Jacobian Product (VJP) Accumulation (Line 7)
     vjpAccumulator = Number((vjpAccumulator * jacobianVal).toFixed(4));
-    const stateC: ArrayElement[] = elements.map((el, i) => {
-      if (i === sIdx) return { ...el, state: isTarget ? "active" : "sorted", value: vjpAccumulator, pointers: ["vjp_acc"] };
-      if (i > sIdx) return { ...el, state: "visited" };
-      return el;
-    });
+    stageVjps[sIdx] = vjpAccumulator;
+    const p2pEdge = sIdx > 0 ? `gpu-${sIdx}->gpu-${sIdx - 1}` : null;
     addStep(
-      10,
-      `Vector-Jacobian Product: accumulated_vjp *= J_${sIdx} -> ${vjpAccumulator}`,
-      `Propagating gradient backwards: v_{${sIdx}-1} = v_{${sIdx}} @ J_{${sIdx}}. Updated accumulated VJP: ${vjpAccumulator}.`,
-      { stage: sIdx, jacobian_val: jacobianVal, accumulated_vjp: vjpAccumulator, phase: "ACCUMULATE_VJP" },
-      stateC,
+      7,
+      `Vector-Jacobian Product: accumulated_vjp *= ${jacobianVal} -> ${vjpAccumulator}`,
+      `Propagating gradient backwards across pipeline: v_{${sIdx}-1} = v_{${sIdx}} * J_{${sIdx}}. Updated accumulated VJP: ${vjpAccumulator}.`,
+      {
+        stage: sIdx,
+        jacobian_val: jacobianVal,
+        accumulated_vjp: vjpAccumulator,
+        phase: "ACCUMULATE_VJP",
+      },
+      sIdx,
+      null,
+      p2pEdge,
       { accumulated_vjp: String(vjpAccumulator) },
     );
 
-    // Sub-step D: Async NVLink P2P Interconnect Transfer
+    // Sub-step D: Log Stage Gradient & Async P2P Transfer (Line 8)
+    stageGrads.push([sIdx, jacobianVal, vjpAccumulator]);
+    processedStages.add(sIdx);
     addStep(
-      11,
-      `Async NVLink P2P Transfer: Send Gradient to GPU_${Math.max(0, sIdx - 1)}`,
-      `Overlapping P2P tensor transmission across NVLink while GPU_${sIdx} frees activation memory buffers.`,
-      { stage: sIdx, srcGpu: sIdx, dstGpu: Math.max(0, sIdx - 1), bytesSent: 4096, phase: "ASYNC_P2P" },
-      stateC,
+      8,
+      `Log Stage Gradient & Async P2P Transfer to GPU_${Math.max(0, sIdx - 1)}`,
+      `Appended (${sIdx}, ${jacobianVal}, ${vjpAccumulator}) to stage_grads while overlapping NVLink P2P tensor transmission.`,
+      {
+        stage: sIdx,
+        srcGpu: sIdx,
+        dstGpu: Math.max(0, sIdx - 1),
+        loggedCount: stageGrads.length,
+        phase: "LOG_STAGE_GRAD",
+      },
+      null,
+      null,
+      p2pEdge,
     );
   }
 
-  // Step final-1: Multi-GPU Pipeline Gradient Verification
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  // Line 10: Return stage_grads
   addStep(
-    11,
-    "Verify All Pipeline GPU Stage Gradients",
-    "Checking that reverse topological autograd pass reached GPU Rank 0 and all stage gradients were logged.",
-    { stagesCompleted: numStages, finalInputGradient: vjpAccumulator },
-    finalElements,
+    10,
+    "Return Stage Gradient History `stage_grads`",
+    "All GPU pipeline stages evaluated in reverse topological order. Returning recorded VJP stage gradient tuples.",
+    { stagesCompleted: numStages, finalVjp: vjpAccumulator, phase: "RETURN_RESULTS" },
+    null,
+    null,
+    null,
+    undefined,
+    true,
   );
 
-  // Step final: Complete
+  // Line 10: Execution Complete
   addStep(
-    13,
+    10,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully completed async pipelined Vector-Jacobian Product backward pass across all GPU ranks.",
     { completed: true, totalSteps: stepIndex },
-    finalElements,
+    null,
+    null,
+    null,
+    undefined,
+    true,
   );
 
   return steps;
 };
 
 const ASYNCPIPELINEDVJPEVALUATION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 7, 12],
+  skipLines: [4, 9],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -208,36 +265,29 @@ const ASYNCPIPELINEDVJPEVALUATION_TRIVIA: TriviaMeta = {
     "accumulated_vjp += jacobian_val",
   ],
   hints: [
-    { line: 6, hint: "Initialize accumulated loss gradient to 1.0." },
-    { line: 8, hint: "Iterate pipeline stages in reverse topological order." },
-    { line: 10, hint: "Multiply accumulated VJP by local stage Jacobian matrix factor." },
+    { line: 3, hint: "Initialize initial accumulated loss gradient to 1.0." },
+    { line: 5, hint: "Iterate pipeline stages in reverse topological order." },
+    { line: 7, hint: "Multiply accumulated VJP by local stage Jacobian matrix factor." },
   ],
   lineExplanations: {
     1: "Defines entry point for async_pipelined_vjp_evaluation function.",
-    2: "Docstring opening: describes async pipelined backward Vector-Jacobian Product calculation.",
-    3: "Docstring body: simulates backward autograd pass across pipelined GPU stages.",
-    4: "Docstring closing.",
-    5: "Initializes stage gradient history array to store per-GPU gradient snapshots.",
-    6: "Sets initial accumulated Vector-Jacobian Product (VJP) loss gradient scalar to 1.0.",
-    7: "Empty line separating initial gradient setup from reverse stage traversal loop.",
-    8: "Iterates through pipeline parallel GPU stages in reverse topological autograd order (num_stages-1 down to 0).",
-    9: "Calculates local stage Jacobian derivative factor J_s for current GPU rank.",
-    10: "Accumulates VJP by multiplying incoming gradient by local stage Jacobian matrix factor.",
-    11: "Appends stage gradient tuple (stage, jacobian_val, accumulated_vjp) to tracking log.",
-    12: "Empty line before returning completed pipeline stage gradient history.",
-    13: "Returns stage gradient history array containing VJP outputs across all GPU ranks.",
+    2: "Initializes stage_grads list to store per-GPU stage gradient tuples.",
+    3: "Sets initial accumulated Vector-Jacobian Product (VJP) loss gradient scalar to 1.0.",
+    4: "Blank line separating initial gradient setup from reverse stage traversal loop.",
+    5: "Iterates through pipeline parallel GPU stages in reverse topological autograd order (num_stages-1 down to 0).",
+    6: "Calculates local stage Jacobian derivative factor J_stage for current GPU rank.",
+    7: "Accumulates VJP by multiplying incoming gradient scalar by local stage Jacobian factor.",
+    8: "Appends stage gradient tuple (stage, jacobian_val, accumulated_vjp) to stage_grads history log.",
+    9: "Blank line before returning completed pipeline stage gradient history.",
+    10: "Returns stage_grads list containing recorded VJP outputs across all GPU ranks.",
   },
 };
 
 export const asyncPipelinedVjpEvaluation: AlgorithmDefinition<asyncPipelinedVjpEvaluationInput> = {
   id: "async-pipelined-vjp-evaluation",
   title: "Async Pipelined Multi-GPU VJP Evaluator",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Async Pipelined Multi-GPU VJP Evaluator
 
 In large language model distributed training (**Megatron-LM**, **DeepSpeed Pipeline Parallelism**, and **1F1B Schedules**), backward autograd execution relies on Vector-Jacobian Product (VJP) evaluation across multi-GPU pipeline ranks.
@@ -351,4 +401,3 @@ With async pipelined VJP evaluation:
   defaultInput: DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT,
   generateSteps: generateAsyncPipelinedVjpEvaluationSteps,
 };
-

@@ -9,7 +9,7 @@ describe("Fp8 E4m3 E5m2 Bitpacker", () => {
   it("should have correct metadata", () => {
     expect(fp8E4m3E5m2Bitpacker.id).toBe("fp8-e4m3-e5m2-bitpacker");
     expect(fp8E4m3E5m2Bitpacker.title).toBe("Fp8 E4m3 E5m2 Bitpacker");
-    expect(fp8E4m3E5m2Bitpacker.category).toBe("ml_precision_quantization");
+    expect(fp8E4m3E5m2Bitpacker.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

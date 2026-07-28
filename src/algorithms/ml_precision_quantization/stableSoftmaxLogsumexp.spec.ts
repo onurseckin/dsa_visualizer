@@ -9,7 +9,7 @@ describe("Stable Softmax Logsumexp", () => {
   it("should have correct metadata", () => {
     expect(stableSoftmaxLogsumexp.id).toBe("stable-softmax-logsumexp");
     expect(stableSoftmaxLogsumexp.title).toBe("Stable Softmax Logsumexp");
-    expect(stableSoftmaxLogsumexp.category).toBe("ml_precision_quantization");
+    expect(stableSoftmaxLogsumexp.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

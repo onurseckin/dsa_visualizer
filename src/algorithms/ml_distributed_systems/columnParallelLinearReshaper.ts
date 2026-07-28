@@ -7,17 +7,6 @@ export interface columnParallelLinearReshaperInput {
 }
 
 export const COLUMNPARALLELLINEARRESHAPER_CODE = `def column_parallel_linear_reshaper(weights: list[float], num_tp_ranks: int) -> list[dict]:
-    """
-    Shards a flat Megatron-LM Column Parallel Linear weight vector across Tensor Parallel (TP) ranks.
-    Each TP rank receives a contiguous slice of output columns (d_out / num_tp_ranks).
-    
-    Input:
-        weights: Flat list of linear layer weight values representing column matrix parameters.
-        num_tp_ranks: Number of Tensor Parallel GPU ranks in the communication group.
-        
-    Output:
-        List of dictionaries containing per-rank column boundaries and sliced parameter shards.
-    """
     total_elements = len(weights)
     if num_tp_ranks <= 0 or total_elements == 0:
         return []
@@ -133,7 +122,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
   // Step 2: Read total elements
   addStep(
-    13,
+    2,
     "Read Weight Array Length",
     `Computed total_elements = len(weights) = ${totalElements}.`,
     { total_elements: totalElements },
@@ -141,7 +130,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
   // Step 3: Check bounds
   addStep(
-    14,
+    3,
     "Validate TP Rank Count & Array Size",
     `Checking if num_tp_ranks (${numRanks}) <= 0 or total_elements (${totalElements}) == 0. Validation passed.`,
     { num_tp_ranks: numRanks, total_elements: totalElements, valid: true },
@@ -149,7 +138,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
   // Step 4: Shard size ceiling division formula
   addStep(
-    17,
+    6,
     "Compute Shard Size via Ceiling Division",
     `Calculated shard_size = (${totalElements} + ${numRanks} - 1) // ${numRanks} = ${shardSize} columns per TP GPU rank.`,
     { shard_size: shardSize, formula: "(N + TP - 1) // TP" },
@@ -157,7 +146,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
   // Step 5: Initialize shards container
   addStep(
-    18,
+    7,
     "Initialize Shards Allocation List",
     "Created empty rank_shards list to hold per-rank boundary metadata and memory slices.",
     { rank_shards_length: 0 },
@@ -169,7 +158,7 @@ export const generateColumnParallelLinearReshaperSteps = (
   for (let rank = 0; rank < numRanks; rank++) {
     // Step: Loop header
     addStep(
-      20,
+      9,
       `Begin Processing TP GPU Rank ${rank}`,
       `Iterating loop for rank = ${rank} of ${numRanks}.`,
       { rank, total_ranks: numRanks },
@@ -179,7 +168,7 @@ export const generateColumnParallelLinearReshaperSteps = (
     // Step: Compute start_idx
     const startIdx = rank * shardSize;
     addStep(
-      21,
+      10,
       `Compute Start Index for Rank ${rank}`,
       `start_idx = ${rank} * ${shardSize} = ${startIdx}.`,
       { rank, start_idx: startIdx },
@@ -189,7 +178,7 @@ export const generateColumnParallelLinearReshaperSteps = (
     // Step: Compute end_idx
     const endIdx = Math.min(startIdx + shardSize, totalElements);
     addStep(
-      22,
+      11,
       `Compute End Index for Rank ${rank}`,
       `end_idx = min(${startIdx} + ${shardSize}, ${totalElements}) = ${endIdx}.`,
       { rank, start_idx: startIdx, end_idx: endIdx },
@@ -201,7 +190,7 @@ export const generateColumnParallelLinearReshaperSteps = (
       const gIdx = startIdx + c;
       const valid = gIdx < totalElements;
       addStep(
-        23,
+        12,
         `Extract Column ${c} (Global Index ${gIdx}) for Rank ${rank}`,
         valid
           ? `Extracting parameter weight W[${gIdx}] = ${weights[gIdx]} into Rank ${rank} buffer.`
@@ -215,7 +204,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
     const shardSlice = weights.slice(startIdx, endIdx);
     addStep(
-      23,
+      12,
       `Slice Parameter Sub-array for Rank ${rank}`,
       `Extracted contiguous memory shard weights[${startIdx}:${endIdx}] = [${shardSlice.join(", ")}].`,
       { rank, shard_length: shardSlice.length },
@@ -225,7 +214,7 @@ export const generateColumnParallelLinearReshaperSteps = (
     );
 
     addStep(
-      24,
+      13,
       `Construct Shard Metadata Dictionary for Rank ${rank}`,
       `Building allocation payload dict with rank=${rank}, start_idx=${startIdx}, end_idx=${endIdx}.`,
       { rank, start_idx: startIdx, end_idx: endIdx },
@@ -236,7 +225,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
     completedRanks.push(rank);
     addStep(
-      29,
+      18,
       `Append Rank ${rank} Shard to Allocation List`,
       `Successfully registered GPU Rank ${rank} shard allocation. Total completed ranks: ${completedRanks.length}/${numRanks}.`,
       { rank, completed_ranks: completedRanks.length },
@@ -248,7 +237,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
   // Verification step: Alignment & memory layout
   addStep(
-    31,
+    20,
     "Verify Tensor Core Alignment & VRAM Allocation",
     `Ensured all ${numRanks} rank shards align with GPU memory page boundaries and zero communication forward pass requirements.`,
     { total_ranks: numRanks, total_shards: completedRanks.length },
@@ -259,7 +248,7 @@ export const generateColumnParallelLinearReshaperSteps = (
 
   // Return step
   addStep(
-    31,
+    20,
     "Return Rank Shards List",
     "Returning final list of dictionaries containing sharded parameter weights and column index ranges.",
     { completed: true, shards_returned: completedRanks.length },
@@ -272,47 +261,39 @@ export const generateColumnParallelLinearReshaperSteps = (
 };
 
 const COLUMNPARALLELLINEARRESHAPER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  skipLines: [],
   distractors: [
     "weights.reshape(-1, num_tp_ranks).transpose()",
     "torch.all_reduce(weights, op=torch.distributed.ReduceOp.SUM)",
     "return weights[::-1]",
   ],
   hints: [
-    { line: 17, hint: "Use integer ceiling division (total + tp - 1) // tp to compute equal column shard sizes." },
+    {
+      line: 6,
+      hint: "Use integer ceiling division (total + tp - 1) // tp to compute equal column shard sizes.",
+    },
   ],
   lineExplanations: {
     1: "Defines entry point for Megatron-LM Column Parallel Linear weight reshaper taking weight list and TP rank count.",
-    2: "Starts docstring documenting function purpose.",
-    3: "Describes sharding flat column linear weight vectors across Tensor Parallel GPU ranks.",
-    4: "Notes that each TP rank receives a contiguous slice of output columns (d_out / num_tp_ranks).",
-    5: "Blank docstring line separating description from inputs.",
-    6: "Docstring section header for input parameters.",
-    7: "Docstring describing weights parameter as flat list of linear layer parameter values.",
-    8: "Docstring describing num_tp_ranks parameter as number of Tensor Parallel GPUs.",
-    9: "Blank docstring line separating inputs from output.",
-    10: "Docstring section header for output return value.",
-    11: "Docstring describing return format as list of per-rank column boundary dictionaries.",
-    12: "Closes function docstring.",
-    13: "Measures total length of the weight array to determine matrix parameter count.",
-    14: "Validates positive TP rank count and non-empty weight tensor input.",
-    15: "Returns empty list immediately if input arguments are invalid or empty.",
-    16: "Blank line before allocation calculations.",
-    17: "Computes per-rank column shard size using integer ceiling division to handle uneven column splits.",
-    18: "Initializes empty list to accumulate per-rank shard metadata dictionaries.",
-    19: "Blank line before rank partition iteration loop.",
-    20: "Iterates through each Tensor Parallel GPU rank ID from 0 to num_tp_ranks - 1.",
-    21: "Calculates global parameter starting index for the current rank.",
-    22: "Calculates global parameter ending index capped at total array length.",
-    23: "Extracts contiguous sub-slice of weights for current TP rank.",
-    24: "Appends dictionary containing rank ID, start_idx, end_idx, and sliced weight tensor.",
-    25: "Specifies rank key in shard metadata dictionary.",
-    26: "Specifies start_idx key in shard metadata dictionary.",
-    27: "Specifies end_idx key in shard metadata dictionary.",
-    28: "Specifies shard parameter tensor slice in metadata dictionary.",
-    29: "Closes dictionary construct and appends to rank_shards list.",
-    30: "Blank line before function return statement.",
-    31: "Returns final list of per-rank column shard dictionaries.",
+    2: "Measures total length of the weight array to determine matrix parameter count.",
+    3: "Validates positive TP rank count and non-empty weight tensor input.",
+    4: "Returns empty list immediately if input arguments are invalid or empty.",
+    5: "Blank line before allocation calculations.",
+    6: "Computes per-rank column shard size using integer ceiling division to handle uneven column splits.",
+    7: "Initializes empty list to accumulate per-rank shard metadata dictionaries.",
+    8: "Blank line before rank partition iteration loop.",
+    9: "Iterates through each Tensor Parallel GPU rank ID from 0 to num_tp_ranks - 1.",
+    10: "Calculates global parameter starting index for the current rank.",
+    11: "Calculates global parameter ending index capped at total array length.",
+    12: "Extracts contiguous sub-slice of weights for current TP rank.",
+    13: "Appends dictionary containing rank ID, start_idx, end_idx, and sliced weight tensor.",
+    14: "Specifies rank key in shard metadata dictionary.",
+    15: "Specifies start_idx key in shard metadata dictionary.",
+    16: "Specifies end_idx key in shard metadata dictionary.",
+    17: "Specifies shard parameter tensor slice in metadata dictionary.",
+    18: "Closes dictionary construct and appends to rank_shards list.",
+    19: "Blank line before function return statement.",
+    20: "Returns final list of per-rank column shard dictionaries.",
   },
 };
 
@@ -320,12 +301,8 @@ export const columnParallelLinearReshaper: AlgorithmDefinition<columnParallelLin
   {
     id: "column-parallel-linear-reshaper",
     title: "Megatron-LM Column Parallel Linear Layer Reshaper",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_tensor_algebra"],
+    topicIds: ["ml_distributed_systems", "ml_tensor_algebra"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "In Megatron-LM Tensor Parallelism (TP), Column Parallel Linear layers partition weight matrices along output column dimensions $d_{out}$ across $N$ GPU ranks ($W = [W_0 | W_1 | \\dots | W_{N-1}]$).\n\n### Why It Exists & Problem Solved\nModern Large Language Models (LLMs) with tens or hundreds of billions of parameters exceed the VRAM capacity of any single GPU (e.g. 80GB H100). Column Parallelism enables fitting massive linear layers (such as Transformer QKV projection matrices or MLP gate/up projections) into distributed GPU memory while keeping forward-pass communication cost at zero.\n\n### Step-by-Step Intuition\n1. **Activation Replication**: Input activations $X \\in \\mathbb{R}^{B \\times S \\times d_{in}}$ are duplicated across all $N$ TP ranks without communication.\n2. **Local GEMM**: Each GPU rank $i$ computes local matrix multiplication $Y_i = X W_i$, yielding a slice of output features $Y_i \\in \\mathbb{R}^{B \\times S \\times (d_{out}/N)}$.\n3. **Deferred Communication**: Because $Y_i$ is already column-sharded, it directly matches the input requirement of a subsequent Row Parallel Linear layer. All-Reduce communication is completely avoided until after the Row Parallel layer!\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(N)$ linear step to compute rank slices and $O(B \\cdot S \\cdot d_{in} \\cdot \\frac{d_{out}}{N})$ local compute per rank.\n- **Space Complexity**: Memory footprint per GPU scales down by $1/N$ to $O(\\frac{d_{in} \\cdot d_{out}}{N})$.\n- **Hardware Alignment**: Shard dimensions must be multiples of 16/32 elements for optimal NVIDIA Tensor Core FP16/BF16 MMA execution.",
     constraints: ["1 <= data.length <= 1000", "1 <= target (num_ranks) <= 64"],
@@ -415,4 +392,3 @@ export const columnParallelLinearReshaper: AlgorithmDefinition<columnParallelLin
     defaultInput: DEFAULT_COLUMNPARALLELLINEARRESHAPER_INPUT,
     generateSteps: generateColumnParallelLinearReshaperSteps,
   };
-

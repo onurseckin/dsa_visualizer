@@ -10,7 +10,7 @@ describe("countingBits logic spec", () => {
   it("has correct algorithm metadata", () => {
     expect(countingBits.id).toBe("counting-bits");
     expect(countingBits.title).toBe("Counting Bits");
-    expect(countingBits.category).toBe("bit_manipulation");
+    expect(countingBits.topicIds).toContain("bit_manipulation");
     expect(countingBits.difficulty).toBe("Easy");
     expect(countingBits.code).toContain("def countBits(n):");
   });
@@ -42,7 +42,7 @@ describe("countingBits logic spec", () => {
 
     const lastStep = steps[steps.length - 1];
     expect(lastStep.auxiliaryState.customState?.result).toBe(
-      "[0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]"
+      "[0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4]",
     );
   });
 

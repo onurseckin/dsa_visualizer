@@ -79,7 +79,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   addStep(
     1,
     `Evaluate ${n} piles: [${piles.join(", ")}]`,
-    "To decide who wins this Nim position we compute the Nim-sum (bitwise XOR of all pile sizes).",
+    "To decide who wins this Nim position, we compute the Nim-sum (bitwise XOR of all pile sizes).",
     { n, piles: piles.join(", ") },
   );
 
@@ -98,12 +98,10 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   );
 
   if (n === 0) {
-    addStep(
-      7,
-      "Check Nim-sum on empty board: xor_sum = 0",
-      "With 0 piles, the Nim-sum is 0.",
-      { n, xorSum: 0 },
-    );
+    addStep(7, "Check Nim-sum on empty board: xor_sum = 0", "With 0 piles, the Nim-sum is 0.", {
+      n,
+      xorSum: 0,
+    });
     addStep(
       8,
       "Game complete: no piles to play (Second Player Wins)",
@@ -117,15 +115,15 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   }
 
   for (let i = 0; i < n; i++) {
+    elements[i].state = "active";
+    elements[i].pointers = [`i=${i}`, `val=${piles[i]}`];
+
     addStep(
       4,
       `Inspect pile ${i} of size ${piles[i]}`,
       `Preparing to fold pile ${i} (value ${piles[i]}, binary 0b${piles[i].toString(2)}) into the running XOR accumulator.`,
       { i, pileSize: piles[i] },
     );
-
-    elements[i].state = "active";
-    elements[i].pointers = [`i=${i}`, `val=${piles[i]}`];
 
     const prevXor = currentXorSum;
     currentXorSum ^= piles[i];
@@ -135,13 +133,6 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
       `XOR in pile ${i} of size ${piles[i]}: ${prevXor} ^ ${piles[i]} = ${currentXorSum}`,
       `Running XOR total updated to ${currentXorSum} (binary 0b${currentXorSum.toString(2)}). Each set bit in the Nim-sum indicates an odd count of piles having that power-of-two bit set.`,
       { i, pileSize: piles[i], prevXorSum: prevXor, xorSum: currentXorSum },
-    );
-
-    addStep(
-      5,
-      `Updated running Nim-sum after pile ${i}: ${currentXorSum}`,
-      `Completed fold for pile ${i}. Accumulator is currently ${currentXorSum}.`,
-      { i, xorSum: currentXorSum },
     );
 
     elements[i].state = "visited";
@@ -168,6 +159,12 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
     return steps;
   }
 
+  // Reset visual element states for winning move search loop
+  for (let i = 0; i < n; i++) {
+    elements[i].state = "default";
+    elements[i].pointers = undefined;
+  }
+
   addStep(
     10,
     `Nim-sum ${currentXorSum} ≠ 0: First Player wins. Searching for winning move...`,
@@ -179,9 +176,20 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
   );
 
   for (let i = 0; i < n; i++) {
-    const targetSize = piles[i] ^ currentXorSum;
-
     elements[i].state = "compare";
+    elements[i].pointers = [`i=${i}`];
+
+    addStep(
+      10,
+      `Inspect pile ${i} for winning move`,
+      `Checking if pile ${i} can be reduced to zero out the Nim-sum ${currentXorSum}.`,
+      { i, pileSize: piles[i] },
+      -1,
+      -1,
+      "First Player",
+    );
+
+    const targetSize = piles[i] ^ currentXorSum;
     elements[i].pointers = [`i=${i}`, `target=${targetSize}`];
 
     addStep(
@@ -208,6 +216,9 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     if (targetSize < piles[i]) {
       const removeAmount = piles[i] - targetSize;
+
+      elements[i].state = "sorted";
+      elements[i].pointers = ["winning move"];
 
       addStep(
         13,
@@ -259,9 +270,6 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
         "First Player",
       );
 
-      elements[i].state = "sorted";
-      elements[i].pointers = ["winning move"];
-
       addStep(
         18,
         `Shrink pile ${i} from ${piles[i]} to ${targetSize}`,
@@ -287,4 +295,3 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   return steps;
 };
-

@@ -12,10 +12,6 @@ export interface pagedAttentionBlockTableAllocatorInput {
 }
 
 export const PAGEDATTENTIONBLOCKTABLEALLOCATOR_CODE = `def paged_attention_block_table_allocator(token_chunks: list[int], block_size: int = 4) -> list[int]:
-    """
-    Dynamically allocates physical GPU memory blocks (pages) for incoming sequence token chunks,
-    mapping logical token block indices to physical block table entries.
-    """
     block_table = []
     current_tokens = 0
     next_physical_block = 0
@@ -66,7 +62,11 @@ function buildBlockTableMatrixSnapshot(
       let statusText = "Full Page";
 
       if (logIdx === blockTable.length - 1) {
-        occupied = currentTokens % blockSize === 0 ? blockSize : currentTokens % blockSize;
+        if (currentTokens === 0) {
+          occupied = 0;
+        } else {
+          occupied = currentTokens % blockSize === 0 ? blockSize : currentTokens % blockSize;
+        }
         if (occupied < blockSize) {
           state = "active";
           statusText = `Partial Page (${occupied}/${blockSize})`;
@@ -148,36 +148,8 @@ export const generatePagedAttentionBlockTableAllocatorSteps = (
     null,
   );
 
-    addStep(
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "Dynamically allocates physical GPU memory blocks (pages) for incoming seque",
-    {},
-  );
-
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "mapping logical token block indices to physical block table entries.",
-    {},
-  );
-
-  addStep(
-    5,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    6,
     "Initialize Container block_table",
     "Creating physical block table mapping array for sequence KV cache.",
     { blockSize },
@@ -185,16 +157,24 @@ addStep(
   );
 
   addStep(
-    7,
-    "Initialize current_tokens and next_physical_block",
-    "Setting token offset current_tokens = 0 and available physical page allocator next_physical_block = 0.",
-    { current_tokens: 0, next_physical_block: 0 },
+    3,
+    "Initialize current_tokens Counter",
+    "Setting token offset current_tokens = 0.",
+    { current_tokens: 0 },
+    null,
+  );
+
+  addStep(
+    4,
+    "Initialize next_physical_block Allocator",
+    "Setting available physical page allocator index next_physical_block = 0.",
+    { next_physical_block: 0 },
     null,
   );
 
   tokenChunks.forEach((tokens, chunkIdx) => {
     addStep(
-      10,
+      6,
       `Process Token Chunk ${chunkIdx + 1}/${tokenChunks.length} (${tokens} Tokens)`,
       `Incoming token chunk contains ${tokens} new tokens to append to KV cache.`,
       { chunkIdx, tokens, current_tokens: currentTokens },
@@ -203,20 +183,32 @@ addStep(
 
     for (let t = 0; t < tokens; t++) {
       addStep(
-        11,
+        7,
+        `Iterate Token ${t + 1}/${tokens} in Chunk ${chunkIdx + 1} (Total Offset ${currentTokens})`,
+        `Processing token ${t + 1} of ${tokens} in chunk ${chunkIdx + 1}.`,
+        { chunkIdx, tokenInChunk: t, current_tokens: currentTokens },
+        null,
+      );
+
+      addStep(
+        8,
         `Evaluate Boundary for Token ${t + 1}/${tokens} in Chunk ${chunkIdx + 1} (Total Offset ${currentTokens})`,
         `Checking if current_tokens (${currentTokens}) % block_size (${blockSize}) == 0.`,
-        { chunkIdx, tokenInChunk: t, current_tokens: currentTokens, rem: currentTokens % blockSize },
+        {
+          chunkIdx,
+          tokenInChunk: t,
+          current_tokens: currentTokens,
+          rem: currentTokens % blockSize,
+        },
         null,
       );
 
       if (currentTokens % blockSize === 0) {
         const allocatedPhys = nextPhysicalBlock;
         blockTable.push(allocatedPhys);
-        nextPhysicalBlock += 1;
 
         addStep(
-          13,
+          9,
           `Allocate New Physical Page ${allocatedPhys} for Logical Block ${blockTable.length - 1}`,
           `Page boundary crossed! Allocated physical GPU memory page ${allocatedPhys} to logical block index ${blockTable.length - 1}.`,
           {
@@ -226,12 +218,22 @@ addStep(
           },
           blockTable.length - 1,
         );
+
+        nextPhysicalBlock += 1;
+
+        addStep(
+          10,
+          `Increment next_physical_block to ${nextPhysicalBlock}`,
+          `Updating available physical block index counter to ${nextPhysicalBlock}.`,
+          { next_physical_block: nextPhysicalBlock },
+          blockTable.length - 1,
+        );
       }
 
       currentTokens += 1;
 
       addStep(
-        14,
+        11,
         `Increment current_tokens to ${currentTokens}`,
         `Token appended to active page slot ${((currentTokens - 1) % blockSize) + 1}/${blockSize}.`,
         { current_tokens: currentTokens },
@@ -241,7 +243,7 @@ addStep(
   });
 
   addStep(
-    16,
+    13,
     "PagedAttention Block Table Allocation Complete",
     `Successfully allocated ${blockTable.length} physical GPU memory pages [${blockTable.join(", ")}] for ${currentTokens} total tokens. Zero internal fragmentation outside final page.`,
     { complete: true, totalTokens: currentTokens, allocatedPages: blockTable.length },
@@ -252,7 +254,7 @@ addStep(
 };
 
 const PAGEDATTENTIONBLOCKTABLEALLOCATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 8, 15],
+  skipLines: [5, 12],
   distractors: [
     "block_table.append(current_tokens) # using token offset as physical block",
     "next_physical_block += block_size # over-allocating physical blocks",
@@ -260,28 +262,27 @@ const PAGEDATTENTIONBLOCKTABLEALLOCATOR_TRIVIA: TriviaMeta = {
     "return len(block_table)",
   ],
   hints: [
-    { line: 11, hint: "Check if current_tokens % block_size == 0 to detect page boundary crossing." },
-    { line: 13, hint: "Append next_physical_block to block_table and increment allocator index." },
-    { line: 16, hint: "Return block_table containing mapped physical GPU page indices." },
+    {
+      line: 8,
+      hint: "Check if current_tokens % block_size == 0 to detect page boundary crossing.",
+    },
+    { line: 9, hint: "Append next_physical_block to block_table and increment allocator index." },
+    { line: 13, hint: "Return block_table containing mapped physical GPU page indices." },
   ],
   lineExplanations: {
     1: "Function signature for paged_attention_block_table_allocator taking token_chunks list and block_size.",
-    2: "Docstring start describing PagedAttention virtual block memory allocator.",
-    3: "Explains mapping of logical token sequence offsets to physical GPU memory block IDs.",
-    4: "Explains dynamic allocation behavior per token chunk.",
-    5: "Docstring end.",
-    6: "Initializes block_table list to store physical GPU memory page numbers allocated to sequence.",
-    7: "Initializes current_tokens count to zero.",
-    8: "Initializes next_physical_block allocator counter tracking available physical GPU DRAM pages.",
-    9: "Blank line before token chunk processing loop.",
-    10: "Loop iterating over each token chunk index and token count in token_chunks list.",
-    11: "Inner loop running once per token in current chunk to track exact page boundary crossings.",
-    12: "Checks if current_tokens offset aligns with block_size page boundary.",
-    13: "Appends next_physical_block to block_table physical page table.",
-    14: "Increments next_physical_block allocator index for next GPU memory page allocation.",
-    15: "Increments total current_tokens count for sequence.",
-    16: "Blank line before final return.",
-    17: "Returns block_table array mapping logical sequence blocks to physical GPU page numbers.",
+    2: "Initializes block_table list to store physical GPU memory page numbers allocated to sequence.",
+    3: "Initializes current_tokens count to zero to track total sequence tokens processed.",
+    4: "Initializes next_physical_block allocator counter tracking available physical GPU DRAM pages.",
+    5: "Blank line before token chunk processing loop.",
+    6: "Loop iterating over each token chunk index and token count in token_chunks list.",
+    7: "Inner loop running once per token in current chunk to track exact page boundary crossings.",
+    8: "Checks if current_tokens offset aligns with block_size page boundary.",
+    9: "Appends next_physical_block to block_table physical page table.",
+    10: "Increments next_physical_block allocator index for next GPU memory page allocation.",
+    11: "Increments total current_tokens count for sequence.",
+    12: "Blank line before final return.",
+    13: "Returns block_table array mapping logical sequence blocks to physical GPU page numbers.",
   },
 };
 
@@ -289,12 +290,8 @@ export const pagedAttentionBlockTableAllocator: AlgorithmDefinition<pagedAttenti
   {
     id: "paged-attention-block-table-allocator",
     title: "PagedAttention Block Table Allocator",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_attention_geometry"],
+    topicIds: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "PagedAttention (introduced in vLLM by Kwon et al.) revolutionizes LLM serving memory management by borrowing virtual memory paging principles from operating systems. In traditional Transformer serving engines, Key-Value (KV) cache tensors for each request were allocated as contiguous memory slabs sized to the maximum possible sequence length (e.g. $L_{\\text{max}} = 4096$ or $8192$ tokens). This resulted in severe memory fragmentation (over $60\\%-80\\%$ waste due to internal fragmentation, external fragmentation, and reserved buffer allocations), limiting multi-user GPU serving capacity.\n\n### Mathematical Formulation & Paging Mechanics\nFor a total sequence length of $T$ tokens and block size $B$ (e.g. $B = 16$ tokens per physical page), total allocated physical blocks $N_{\\text{blocks}}$ is:\n$$N_{\\text{blocks}} = \\left\\lceil \\frac{T}{B} \\right\\rceil$$\nLogical block index $i = \\lfloor t / B \\rfloor$ maps token offset $t \\in [0, T-1]$ to physical block $P_i = \\text{BlockTable}[i]$. Inside physical block $P_i$, token offset is $o = t \\pmod B$.\n\nInternal memory fragmentation waste $W_{\\text{internal}}$ is strictly bounded by the last block:\n$$W_{\\text{internal}} = (B - (T \\pmod B)) \\pmod B < B$$\nRelative memory waste is $\\frac{W_{\\text{internal}}}{T} < \\frac{B}{T} \\ll 4\\%$, compared to traditional contiguous allocation waste $W_{\\text{trad}} = L_{\\text{max}} - T$.\n\nInput Format:\n- `token_chunks`: Array of integers representing token counts in incoming sequence chunks.\n- `block_size`: Integer size (token count) per physical KV-cache page (default: 4).\n\nOutput Format:\n- Returns an array of physical block IDs assigned to the sequence in the block table.\n\nEdge Cases & Constraints:\n- Exact multiple of `block_size`: When token count is an exact multiple ($T \\pmod B = 0$), no extra trailing block is allocated.\n- Partial block filling: The last allocated physical page stores partial tokens until full.",
     constraints: [

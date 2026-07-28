@@ -10,19 +10,19 @@ afterEach(() => {
 });
 
 describe("useProblemListState hook", () => {
-  it("initializes with default search term, difficulty, category, and stats", () => {
+  it("initializes with default search term, difficulty, topic, and stats", () => {
     const { result } = renderHook(() => useProblemListState({}));
 
     expect(result.current.searchTerm).toBe("");
     expect(result.current.selectedDifficulty).toBe("All");
-    expect(result.current.selectedCategory).toBe("All");
+    expect(result.current.selectedTopic).toBe("All");
     expect(result.current.stats.total).toBeGreaterThan(0);
     expect(
       result.current.stats.easy + result.current.stats.medium + result.current.stats.hard,
     ).toBe(result.current.stats.total);
   });
 
-  it("updates search term, difficulty, and internal category", () => {
+  it("updates search term, difficulty, and internal topic", () => {
     const { result } = renderHook(() => useProblemListState({}));
 
     act(() => result.current.setSearchTerm("bubble"));
@@ -33,23 +33,23 @@ describe("useProblemListState hook", () => {
     expect(result.current.selectedDifficulty).toBe("Easy");
     expect(window.localStorage.getItem("dsa_visualizer_problem_list_difficulty")).toBe('"Easy"');
 
-    act(() => result.current.handleCategorySelect("two_pointers"));
-    expect(result.current.selectedCategory).toBe("two_pointers");
+    act(() => result.current.handleTopicSelect("two_pointers"));
+    expect(result.current.selectedTopic).toBe("two_pointers");
   });
 
-  it("delegates category selection to onCategoryChange prop when supplied", () => {
-    const onCategoryChange = vi.fn();
+  it("delegates topic selection to onTopicChange prop when supplied", () => {
+    const onTopicChange = vi.fn();
     const { result } = renderHook(() =>
-      useProblemListState({ category: "arrays_and_hashing", onCategoryChange }),
+      useProblemListState({ topic: "arrays_and_hashing", onTopicChange }),
     );
 
-    expect(result.current.selectedCategory).toBe("arrays_and_hashing");
+    expect(result.current.selectedTopic).toBe("arrays_and_hashing");
 
-    act(() => result.current.setSelectedCategory("tree_fundamentals"));
-    expect(onCategoryChange).toHaveBeenCalledWith("tree_fundamentals");
+    act(() => result.current.setSelectedTopic("tree_fundamentals"));
+    expect(onTopicChange).toHaveBeenCalledWith("tree_fundamentals");
   });
 
-  it("toggles sort order and sort field across title, category, and difficulty", () => {
+  it("toggles sort order and sort field across title, topic, and difficulty", () => {
     const { result } = renderHook(() => useProblemListState({}));
 
     // Default sort is title asc
@@ -60,9 +60,9 @@ describe("useProblemListState hook", () => {
     act(() => result.current.toggleSort("title"));
     expect(result.current.sortOrder).toBe("desc");
 
-    // Switching to category resets order to asc
-    act(() => result.current.toggleSort("category"));
-    expect(result.current.sortBy).toBe("category");
+    // Switching to topic resets order to asc
+    act(() => result.current.toggleSort("topic"));
+    expect(result.current.sortBy).toBe("topic");
     expect(result.current.sortOrder).toBe("asc");
 
     // Switching to difficulty resets order to asc
@@ -87,10 +87,10 @@ describe("useProblemListState hook", () => {
     expect(result.current.sortOrder).toBe("asc");
   });
 
-  it("filters algorithms by description text or category label", () => {
+  it("filters algorithms by description text or topic label", () => {
     const { result } = renderHook(() => useProblemListState({}));
 
-    // Search by category label match (e.g. "array")
+    // Search by topic label match (e.g. "array")
     act(() => result.current.setSearchTerm("arrays & hashing"));
     expect(result.current.filteredAlgorithms.length).toBeGreaterThan(0);
 
@@ -99,12 +99,12 @@ describe("useProblemListState hook", () => {
     expect(result.current.filteredAlgorithms.length).toBeGreaterThan(0);
   });
 
-  it("handles fallback category and difficulty sorting when fields are missing or unknown", () => {
+  it("sorts sparse definitions with canonical topic ids", () => {
     const mockAlgs: AlgorithmDefinition[] = [
       {
         id: "custom-1",
         title: "Custom Alg",
-        category: "custom_cat" as unknown as AlgorithmDefinition["category"],
+        topicIds: ["two_pointers"],
         difficulty: undefined as unknown as AlgorithmDefinition["difficulty"],
         description: "Custom description text",
         timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
@@ -118,7 +118,7 @@ describe("useProblemListState hook", () => {
       {
         id: "custom-2",
         title: "Another Alg",
-        category: "custom_cat" as unknown as AlgorithmDefinition["category"],
+        topicIds: ["two_pointers"],
         difficulty: "Easy",
         description: "Another description",
         timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
@@ -132,8 +132,8 @@ describe("useProblemListState hook", () => {
       {
         id: "custom-3",
         title: "Third Alg",
-        category: "custom_cat" as unknown as AlgorithmDefinition["category"],
-        difficulty: "UnknownDifficulty" as unknown as AlgorithmDefinition["difficulty"],
+        topicIds: ["two_pointers"],
+        difficulty: undefined,
         description: "Third description",
         timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
         spaceComplexity: "O(1)",
@@ -149,37 +149,39 @@ describe("useProblemListState hook", () => {
 
     const { result } = renderHook(() => useProblemListState({}));
 
-    // Search by unknown category label fallback
-    act(() => result.current.setSearchTerm("custom_cat"));
+    // Search by the canonical topic label.
+    act(() => result.current.setSearchTerm("two pointers"));
     expect(result.current.filteredAlgorithms).toHaveLength(3);
 
-    // Sort by unknown category fallback
-    act(() => result.current.toggleSort("category"));
+    // Sort by the canonical topic.
+    act(() => result.current.toggleSort("topic"));
     expect(result.current.filteredAlgorithms).toHaveLength(3);
 
-    // Sort by undefined difficulty fallback
+    // Sort by sparse difficulty values.
     act(() => result.current.toggleSort("difficulty"));
     expect(result.current.filteredAlgorithms).toHaveLength(3);
   });
 
-  it("does not return empty results when category is specified but stored source filter is incompatible", () => {
+  it("does not return empty results when topic is specified but stored source filter is incompatible", () => {
     // Simulate stored selectedSource = "ml_infra" from previous page navigation
     window.localStorage.setItem("dsa_visualizer_problem_list_source", '"ml_infra"');
 
-    const { result } = renderHook(() => useProblemListState({ category: "backtracking" }));
+    const { result } = renderHook(() => useProblemListState({ topic: "backtracking" }));
 
-    expect(result.current.selectedCategory).toBe("backtracking");
+    expect(result.current.selectedTopic).toBe("backtracking");
     expect(result.current.filteredAlgorithms.length).toBeGreaterThan(0);
-    expect(result.current.filteredAlgorithms.every((a) => a.category === "backtracking")).toBe(true);
+    expect(
+      result.current.filteredAlgorithms.every((a) => a.topicIds.includes("backtracking")),
+    ).toBe(true);
   });
 
-  it("preserves exact full problem count (e.g. 5 for dp_1d) when navigating to category with stored Hard difficulty filter", () => {
+  it("preserves the full problem count when navigating to a topic with a stored Hard difficulty filter", () => {
     // Simulate stored selectedDifficulty = "Hard"
     window.localStorage.setItem("dsa_visualizer_problem_list_difficulty", '"Hard"');
 
-    const { result } = renderHook(() => useProblemListState({ category: "dp_1d" }));
+    const { result } = renderHook(() => useProblemListState({ topic: "dp_1d" }));
 
-    expect(result.current.selectedCategory).toBe("dp_1d");
+    expect(result.current.selectedTopic).toBe("dp_1d");
     // dp_1d registered algorithms total 5 (3 Medium + 2 Hard)
     expect(result.current.filteredAlgorithms.length).toBe(5);
   });

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface autotuneConfigGridSearchEngineInput {
@@ -10,30 +15,21 @@ export interface autotuneConfigGridSearchEngineInput {
 }
 
 export const AUTOTUNECONFIGGRIDSEARCHENGINE_CODE = `def autotune_grid_search(configs: list[dict], benchmark_fn, warmup: int = 10, rep: int = 40) -> tuple[dict, float]:
-    """Simulates Triton @triton.autotune config grid search engine."""
     best_config = None
     best_time_ms = float('inf')
     results = []
-
     for cfg in configs:
-        # Step 1: Warmup kernel compilation & L2 cache warm-up
         for _ in range(warmup):
             benchmark_fn(cfg)
-
-        # Step 2: Time execution across rep iterations using CUDA events
         start_event = record_cuda_event()
         for _ in range(rep):
             benchmark_fn(cfg)
         end_event = record_cuda_event()
-
         elapsed_ms = elapsed_time(start_event, end_event) / rep
         results.append((cfg, elapsed_ms))
-
-        # Step 3: Track minimum execution latency configuration
         if elapsed_ms < best_time_ms:
             best_time_ms = elapsed_ms
             best_config = cfg
-
     return best_config, best_time_ms`;
 
 export const DEFAULT_AUTOTUNECONFIGGRIDSEARCHENGINE_INPUT: autotuneConfigGridSearchEngineInput = {
@@ -62,10 +58,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
   const simulatedTimes: number[] = [2.45, 1.12, 0.78, 1.42];
 
-  const getSnapshot = (
-    currentIdx: number = -1,
-    bestIdx: number = -1,
-  ): MatrixVisualSnapshot => {
+  const getSnapshot = (currentIdx: number = -1, bestIdx: number = -1): MatrixVisualSnapshot => {
     const rows = n + 1;
     const cols = 5;
     const cells: MatrixCellItem[] = [];
@@ -80,7 +73,13 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
       const cfg = configs[r];
       const isCurrent = r === currentIdx;
       const isBest = r === bestIdx;
-      const state = isBest ? "sorted" : isCurrent ? "active" : r < currentIdx ? "compared" : "default";
+      const state = isBest
+        ? "sorted"
+        : isCurrent
+          ? "active"
+          : r < currentIdx
+            ? "compared"
+            : "default";
 
       cells.push(
         { row: rowIdx, col: 0, value: `Cfg #${r}`, state },
@@ -115,7 +114,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
       primarySnapshot: getSnapshot(currentIdx, bestIdx),
       auxiliaryState: {
         customState: {
-          "Algorithm": "Triton @triton.autotune Grid Search Engine",
+          Algorithm: "Triton @triton.autotune Grid Search Engine",
           "Candidate Configurations": String(n),
           "Warmup Iterations": String(warmup),
           "Benchmark Repetitions": String(rep),
@@ -136,12 +135,9 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
   // Step 2: best_config = None (2)
   let bestConfig: Record<string, number> | null = null;
-  addStep(
-    2,
-    "Initialize best_config = None",
-    "Set optimal configuration pointer to None.",
-    { best_config: "None" },
-  );
+  addStep(2, "Initialize best_config = None", "Set optimal configuration pointer to None.", {
+    best_config: "None",
+  });
 
   // Step 3: best_time_ms = inf (3)
   let bestTimeMs = Infinity;
@@ -167,7 +163,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
     const cfg = configs[idx];
 
     addStep(
-      6,
+      5,
       `Outer Grid Search Loop: Configuration #${idx}`,
       `Loading candidate configuration #${idx}: BLOCK_M=${cfg.BLOCK_M}, BLOCK_N=${cfg.BLOCK_N}, warps=${cfg.num_warps}, stages=${cfg.num_stages}.`,
       { idx, ...cfg },
@@ -177,7 +173,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
     // Warmup loop
     addStep(
-      8,
+      6,
       `Step 1: Execute Warmup Iterations (warmup = ${warmup})`,
       `Triggered PTX compilation and ${warmup} GPU warmup runs to prime L2 cache and GPU clocks.`,
       { idx, warmup },
@@ -187,7 +183,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
     for (let w = 1; w <= Math.min(3, warmup); w++) {
       addStep(
-        9,
+        7,
         `Warmup Run ${w}/${warmup} for Cfg #${idx}`,
         `Executed GPU kernel warmup run ${w}.`,
         { idx, warmup_step: w },
@@ -198,7 +194,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
     // Benchmark loop
     addStep(
-      12,
+      8,
       "Step 2: Record Start CUDA Event",
       "Inserted cudaEventRecord(start_event) into CUDA stream.",
       { idx, event: "start" },
@@ -206,9 +202,18 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
       bestIdx,
     );
 
+    addStep(
+      9,
+      `Timed Execution Loop (rep = ${rep})`,
+      `Initiating ${rep} repetitions for configuration #${idx}.`,
+      { idx, rep },
+      idx,
+      bestIdx,
+    );
+
     for (let r = 1; r <= Math.min(3, rep); r++) {
       addStep(
-        14,
+        10,
         `Timed Execution Run ${r}/${rep} for Cfg #${idx}`,
         `Executed timed kernel repetition ${r}.`,
         { idx, rep_step: r },
@@ -218,7 +223,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
     }
 
     addStep(
-      15,
+      11,
       "Record End CUDA Event & Synchronize",
       "Inserted cudaEventRecord(end_event) and called cudaEventSynchronize().",
       { idx, event: "end" },
@@ -228,7 +233,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
     const elapsedMs = simulatedTimes[idx];
     addStep(
-      17,
+      12,
       `Calculate Average Latency: elapsed_ms = ${elapsedMs.toFixed(2)} ms`,
       `Evaluated mean latency = cudaEventElapsedTime / ${rep} = ${elapsedMs.toFixed(2)} ms.`,
       { idx, elapsed_ms: elapsedMs },
@@ -238,7 +243,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
     results.push([cfg, elapsedMs]);
     addStep(
-      18,
+      13,
       `Append (Cfg #${idx}, ${elapsedMs.toFixed(2)} ms) to Results`,
       `Recorded benchmarking result into results table.`,
       { idx, elapsed_ms: elapsedMs },
@@ -247,7 +252,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
     );
 
     addStep(
-      21,
+      14,
       `Check Min Latency Condition: ${elapsedMs.toFixed(2)} ms < ${bestTimeMs === Infinity ? "inf" : bestTimeMs.toFixed(2) + " ms"}`,
       elapsedMs < bestTimeMs
         ? `True (${elapsedMs.toFixed(2)} ms < ${bestTimeMs === Infinity ? "inf" : bestTimeMs.toFixed(2) + " ms"}) -> New optimal configuration!`
@@ -263,7 +268,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
       bestIdx = idx;
 
       addStep(
-        22,
+        15,
         `Update Best Latency: best_time_ms = ${bestTimeMs.toFixed(2)} ms`,
         `Set best_time_ms = ${bestTimeMs.toFixed(2)} ms.`,
         { best_time_ms: bestTimeMs },
@@ -272,10 +277,10 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
       );
 
       addStep(
-        23,
+        16,
         `Update Best Config: best_config = Cfg #${idx}`,
         `Updated best_config pointer to Cfg #${idx}: BLOCK_M=${cfg.BLOCK_M}, BLOCK_N=${cfg.BLOCK_N}, warps=${cfg.num_warps}.`,
-        { best_config: JSON.stringify(cfg) },
+        { best_config: JSON.stringify(bestConfig ?? cfg) },
         idx,
         bestIdx,
       );
@@ -284,7 +289,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 
   // Return step
   addStep(
-    25,
+    17,
     `Execution Complete: Return Best Config Cfg #${bestIdx} (${bestTimeMs.toFixed(2)} ms)`,
     `Successfully autotuned Triton kernel across ${n} setups. Optimal setup Cfg #${bestIdx} achieved ${bestTimeMs.toFixed(2)} ms latency.`,
     { best_time_ms: bestTimeMs, best_config_id: bestIdx, completed: true },
@@ -296,7 +301,7 @@ export const generateAUTOTUNECONFIGGRIDSEARCHENGINESteps = (
 };
 
 const AUTOTUNECONFIGGRIDSEARCHENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 5, 7, 10, 11, 13, 16, 20, 24],
+  skipLines: [],
   distractors: [
     "best_config = configs[0]",
     "elapsed_ms = elapsed_time * rep",
@@ -304,57 +309,42 @@ const AUTOTUNECONFIGGRIDSEARCHENGINE_TRIVIA: TriviaMeta = {
     "best_time_ms = sum(results)",
   ],
   hints: [
-    { line: 17, hint: "Average execution latency formula using CUDA events: elapsed_time(start, end) / rep." },
-    { line: 22, hint: "Track minimum latency configuration: if elapsed_ms < best_time_ms." },
+    {
+      line: 12,
+      hint: "Average execution latency formula using CUDA events: elapsed_time(start_event, end_event) / rep.",
+    },
+    { line: 14, hint: "Track minimum latency configuration: if elapsed_ms < best_time_ms." },
   ],
   lineExplanations: {
     1: "Defines entry point for autotune_grid_search function simulating @triton.autotune.",
-    2: "Docstring describing Triton @triton.autotune config grid search engine.",
-    3: "Initializes best_config pointer to None.",
-    4: "Initializes minimum latency tracker best_time_ms to infinity.",
-    5: "Initializes empty results list to log configuration benchmark times.",
-    6: "Iterates over candidate kernel configuration cfg in configs list.",
-    7: "Comment for Step 1: Warmup kernel compilation & L2 cache warm-up.",
-    8: "Executes warmup loop for warmup iterations to prime JIT compiler and L2 cache.",
-    9: "Triggers JIT kernel compilation and execution for cfg.",
-    10: "Comment for Step 2: Time execution across rep iterations using CUDA events.",
-    11: "Records start CUDA event start_event = record_cuda_event().",
-    12: "Executes repetition loop for rep iterations.",
-    13: "Triggers kernel execution for cfg.",
-    14: "Records end CUDA event end_event = record_cuda_event().",
-    15: "Calculates mean execution latency elapsed_ms = elapsed_time(start_event, end_event) / rep.",
-    16: "Appends tuple of (cfg, elapsed_ms) to results list.",
-    17: "Comment for Step 3: Track minimum execution latency configuration.",
-    18: "Checks if current configuration elapsed_ms < best_time_ms.",
-    19: "Updates best_time_ms = elapsed_ms.",
-    20: "Updates best_config = cfg.",
-    21: "Returns tuple of (best_config, best_time_ms).",
-    22: "Docstring continuation tag.",
-    23: "Docstring continuation tag.",
-    24: "Docstring continuation tag.",
-    25: "Docstring continuation tag.",
-    26: "Docstring continuation tag.",
-    27: "Docstring continuation tag.",
+    2: "Initializes best_config pointer to None.",
+    3: "Initializes minimum latency tracker best_time_ms to infinity.",
+    4: "Initializes empty results list to log configuration benchmark times.",
+    5: "Iterates over candidate kernel configuration cfg in configs list.",
+    6: "Executes warmup loop for warmup iterations to prime JIT compiler and L2 cache.",
+    7: "Triggers JIT kernel compilation and execution for cfg during warmup.",
+    8: "Records start CUDA event start_event = record_cuda_event().",
+    9: "Executes repetition benchmark loop for rep iterations.",
+    10: "Triggers kernel execution for cfg.",
+    11: "Records end CUDA event end_event = record_cuda_event().",
+    12: "Calculates mean execution latency elapsed_ms = elapsed_time(start_event, end_event) / rep.",
+    13: "Appends tuple of (cfg, elapsed_ms) to results list.",
+    14: "Checks if current configuration elapsed_ms < best_time_ms.",
+    15: "Updates best_time_ms = elapsed_ms.",
+    16: "Updates best_config = cfg.",
+    17: "Returns tuple of (best_config, best_time_ms).",
   },
 };
 
 export const autotuneConfigGridSearchEngine: AlgorithmDefinition<autotuneConfigGridSearchEngineInput> =
   {
-    id: "autotuneConfigGridSearchEngine",
+    id: "autotune-config-grid-search-engine",
     title: "Triton Autotune Config Grid Search Engine",
-    category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_hardware_kernels",
     description:
       "The Triton Autotune Config Grid Search Engine simulates OpenAI Triton's `@triton.autotune` decorator harness. Modern GPU hardware performance (NVIDIA H100, A100) varies drastically based on block tiling dimensions (`BLOCK_M`, `BLOCK_N`, `BLOCK_K`), warp counts (`num_warps`), and pipeline stage depths (`num_stages`). Autotuning compiles PTX kernels for candidate `triton.Config` setups, runs GPU warmup, and measures execution latency using CUDA Events (`cudaEventRecord`) to discover the optimal configuration.\n\n### Why It Exists\nManually tuning GPU kernel tile sizes for different matrix shapes and hardware architectures is labor-intensive and fragile. Triton's `@triton.autotune` automatically benchmarks hundreds of candidate tile configurations at runtime, selecting the exact setup that achieves maximum TFLOPS roofline performance.\n\n### Mathematical Formulation\nFor candidate configuration $c \\in C = \\{\\text{Config}_1, \\text{Config}_2, \\dots, \\text{Config}_K\\}$, warmup iterations $W$, and repetition benchmark count $R$:\n\n$$1. \\quad T_{elapsed}(c) = \\frac{\\text{cudaEventElapsedTime}(\\text{start}, \\text{end})}{R} \\quad (\\text{Mean Latency in ms})$$\n\n$$2. \\quad c^* = \\arg\\min_{c \\in C} T_{elapsed}(c) \\quad (\\text{Optimal Configuration})$$\n\n$$3. \\quad \\text{TFLOPS}(c^*) = \\frac{2 \\cdot M \\cdot N \\cdot K}{T_{elapsed}(c^*) \\cdot 10^9}$$\n\n### Step-by-Step Intuition\n1. **Configuration Iteration**: Loop over candidate tile configurations `cfg` in grid search space.\n2. **JIT Compilation & Warmup**: Run $W$ warmup iterations to trigger JIT PTX compilation, warm L2 GPU cache, and lock GPU clock frequencies.\n3. **CUDA Event Timing**: Record `start_event`, run kernel $R$ times, record `end_event`, and synchronize.\n4. **Mean Latency Calculation**: Compute mean execution time $T_{elapsed} = \\frac{T_{end} - T_{start}}{R}$.\n5. **Min-Latency Tracking**: Track and store the configuration $c^*$ yielding minimum execution time.\n\n### Key Trade-Offs & Hardware Execution\n- **Compilation Overhead vs Runtime TFLOPS**: JIT compiling 50 candidate PTX configurations takes several seconds during cold-start, but yields 20%-50% higher runtime TFLOPS for the remainder of model execution.\n- **L2 Cache Flushing**: To prevent L2 cache warm-up bias during benchmarking, production autotuners flush L2 cache between config runs.",
-    constraints: [
-      "1 <= configs.length <= 256",
-      "warmup >= 1",
-      "rep >= 1",
-    ],
+    constraints: ["1 <= configs.length <= 256", "warmup >= 1", "rep >= 1"],
     examples: [
       {
         kind: "basic",
@@ -363,7 +353,8 @@ export const autotuneConfigGridSearchEngine: AlgorithmDefinition<autotuneConfigG
         outputDisplay: "Best Config: BLOCK_M=128, BLOCK_N=128, warps=8, Latency=0.78 ms",
         input: DEFAULT_AUTOTUNECONFIGGRIDSEARCHENGINE_INPUT,
         output: "({ BLOCK_M: 128, BLOCK_N: 128, num_warps: 8 }, 0.78)",
-        explanation: "Benchmarks 4 candidate setups using CUDA events. Selects Cfg #2 (128x128 tiles) achieving lowest latency 0.78 ms.",
+        explanation:
+          "Benchmarks 4 candidate setups using CUDA events. Selects Cfg #2 (128x128 tiles) achieving lowest latency 0.78 ms.",
       },
     ],
     code: AUTOTUNECONFIGGRIDSEARCHENGINE_CODE,
@@ -401,19 +392,23 @@ export const autotuneConfigGridSearchEngine: AlgorithmDefinition<autotuneConfigG
       keyTerms: [
         {
           term: "Autotuning",
-          definition: "Automatic runtime search for optimal GPU kernel parameters (tile sizes, warp counts).",
+          definition:
+            "Automatic runtime search for optimal GPU kernel parameters (tile sizes, warp counts).",
         },
         {
           term: "CUDA Event",
-          definition: "GPU hardware timestamp marker used to measure execution latency with microsecond precision.",
+          definition:
+            "GPU hardware timestamp marker used to measure execution latency with microsecond precision.",
         },
         {
           term: "JIT Compilation",
-          definition: "Just-In-Time compilation generating PTX assembly for specific tile configurations at runtime.",
+          definition:
+            "Just-In-Time compilation generating PTX assembly for specific tile configurations at runtime.",
         },
         {
           term: "L2 Cache Flushing",
-          definition: "Clearing GPU L2 cache to prevent benchmark bias during autotune grid search.",
+          definition:
+            "Clearing GPU L2 cache to prevent benchmark bias during autotune grid search.",
         },
       ],
     },

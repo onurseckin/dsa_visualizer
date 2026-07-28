@@ -5,14 +5,15 @@ import {
   generateTransposedConv2dDeconvIndexMapperSteps,
 } from "./transposedConv2dDeconvIndexMapper";
 
-describe("transposedConv2dDeconvIndexMapper", () => {
+describe("transposed-conv2d-deconv-index-mapper", () => {
   it("should have correct metadata", () => {
-    expect(transposedConv2dDeconvIndexMapper.id).toBe("transposedConv2dDeconvIndexMapper");
-    expect(transposedConv2dDeconvIndexMapper.isMlInfra).toBe(true);
-    expect(transposedConv2dDeconvIndexMapper.mlInfraLevel).toBe(8);
-    expect(transposedConv2dDeconvIndexMapper.mlInfraCategory).toBe("ml_convolutions");
-    expect(transposedConv2dDeconvIndexMapper.categories).toContain("ml_convolutions");
-    expect(transposedConv2dDeconvIndexMapper.categories).toContain("ml_hardware_kernels");
+    expect(transposedConv2dDeconvIndexMapper.id).toBe("transposed-conv2d-deconv-index-mapper");
+    expect(
+      transposedConv2dDeconvIndexMapper.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(transposedConv2dDeconvIndexMapper.topicIds).toContain("ml_convolutions");
+    expect(transposedConv2dDeconvIndexMapper.topicIds).toContain("ml_convolutions");
+    expect(transposedConv2dDeconvIndexMapper.topicIds).toContain("ml_hardware_kernels");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

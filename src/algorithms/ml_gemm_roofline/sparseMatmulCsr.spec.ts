@@ -9,10 +9,9 @@ import {
 describe("sparse-matmul-csr (Sparse Matrix Multiplication (CSR Format))", () => {
   it("should have correct metadata", () => {
     expect(sparseMatmulCsr.id).toBe("sparse-matmul-csr");
-    expect(sparseMatmulCsr.isMlInfra).toBe(true);
-    expect(sparseMatmulCsr.mlInfraLevel).toBe(2);
-    expect(sparseMatmulCsr.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(sparseMatmulCsr.categories).toContain("ml_gemm_roofline");
+    expect(sparseMatmulCsr.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(sparseMatmulCsr.topicIds).toContain("ml_gemm_roofline");
+    expect(sparseMatmulCsr.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 steps with matrix snapshot for default input", () => {

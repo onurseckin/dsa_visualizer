@@ -25,5 +25,26 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     testTimeout: 15000,
+    coverage: {
+      provider: "v8",
+      all: true,
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.d.ts",
+        "src/**/*.spec.{ts,tsx}",
+        "src/**/specs/**",
+        "src/test/**",
+        "src/routeTree.gen.ts",
+      ],
+      reporter: ["text", "json", "html"],
+      thresholds: {
+        // These are repository floors, not targets. Raise them with coverage;
+        // never lower them to make a change pass.
+        statements: 98,
+        branches: 89,
+        functions: 97,
+        lines: 98,
+      },
+    },
   },
 });

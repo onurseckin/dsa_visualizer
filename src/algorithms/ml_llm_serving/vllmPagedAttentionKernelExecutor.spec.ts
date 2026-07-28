@@ -8,10 +8,11 @@ import {
 describe("vllm-paged-attention-kernel-executor (vLLM PagedAttention GPU Kernel Execution Simulator)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(vllmPagedAttentionKernelExecutor.id).toBe("vllm-paged-attention-kernel-executor");
-    expect(vllmPagedAttentionKernelExecutor.isMlInfra).toBe(true);
-    expect(vllmPagedAttentionKernelExecutor.mlInfraLevel).toBe(12);
-    expect(vllmPagedAttentionKernelExecutor.mlInfraCategory).toBe("ml_llm_serving");
-    expect(vllmPagedAttentionKernelExecutor.categories).toContain("ml_llm_serving");
+    expect(
+      vllmPagedAttentionKernelExecutor.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(vllmPagedAttentionKernelExecutor.topicIds).toContain("ml_llm_serving");
+    expect(vllmPagedAttentionKernelExecutor.topicIds).toContain("ml_llm_serving");
     expect(vllmPagedAttentionKernelExecutor.defaultInput).toEqual(
       DEFAULT_VLLMPAGEDATTENTIONKERNELEXECUTOR_INPUT,
     );
@@ -32,6 +33,6 @@ describe("vllm-paged-attention-kernel-executor (vLLM PagedAttention GPU Kernel E
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(16);
+    expect(steps[steps.length - 1].codeLine).toBe(11);
   });
 });

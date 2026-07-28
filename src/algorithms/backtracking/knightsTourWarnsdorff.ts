@@ -113,6 +113,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
   board[startR][startC] = 0;
   let currR = startR;
   let currC = startC;
+  const visitedList: string[] = [`(${startR},${startC})`];
 
   steps.push({
     stepIndex: stepCount++,
@@ -126,7 +127,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
       grid: buildGrid(currR, currC),
     },
     auxiliaryState: {
-      visited: [`(${currR},${currC})`],
+      visited: [...visitedList],
       customState: {
         "Current Position": `(${currR}, ${currC})`,
         "Moves Completed": 1,
@@ -168,6 +169,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
           grid: buildGrid(currR, currC),
         },
         auxiliaryState: {
+          visited: [...visitedList],
           customState: {
             Status: "Dead End / Incomplete Tour",
             "Visited Squares": moveIdx,
@@ -196,6 +198,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
         grid: buildGrid(currR, currC, candidates),
       },
       auxiliaryState: {
+        visited: [...visitedList],
         customState: {
           "Candidates Evaluated": candidates
             .map(([deg, r, c]) => `(${r},${c}):deg=${deg}`)
@@ -214,6 +217,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
     board[nextR][nextC] = moveIdx;
     currR = nextR;
     currC = nextC;
+    visitedList.push(`(${currR},${currC})`);
 
     steps.push({
       stepIndex: stepCount++,
@@ -227,6 +231,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
         grid: buildGrid(currR, currC),
       },
       auxiliaryState: {
+        visited: [...visitedList],
         customState: {
           "Current Position": `(${currR}, ${currC})`,
           "Moves Completed": moveIdx + 1,
@@ -254,6 +259,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
         grid: buildGrid(currR, currC),
       },
       auxiliaryState: {
+        visited: [...visitedList],
         customState: {
           Status: "Tour Complete!",
           "Total Moves": totalSquares,
@@ -272,8 +278,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
 export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   id: "knights-tour-warnsdorff",
   title: "Knight's Tour (Warnsdorff's Heuristic)",
-  category: "backtracking",
-  categories: ["backtracking"],
+  topicIds: ["backtracking"],
   difficulty: "Medium",
   description:
     "Construct a valid Knight's Tour visiting every square on an N×N chessboard exactly once using Warnsdorff's minimum-degree heuristic.\n\n### Problem Statement\nGiven an $N \\times N$ chessboard and a starting coordinate `(startRow, startCol)`, construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.\n\nWhile brute-force depth-first search exhibits exponential explosion $O(8^{N^2})$, Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial $O(N^2)$ time without deep backtracking.\n\n### Input Parameters\n- `size` (int): Board dimension $N$.\n- `startRow` (int): Starting row coordinate.\n- `startCol` (int): Starting column coordinate.\n\n### Output\n- tuple[bool, list[list[int]]]: Success boolean flag and 2D matrix containing step numbers (0 to $N^2-1$).\n\n### Constraints & Edge Cases\n- `3 <= size <= 8`\n- `0 <= startRow, startCol < size`\n- Small 3x3 boards terminate early as dead ends because no complete tour exists.",

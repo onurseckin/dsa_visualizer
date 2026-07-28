@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphNodeItem,
+  GraphEdgeItem,
+  GraphVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface referenceCountingCowBeamSearchBrancherInput {
@@ -7,10 +13,6 @@ export interface referenceCountingCowBeamSearchBrancherInput {
 }
 
 export const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_CODE = `def reference_counting_cow_beam_search_brancher(beams: list[int], target_beam: int = 30) -> dict:
-    """
-    Manages KV cache block reference counts and performs Copy-on-Write (CoW)
-    forking when beam search hypotheses diverge.
-    """
     ref_counts = {b_id: 1 for b_id in beams}
     active_blocks = list(beams)
 
@@ -28,6 +30,69 @@ export const DEFAULT_REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_INPUT: referenceCoun
     target: 30,
   };
 
+function buildGraphSnapshot(
+  beams: number[],
+  refCounts: Record<number, number>,
+  activeIdx: number,
+  forkedBlocks: Array<{ parentId: number; childId: number }>,
+): GraphVisualSnapshot {
+  const nodes: GraphNodeItem[] = [];
+  const edges: GraphEdgeItem[] = [];
+
+  const startX = 100;
+  const spacingX = 130;
+
+  beams.forEach((bId, idx) => {
+    let state: GraphNodeItem["state"] = "default";
+    if (activeIdx >= 0 && idx === activeIdx) {
+      state = "active";
+    } else if (activeIdx >= 0 && idx < activeIdx) {
+      state = "visited";
+    }
+
+    const ref = refCounts[bId] ?? 1;
+    if (ref > 1) {
+      state = "pivot";
+    }
+
+    nodes.push({
+      id: `beam-${bId}`,
+      label: `Beam #${bId}\n[ref=${ref}]`,
+      val: bId,
+      state,
+      x: startX + idx * spacingX,
+      y: 100,
+    });
+  });
+
+  forkedBlocks.forEach((fork) => {
+    const parentIdx = beams.indexOf(fork.parentId);
+    const parentX = parentIdx >= 0 ? startX + parentIdx * spacingX : 300;
+
+    nodes.push({
+      id: `beam-${fork.childId}`,
+      label: `Fork #${fork.childId}\n[ref=${refCounts[fork.childId] ?? 1}]`,
+      val: fork.childId,
+      state: "sorted",
+      x: parentX,
+      y: 240,
+    });
+
+    edges.push({
+      from: `beam-${fork.parentId}`,
+      to: `beam-${fork.childId}`,
+      isPath: true,
+      weight: 1,
+    });
+  });
+
+  return {
+    kind: "graph",
+    nodes,
+    edges,
+  };
+}
+
 export const generateReferenceCountingCowBeamSearchBrancherSteps = (
   input: referenceCountingCowBeamSearchBrancherInput,
 ): AlgorithmStep[] => {
@@ -37,11 +102,8 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
   const beams = input.data;
   const targetBeam = input.target ?? 30;
 
-  const elements: ArrayElement[] = beams.map((val, idx) => ({
-    id: `beam-${idx}`,
-    value: `Block #${val}`,
-    state: "default",
-  }));
+  const refCounts: Record<number, number> = {};
+  const forkedBlocks: Array<{ parentId: number; childId: number }> = [];
 
   const addStep = (
     codeLine: number,
@@ -49,40 +111,24 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     activeIdx: number = -1,
-    pointersMap: Record<number, string[]> = {},
-    customElements?: ArrayElement[],
   ) => {
-    const baseElements = customElements || elements;
-    const updatedElements: ArrayElement[] = baseElements.map((el, idx) => {
-      let state: ArrayElement["state"] = el.state;
-      if (activeIdx >= 0 && idx === activeIdx) state = "active";
-      else if (activeIdx >= 0 && idx < activeIdx && state !== "sorted") state = "visited";
-      return {
-        ...el,
-        state,
-        pointers: pointersMap[idx] || el.pointers || undefined,
-      };
-    });
-
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: updatedElements,
-      },
+      primarySnapshot: buildGraphSnapshot(beams, refCounts, activeIdx, forkedBlocks),
       auxiliaryState: {
         customState: {
           beams: `[${beams.join(", ")}]`,
           target_beam: String(targetBeam),
+          tracked_blocks: String(Object.keys(refCounts).length),
         },
       },
       variables,
     });
   };
 
-  // Step 1: Entry
+  // Line 1: Function Entry
   addStep(
     1,
     "Enter reference_counting_cow_beam_search_brancher function",
@@ -90,144 +136,89 @@ export const generateReferenceCountingCowBeamSearchBrancherSteps = (
     { num_beams: beams.length, target_beam: targetBeam },
   );
 
-  // Step 2: Dict comprehension start
-    addStep(
+  // Line 2: Dict comprehension
+  beams.forEach((bId) => {
+    refCounts[bId] = 1;
+  });
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "Manages KV cache block reference counts and performs Copy-on-Write (CoW)",
-    {},
-  );
-
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "forking when beam search hypotheses diverge.",
-    {},
-  );
-
-  addStep(
-    5,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    6,
     "Initialize ref_counts dict: {b_id: 1 for b_id in beams}",
     "Setting initial reference count = 1 for all active candidate physical KV blocks.",
-    { beams: beams.join(", ") },
+    { beams: beams.join(", "), num_beams: beams.length },
   );
 
-  const refCounts: Record<number, number> = {};
-  beams.forEach((bId, idx) => {
-    refCounts[bId] = 1;
-    addStep(
-      6,
-      `Initialize reference count: ref_counts[${bId}] = 1`,
-      `Block #${bId} owned by single active beam hypothesis (ref_count = 1).`,
-      { b_id: bId, ref_count: 1 },
-      idx,
-      { [idx]: [`ref_count=1`] },
-    );
-  });
-
-  // Step 3: active_blocks list copy
+  // Line 3: active_blocks list copy
   const activeBlocks = [...beams];
   addStep(
-    7,
+    3,
     `Initialize active_blocks = list(beams) -> [${activeBlocks.join(", ")}]`,
     "Constructed list of active physical blocks in current beam search generation step.",
     { active_blocks: activeBlocks.join(", ") },
   );
 
-  // Step 4: Loop over active_blocks
+  // Line 5: Loop over active_blocks
   addStep(
-    9,
-    `Begin loop for idx, beam_id in enumerate(active_blocks)`,
+    5,
+    "Begin loop: for idx, beam_id in enumerate(active_blocks)",
     `Evaluating ${activeBlocks.length} active physical blocks for target branch matching.`,
     { num_active: activeBlocks.length },
   );
 
-  const currentElements = [...elements];
-
   activeBlocks.forEach((beamId, idx) => {
     addStep(
-      9,
+      5,
       `Loop iteration idx=${idx}: beam_id=${beamId}`,
       `Checking beam block #${beamId} at index ${idx}.`,
       { idx, beam_id: beamId, target_beam: targetBeam },
       idx,
-      { [idx]: [`idx=${idx}`, `ref=${refCounts[beamId]}`] },
-      currentElements,
     );
 
     const isMatch = beamId === targetBeam;
     addStep(
-      10,
+      6,
       `Check condition: beam_id (${beamId}) == target_beam (${targetBeam}) -> ${isMatch}`,
       isMatch
         ? `MATCH FOUND! Beam #${beamId} matches target beam #${targetBeam}. Triggering Copy-on-Write (CoW) fork.`
         : `No match. Beam #${beamId} does not branch in this step.`,
       { idx, beam_id: beamId, target_beam: targetBeam, isMatch },
       idx,
-      { [idx]: [isMatch ? "TARGET_MATCH" : "NO_MATCH"] },
-      currentElements,
     );
 
     if (isMatch) {
       refCounts[beamId] += 1;
       addStep(
-        11,
+        7,
         `Increment parent reference count: ref_counts[${beamId}] += 1 -> ${refCounts[beamId]}`,
         `Shared prefix block #${beamId} reference count increased to ${refCounts[beamId]}. Physical copy deferred (Copy-on-Write).`,
         { beam_id: beamId, new_ref_count: refCounts[beamId] },
         idx,
-        { [idx]: [`ref_count=${refCounts[beamId]}`, "COW_SHARED"] },
-        currentElements,
       );
 
       const forkedId = beamId + 100;
       addStep(
-        12,
+        8,
         `Compute forked_id = beam_id + 100 -> ${forkedId}`,
         `Allocated new virtual child beam handle #${forkedId} sharing parent physical block #${beamId}.`,
         { beam_id: beamId, forked_id: forkedId },
         idx,
-        {},
-        currentElements,
       );
 
       refCounts[forkedId] = 1;
-      currentElements.push({
-        id: `beam-forked-${forkedId}`,
-        value: `Block #${forkedId} (Forked)`,
-        state: "sorted",
-        pointers: ["FORKED_CHILD", "ref_count=1"],
-      });
+      forkedBlocks.push({ parentId: beamId, childId: forkedId });
 
       addStep(
-        13,
+        9,
         `Set forked reference count: ref_counts[${forkedId}] = 1`,
         `Initialized child beam #${forkedId} with ref_count = 1. Zero VRAM copied!`,
         { forked_id: forkedId, ref_count: 1 },
         idx,
-        { [idx]: [`parent_ref=${refCounts[beamId]}`] },
-        currentElements,
       );
     }
   });
 
-  // Step 5: Return dict
+  // Line 11: Return dict
   addStep(
-    15,
+    11,
     "Return completed reference counts and active blocks dict",
     `CoW beam search branching complete! ${Object.keys(refCounts).length} blocks tracked with shared reference counts.`,
     {
@@ -235,15 +226,13 @@ addStep(
       active_blocks_count: activeBlocks.length,
     },
     -1,
-    {},
-    currentElements,
   );
 
   return steps;
 };
 
 const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 8, 14],
+  skipLines: [4, 10],
   distractors: [
     "ref_counts[beam_id] = 0",
     "forked_id = beam_id * 2",
@@ -251,26 +240,25 @@ const REFERENCECOUNTINGCOWBEAMSEARCHBRANCHER_TRIVIA: TriviaMeta = {
     "ref_counts[forked_id] += 1",
   ],
   hints: [
-    { line: 6, hint: "Initialize ref_counts dict with initial reference count = 1 for all active beams." },
-    { line: 11, hint: "Increment parent beam block reference count upon branching." },
-    { line: 13, hint: "Initialize forked child beam block reference count = 1." },
+    {
+      line: 2,
+      hint: "Initialize ref_counts dict with initial reference count = 1 for all active beams.",
+    },
+    { line: 7, hint: "Increment parent beam block reference count upon branching." },
+    { line: 9, hint: "Initialize forked child beam block reference count = 1." },
   ],
   lineExplanations: {
     1: "Function signature for reference_counting_cow_beam_search_brancher taking beams list and target_beam ID.",
-    2: "Begin docstring describing Copy-on-Write (CoW) reference-counted beam search mechanism.",
-    3: "Docstring line detailing KV cache block reference counting.",
-    4: "Docstring line detailing beam hypothesis divergence.",
-    5: "End docstring.",
-    6: "Initialize reference counts dictionary mapping each beam block ID to initial count 1.",
-    7: "Construct list active_blocks containing current active candidate beam block IDs.",
-    8: "Blank line before loop iteration.",
-    9: "Iterate over indexed beam block IDs in active_blocks.",
-    10: "Check if current beam_id matches target_beam selected for branching.",
-    11: "If match: increment parent beam block reference count (ref_counts[beam_id] += 1).",
-    12: "Compute forked child beam block identifier (forked_id = beam_id + 100).",
-    13: "Set initial reference count for new forked child beam block to 1.",
-    14: "Blank line before returning results.",
-    15: "Return result dictionary containing ref_counts mapping and active_blocks list.",
+    2: "Initialize reference counts dictionary mapping each beam block ID to initial count 1.",
+    3: "Construct list active_blocks containing current active candidate beam block IDs.",
+    4: "Blank line before loop iteration.",
+    5: "Iterate over indexed beam block IDs in active_blocks.",
+    6: "Check if current beam_id matches target_beam selected for branching.",
+    7: "If match: increment parent beam block reference count (ref_counts[beam_id] += 1).",
+    8: "Compute forked child beam block identifier (forked_id = beam_id + 100).",
+    9: "Set initial reference count for new forked child beam block to 1.",
+    10: "Blank line before returning results.",
+    11: "Return result dictionary containing ref_counts mapping and active_blocks list.",
   },
 };
 
@@ -278,12 +266,8 @@ export const referenceCountingCowBeamSearchBrancher: AlgorithmDefinition<referen
   {
     id: "reference-counting-cow-beam-search-brancher",
     title: "Copy-On-Write (CoW) Reference-Counted Beam Search Brancher",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "tries_and_strings"],
+    topicIds: ["ml_llm_serving", "tries_and_strings"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "In LLM serving systems executing beam search decoding, multiple candidate output sequences (beams) share identical prefix tokens. Naively duplicating the Key-Value (KV) cache for every beam leads to quadratic memory growth and severe VRAM exhaustion. Copy-on-Write (CoW) reference-counted block allocation allows multiple candidate beams to share the exact same physical KV cache pages in memory. Parent blocks maintain a reference count (`ref_count`). When a beam diverges or appends new tokens, a physical copy is triggered only if `ref_count > 1`, otherwise the block is modified in-place.\n\n### CoW Reference Counting Formula\nWhen beam $B_i$ forks into child beam $B_j$:\n$$\\text{ref}\\_count(P_k) \\leftarrow \\text{ref}\\_count(P_k) + 1$$\n\nPhysical memory allocation is delayed until a write operation occurs on a shared page (${\\text{ref}\\_count > 1}$):\n$$\\text{If write to } P_k \\text{ and } \\text{ref}\\_count(P_k) > 1 \\implies \\text{Allocate } P_{\\text{new}}, \\text{ copy } P_k \\to P_{\\text{new}}$$\n\n### Input Parameters\n- `data`: Array of active beam block IDs in candidate pool.\n- `target`: Target beam ID selected for branching/forking.\n\n### Output\n- Returns dictionary containing `ref_counts` and `active_blocks`.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],

@@ -89,4 +89,3 @@ export const SEGMENT_TREE_TRIVIA: TriviaMeta = {
     35: "Combines the two partial answers into this subtree's total contribution to the range query.",
   },
 };
-

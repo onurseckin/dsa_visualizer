@@ -14,7 +14,6 @@ export interface XgboostGradientSplitInput {
 }
 
 export const XGBOOST_GRADIENT_SPLIT_CODE = `def xgboost_find_best_split(samples: list[dict], reg_lambda: float, gamma: float) -> tuple[float, float]:
-    # Step 1: Sort samples by feature value
     sorted_samples = sorted(samples, key=lambda x: x["featureVal"])
     G_total = sum(s["g"] for s in sorted_samples)
     H_total = sum(s["h"] for s in sorted_samples)
@@ -23,14 +22,12 @@ export const XGBOOST_GRADIENT_SPLIT_CODE = `def xgboost_find_best_split(samples:
     best_split_val = None
     
     G_L, H_L = 0.0, 0.0
-    # Step 2: Sweep possible split thresholds between sorted samples
     for i in range(len(sorted_samples) - 1):
         G_L += sorted_samples[i]["g"]
         H_L += sorted_samples[i]["h"]
         G_R = G_total - G_L
         H_R = H_total - H_L
         
-        # Step 3: Compute XGBoost exact gain formula
         gain_L = (G_L ** 2) / (H_L + reg_lambda)
         gain_R = (G_R ** 2) / (H_R + reg_lambda)
         gain_root = (G_total ** 2) / (H_total + reg_lambda)
@@ -69,16 +66,17 @@ export const generateXgboostGradientSplitSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
-      what: "Sort Samples & Compute Total Gradient / Hessian",
-      why: `Sorted ${sortedSamples.length} samples. G_total=${G_total.toFixed(2)}, H_total=${H_total.toFixed(2)}, Root score=${(0.5 * gainRoot).toFixed(2)}. Summing gradients G and Hessians H sets the baseline root node score.`,
+      what: "Sort Samples & Calculate Baseline Totals",
+      why: `Sorted ${sortedSamples.length} samples by feature value. G_total=${G_total.toFixed(2)}, H_total=${H_total.toFixed(2)}, Root score=${(0.5 * gainRoot).toFixed(2)}. Summing gradients G and Hessians H sets the baseline root node score.`,
     },
     primarySnapshot: {
       kind: "array",
       elements: sortedSamples.map((s, idx) => ({
         id: `sample-${idx}`,
         value: s.featureVal,
+        label: `g:${s.g}, h:${s.h}`,
         state: "default" as ElementState,
       })),
     },
@@ -93,6 +91,38 @@ export const generateXgboostGradientSplitSteps = (
       sampleCount: sortedSamples.length,
       G_total: Number(G_total.toFixed(2)),
       H_total: Number(H_total.toFixed(2)),
+    },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: "Initialize Tracker & Left Accumulators",
+      why: `Set best_gain = -inf, best_split_val = null, G_L = 0.0, H_L = 0.0. Ready to sweep candidate split boundaries between adjacent sorted samples.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: sortedSamples.map((s, idx) => ({
+        id: `sample-${idx}`,
+        value: s.featureVal,
+        label: `g:${s.g}, h:${s.h}`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      distanceTable: {
+        BestGain: -Infinity,
+        BestSplitVal: 0,
+        G_L: 0,
+        H_L: 0,
+      },
+    },
+    variables: {
+      bestGain: "-Infinity",
+      bestSplitVal: "None",
+      G_L: 0,
+      H_L: 0,
     },
   });
 
@@ -114,6 +144,45 @@ export const generateXgboostGradientSplitSteps = (
 
     const splitVal = (sortedSamples[i].featureVal + sortedSamples[i + 1].featureVal) / 2.0;
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 11,
+      explanation: {
+        what: `Accumulate Sample ${i} into Left Child (x <= ${sortedSamples[i].featureVal})`,
+        why: `Added sample x=${sortedSamples[i].featureVal} (g=${sortedSamples[i].g}, h=${sortedSamples[i].h}) to left node. Left: G_L=${G_L.toFixed(2)}, H_L=${H_L.toFixed(2)}. Right: G_R=${G_R.toFixed(2)}, H_R=${H_R.toFixed(2)}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: sortedSamples.map((s, idx) => {
+          let state: ElementState = "default";
+          if (idx <= i) state = "visited";
+          else state = "active";
+          return {
+            id: `sample-${idx}`,
+            value: s.featureVal,
+            label: `g:${s.g}, h:${s.h}`,
+            state,
+            pointers: [idx <= i ? "L" : "R"],
+          };
+        }),
+      },
+      auxiliaryState: {
+        distanceTable: {
+          G_L: Number(G_L.toFixed(2)),
+          H_L: Number(H_L.toFixed(2)),
+          G_R: Number(G_R.toFixed(2)),
+          H_R: Number(H_R.toFixed(2)),
+        },
+      },
+      variables: {
+        currentIndex: i,
+        G_L: Number(G_L.toFixed(2)),
+        H_L: Number(H_L.toFixed(2)),
+        G_R: Number(G_R.toFixed(2)),
+        H_R: Number(H_R.toFixed(2)),
+      },
+    });
+
     const isNewBest = gain > bestGain;
     if (isNewBest) {
       bestGain = gain;
@@ -122,10 +191,10 @@ export const generateXgboostGradientSplitSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 20,
+      codeLine: 19,
       explanation: {
         what: `Evaluate Candidate Split at x = ${splitVal.toFixed(2)}`,
-        why: `Split threshold x=${splitVal.toFixed(2)}: Left (G_L=${G_L.toFixed(1)}, H_L=${H_L.toFixed(1)}), Right (G_R=${G_R.toFixed(1)}, H_R=${H_R.toFixed(1)}), Gain=${gain.toFixed(3)}${isNewBest ? " (New Best Split!)" : ""}.`,
+        why: `Split threshold x=${splitVal.toFixed(2)}: Left gain=${(0.5 * gainL).toFixed(3)}, Right gain=${(0.5 * gainR).toFixed(3)}, Net Gain=${gain.toFixed(3)}${isNewBest ? " (New Best Split!)" : ""}.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -136,7 +205,9 @@ export const generateXgboostGradientSplitSteps = (
           return {
             id: `sample-${idx}`,
             value: s.featureVal,
+            label: `g:${s.g}, h:${s.h}`,
             state,
+            pointers: [idx <= i ? "L" : "R"],
           };
         }),
       },
@@ -158,18 +229,20 @@ export const generateXgboostGradientSplitSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 26,
     explanation: {
       what: "Select Optimal Gradient Split",
       why: `Optimal split threshold x = ${bestSplitVal.toFixed(2)} with maximum Gain = ${bestGain.toFixed(3)}. Selected feature split maximizes objective gain minus complexity penalty gamma=${input.gamma}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: sortedSamples.map((s) => ({
-        id: `sample-${s.featureVal}`,
+      elements: sortedSamples.map((s, idx) => ({
+        id: `sample-${idx}`,
         value: s.featureVal,
+        label: `g:${s.g}, h:${s.h}`,
         state:
           s.featureVal < bestSplitVal ? ("sorted" as ElementState) : ("active" as ElementState),
+        pointers: [s.featureVal < bestSplitVal ? "L" : "R"],
       })),
     },
     auxiliaryState: {
@@ -196,33 +269,40 @@ const XGBOOST_GRADIENT_SPLIT_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 4,
-      hint: "Sort sample features and accumulate total gradients G_total and total Hessians H_total.",
+      line: 2,
+      hint: "Sort sample features and prepare total gradients G_total and total Hessians H_total.",
     },
     {
-      line: 20,
+      line: 19,
       hint: "Apply XGBoost gain formula 0.5 * (G_L^2/(H_L+lambda) + G_R^2/(H_R+lambda) - G_root^2/(H_root+lambda)) - gamma.",
     },
     {
-      line: 22,
+      line: 21,
       hint: "Set candidate split threshold to mid-point between adjacent sorted feature values.",
+    },
+    {
+      line: 23,
+      hint: "Update optimal split threshold and maximum split gain when current gain improves.",
     },
   ],
   lineExplanations: {
     1: "Defines XGBoost exact greedy gradient split finder function.",
-    4: "Sorts samples by feature value and accumulates G and H sums.",
-    20: "Calculates split gain using first and second order gradients.",
-    22: "Updates optimal split threshold and maximum split gain.",
+    2: "Sorts samples by feature value.",
+    3: "Calculates total gradient G_total across all samples.",
+    4: "Calculates total Hessian H_total across all samples.",
+    11: "Accumulates sample gradient into left partition gradient sum G_L.",
+    19: "Calculates split gain using first and second order gradients with regularization and gamma penalty.",
+    21: "Computes candidate split midpoint value between sorted feature values.",
+    23: "Updates maximum gain and best split threshold when gain improves.",
+    26: "Returns optimal feature split threshold and maximum gain achieved.",
   },
 };
 
 export const xgboostGradientSplit: AlgorithmDefinition<XgboostGradientSplitInput> = {
   id: "xgboost-gradient-split",
   title: "XGBoost Exact Greedy Gradient Split Finder",
-  category: "ml_tree_ensembles",
+  topicIds: ["ml_tree_ensembles"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
   description:
     "Finds the optimal decision tree split threshold in XGBoost by calculating second-order Taylor expansion gain from sample gradients (g) and Hessians (h) with L2 regularization.",
   constraints: ["len(samples) >= 2", "lambda >= 0", "gamma >= 0"],

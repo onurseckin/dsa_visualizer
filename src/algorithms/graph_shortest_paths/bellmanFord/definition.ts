@@ -105,8 +105,7 @@ const BELLMAN_FORD_TRIVIA: TriviaMeta = {
 export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   id: "bellman-ford",
   title: "Bellman-Ford Shortest Path",
-  category: "graph_shortest_paths",
-  categories: ["graph_shortest_paths"],
+  topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
     "The Bellman-Ford algorithm computes shortest paths from one source vertex to every other vertex in a directed weighted graph $G = (V, E)$. Unlike Dijkstra's algorithm, Bellman-Ford supports negative edge weights ($w(u,v) \\in \\mathbb{R}$) and detects negative-weight cycles. It repeatedly relaxes all $|E|$ edges over $|V|-1$ passes in $\\mathcal{O}(|V| \\cdot |E|)$ time and $\\mathcal{O}(|V|)$ space.",

@@ -6,7 +6,7 @@ describe("segmentTree algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(segmentTree.id).toBe("segment-tree");
     expect(segmentTree.title).toContain("Segment Tree");
-    expect(segmentTree.category).toBe("advanced_range_queries");
+    expect(segmentTree.topicIds).toContain("advanced_range_queries");
     expect(segmentTree.timeComplexity.average).toBe("O(log n)");
     expect(segmentTree.spaceComplexity).toBe("O(n)");
   });

@@ -1,10 +1,10 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import {
+  DSA_TREE_PLACEMENTS,
+  DsaCurriculumPlacement,
   TopicFamily,
-  TopicRoadmapNode,
   TOPIC_FAMILIES,
-  TOPIC_ROADMAP_NODES,
   topicFamilyColor,
   topicFamilyLabel,
 } from "../../components/knowledge-graph/knowledgeGraphData";
@@ -14,7 +14,7 @@ import { VIZ_SLOT_COUNT } from "../primitives/vizPalette";
 describe("KnowledgeGraph Component Spec", () => {
   it("renders SVG region and interactive roadmap nodes", () => {
     const onSelectMock = vi.fn();
-    render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
+    render(<KnowledgeGraph onSelectTopic={onSelectMock} />);
 
     expect(
       screen.getByRole("region", {
@@ -25,7 +25,7 @@ describe("KnowledgeGraph Component Spec", () => {
 
   it("triggers category selection when SVG node is clicked", () => {
     const onSelectMock = vi.fn();
-    render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
+    render(<KnowledgeGraph onSelectTopic={onSelectMock} />);
 
     const buttons = screen.getAllByRole("button", { name: /1\. Arrays & Hashing/i });
     expect(buttons.length).toBeGreaterThanOrEqual(1);
@@ -37,7 +37,7 @@ describe("KnowledgeGraph Component Spec", () => {
 
   it("supports keyboard navigation via Enter and Space keypresses", () => {
     const onSelectMock = vi.fn();
-    render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
+    render(<KnowledgeGraph onSelectTopic={onSelectMock} />);
 
     const twoPointersButtons = screen.getAllByRole("button", { name: /2\. Two Pointers/i });
 
@@ -52,7 +52,7 @@ describe("KnowledgeGraph Component Spec", () => {
 
   it("handles mouse enter, mouse leave, focus, and blur events on interactive elements", () => {
     const onSelectMock = vi.fn();
-    render(<KnowledgeGraph onSelectCategoryFolder={onSelectMock} />);
+    render(<KnowledgeGraph onSelectTopic={onSelectMock} />);
 
     const button = screen.getAllByRole("button", { name: /1\. Arrays & Hashing/i })[0];
 
@@ -66,15 +66,14 @@ describe("KnowledgeGraph Component Spec", () => {
   });
 
   it("contains all 21 topic roadmap nodes with valid properties and prerequisite structure", () => {
-    expect(TOPIC_ROADMAP_NODES.length).toBe(21);
+    expect(DSA_TREE_PLACEMENTS.length).toBe(21);
     const familyIds = TOPIC_FAMILIES.map((family: TopicFamily) => family.id);
-    TOPIC_ROADMAP_NODES.forEach((node: TopicRoadmapNode) => {
+    DSA_TREE_PLACEMENTS.forEach((node: DsaCurriculumPlacement) => {
       expect(node.id).toBeDefined();
       expect(node.title).toBeDefined();
-      expect(node.categoryFolder).toBeDefined();
+      expect(node.topicId).toBeDefined();
       expect(node.description).toBeDefined();
       expect(Array.isArray(node.prerequisites)).toBe(true);
-      expect(node.algorithmCount).toBeGreaterThan(0);
       expect(["Easy", "Medium", "Hard"]).toContain(node.difficulty);
       expect(familyIds).toContain(node.family);
       expect(typeof node.x).toBe("number");
@@ -103,14 +102,16 @@ describe("KnowledgeGraph Component Spec", () => {
   });
 
   it("every family is actually used by at least one topic", () => {
-    const usedFamilies = new Set(TOPIC_ROADMAP_NODES.map((node: TopicRoadmapNode) => node.family));
+    const usedFamilies = new Set(
+      DSA_TREE_PLACEMENTS.map((node: DsaCurriculumPlacement) => node.family),
+    );
     TOPIC_FAMILIES.forEach((family: TopicFamily) => {
       expect(usedFamilies.has(family.id)).toBe(true);
     });
   });
 
   it("renders a family color legend and tints roadmap nodes by family", () => {
-    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+    render(<KnowledgeGraph onSelectTopic={vi.fn()} />);
 
     const legend = screen.getByRole("list", { name: /Topic family colors/i });
     expect(legend).toBeInTheDocument();
@@ -120,7 +121,7 @@ describe("KnowledgeGraph Component Spec", () => {
   });
 
   it("keeps family swatches as the data key", () => {
-    render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+    render(<KnowledgeGraph onSelectTopic={vi.fn()} />);
 
     const swatches = screen
       .getByRole("list", { name: /Topic family colors/i })
@@ -131,7 +132,7 @@ describe("KnowledgeGraph Component Spec", () => {
   });
 
   it("tints prerequisite edges with the unlocked topic family color", () => {
-    const { container } = render(<KnowledgeGraph onSelectCategoryFolder={vi.fn()} />);
+    const { container } = render(<KnowledgeGraph onSelectTopic={vi.fn()} />);
 
     const strokes = Array.from(container.querySelectorAll("path[stroke]")).map((p) =>
       p.getAttribute("stroke"),

@@ -9,7 +9,7 @@ describe("Per Channel Symmetric Quantizer", () => {
   it("should have correct metadata", () => {
     expect(perChannelSymmetricQuantizer.id).toBe("per-channel-symmetric-quantizer");
     expect(perChannelSymmetricQuantizer.title).toBe("Per Channel Symmetric Quantizer");
-    expect(perChannelSymmetricQuantizer.category).toBe("ml_precision_quantization");
+    expect(perChannelSymmetricQuantizer.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

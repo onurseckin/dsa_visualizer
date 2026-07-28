@@ -9,7 +9,7 @@ describe("Asymmetric Affine Quantization", () => {
   it("should have correct metadata", () => {
     expect(asymmetricAffineQuantization.id).toBe("asymmetric-affine-quantization");
     expect(asymmetricAffineQuantization.title).toBe("Asymmetric Affine Quantization");
-    expect(asymmetricAffineQuantization.category).toBe("ml_precision_quantization");
+    expect(asymmetricAffineQuantization.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

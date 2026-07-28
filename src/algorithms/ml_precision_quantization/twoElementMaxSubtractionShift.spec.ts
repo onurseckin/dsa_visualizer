@@ -9,7 +9,7 @@ describe("Two Element Max Subtraction Shift", () => {
   it("should have correct metadata", () => {
     expect(twoElementMaxSubtractionShift.id).toBe("two-element-max-subtraction-shift");
     expect(twoElementMaxSubtractionShift.title).toBe("Two Element Max Subtraction Shift");
-    expect(twoElementMaxSubtractionShift.category).toBe("ml_precision_quantization");
+    expect(twoElementMaxSubtractionShift.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

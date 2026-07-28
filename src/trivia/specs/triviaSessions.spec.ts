@@ -10,7 +10,6 @@ import {
   writeActiveSessionId,
 } from "../triviaSessions";
 import { DEFAULT_TRIVIA_CONFIG, createProgress } from "../triviaEngine";
-import { writeTriviaConfig, writeTriviaProgress } from "../triviaStorage";
 
 describe("triviaSessions storage & lifecycle", () => {
   beforeEach(() => {
@@ -91,25 +90,10 @@ describe("triviaSessions storage & lifecycle", () => {
       expect(second.activeId).toBe(first.activeId);
     });
 
-    it("migrates real legacy bare-key progress into one session, but still lands on Home", () => {
-      writeTriviaConfig({ deck: ["bubble-sort"] });
-
-      const boot = loadTriviaBootstrap();
-      expect(boot.sessions).toHaveLength(1);
-      expect(boot.sessions[0].config.deck).toEqual(["bubble-sort"]);
-      // Migrated, but not auto-entered — the user still picks it from Home.
-      expect(boot.activeId).toBeNull();
-    });
-
-    it("treats untouched legacy defaults (empty deck, zero progress) the same as a true first visit", () => {
-      writeTriviaConfig({ deck: [] });
-      writeTriviaProgress(createProgress(DEFAULT_TRIVIA_CONFIG));
-
-      const boot = loadTriviaBootstrap();
-      // Nothing worth migrating, so this is indistinguishable from a fresh
-      // install — a single session is created and entered, same as above.
-      expect(boot.sessions).toHaveLength(1);
-      expect(boot.activeId).toBe(boot.sessions[0].id);
+    it("starts a new session from canonical defaults", () => {
+      const session = createSession();
+      expect(session.config).toEqual(DEFAULT_TRIVIA_CONFIG);
+      expect(session.progress).toEqual(createProgress(DEFAULT_TRIVIA_CONFIG));
     });
 
     it("trusts an explicit null active-id pointer (Back to Trivia Home) across a reload", () => {
@@ -137,7 +121,7 @@ describe("triviaSessions storage & lifecycle", () => {
       expect(boot.activeId).toBeNull();
     });
 
-    it("rejects a legacy-shaped session record missing lastScreen instead of crashing", () => {
+    it("rejects a malformed session record missing lastScreen instead of crashing", () => {
       createSession("Session 1");
       const raw = JSON.parse(window.localStorage.getItem(TRIVIA_SESSIONS_KEY) ?? "[]") as Record<
         string,

@@ -73,8 +73,7 @@ const POLYGON_AREA_TRIVIA: TriviaMeta = {
 export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   id: "polygon-area",
   title: "Polygon Area (Shoelace Formula)",
-  category: "geometry_and_sweep_line",
-  categories: ["geometry_and_sweep_line"],
+  topicIds: ["geometry_and_sweep_line"],
   difficulty: "Medium",
   description:
     "Calculates the exact area of a simple 2D polygon $\\mathcal{P}$ from its ordered vertices using the Shoelace (Gauss) formula in $\\mathcal{O}(N)$ time:\n\n$$A = \\frac{1}{2} \\left| \\sum_{i=0}^{n-1} (x_i y_{i+1} - x_{i+1} y_i) \\right|$$\n\n### Graph Snapshot Representation\nThe polygon vertices and perimeter edges are rendered on a 2D graph coordinate grid, with active cross-multiplied edges highlighted.\n\n### Input Parameters\n- `points` (`Point2D[]`): Array of ordered 2D polygon vertices.\n\n### Output\n- `float`: Total surface area of the enclosed polygon.\n\n### Edge Cases & Constraints\n- Base Case: $N < 3 \\implies \\text{area} = 0.0$.\n- Collinear Vertices: Yield zero enclosed area.",

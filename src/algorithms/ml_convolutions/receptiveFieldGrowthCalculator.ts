@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface LayerConfig {
@@ -16,16 +21,6 @@ export interface receptiveFieldGrowthCalculatorInput {
 }
 
 export const RECEPTIVEFIELDGROWTHCALCULATOR_CODE = `def calculate_receptive_field_growth(initial_input_size, layers):
-    """
-    Calculates layer-by-layer growth of Receptive Field (RF), effective Jump (J),
-    start center offset, and feature map spatial resolution across stacked CNN layers.
-
-    Formulae per layer l:
-      eff_k = (kernel_size - 1) * dilation + 1
-      RF_l  = RF_{l-1} + (eff_k - 1) * J_{l-1}
-      J_l   = J_{l-1} * stride_l
-      Out_l = floor((In_{l-1} + 2*padding - eff_k) / stride_l) + 1
-    """
     rf = 1
     jump = 1
     start = 0.5
@@ -97,9 +92,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
   const historyRecords: LayerRecord[] = [];
 
-  const getSnapshot = (
-    currentLayerIdx: number = -1,
-  ): MatrixVisualSnapshot => {
+  const getSnapshot = (currentLayerIdx: number = -1): MatrixVisualSnapshot => {
     const rows = layers.length + 1;
     const cols = 6;
     const cells: MatrixCellItem[] = [];
@@ -138,10 +131,15 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
         curJump = rec.jump;
         curStart = rec.start;
       } else if (isCurrent) {
-        curRF = curRF + (effK - 1) * curJump;
-        curJump = curJump * s;
-        curStart = curStart + ((effK - 1) / 2.0 - p) * curJump;
-        curSize = Math.floor((curSize + 2 * p - effK) / s) + 1;
+        const nextRF = curRF + (effK - 1) * curJump;
+        const nextStart = curStart + ((effK - 1) / 2.0 - p) * curJump;
+        const nextJump = curJump * s;
+        const nextSize = Math.floor((curSize + 2 * p - effK) / s) + 1;
+
+        curRF = nextRF;
+        curStart = nextStart;
+        curJump = nextJump;
+        curSize = nextSize;
       }
 
       const rowIdx = l + 1;
@@ -182,8 +180,12 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
         customState: {
           "Initial Image Resolution": `${initialInputSize} x ${initialInputSize}`,
           "Layers Count": String(layers.length),
-          "Accumulated Receptive Field": String(historyRecords.length ? historyRecords[historyRecords.length - 1].receptive_field : 1),
-          "Accumulated Spatial Jump": String(historyRecords.length ? historyRecords[historyRecords.length - 1].jump : 1),
+          "Accumulated Receptive Field": String(
+            historyRecords.length ? historyRecords[historyRecords.length - 1].receptive_field : 1,
+          ),
+          "Accumulated Spatial Jump": String(
+            historyRecords.length ? historyRecords[historyRecords.length - 1].jump : 1,
+          ),
         },
       },
       variables,
@@ -201,7 +203,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
   // Step 2: Init rf
   let rf = 1;
   addStep(
-    12,
+    2,
     "Initialize Base Receptive Field: rf = 1",
     "Single pixel in raw input image has receptive field rf = 1.",
     { rf },
@@ -210,7 +212,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
   // Step 3: Init jump
   let jump = 1;
   addStep(
-    13,
+    3,
     "Initialize Spatial Jump: jump = 1",
     "Adjacent pixels in raw input image have spatial distance jump = 1.",
     { jump },
@@ -219,7 +221,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
   // Step 4: Init start
   let start = 0.5;
   addStep(
-    14,
+    4,
     "Initialize Center Offset: start = 0.5",
     "First pixel center is offset by start = 0.5 units in continuous spatial coordinates.",
     { start },
@@ -228,7 +230,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
   // Step 5: Init current_size
   let current_size = initialInputSize;
   addStep(
-    15,
+    5,
     `Initialize Spatial Input Size: current_size = ${current_size}`,
     `Input activation map spatial resolution is ${current_size} pixels.`,
     { current_size },
@@ -236,7 +238,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
   // Step 6: Init history
   addStep(
-    16,
+    6,
     "Initialize Layer Growth History Buffer",
     "Created empty history array to record layer-by-layer RF metrics.",
     { num_records: 0 },
@@ -251,7 +253,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
     const d = layer.dilation ?? 1;
 
     addStep(
-      18,
+      8,
       `Layer Loop Index idx = ${idx} (Layer ${idx + 1})`,
       `Processing stacked CNN layer ${idx + 1} of ${layers.length}.`,
       { idx, layer_num: idx + 1 },
@@ -259,7 +261,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
     );
 
     addStep(
-      19,
+      9,
       `Read Layer ${idx + 1} Kernel Size: k = ${k}`,
       `Filter kernel size for layer ${idx + 1}: k = ${k}.`,
       { idx, k },
@@ -267,7 +269,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
     );
 
     addStep(
-      20,
+      10,
       `Read Layer ${idx + 1} Spatial Stride: s = ${s}`,
       `Spatial stride for layer ${idx + 1}: s = ${s}.`,
       { idx, s },
@@ -275,7 +277,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
     );
 
     addStep(
-      21,
+      11,
       `Read Layer ${idx + 1} Zero-Padding: p = ${p}`,
       `Zero-padding for layer ${idx + 1}: p = ${p}.`,
       { idx, p },
@@ -283,7 +285,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
     );
 
     addStep(
-      22,
+      12,
       `Read Layer ${idx + 1} Dilation Rate: d = ${d}`,
       `Dilation factor for layer ${idx + 1}: d = ${d}.`,
       { idx, d },
@@ -292,7 +294,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     const eff_k = (k - 1) * d + 1;
     addStep(
-      24,
+      14,
       `Calculate Effective Kernel Footprint: eff_k = ${eff_k}`,
       `Evaluated eff_k = (${k} - 1) * ${d} + 1 = ${eff_k}.`,
       { idx, k, d, eff_k },
@@ -301,7 +303,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     const rf_new = rf + (eff_k - 1) * jump;
     addStep(
-      25,
+      15,
       `Calculate New Receptive Field: rf_new = ${rf_new}`,
       `Evaluated rf_new = ${rf} + (${eff_k} - 1) * ${jump} = ${rf_new}.`,
       { idx, rf, eff_k, jump, rf_new },
@@ -310,7 +312,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     const start_new = start + ((eff_k - 1) / 2.0 - p) * jump;
     addStep(
-      26,
+      16,
       `Calculate New Center Offset: start_new = ${start_new.toFixed(2)}`,
       `Evaluated start_new = ${start} + ((${eff_k} - 1)/2 - ${p}) * ${jump} = ${start_new.toFixed(2)}.`,
       { idx, start, eff_k, p, jump, start_new },
@@ -319,7 +321,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     const jump_new = jump * s;
     addStep(
-      27,
+      17,
       `Calculate New Feature Map Jump: jump_new = ${jump_new}`,
       `Evaluated jump_new = ${jump} * ${s} = ${jump_new}.`,
       { idx, jump, s, jump_new },
@@ -328,7 +330,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     const out_size = Math.floor((current_size + 2 * p - eff_k) / s) + 1;
     addStep(
-      28,
+      18,
       `Calculate Output Spatial Resolution: out_size = ${out_size}`,
       `Evaluated out_size = (${current_size} + 2*${p} - ${eff_k}) // ${s} + 1 = ${out_size}.`,
       { idx, current_size, p, eff_k, s, out_size },
@@ -346,7 +348,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
     historyRecords.push(record);
 
     addStep(
-      30,
+      20,
       `Append Layer ${idx + 1} Metrics to History`,
       `Stored layer ${idx + 1} RF metrics into history table: RF=${rf_new}, Jump=${jump_new}, OutSize=${out_size}.`,
       { idx, layer_num: idx + 1, rf_new, jump_new, out_size },
@@ -355,7 +357,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     rf = rf_new;
     addStep(
-      39,
+      29,
       `Update Accumulated Receptive Field: rf = ${rf}`,
       `Set rf = ${rf} for subsequent CNN layers.`,
       { rf },
@@ -364,7 +366,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     jump = jump_new;
     addStep(
-      40,
+      30,
       `Update Accumulated Jump: jump = ${jump}`,
       `Set jump = ${jump} for subsequent CNN layers.`,
       { jump },
@@ -373,7 +375,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     start = start_new;
     addStep(
-      41,
+      31,
       `Update Accumulated Center Offset: start = ${start.toFixed(2)}`,
       `Set start = ${start.toFixed(2)} for subsequent CNN layers.`,
       { start },
@@ -382,7 +384,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
     current_size = out_size;
     addStep(
-      42,
+      32,
       `Update Current Spatial Input Size: current_size = ${current_size}`,
       `Set current_size = ${current_size} for layer ${idx + 2}.`,
       { current_size },
@@ -392,7 +394,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 
   // Final step
   addStep(
-    44,
+    34,
     "Execution Complete",
     `Successfully computed receptive field growth across ${layers.length} CNN layers. Final Receptive Field = ${rf}, Final Spatial Resolution = ${current_size}x${current_size}.`,
     { completed: true, final_rf: rf, final_size: current_size, final_jump: jump },
@@ -402,7 +404,7 @@ export const generateReceptiveFieldGrowthCalculatorSteps = (
 };
 
 const RECEPTIVEFIELDGROWTHCALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 17, 23, 29, 31, 32, 33, 34, 35, 36, 37, 38, 43],
+  skipLines: [7, 13, 19, 21, 22, 23, 24, 25, 26, 27, 28, 33],
   distractors: [
     "rf_new = rf * kernel_size",
     "jump_new = jump + stride",
@@ -411,72 +413,58 @@ const RECEPTIVEFIELDGROWTHCALCULATOR_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 25,
+      line: 15,
       hint: "Receptive field growth equation: RF_l = RF_{l-1} + (eff_k - 1) * J_{l-1}.",
     },
     {
-      line: 27,
+      line: 17,
       hint: "Spatial jump accumulation equation: J_l = J_{l-1} * stride_l.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for Receptive Field Growth Calculator function.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes layer-by-layer growth tracking of Receptive Field (RF) and Jump (J) across stacked CNN layers.",
-    4: "Docstring continuation tag.",
-    5: "Docstring formula section header.",
-    6: "Docstring effective kernel formula: eff_k = (kernel_size - 1) * dilation + 1.",
-    7: "Docstring receptive field growth formula: RF_l = RF_{l-1} + (eff_k - 1) * J_{l-1}.",
-    8: "Docstring spatial jump accumulation formula: J_l = J_{l-1} * stride_l.",
-    9: "Docstring spatial output resolution formula: Out_l = floor((In_{l-1} + 2*padding - eff_k) / stride_l) + 1.",
-    10: "Docstring closing delimiter tag.",
-    11: "Blank line before base parameter initialization.",
-    12: "Initializes base receptive field rf = 1 for un-convolved input image.",
-    13: "Initializes base spatial jump jump = 1 for un-strided input image.",
-    14: "Initializes base pixel center offset start = 0.5.",
-    15: "Initializes current spatial image size current_size to initial_input_size.",
-    16: "Initializes history list to accumulate per-layer RF metrics.",
-    17: "Blank line before layer iteration loop.",
-    18: "Iterates over stacked CNN layer configs with index idx.",
-    19: "Reads kernel_size parameter k (default 3).",
-    20: "Reads stride parameter s (default 1).",
-    21: "Reads padding parameter p (default 0).",
-    22: "Reads dilation parameter d (default 1).",
-    23: "Blank line before effective kernel calculation.",
-    24: "Calculates effective kernel size eff_k = (k - 1) * d + 1.",
-    25: "Calculates updated receptive field rf_new = rf + (eff_k - 1) * jump.",
-    26: "Calculates updated center offset start_new = start + ((eff_k - 1)/2 - p) * jump.",
-    27: "Calculates updated spatial jump jump_new = jump * s.",
-    28: "Calculates spatial output resolution out_size using strided division floor.",
-    29: "Blank line before appending layer metrics.",
-    30: "Appends dictionary record for current layer to history list.",
-    31: "Key 'layer': 1-indexed layer number.",
-    32: "Key 'input_size': spatial input resolution to layer.",
-    33: "Key 'output_size': spatial output resolution from layer.",
-    34: "Key 'receptive_field': accumulated receptive field footprint in raw input pixels.",
-    35: "Key 'jump': accumulated spatial stride jump factor.",
-    36: "Key 'start': accumulated spatial center offset.",
-    37: "Closes layer record dictionary append.",
-    38: "Blank line before updating state variables.",
-    39: "Updates accumulated receptive field rf = rf_new for next layer.",
-    40: "Updates accumulated jump jump = jump_new for next layer.",
-    41: "Updates accumulated center offset start = start_new for next layer.",
-    42: "Updates current spatial size current_size = out_size for next layer.",
-    43: "Blank line separating layer loop from return statement.",
-    44: "Returns final layer-by-layer RF growth history array.",
+    2: "Initializes base receptive field rf = 1 for un-convolved input image.",
+    3: "Initializes base spatial jump jump = 1 for un-strided input image.",
+    4: "Initializes base pixel center offset start = 0.5.",
+    5: "Initializes current spatial image size current_size to initial_input_size.",
+    6: "Initializes history list to accumulate per-layer RF metrics.",
+    7: "Blank line before layer iteration loop.",
+    8: "Iterates over stacked CNN layer configs with index idx.",
+    9: "Reads kernel_size parameter k (default 3).",
+    10: "Reads stride parameter s (default 1).",
+    11: "Reads padding parameter p (default 0).",
+    12: "Reads dilation parameter d (default 1).",
+    13: "Blank line before effective kernel calculation.",
+    14: "Calculates effective kernel size eff_k = (k - 1) * d + 1.",
+    15: "Calculates updated receptive field rf_new = rf + (eff_k - 1) * jump.",
+    16: "Calculates updated center offset start_new = start + ((eff_k - 1)/2 - p) * jump.",
+    17: "Calculates updated spatial jump jump_new = jump * s.",
+    18: "Calculates spatial output resolution out_size using strided division floor.",
+    19: "Blank line before appending layer metrics.",
+    20: "Appends dictionary record for current layer to history list.",
+    21: "Key 'layer': 1-indexed layer number.",
+    22: "Key 'input_size': spatial input resolution to layer.",
+    23: "Key 'output_size': spatial output resolution from layer.",
+    24: "Key 'receptive_field': accumulated receptive field footprint in raw input pixels.",
+    25: "Key 'jump': accumulated spatial stride jump factor.",
+    26: "Key 'start': accumulated spatial center offset.",
+    27: "Closes layer record dictionary append.",
+    28: "Blank line before updating state variables.",
+    29: "Updates accumulated receptive field rf = rf_new for next layer.",
+    30: "Updates accumulated jump jump = jump_new for next layer.",
+    31: "Updates accumulated center offset start = start_new for next layer.",
+    32: "Updates current spatial size current_size = out_size for next layer.",
+    33: "Blank line separating layer loop from return statement.",
+    34: "Returns final layer-by-layer RF growth history array.",
   },
 };
 
 export const receptiveFieldGrowthCalculator: AlgorithmDefinition<receptiveFieldGrowthCalculatorInput> =
   {
-    id: "receptiveFieldGrowthCalculator",
+    id: "receptive-field-growth-calculator",
     title: "Receptive Field Growth Calculator",
-    category: "ml_convolutions",
-    categories: ["ml_convolutions", "ml_tensor_algebra"],
+    topicIds: ["ml_convolutions", "ml_tensor_algebra"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_convolutions",
     description:
       "The **Receptive Field Growth Calculator** tracks the exact layer-by-layer expansion of a feature map pixel's **Receptive Field (RF)**, **Spatial Jump ($J$)**, and **Start Center Offset ($S$)** across deep stacked Convolutional Neural Networks (VGG-16, ResNet-50, AlexNet). Knowing the exact receptive field in raw input pixels is crucial for object detection (anchor box sizing in Faster R-CNN, YOLO) and dense pixel-wise semantic segmentation (DeepLab).\n\n### Why It Exists\nA single activation scalar in a deep CNN layer represents a summary of a spatial patch in the original input image. As layers stack, strided convolutions and pooling expand the receptive field while downsampling spatial resolution. This algorithm tracks exact input pixel coverage and coordinate alignment.\n\n### Mathematical Formulation\nFor layer $l$ receiving input with receptive field $RF_{l-1}$, spatial jump $J_{l-1}$, and center offset $start_{l-1}$:\n\n$$1. \\quad K_{eff, l} = (K_l - 1) \\cdot D_l + 1 \\quad (\\text{Effective Kernel Size})$$\n\n$$2. \\quad RF_l = RF_{l-1} + (K_{eff, l} - 1) \\cdot J_{l-1} \\quad (\\text{Receptive Field Expansion})$$\n\n$$3. \\quad J_l = J_{l-1} \\cdot S_l \\quad (\\text{Spatial Jump Factor})$$\n\n$$4. \\quad start_l = start_{l-1} + \\left( \\frac{K_{eff, l} - 1}{2} - P_l \\right) \\cdot J_{l-1} \\quad (\\text{Feature Center Offset})$$\n\n$$5. \\quad Out_l = \\left\\lfloor \\frac{In_{l-1} + 2P_l - K_{eff, l}}{S_l} \\right\\rfloor + 1 \\quad (\\text{Spatial Resolution})$$\n\n### Step-by-Step Intuition\n1. **Base Initialization**: Raw input image has $RF_0 = 1$, $J_0 = 1$, $start_0 = 0.5$.\n2. **Effective Kernel**: Dilation rate $D$ expands kernel footprint $K \\to K_{eff} = K + (K-1)(D-1)$.\n3. **RF Expansion**: Each filter tap extends $RF$ by the previous layer's spatial jump step $J_{l-1}$.\n4. **Jump Compound**: Spatial stride $S_l > 1$ multiplies the jump factor for all downstream layers $J_l = J_{l-1} \\cdot S_l$.\n5. **Center Drift**: Asymmetric padding or non-unit kernels shift the spatial center of feature pixels.\n\n### Key Trade-Offs & Hardware Execution\n- **Effective Receptive Field (ERF)**: While theoretical RF defines the mathematical boundary of inputs affecting a feature, empirical studies (NIPS 2016) show that the Effective Receptive Field follows a Gaussian distribution centered at the feature middle.\n- **Dilated Convolutions (Atrous Conv)**: Increasing dilation $D$ expands RF exponentially without introducing extra parameters or losing spatial resolution (used in WaveNet and DeepLabV3).",
     constraints: [
@@ -528,11 +516,13 @@ export const receptiveFieldGrowthCalculator: AlgorithmDefinition<receptiveFieldG
       keyTerms: [
         {
           term: "Receptive Field (RF)",
-          definition: "The spatial region of raw input pixels that influence a specific feature map scalar.",
+          definition:
+            "The spatial region of raw input pixels that influence a specific feature map scalar.",
         },
         {
           term: "Spatial Jump (J)",
-          definition: "The pixel distance between adjacent features in the current layer relative to raw input coordinates.",
+          definition:
+            "The pixel distance between adjacent features in the current layer relative to raw input coordinates.",
         },
         {
           term: "Effective Receptive Field (ERF)",

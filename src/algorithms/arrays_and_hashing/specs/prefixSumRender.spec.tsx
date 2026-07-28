@@ -63,7 +63,9 @@ describe("PrefixSum React Component Spec", () => {
       />,
     );
 
-    expect(screen.getByText(/Example Range Query|Complete prefix array build|Verification step/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Example Range Query|Complete prefix array build|Verification step/i),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("auxiliary-panel")).toBeInTheDocument();
     // The computed prefix values are surfaced through the Visited row with a count.
     expect(screen.getByText(/Visited \(\d+\)/)).toBeInTheDocument();

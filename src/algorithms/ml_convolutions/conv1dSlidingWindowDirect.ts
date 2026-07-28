@@ -11,18 +11,9 @@ export interface conv1dSlidingWindowDirectInput {
 }
 
 export const CONV1DSLIDINGWINDOWDIRECT_CODE = `def conv1d_sliding_window_direct(signal, kernel, stride=1, padding=0):
-    """
-    Computes 1D direct sliding window cross-correlation/convolution on sequence data.
-    
-    signal: 1D input sequence array of length L.
-    kernel: 1D filter weights array of length K.
-    stride: step length between window positions.
-    padding: zero-padding applied to signal endpoints.
-    """
     l_in = len(signal)
     k_len = len(kernel)
 
-    # Apply boundary zero-padding
     padded = [0.0] * padding + [float(x) for x in signal] + [0.0] * padding
     l_pad = len(padded)
 
@@ -61,13 +52,9 @@ export const generateConv1dSlidingWindowDirectSteps = (
   const l_in = signal.length;
   const k_len = kernel.length;
 
-  const padded: number[] = [
-    ...Array(padding).fill(0),
-    ...signal,
-    ...Array(padding).fill(0),
-  ];
+  const padded: number[] = [...Array(padding).fill(0), ...signal, ...Array(padding).fill(0)];
   const l_pad = padded.length;
-  const l_out = Math.floor((l_pad - k_len) / stride) + 1;
+  const l_out = Math.max(0, Math.floor((l_pad - k_len) / stride) + 1);
   const output: number[] = Array(l_out).fill(0);
 
   const addStep = (
@@ -123,16 +110,13 @@ export const generateConv1dSlidingWindowDirectSteps = (
   );
 
   // Step 2: Signal length
-  addStep(
-    10,
-    "Measure Input Signal Length",
-    `Input sequence signal has l_in = ${l_in} elements.`,
-    { l_in },
-  );
+  addStep(2, "Measure Input Signal Length", `Input sequence signal has l_in = ${l_in} elements.`, {
+    l_in,
+  });
 
   // Step 3: Kernel length
   addStep(
-    11,
+    3,
     "Measure Filter Kernel Length",
     `Filter kernel weights array has k_len = ${k_len} elements.`,
     { l_in, k_len },
@@ -140,23 +124,18 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
   // Step 4: Apply padding
   addStep(
-    14,
+    5,
     "Apply Boundary Zero-Padding",
     `Appended ${padding} zero(s) to both boundaries, constructing padded sequence of length ${l_pad}.`,
     { padding, l_pad },
   );
 
   // Step 5: Padded length
-  addStep(
-    15,
-    "Store Padded Sequence Length",
-    `Padded array length l_pad = ${l_pad}.`,
-    { l_pad },
-  );
+  addStep(6, "Store Padded Sequence Length", `Padded array length l_pad = ${l_pad}.`, { l_pad });
 
   // Step 6: Compute l_out
   addStep(
-    17,
+    8,
     "Calculate Output Sequence Dimension",
     `Computed output length l_out = (${l_pad} - ${k_len}) // ${stride} + 1 = ${l_out}.`,
     { l_out, l_pad, k_len, stride },
@@ -164,7 +143,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
   // Step 7: Initialize output
   addStep(
-    18,
+    9,
     "Initialize Output Feature Map Buffer",
     `Created output array of size l_out = ${l_out} initialized to 0.0.`,
     { l_out },
@@ -175,7 +154,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
     const start_idx = i * stride;
 
     addStep(
-      20,
+      11,
       `Outer Loop: Output Index i = ${i}`,
       `Evaluating sliding window position i = ${i} of ${l_out - 1}.`,
       { i, l_out },
@@ -183,14 +162,14 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
     let acc_sum = 0.0;
     addStep(
-      21,
+      12,
       `Reset Accumulator for i = ${i}`,
       `Initialized acc_sum = 0.0 for window starting at padded index ${start_idx}.`,
       { i, acc_sum, start_idx },
     );
 
     addStep(
-      22,
+      13,
       `Set Window Start Index`,
       `Computed start_idx = i * stride = ${i} * ${stride} = ${start_idx}.`,
       { i, start_idx, stride },
@@ -203,7 +182,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
       const prod = sig_val * ker_val;
 
       addStep(
-        23,
+        14,
         `Inner Loop: Kernel Tap k = ${k}`,
         `Inspecting kernel position k = ${k} (weight = ${ker_val}) against padded signal index ${padded_idx} (value = ${sig_val}).`,
         { i, k, padded_idx, sig_val, ker_val },
@@ -213,7 +192,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
       acc_sum += prod;
       addStep(
-        24,
+        15,
         `Accumulate Product: ${sig_val} * ${ker_val} = ${prod}`,
         `Updated acc_sum = ${acc_sum.toFixed(1)} after adding term at kernel index ${k}.`,
         { i, k, padded_idx, prod, acc_sum },
@@ -224,7 +203,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
     output[i] = acc_sum;
     addStep(
-      25,
+      16,
       `Write Output Token output[${i}] = ${acc_sum.toFixed(1)}`,
       `Stored dot product result ${acc_sum.toFixed(1)} into feature map at position ${i}.`,
       { i, "output[i]": acc_sum },
@@ -233,7 +212,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
 
   // Step final: Return output
   addStep(
-    27,
+    18,
     "Execution Complete",
     `Successfully computed 1D sliding window cross-correlation across sequence. Final output: [${output.map((v) => v.toFixed(1)).join(", ")}].`,
     { completed: true, l_out },
@@ -243,7 +222,7 @@ export const generateConv1dSlidingWindowDirectSteps = (
 };
 
 const CONV1DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 19, 26],
+  skipLines: [4, 7, 10, 17],
   distractors: [
     "output[i] = sum(signal[i:i+k_len] * kernel)",
     "padded = signal + [0.0] * padding",
@@ -251,50 +230,37 @@ const CONV1DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
     "acc_sum *= padded[start_idx + k]",
   ],
   hints: [
-    { line: 17, hint: "Spatial output dimension formula: (l_pad - k_len) // stride + 1." },
-    { line: 22, hint: "Window start index in padded signal is i * stride." },
-    { line: 24, hint: "Multiply padded sample at start_idx + k with kernel weight at index k." },
+    { line: 8, hint: "Spatial output dimension formula: (l_pad - k_len) // stride + 1." },
+    { line: 13, hint: "Window start index in padded signal is i * stride." },
+    { line: 15, hint: "Multiply padded sample at start_idx + k with kernel weight at index k." },
   ],
   lineExplanations: {
     1: "Defines entry point for 1D sliding window cross-correlation algorithm function.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes 1D direct sliding window cross-correlation/convolution sequence processing.",
-    4: "Docstring section break.",
-    5: "Docstring parameter definition for input sequence signal.",
-    6: "Docstring parameter definition for filter weight array kernel.",
-    7: "Docstring parameter definition for spatial step stride.",
-    8: "Docstring parameter definition for boundary zero-padding.",
-    9: "Docstring closing delimiter tag.",
-    10: "Measures length l_in of unpadded input sequence signal.",
-    11: "Measures length k_len of filter weight kernel.",
-    12: "Blank line separating length measurements from padding section.",
-    13: "Comment explaining zero-padding application to signal boundaries.",
-    14: "Constructs padded array by prepending and appending zero-padding elements to signal.",
-    15: "Measures total length l_pad of zero-padded sequence array.",
-    16: "Blank line before output dimension calculation.",
-    17: "Calculates spatial output sequence length l_out using strided dimension formula.",
-    18: "Initializes output feature map buffer of size l_out filled with zero floats.",
-    19: "Blank line separating output initialization from sliding window loop.",
-    20: "Iterates over each output feature map position i from 0 to l_out - 1.",
-    21: "Resets accumulation sum acc_sum to 0.0 for current output window position i.",
-    22: "Calculates start index start_idx in padded signal array corresponding to window i.",
-    23: "Iterates over each filter kernel tap index k from 0 to k_len - 1.",
-    24: "Multiplies padded signal sample with kernel weight and accumulates into acc_sum.",
-    25: "Stores completed dot product accumulation acc_sum into output feature map at index i.",
-    26: "Blank line separating sliding window loop from return statement.",
-    27: "Returns computed 1D feature map output sequence array.",
+    2: "Measures length l_in of unpadded input sequence signal.",
+    3: "Measures length k_len of filter weight kernel.",
+    4: "Blank line before zero-padding sequence construction.",
+    5: "Constructs padded array by prepending and appending zero-padding elements to signal.",
+    6: "Measures total length l_pad of zero-padded sequence array.",
+    7: "Blank line before calculating output dimension.",
+    8: "Calculates spatial output sequence length l_out using strided dimension formula.",
+    9: "Initializes output feature map buffer of size l_out filled with zero floats.",
+    10: "Blank line separating output initialization from sliding window loop.",
+    11: "Iterates over each output feature map position i from 0 to l_out - 1.",
+    12: "Resets accumulation sum acc_sum to 0.0 for current output window position i.",
+    13: "Calculates start index start_idx in padded signal array corresponding to window i.",
+    14: "Iterates over each filter kernel tap index k from 0 to k_len - 1.",
+    15: "Multiplies padded signal sample with kernel weight and accumulates into acc_sum.",
+    16: "Stores completed dot product accumulation acc_sum into output feature map at index i.",
+    17: "Blank line separating sliding window loop from return statement.",
+    18: "Returns computed 1D feature map output sequence array.",
   },
 };
 
 export const conv1dSlidingWindowDirect: AlgorithmDefinition<conv1dSlidingWindowDirectInput> = {
-  id: "conv1dSlidingWindowDirect",
+  id: "conv1d-sliding-window-direct",
   title: "1D Cross-Correlation Basics",
-  category: "ml_convolutions",
-  categories: ["ml_convolutions", "ml_gemm_roofline"],
+  topicIds: ["ml_convolutions", "ml_gemm_roofline"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_convolutions",
   description:
     "**1D cross-correlation** (direct 1D convolution) is a fundamental temporal sequence processing primitive used in audio processing (Wav2Vec 2.0, SpeechT5), time-series analysis, and Temporal Convolutional Networks (TCNs). Direct 1D sliding window convolution computes feature maps by sliding a 1D filter kernel of length $K$ across a 1D input sequence signal of length $L$, computing the inner product at each strided window position without explicit memory matrix unrolling.\n\n### Why It Exists\nIn temporal sequence modeling, local feature extraction requires aggregating contextual information within small receptive fields. While transformers utilize global attention $O(N^2)$, 1D convolutions provide focused $O(N \\cdot K)$ linear temporal aggregation with translation invariance.\n\n### Mathematical Formulation\nGiven an input sequence $x \\in \\mathbb{R}^L$, filter weights $w \\in \\mathbb{R}^K$, stride $S$, and padding $P$, the spatial output sequence dimension $L_{out}$ and feature map values $y[i]$ are defined as:\n\n$$L_{out} = \\left\\lfloor \\frac{L + 2P - K}{S} \\right\\rfloor + 1$$\n\n$$y[i] = \\sum_{k=0}^{K-1} \\text{padded}[i \\cdot S + k] \\cdot w[k] \\quad \\text{for } i \\in [0, L_{out}-1]$$\n\n### Step-by-Step Intuition\n1. **Zero-Padding**: Extend the input sequence at both endpoints with $P$ zeros to preserve spatial boundary dimensions.\n2. **Window Alignment**: Position the filter kernel at starting index $\\text{start\\_idx} = i \\cdot S$.\n3. **Dot Product Accumulation**: Multiply corresponding elements of the padded signal and filter kernel over $K$ taps, accumulating into a scalar sum.\n4. **Feature Writing**: Store the scalar sum into $y[i]$ and advance the window position by stride $S$.\n\n### Key Trade-Offs & Hardware Execution\n- **Arithmetic Intensity**: Naive 1D sliding window loops exhibit low operational intensity (2 FLOPs per memory read). High-performance deep learning libraries lower 1D sequence batches into 2D matrix multiplication (`im2col` or `as_strided`) to leverage hardware Tensor Cores.\n- **Padding Strategies**: Causal padding pads only the left boundary to enforce non-lookahead causality in real-time streaming audio models.",
   constraints: ["1 <= L <= 10000", "1 <= K <= L", "stride >= 1", "padding >= 0"],
@@ -319,11 +285,16 @@ export const conv1dSlidingWindowDirect: AlgorithmDefinition<conv1dSlidingWindowD
     },
   ],
   code: CONV1DSLIDINGWINDOWDIRECT_CODE,
-  timeComplexity: { best: "O(L_{out} \\cdot K)", average: "O(L_{out} \\cdot K)", worst: "O(L_{out} \\cdot K)" },
+  timeComplexity: {
+    best: "O(L_{out} \\cdot K)",
+    average: "O(L_{out} \\cdot K)",
+    worst: "O(L_{out} \\cdot K)",
+  },
   spaceComplexity: "O(L_{out} + P)",
   complexityAnalysis: {
     time: "Direct nested loops evaluate $K$ multiplications for each of the $L_{out}$ output tokens, taking $O(L_{out} \\cdot K)$ total operations.",
-    space: "Requires $O(L_{out})$ memory to store the output feature map and $O(L + 2P)$ for zero-padded sequence buffers.",
+    space:
+      "Requires $O(L_{out})$ memory to store the output feature map and $O(L + 2P)$ for zero-padded sequence buffers.",
   },
   topicGuide: {
     overview:
@@ -364,7 +335,8 @@ export const conv1dSlidingWindowDirect: AlgorithmDefinition<conv1dSlidingWindowD
       },
       {
         term: "Spatial Output Dimension",
-        definition: "Spatial output length equation $L_{out} = \\lfloor (L + 2P - K)/S \\rfloor + 1$.",
+        definition:
+          "Spatial output length equation $L_{out} = \\lfloor (L + 2P - K)/S \\rfloor + 1$.",
       },
     ],
   },

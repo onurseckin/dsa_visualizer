@@ -30,9 +30,7 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
         if (cellVal === "Q") {
           if (isSolution) {
             cell.state = "sorted";
-            cell.isPath = true;
           } else {
-            cell.isStart = true;
             cell.state = "active";
           }
         } else if (evalCell && evalCell.r === rIdx && evalCell.c === cIdx) {

@@ -14,11 +14,6 @@ export const DEFAULT_ADJACENT_PAIR_FREQUENCY_INPUT: AdjacentPairFrequencyCounter
 };
 
 export const ADJACENT_PAIR_FREQUENCY_CODE = `def count_adjacent_pair_frequencies(words: dict[str, int]) -> tuple[dict[tuple[str, str], int], tuple[str, str]]:
-    """
-    BPE tokenization training step 1:
-    Counts frequencies of all adjacent symbol pairs across word corpus frequencies.
-    Returns pair frequency map and the most frequent pair.
-    """
     pair_counts = {}
 
     for word_str, freq in words.items():
@@ -39,13 +34,13 @@ export const generateAdjacentPairFrequencySteps = (
 
   const wordEntries = Object.entries(words);
 
-  // Step 0: Init
+  // Step 1: Init pair_counts dictionary (Line 2)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
-      what: "Initialize BPE Adjacent Pair Frequency Counter",
-      why: `Counting adjacent token symbol pairs across ${wordEntries.length} corpus words with frequencies.`,
+      what: "Initialize pair_counts map",
+      why: `Start with an empty dictionary to accumulate symbol pair frequencies across ${wordEntries.length} corpus words.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -59,7 +54,8 @@ export const generateAdjacentPairFrequencySteps = (
     auxiliaryState: {
       customState: {
         totalWords: String(wordEntries.length),
-        status: "Initialized",
+        pairCounts: "{}",
+        status: "Initialized pair_counts",
       },
     },
     variables: { totalWords: wordEntries.length },
@@ -69,81 +65,217 @@ export const generateAdjacentPairFrequencySteps = (
 
   for (let wIdx = 0; wIdx < wordEntries.length; wIdx++) {
     const [wordStr, freq] = wordEntries[wIdx];
-    const symbols = wordStr.split(" ");
-    const wordPairs: string[] = [];
 
-    for (let i = 0; i < symbols.length - 1; i++) {
-      const pairKey = `${symbols[i]},${symbols[i + 1]}`;
-      pairCounts[pairKey] = (pairCounts[pairKey] || 0) + freq;
-      wordPairs.push(`(${symbols[i]}, ${symbols[i + 1]})`);
-    }
-
+    // Step 2: Outer loop per word (Line 4)
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 4,
       explanation: {
-        what: `Process Word "${wordStr}" (freq = ${freq})`,
-        why: `Extracted ${wordPairs.length} adjacent pairs: [${wordPairs.join(
-          ", ",
-        )}]. Added frequency weight ${freq} to pair counts.`,
+        what: `Select corpus word "${wordStr}" (frequency: ${freq})`,
+        why: `Processing word ${wIdx + 1} of ${wordEntries.length}. Each adjacent pair found in this word will receive +${freq} count.`,
       },
       primarySnapshot: {
         kind: "array",
         elements: wordEntries.map(([w, f], idx) => ({
           id: `w-${idx}`,
           value: f,
-          label: `"${w}" (${f})`,
+          label: `"${w}" (freq: ${f})`,
           state:
             idx === wIdx
               ? ("active" as ElementState)
               : idx < wIdx
                 ? ("visited" as ElementState)
                 : ("default" as ElementState),
-          pointers: idx === wIdx ? [`Processing ${wordPairs.length} pairs`] : [],
+          pointers: idx === wIdx ? ["Current Word"] : [],
         })),
       },
       auxiliaryState: {
         customState: {
-          activeWord: wordStr,
-          pairsInWord: wordPairs.join("; "),
+          word_str: wordStr,
+          freq: String(freq),
           uniquePairsSoFar: String(Object.keys(pairCounts).length),
+          status: `Processing word ${wIdx + 1}/${wordEntries.length}`,
         },
       },
-      variables: { wIdx, wordStr, freq },
+      variables: { word_str: wordStr, freq },
     });
+
+    const symbols = wordStr.split(" ");
+
+    // Step 3: Split symbols (Line 5)
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 5,
+      explanation: {
+        what: `Split "${wordStr}" into ${symbols.length} symbols`,
+        why: `Extracted symbol tokens: [${symbols.map((s) => `'${s}'`).join(", ")}].`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: symbols.map((sym, sIdx) => ({
+          id: `sym-${sIdx}`,
+          value: sym,
+          label: `'${sym}'`,
+          state: "default" as ElementState,
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          word_str: wordStr,
+          symbols: symbols.join(" | "),
+          symbolCount: String(symbols.length),
+          status: "Extracted symbols",
+        },
+      },
+      variables: { word_str: wordStr, symbols: symbols.join(", ") },
+    });
+
+    for (let i = 0; i < symbols.length - 1; i++) {
+      const sym1 = symbols[i];
+      const sym2 = symbols[i + 1];
+      const pairKey = `${sym1},${sym2}`;
+
+      // Step 4: Extract pair (Line 7)
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 7,
+        explanation: {
+          what: `Extract adjacent pair ("${sym1}", "${sym2}") at symbol index ${i}`,
+          why: `Pairing adjacent symbols '${sym1}' (idx ${i}) and '${sym2}' (idx ${i + 1}).`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: symbols.map((sym, sIdx) => ({
+            id: `sym-${sIdx}`,
+            value: sym,
+            label: `'${sym}'`,
+            state:
+              sIdx === i || sIdx === i + 1
+                ? ("active" as ElementState)
+                : ("default" as ElementState),
+            pointers: sIdx === i ? ["pair[0]"] : sIdx === i + 1 ? ["pair[1]"] : [],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            activeWord: wordStr,
+            pair: `("${sym1}", "${sym2}")`,
+            pairIndex: `${i}, ${i + 1}`,
+            status: "Formed adjacent pair",
+          },
+        },
+        variables: { symbol_index: i, pair: `("${sym1}", "${sym2}")` },
+      });
+
+      const prevCount = pairCounts[pairKey] || 0;
+      pairCounts[pairKey] = prevCount + freq;
+      const newCount = pairCounts[pairKey];
+
+      // Step 5: Update pair counts (Line 8)
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 8,
+        explanation: {
+          what: `Update pair_counts[("${sym1}", "${sym2}")] = ${prevCount} + ${freq} = ${newCount}`,
+          why: `Word "${wordStr}" occurs ${freq} times, adding ${freq} frequency weight to pair ("${sym1}", "${sym2}").`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: symbols.map((sym, sIdx) => ({
+            id: `sym-${sIdx}`,
+            value: sym,
+            label: `'${sym}'`,
+            state:
+              sIdx === i || sIdx === i + 1
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            pair: `("${sym1}", "${sym2}")`,
+            prevCount: String(prevCount),
+            addedFreq: `+${freq}`,
+            newCount: String(newCount),
+            totalUniquePairs: String(Object.keys(pairCounts).length),
+            status: "Updated pair_counts",
+          },
+        },
+        variables: {
+          pair: `("${sym1}", "${sym2}")`,
+          prevCount,
+          addedFreq: freq,
+          newCount,
+        },
+      });
+    }
   }
 
-  // Step 2: Identify Most Frequent Pair
+  // Step 6: Identify Most Frequent Pair (Line 10)
   const pairEntries = Object.entries(pairCounts).sort((a, b) => b[1] - a[1]);
   const bestPair = pairEntries[0] ? pairEntries[0][0].split(",") : ["", ""];
   const bestFreq = pairEntries[0] ? pairEntries[0][1] : 0;
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 10,
     explanation: {
-      what: `Identify Most Frequent Symbol Pair: ("${bestPair[0]}", "${bestPair[1]}") with count ${bestFreq}`,
-      why: `Pair ("${bestPair[0]}", "${bestPair[1]}") occurs ${bestFreq} times across corpus. Selected as next candidate for BPE merge rule addition.`,
+      what: `Identify Most Frequent Pair: ("${bestPair[0]}", "${bestPair[1]}") with count ${bestFreq}`,
+      why: `Evaluated ${pairEntries.length} unique symbol pairs. Pair ("${bestPair[0]}", "${bestPair[1]}") has highest count (${bestFreq}) and is selected for BPE merge rule.`,
     },
     primarySnapshot: {
       kind: "array",
       elements: pairEntries.map(([pKey, count], rank) => ({
         id: `pair-${rank}`,
         value: count,
-        label: `("${pKey.replace(",", `", "`)}") : ${count}`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+        label: `("${pKey.replace(",", '", "')}") : ${count}`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("default" as ElementState),
         pointers: rank === 0 ? ["Most Frequent Pair"] : [],
       })),
     },
     auxiliaryState: {
       customState: {
-        mostFrequentPair: `("${bestPair[0]}", "${bestPair[1]}")`,
+        most_frequent_pair: `("${bestPair[0]}", "${bestPair[1]}")`,
+        frequency: String(bestFreq),
+        totalUniquePairs: String(pairEntries.length),
+        status: "Found max pair",
+      },
+    },
+    variables: {
+      most_frequent_pair: `("${bestPair[0]}", "${bestPair[1]}")`,
+      bestFreq,
+    },
+  });
+
+  // Step 7: Return Result (Line 11)
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 11,
+    explanation: {
+      what: `Return (pair_counts, most_frequent_pair)`,
+      why: `Finished counting adjacent symbol pair frequencies for BPE tokenization step 1.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: pairEntries.map(([pKey, count], rank) => ({
+        id: `pair-${rank}`,
+        value: count,
+        label: `("${pKey.replace(",", '", "')}") : ${count}`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        most_frequent_pair: `("${bestPair[0]}", "${bestPair[1]}")`,
         frequency: String(bestFreq),
         totalUniquePairs: String(pairEntries.length),
         status: "Completed",
       },
     },
-    variables: { bestPair: `${bestPair[0]}+${bestPair[1]}`, bestFreq, complete: true },
+    variables: {
+      most_frequent_pair: `("${bestPair[0]}", "${bestPair[1]}")`,
+      totalUniquePairs: pairEntries.length,
+    },
   });
 
   return steps;
@@ -151,14 +283,10 @@ export const generateAdjacentPairFrequencySteps = (
 
 export const adjacentPairFrequencyCounter: AlgorithmDefinition<AdjacentPairFrequencyCounterInput> =
   {
-    id: "adjacentPairFrequencyCounter",
+    id: "adjacent-pair-frequency-counter",
     title: "BPE Adjacent Pair Frequency Counter",
-    category: "ml_tokenization",
-    categories: ["ml_tokenization", "tries_and_strings"],
+    topicIds: ["ml_tokenization", "tries_and_strings"],
     difficulty: "Easy",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_tokenization",
     description:
       "Executes Step 1 of Byte-Pair Encoding (BPE) subword vocabulary training (Sennrich et al., 2016). Scans tokenized corpus words, tallies frequencies of all adjacent symbol pairs weighted by word frequencies, and identifies the most frequent adjacent pair to merge.\n\nInput Format:\n- words: Dictionary mapping space-separated symbol word strings to corpus frequency counts.\n\nOutput Format:\n- Returns tuple (pairCountsMap, mostFrequentPair).\n\nEdge Cases & Constraints:\n- Single symbol words: Produce no adjacent pairs.",
     constraints: ["Word symbols must be space-separated."],

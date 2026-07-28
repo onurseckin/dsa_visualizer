@@ -141,18 +141,6 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
 
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 4,
-    explanation: {
-      what: `Initialize traversal list to record visit order.`,
-      why: "We collect nodes in the order DFS discovers them so we can return the full traversal sequence at the end.",
-    },
-    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
-    auxiliaryState: { stack: [], visited: [], customState: { Order: "[]" } },
-    variables: { traversalLength: 0 },
-  });
-
-  steps.push({
-    stepIndex: stepIdx++,
     codeLine: 3,
     explanation: {
       what: `Pushed start node "${startNode}" to stack.`,
@@ -172,6 +160,25 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
       customState: { Order: "[]" },
     },
     variables: { stackSize: stack.length },
+  });
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 4,
+    explanation: {
+      what: `Initialize traversal list to record visit order.`,
+      why: "We collect nodes in the order DFS discovers them so we can return the full traversal sequence at the end.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((n) => ({
+        ...n,
+        state: n.id === startNode ? "active" : "default",
+      })),
+      edges: [...edges],
+    },
+    auxiliaryState: { stack: [...stack], visited: [], customState: { Order: "[]" } },
+    variables: { traversalLength: 0 },
   });
 
   while (stack.length > 0) {
@@ -349,7 +356,11 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
               kind: "graph",
               nodes: nodes.map((n) => ({
                 ...n,
-                state: stack.includes(n.id) ? "in-stack" : visited.has(n.id) ? "visited" : "default",
+                state: stack.includes(n.id)
+                  ? "in-stack"
+                  : visited.has(n.id)
+                    ? "visited"
+                    : "default",
               })),
               edges: [...edges],
             },
@@ -450,8 +461,7 @@ export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
 export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   id: "dfs-graph",
   title: "DFS Graph Traversal",
-  category: "graph_traversal",
-  categories: ["graph_traversal"],
+  topicIds: ["graph_traversal"],
   difficulty: "Easy",
   description:
     "Depth-First Search (DFS) traverses a graph $G = (V, E)$ by exploring as deep as possible along each path before backtracking. Given a source vertex $s \\in V$, DFS uses a Last-In-First-Out (LIFO) stack $S_{stack}$ (or call stack) and a visited set $V_{visited} \\subseteq V$ to systematically traverse reachable vertices. DFS runs in $\\mathcal{O}(|V| + |E|)$ time and $\\mathcal{O}(|V|)$ auxiliary space.",

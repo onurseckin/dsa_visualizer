@@ -7,17 +7,16 @@ import {
 
 describe("conv2dSlidingWindowDirect (2D Direct Sliding Window Convolution)", () => {
   it("should have correct metadata", () => {
-    expect(conv2dSlidingWindowDirect.id).toBe("conv2dSlidingWindowDirect");
-    expect(conv2dSlidingWindowDirect.isMlInfra).toBe(true);
-    expect(conv2dSlidingWindowDirect.mlInfraLevel).toBe(8);
-    expect(conv2dSlidingWindowDirect.mlInfraCategory).toBe("ml_convolutions");
-    expect(conv2dSlidingWindowDirect.categories).toContain("ml_convolutions");
+    expect(conv2dSlidingWindowDirect.id).toBe("conv2d-sliding-window-direct");
+    expect(conv2dSlidingWindowDirect.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(conv2dSlidingWindowDirect.topicIds).toContain("ml_convolutions");
+    expect(conv2dSlidingWindowDirect.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {
-    const steps = generateConv2dSlidingWindowDirectSteps(
-      DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT,
-    );
+    const steps = generateConv2dSlidingWindowDirectSteps(DEFAULT_CONV2DSLIDINGWINDOWDIRECT_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Initialize dimensions");
     expect(steps[steps.length - 1].explanation.what).toBe("Convolution Complete");

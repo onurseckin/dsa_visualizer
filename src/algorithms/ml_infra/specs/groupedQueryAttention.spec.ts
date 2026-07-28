@@ -10,9 +10,8 @@ import {
 describe("groupedQueryAttention (Level 7 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(groupedQueryAttention.id).toBe("grouped-query-attention");
-    expect(groupedQueryAttention.isMlInfra).toBe(true);
-    expect(groupedQueryAttention.mlInfraLevel).toBe(7);
-    expect(groupedQueryAttention.category).toBe("ml_attention_geometry");
+    expect(groupedQueryAttention.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(groupedQueryAttention.topicIds).toContain("ml_attention_geometry");
     expect(groupedQueryAttention.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" },
     ]);

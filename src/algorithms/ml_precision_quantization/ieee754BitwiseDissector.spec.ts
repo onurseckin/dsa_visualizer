@@ -9,7 +9,7 @@ describe("Ieee754 Bitwise Dissector", () => {
   it("should have correct metadata", () => {
     expect(ieee754BitwiseDissector.id).toBe("ieee-754-bitwise-dissector");
     expect(ieee754BitwiseDissector.title).toBe("Ieee754 Bitwise Dissector");
-    expect(ieee754BitwiseDissector.category).toBe("ml_precision_quantization");
+    expect(ieee754BitwiseDissector.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

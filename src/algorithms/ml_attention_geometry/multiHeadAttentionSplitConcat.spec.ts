@@ -9,10 +9,11 @@ import {
 describe("multi-head-attention-split-concat (Multi-Head Attention Head Split & Concat)", () => {
   it("should have correct metadata", () => {
     expect(multiHeadAttentionSplitConcat.id).toBe("multi-head-attention-split-concat");
-    expect(multiHeadAttentionSplitConcat.isMlInfra).toBe(true);
-    expect(multiHeadAttentionSplitConcat.mlInfraLevel).toBe(7);
-    expect(multiHeadAttentionSplitConcat.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(multiHeadAttentionSplitConcat.categories).toContain("ml_attention_geometry");
+    expect(
+      multiHeadAttentionSplitConcat.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(multiHeadAttentionSplitConcat.topicIds).toContain("ml_attention_geometry");
+    expect(multiHeadAttentionSplitConcat.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

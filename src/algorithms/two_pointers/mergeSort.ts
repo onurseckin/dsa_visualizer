@@ -124,179 +124,287 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
     return steps;
   }
 
-  const sortedRange: number[] = [];
+  const sortedIndicesSet = new Set<number>();
 
-  const sortSubarray = (l: number, r: number) => {
-    if (l >= r) return;
+  const sortSubarray = (l: number, r: number): number[] => {
+    const subLength = r - l + 1;
+    const subArr = currentArr.slice(l, r + 1);
 
-    const mid = Math.floor((l + r) / 2);
+    if (subLength <= 1) {
+      addStep(
+        2,
+        `Check base case len(arr) <= 1 for sub-array [${l}..${r}]`,
+        `Sub-array [${subArr.join(", ")}] has length ${subLength} <= 1.`,
+        { len: subLength, arr: subArr.join(", ") },
+        [l, r],
+      );
+      addStep(
+        3,
+        `Base case reached: return arr [${subArr.join(", ")}]`,
+        `Sub-array of size ${subLength} is trivially sorted.`,
+        { len: subLength, arr: subArr.join(", ") },
+        [l, r],
+      );
+      return subArr;
+    }
+
+    const mid = Math.floor(subLength / 2);
 
     addStep(
       4,
-      `Divide subarray [${l}..${r}] at mid index ${mid}`,
-      `Splitting range [${l}..${r}] into left [${l}..${mid}] and right [${mid + 1}..${r}].`,
-      { l, r, mid },
+      `Compute midpoint index mid = len(arr) // 2 (${mid})`,
+      `Splitting sub-array [${subArr.join(", ")}] of size ${subLength} at mid index ${mid}.`,
+      { len: subLength, mid },
       [l, r],
     );
 
     addStep(
       5,
-      `Recurse on left half [${l}..${mid}]`,
-      `Sorting left partition.`,
-      { l, mid },
-      [l, mid],
+      `Recurse on left half arr[:${mid}]`,
+      `Calling merge_sort on left partition [${subArr.slice(0, mid).join(", ")}].`,
+      { leftPart: subArr.slice(0, mid).join(", ") },
+      [l, l + mid - 1],
     );
-    sortSubarray(l, mid);
+    const leftSorted = sortSubarray(l, l + mid - 1);
 
     addStep(
       6,
-      `Recurse on right half [${mid + 1}..${r}]`,
-      `Sorting right partition.`,
-      { mid1: mid + 1, r },
-      [mid + 1, r],
+      `Recurse on right half arr[${mid}:]`,
+      `Calling merge_sort on right partition [${subArr.slice(mid).join(", ")}].`,
+      { rightPart: subArr.slice(mid).join(", ") },
+      [l + mid, r],
     );
-    sortSubarray(mid + 1, r);
+    const rightSorted = sortSubarray(l + mid, r);
 
     addStep(
       7,
-      `Initialize merged array for interval [${l}..${r}]`,
-      `Allocating merged buffer.`,
-      { l, r },
+      `Initialize empty merged list for interval [${l}..${r}]`,
+      `Creating new empty list 'merged = []' to collect sorted elements from left [${leftSorted.join(", ")}] and right [${rightSorted.join(", ")}].`,
+      { left: leftSorted.join(", "), right: rightSorted.join(", ") },
       [l, r],
+      undefined,
+      Array.from(sortedIndicesSet),
+      {
+        left: leftSorted.join(", "),
+        right: rightSorted.join(", "),
+        merged: "[]",
+      },
     );
 
     addStep(
       8,
       "Initialize pointers i = 0, j = 0",
-      "Setting left index i = 0 and right index j = 0.",
+      "Setting pointer i = 0 for left sub-array and j = 0 for right sub-array.",
       { i: 0, j: 0 },
       [l, r],
+      undefined,
+      Array.from(sortedIndicesSet),
+      {
+        left: leftSorted.join(", "),
+        right: rightSorted.join(", "),
+        merged: "[]",
+      },
     );
 
-    const leftCopy = currentArr.slice(l, mid + 1);
-    const rightCopy = currentArr.slice(mid + 1, r + 1);
+    const merged: number[] = [];
     let i = 0;
     let j = 0;
-    let k = l;
 
-    while (i < leftCopy.length && j < rightCopy.length) {
-      const idxLeft = l + i;
-      const idxRight = mid + 1 + j;
+    const updateCurrentArr = () => {
+      const combined = [...merged, ...leftSorted.slice(i), ...rightSorted.slice(j)];
+      for (let idx = 0; idx < combined.length; idx++) {
+        currentArr[l + idx] = combined[idx];
+      }
+    };
+
+    updateCurrentArr();
+
+    while (i < leftSorted.length && j < rightSorted.length) {
+      const leftIdxInCurrent = l + merged.length;
+      const rightIdxInCurrent = l + merged.length + (leftSorted.length - i);
 
       addStep(
         9,
-        `Check while loop: i (${i}) < len(left) and j (${j}) < len(right)`,
-        `Both sub-arrays still contain unmerged elements.`,
-        { i, j, leftLen: leftCopy.length, rightLen: rightCopy.length },
+        `Check while condition: i (${i}) < ${leftSorted.length} and j (${j}) < ${rightSorted.length}`,
+        `Both left and right sub-arrays have unmerged elements remaining.`,
+        { i, j, leftLen: leftSorted.length, rightLen: rightSorted.length },
         [l, r],
-        [idxLeft, idxRight],
+        [leftIdxInCurrent, rightIdxInCurrent],
+        Array.from(sortedIndicesSet),
+        {
+          left: leftSorted.join(", "),
+          right: rightSorted.join(", "),
+          merged: `[${merged.join(", ")}]`,
+        },
       );
 
       addStep(
         10,
-        `Compare left [${idxLeft}] = ${leftCopy[i]} with right [${idxRight}] = ${rightCopy[j]}`,
-        `Two pointers: picking smaller value between ${leftCopy[i]} and ${rightCopy[j]}.`,
-        { i, j, k, leftVal: leftCopy[i], rightVal: rightCopy[j] },
+        `Compare left[${i}] = ${leftSorted[i]} with right[${j}] = ${rightSorted[j]}`,
+        `Comparing ${leftSorted[i]} and ${rightSorted[j]} to choose the smaller value.`,
+        { i, j, leftVal: leftSorted[i], rightVal: rightSorted[j] },
         [l, r],
-        [idxLeft, idxRight],
+        [leftIdxInCurrent, rightIdxInCurrent],
+        Array.from(sortedIndicesSet),
+        {
+          left: leftSorted.join(", "),
+          right: rightSorted.join(", "),
+          merged: `[${merged.join(", ")}]`,
+        },
       );
 
-      if (leftCopy[i] <= rightCopy[j]) {
-        currentArr[k] = leftCopy[i];
+      if (leftSorted[i] <= rightSorted[j]) {
+        merged.push(leftSorted[i]);
 
         addStep(
           11,
-          `Append left[${i}] (${leftCopy[i]}) to merged`,
-          `Left element ${leftCopy[i]} is <= right element ${rightCopy[j]}, preserving stability.`,
-          { i, val: leftCopy[i] },
+          `Append left[${i}] (${leftSorted[i]}) to merged`,
+          `left[${i}] (${leftSorted[i]}) <= right[${j}] (${rightSorted[j]}); appending ${leftSorted[i]} to merged (preserving stability).`,
+          { i, val: leftSorted[i] },
           [l, r],
+          [leftIdxInCurrent, rightIdxInCurrent],
+          Array.from(sortedIndicesSet),
+          {
+            left: leftSorted.join(", "),
+            right: rightSorted.join(", "),
+            merged: `[${merged.join(", ")}]`,
+          },
         );
 
         i++;
+        updateCurrentArr();
 
         addStep(
           12,
-          `Increment i: i += 1 (now ${i})`,
-          `Advanced left pointer i to index ${i}.`,
+          `Increment pointer i: i += 1 (now ${i})`,
+          `Advanced left pointer i to ${i}.`,
           { i },
           [l, r],
+          undefined,
+          Array.from(sortedIndicesSet),
+          {
+            left: leftSorted.join(", "),
+            right: rightSorted.join(", "),
+            merged: `[${merged.join(", ")}]`,
+          },
         );
       } else {
         addStep(
           13,
-          `Else branch: right element (${rightCopy[j]}) is smaller than left (${leftCopy[i]})`,
-          `Right element is smaller; taking from right half.`,
-          { i, j, leftVal: leftCopy[i], rightVal: rightCopy[j] },
+          `Else branch: right[${j}] (${rightSorted[j]}) < left[${i}] (${leftSorted[i]})`,
+          `right[${j}] (${rightSorted[j]}) is strictly smaller than left[${i}] (${leftSorted[i]}).`,
+          { i, j, leftVal: leftSorted[i], rightVal: rightSorted[j] },
           [l, r],
-          [idxLeft, idxRight],
+          [leftIdxInCurrent, rightIdxInCurrent],
+          Array.from(sortedIndicesSet),
+          {
+            left: leftSorted.join(", "),
+            right: rightSorted.join(", "),
+            merged: `[${merged.join(", ")}]`,
+          },
         );
 
-        currentArr[k] = rightCopy[j];
+        merged.push(rightSorted[j]);
 
         addStep(
           14,
-          `Append right[${j}] (${rightCopy[j]}) to merged`,
-          `Right element ${rightCopy[j]} is smaller than left element ${leftCopy[i]}.`,
-          { j, val: rightCopy[j] },
+          `Append right[${j}] (${rightSorted[j]}) to merged`,
+          `Appending smaller right element ${rightSorted[j]} to merged list.`,
+          { j, val: rightSorted[j] },
           [l, r],
+          [leftIdxInCurrent, rightIdxInCurrent],
+          Array.from(sortedIndicesSet),
+          {
+            left: leftSorted.join(", "),
+            right: rightSorted.join(", "),
+            merged: `[${merged.join(", ")}]`,
+          },
         );
 
         j++;
+        updateCurrentArr();
 
         addStep(
           15,
-          `Increment j: j += 1 (now ${j})`,
-          `Advanced right pointer j to index ${j}.`,
+          `Increment pointer j: j += 1 (now ${j})`,
+          `Advanced right pointer j to ${j}.`,
           { j },
           [l, r],
+          undefined,
+          Array.from(sortedIndicesSet),
+          {
+            left: leftSorted.join(", "),
+            right: rightSorted.join(", "),
+            merged: `[${merged.join(", ")}]`,
+          },
         );
       }
-      k++;
     }
 
-    if (i < leftCopy.length) {
+    if (i < leftSorted.length) {
+      const remainingLeft = leftSorted.slice(i);
       addStep(
         16,
-        `Extend remaining left elements into merged`,
-        `Copying remaining ${leftCopy.length - i} elements from left sub-array.`,
-        { remainingLeftCount: leftCopy.length - i },
+        `Extend remaining left elements ([${remainingLeft.join(", ")}]) into merged`,
+        `Right sub-array exhausted. Copying remaining ${remainingLeft.length} element(s) from left half into merged.`,
+        { remainingLeft: remainingLeft.join(", ") },
         [l, r],
+        undefined,
+        Array.from(sortedIndicesSet),
+        {
+          left: leftSorted.join(", "),
+          right: rightSorted.join(", "),
+          merged: `[${merged.join(", ")}]`,
+        },
       );
-    }
-    while (i < leftCopy.length) {
-      currentArr[k] = leftCopy[i];
-      i++;
-      k++;
+      merged.push(...remainingLeft);
+      i = leftSorted.length;
+      updateCurrentArr();
     }
 
-    if (j < rightCopy.length) {
+    if (j < rightSorted.length) {
+      const remainingRight = rightSorted.slice(j);
       addStep(
         17,
-        `Extend remaining right elements into merged`,
-        `Copying remaining ${rightCopy.length - j} elements from right sub-array.`,
-        { remainingRightCount: rightCopy.length - j },
+        `Extend remaining right elements ([${remainingRight.join(", ")}]) into merged`,
+        `Left sub-array exhausted. Copying remaining ${remainingRight.length} element(s) from right half into merged.`,
+        { remainingRight: remainingRight.join(", ") },
         [l, r],
+        undefined,
+        Array.from(sortedIndicesSet),
+        {
+          left: leftSorted.join(", "),
+          right: rightSorted.join(", "),
+          merged: `[${merged.join(", ")}]`,
+        },
       );
-    }
-    while (j < rightCopy.length) {
-      currentArr[k] = rightCopy[j];
-      j++;
-      k++;
+      merged.push(...remainingRight);
+      j = rightSorted.length;
+      updateCurrentArr();
     }
 
-    for (let idx = l; idx <= r; idx++) {
-      if (!sortedRange.includes(idx)) sortedRange.push(idx);
+    if (subLength === n) {
+      for (let idx = 0; idx < n; idx++) {
+        sortedIndicesSet.add(idx);
+      }
     }
 
     addStep(
       18,
-      `Return merged sub-array [${l}..${r}]`,
-      `Completed merging interval [${l}..${r}]: [${currentArr.slice(l, r + 1).join(", ")}].`,
-      { l, r, mergedSubarray: currentArr.slice(l, r + 1).join(", ") },
+      `Return merged sub-array [${merged.join(", ")}]`,
+      `Completed merging subproblem [${l}..${r}]. Returning sorted result: [${merged.join(", ")}].`,
+      { merged: merged.join(", ") },
+      [l, r],
       undefined,
-      undefined,
-      [...sortedRange],
+      Array.from(sortedIndicesSet),
+      {
+        left: leftSorted.join(", "),
+        right: rightSorted.join(", "),
+        merged: `[${merged.join(", ")}]`,
+      },
     );
+
+    return merged;
   };
 
   sortSubarray(0, n - 1);
@@ -317,6 +425,9 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
       `Verification step ${steps.length + 1}`,
       `Verifying total array sorted order across all ${n} elements.`,
       { n },
+      undefined,
+      undefined,
+      Array.from({ length: n }, (_, idx) => idx),
     );
   }
 
@@ -397,8 +508,7 @@ export const MERGE_SORT_TRIVIA: TriviaMeta = {
 export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
   id: "merge-sort",
   title: "Merge Sort (Divide and Conquer)",
-  category: "two_pointers",
-  categories: ["two_pointers"],
+  topicIds: ["two_pointers"],
   difficulty: "Medium",
   description:
     "Merge Sort is a classic stable divide-and-conquer sorting algorithm that guarantees $O(N \\log N)$ runtime.\n\n### Why It Exists & What It Solves\nQuick Sort offers fast in-place performance on average but suffers from an $O(N^2)$ worst-case runtime. Merge Sort solves this by guaranteeing a strict $O(N \\log N)$ worst-case bound regardless of input ordering. Additionally, Merge Sort is a stable sort and streams data sequentially, making it the ideal foundation for external disk-based sorting (External Merge Sort).\n\n### Step-by-Step Intuition\n1. **Divide**: Split array of length $N$ at midpoint $mid = N // 2$ into `left` and `right` sub-arrays.\n2. **Conquer**: Recursively invoke `merge_sort` on `left` and `right` until base case $N \\le 1$ is hit.\n3. **Combine (Two-Pointer Merge)**: Maintain pointers `i` and `j` at the start of `left` and `right`. Repeatedly select `min(left[i], right[j])` and append to `merged`. When equal, pick `left[i]` to preserve stability.\n4. **Flush Tail**: Append remaining elements `left[i:]` or `right[j:]` to `merged` and return.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), an un-sorted array of integers.\n- **Output**: `list[int]`, a new array sorted in non-decreasing order.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N \\log N)$ in best, average, and worst cases because the array is always halved $\\log_2 N$ times.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for temporary `merged` buffers.\n\n### Edge Cases & Constraints\n- **Base Case**: Slices of size $N \\le 1$ return directly.\n- **Stability**: Equality comparison `left[i] <= right[j]` ensures equal elements retain original relative order.",

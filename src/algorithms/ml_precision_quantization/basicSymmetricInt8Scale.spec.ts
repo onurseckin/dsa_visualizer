@@ -9,7 +9,7 @@ describe("Basic Symmetric Int8 Scale", () => {
   it("should have correct metadata", () => {
     expect(basicSymmetricInt8Scale.id).toBe("basic-symmetric-int8-scale");
     expect(basicSymmetricInt8Scale.title).toBe("Basic Symmetric Int8 Scale");
-    expect(basicSymmetricInt8Scale.category).toBe("ml_precision_quantization");
+    expect(basicSymmetricInt8Scale.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

@@ -91,31 +91,6 @@ describe("SettingsContext panel visibility, algorithm persistence, and error bou
     consoleSpy.mockRestore();
   });
 
-  it("migrates legacy view_mode and legacy show_tutorial / show_auxiliary flags", () => {
-    window.localStorage.setItem("dsa_visualizer_view_mode", JSON.stringify("visual"));
-    window.localStorage.setItem("dsa_visualizer_show_tutorial", JSON.stringify(false));
-    window.localStorage.setItem("dsa_visualizer_show_auxiliary", JSON.stringify(true));
-
-    const { result } = renderSettings();
-    expect(result.current.panels).toEqual({
-      problem: true,
-      solution: true,
-      examples: true,
-      visualizer: true,
-      code: false,
-      tutorial: false,
-      auxiliary: true,
-      complexity: true,
-    });
-  });
-
-  it("migrates legacy view_mode=code", () => {
-    window.localStorage.setItem("dsa_visualizer_view_mode", JSON.stringify("code"));
-    const { result } = renderSettings();
-    expect(result.current.panels.visualizer).toBe(false);
-    expect(result.current.panels.code).toBe(true);
-  });
-
   it("toggles panels and guards against no-op setPanel updates", () => {
     const { result } = renderSettings();
 

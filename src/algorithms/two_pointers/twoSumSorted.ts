@@ -140,7 +140,14 @@ export const generateTwoSumSortedSteps = (input: TwoSumSortedInput): AlgorithmSt
       5,
       `Compute current_sum = ${nums[left]} + ${nums[right]} = ${sum}`,
       `Evaluating pair at indices L=${left} (${nums[left]}) and R=${right} (${nums[right]}). Sum = ${sum}.`,
-      { left, right, "nums[left]": nums[left], "nums[right]": nums[right], current_sum: sum, target },
+      {
+        left,
+        right,
+        "nums[left]": nums[left],
+        "nums[right]": nums[right],
+        current_sum: sum,
+        target,
+      },
     );
 
     if (sum === target) {
@@ -243,7 +250,7 @@ const TWO_SUM_SORTED_TOPIC_GUIDE: TopicGuide = {
   sections: [
     {
       heading: "Core Concept & Monotonic Search Space Reduction",
-      body: "Initialize $left = 0$ at the smallest element and $right = N - 1$ at the largest. Compute $current\_sum = nums[left] + nums[right]$. If $current\_sum < target$, any pair involving $nums[left]$ with a smaller right element is strictly smaller than $target$, so $left$ can be incremented safely. Conversely, if $current\_sum > target$, $right$ is decremented. Each comparison prunes an entire row or column of potential pairs.",
+      body: "Initialize $left = 0$ at the smallest element and $right = N - 1$ at the largest. Compute $current_sum = nums[left] + nums[right]$. If $current_sum < target$, any pair involving $nums[left]$ with a smaller right element is strictly smaller than $target$, so $left$ can be incremented safely. Conversely, if $current_sum > target$, $right$ is decremented. Each comparison prunes an entire row or column of potential pairs.",
     },
     {
       heading: "Systems & Performance Impact: Memory Locality vs. Hash Tables",
@@ -297,11 +304,10 @@ const TWO_SUM_SORTED_TRIVIA: TriviaMeta = {
 export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   id: "two-sum-sorted",
   title: "Two Sum II (Sorted)",
-  category: "two_pointers",
-  categories: ["two_pointers"],
+  topicIds: ["two_pointers"],
   difficulty: "Medium",
   description:
-    "Find two numbers in a sorted array that add up to a target sum using the converging two-pointer technique.\n\n### Why It Exists & What It Solves\nStandard Two Sum uses $O(N)$ auxiliary space for a hash table. Two Sum II leverages the pre-sorted structure of the array to achieve $O(N)$ time complexity and $O(1)$ space complexity. By maintaining pointers at opposite ends of the array, we prune invalid candidate pairs in constant time.\n\n### Step-by-Step Intuition\n1. **Initialization**: Set $left = 0$ (smallest value) and $right = N - 1$ (largest value).\n2. **Sum Evaluation**: Calculate $current\_sum = nums[left] + nums[right]$.\n3. **Monotonic Pointer Adjustment**:\n   - If $current\_sum == target$: Return `[left, right]`.\n   - If $current\_sum < target$: Increment $left \\mathrel{+}= 1$ because all pairs $(left, k)$ with $k < right$ would yield sums smaller than $target$.\n   - If $current\_sum > target$: Decrement $right \\mathrel{-}= 1$ because all pairs $(k, right)$ with $k > left$ would yield sums larger than $target$.\n4. **Loop Termination**: Continue while $left < right$.\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), sorted in non-decreasing order; `target` (`int`), the desired pair sum.\n- **Output**: `list[int]`, a 2-element array `[left, right]` containing 0-indexed positions.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ since each iteration advances at least one pointer inward, resulting in at most $N$ steps.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space as only two index variables are maintained.\n\n### Edge Cases & Constraints\n- **Negative Numbers & Duplicates**: Monotonicity holds across negative and duplicate numbers.\n- **No Solution**: When pointers cross ($left \\ge right$), returns `[]`.",
+    "Find two numbers in a sorted array that add up to a target sum using the converging two-pointer technique.\n\n### Why It Exists & What It Solves\nStandard Two Sum uses $O(N)$ auxiliary space for a hash table. Two Sum II leverages the pre-sorted structure of the array to achieve $O(N)$ time complexity and $O(1)$ space complexity. By maintaining pointers at opposite ends of the array, we prune invalid candidate pairs in constant time.\n\n### Step-by-Step Intuition\n1. **Initialization**: Set $left = 0$ (smallest value) and $right = N - 1$ (largest value).\n2. **Sum Evaluation**: Calculate $current_sum = nums[left] + nums[right]$.\n3. **Monotonic Pointer Adjustment**:\n   - If $current_sum == target$: Return `[left, right]`.\n   - If $current_sum < target$: Increment $left \\mathrel{+}= 1$ because all pairs $(left, k)$ with $k < right$ would yield sums smaller than $target$.\n   - If $current_sum > target$: Decrement $right \\mathrel{-}= 1$ because all pairs $(k, right)$ with $k > left$ would yield sums larger than $target$.\n4. **Loop Termination**: Continue while $left < right$.\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), sorted in non-decreasing order; `target` (`int`), the desired pair sum.\n- **Output**: `list[int]`, a 2-element array `[left, right]` containing 0-indexed positions.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ since each iteration advances at least one pointer inward, resulting in at most $N$ steps.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space as only two index variables are maintained.\n\n### Edge Cases & Constraints\n- **Negative Numbers & Duplicates**: Monotonicity holds across negative and duplicate numbers.\n- **No Solution**: When pointers cross ($left \\ge right$), returns `[]`.",
   constraints: [
     "2 <= nums.length <= 3 * 10^4",
     "-1000 <= nums[i] <= 1000",

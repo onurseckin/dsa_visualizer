@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { MLInfraKnowledgeGraph, ML_INFRA_NODES } from "../MLInfraKnowledgeGraph";
+import { MLInfraKnowledgeGraph, ML_INFRA_TREE_PLACEMENTS } from "../MLInfraKnowledgeGraph";
 
 describe("MLInfraKnowledgeGraph Component Render Spec", () => {
   it("renders knowledge graph container with topic family legend", () => {
@@ -29,7 +29,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
   });
 
   it("ensures distinct node positions and vertical gap >= 100px between rows", () => {
-    const nodes = ML_INFRA_NODES;
+    const nodes = ML_INFRA_TREE_PLACEMENTS;
 
     const rowLevels: number[] = [];
     nodes.forEach((n) => {
@@ -49,7 +49,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
   it("renders nodes for all 13 topic clusters with clean title and subtitle", () => {
     render(<MLInfraKnowledgeGraph />);
 
-    expect(ML_INFRA_NODES.length).toBe(13);
+    expect(ML_INFRA_TREE_PLACEMENTS.length).toBe(13);
 
     // Verify presence of nodes by title
     expect(
@@ -93,7 +93,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     const nodesGroup = container.querySelector(".nodes");
     expect(nodesGroup).toBeInTheDocument();
 
-    ML_INFRA_NODES.forEach((node) => {
+    ML_INFRA_TREE_PLACEMENTS.forEach((node) => {
       const expectedWidth = Math.max(190, node.title.length * 8.5 + 40);
       const expectedTransform = `translate(${node.x - expectedWidth / 2}, ${node.y - 32})`;
 
@@ -114,25 +114,26 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
   });
 
   it("opens slide-over topic sidebar drawer on node click and lists inner questions with difficulty and type badges", () => {
-    const onSelectCategoryFolder = vi.fn();
-    render(<MLInfraKnowledgeGraph onSelectCategoryFolder={onSelectCategoryFolder} />);
+    const onSelectTopic = vi.fn();
+    render(<MLInfraKnowledgeGraph onSelectTopic={onSelectTopic} />);
 
     const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
     fireEvent.click(tensorNode);
 
-    expect(onSelectCategoryFolder).toHaveBeenCalledWith("ml_tensor_algebra");
+    expect(onSelectTopic).toHaveBeenCalledWith("ml_tensor_algebra");
 
     const drawer = screen.getByRole("dialog", {
       name: /Tensor Algebra & Memory Layout Drawer/i,
     });
     expect(drawer).toBeInTheDocument();
 
-    expect(screen.getAllByText(/PyTorch-Style Tensor Contiguity Verifier/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/PyTorch-Style Tensor Contiguity Verifier/i).length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getAllByText(/Strided 1D Vector Dot Product/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Anti-Diagonal Matrix Traversal/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/In-Place Square Matrix Transpose/i).length).toBeGreaterThan(0);
 
-    expect(screen.getAllByText(/Foundational Math & DSA/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/ML Systems Implementation/i).length).toBeGreaterThan(0);
 
     expect(
@@ -173,21 +174,21 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("invokes onSelectCategoryFolder with the exact categoryFolder when clicking node cards or drawer category buttons", () => {
-    const onSelectCategoryFolder = vi.fn();
-    render(<MLInfraKnowledgeGraph onSelectCategoryFolder={onSelectCategoryFolder} />);
+  it("invokes onSelectTopic with the exact topicId when clicking node cards or drawer category buttons", () => {
+    const onSelectTopic = vi.fn();
+    render(<MLInfraKnowledgeGraph onSelectTopic={onSelectTopic} />);
 
     const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
     fireEvent.click(tensorNode);
 
-    expect(onSelectCategoryFolder).toHaveBeenCalledWith("ml_tensor_algebra");
+    expect(onSelectTopic).toHaveBeenCalledWith("ml_tensor_algebra");
 
     const drawerCategoryBtn = screen.getByRole("button", {
       name: /View Tensor Algebra & Memory Layout Problems in Problem List/i,
     });
     fireEvent.click(drawerCategoryBtn);
 
-    expect(onSelectCategoryFolder).toHaveBeenLastCalledWith("ml_tensor_algebra");
+    expect(onSelectTopic).toHaveBeenLastCalledWith("ml_tensor_algebra");
   });
 
   it("displays exact problem count without double counting for Graph Compilers node", () => {

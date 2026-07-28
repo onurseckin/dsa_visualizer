@@ -7,10 +7,6 @@ export interface pytorchCustomCudaOpWrapperRegisterInput {
 }
 
 export const PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_CODE = `def pytorch_custom_cuda_op_wrapper_register(data: list[int], target: int = 30) -> list[int]:
-    """
-    Simulates PyTorch @torch.library.custom_op registration and CUDA kernel dispatching.
-    Validates tensor input buffers, dispatches thread block grid, and executes C++ kernel.
-    """
     output_buffer = []
     grid_dim = len(data)
 
@@ -53,6 +49,7 @@ export const generatePytorchCustomCudaOpWrapperRegisterSteps = (
     activeThreadId: number = -1,
     pointersMap: Record<number, string[]> = {},
     customElements?: ArrayElement[],
+    currentOutputBuffer: number[] = [],
   ) => {
     const baseElements = customElements || elements;
     const updatedElements: ArrayElement[] = baseElements.map((el, idx) => {
@@ -79,6 +76,7 @@ export const generatePytorchCustomCudaOpWrapperRegisterSteps = (
           data: `[${data.join(", ")}]`,
           target: String(target),
           grid_dim: String(data.length),
+          output_buffer: `[${currentOutputBuffer.join(", ")}]`,
         },
       },
       variables,
@@ -89,58 +87,30 @@ export const generatePytorchCustomCudaOpWrapperRegisterSteps = (
   addStep(
     1,
     "Enter pytorch_custom_cuda_op_wrapper_register function",
-    "Initializing PyTorch `@CustomOp.register` C++ CUDA extension kernel wrapper.",
+    "Initializing PyTorch `@torch.library.custom_op` wrapper for custom C++/CUDA kernel execution.",
     { tensor_size: data.length, target },
   );
 
   // Step 2: Init output buffer
-    addStep(
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "Simulates PyTorch @torch.library.custom_op registration and CUDA kernel dis",
-    {},
-  );
-
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "Validates tensor input buffers, dispatches thread block grid, and executes ",
-    {},
-  );
-
-  addStep(
-    5,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    6,
     "Initialize output_buffer = []",
-    "Allocating PyTorch C++ output tensor buffer in device VRAM memory.",
+    "Allocating PyTorch C++ output tensor buffer in GPU device VRAM memory.",
     { output_buffer: "[]" },
   );
 
   // Step 3: Compute grid dimension
   const gridDim = data.length;
   addStep(
-    7,
+    3,
     `Compute grid_dim = len(data) -> ${gridDim}`,
     `Calculating CUDA thread block grid dimension: $\\text{grid}\\_dim = ${gridDim}$ threads.`,
     { grid_dim: gridDim },
   );
 
-  // Step 4: Begin thread loop
+  // Step 4: Dispatch CUDA grid
   addStep(
-    9,
+    5,
     `Dispatch CUDA grid: for thread_id in range(grid_dim=${gridDim})`,
     `Launching ${gridDim} CUDA threads in parallel over GPU tensor memory.`,
     { grid_dim: gridDim },
@@ -151,97 +121,104 @@ addStep(
 
   for (let threadId = 0; threadId < gridDim; threadId++) {
     addStep(
-      9,
+      5,
       `CUDA Thread [${threadId}]: Begin thread execution`,
       `Thread block index ${threadId} active on CUDA warp.`,
       { thread_id: threadId },
       threadId,
       { [threadId]: [`thread_${threadId}`] },
       currentElements,
+      outputBuffer,
     );
 
     const val = data[threadId];
     addStep(
-      10,
+      6,
       `CUDA Thread [${threadId}]: Read val = data[${threadId}] -> ${val}`,
       `Loaded tensor value ${val} from global VRAM address into thread local register.`,
       { thread_id: threadId, val },
       threadId,
       { [threadId]: [`val=${val}`] },
       currentElements,
+      outputBuffer,
     );
 
     const isMatch = val === target;
     addStep(
-      11,
+      7,
       `CUDA Thread [${threadId}]: Check val (${val}) == target (${target}) -> ${isMatch}`,
       isMatch
-        ? `Target match! Thread [${threadId}] executes custom C++ kernel transform.`
+        ? `Target match! Thread [${threadId}] executes custom C++ CUDA transformation kernel.`
         : `No target match. Thread [${threadId}] executes identity pass-through.`,
-      { thread_id: threadId, val, target, isMatch },
+      { thread_id: threadId, val, target, match: isMatch },
       threadId,
-      { [threadId]: [isMatch ? "KERNEL_TRANSFORM" : "IDENTITY"] },
+      { [threadId]: [isMatch ? "TRANSFORM_KERNEL" : "IDENTITY_PASS"] },
       currentElements,
+      outputBuffer,
     );
 
     let processedVal = val;
     if (isMatch) {
       processedVal = val * 2;
       addStep(
-        12,
+        8,
         `CUDA Thread [${threadId}]: Execute custom op processed_val = val * 2 -> ${processedVal}`,
-        `C++ CUDA kernel computation: $${val} \\cdot 2 = ${processedVal}$.`,
+        `C++ CUDA kernel computation: $${val} \\times 2 = ${processedVal}$.`,
         { thread_id: threadId, val, processed_val: processedVal },
         threadId,
         { [threadId]: [`out=${processedVal}`, "TRANSFORMED"] },
         currentElements,
+        outputBuffer,
       );
     } else {
       addStep(
-        14,
+        10,
         `CUDA Thread [${threadId}]: Identity pass-through processed_val = val -> ${processedVal}`,
         `Thread [${threadId}] passes element unchanged: ${processedVal}.`,
         { thread_id: threadId, processed_val: processedVal },
         threadId,
         { [threadId]: [`out=${processedVal}`] },
         currentElements,
+        outputBuffer,
       );
     }
 
     outputBuffer.push(processedVal);
     currentElements[threadId] = {
       ...currentElements[threadId],
-      value: `${val} -> ${processedVal}`,
+      value: processedVal,
       state: "sorted",
     };
 
     addStep(
-      15,
+      11,
       `CUDA Thread [${threadId}]: Write output_buffer.append(${processedVal})`,
       `Thread [${threadId}] stores processed value ${processedVal} to VRAM output buffer.`,
       { thread_id: threadId, processed_val: processedVal, buffer_len: outputBuffer.length },
       threadId,
       { [threadId]: [`written=${processedVal}`] },
       currentElements,
+      outputBuffer,
     );
   }
 
   // Step 5: Final return
   addStep(
-    17,
+    13,
     "Return output_buffer from C++ CUDA extension wrapper",
-    `CUDA kernel execution complete! Returned output tensor [${outputBuffer.join(", ")}] to PyTorch engine.`,
-    { output_buffer: outputBuffer.join(", "), total_threads: gridDim },
+    `CUDA kernel execution complete! Returned output tensor [${outputBuffer.join(", ")}] to PyTorch C++ engine.`,
+    { output_buffer: `[${outputBuffer.join(", ")}]`, total_threads: gridDim },
     -1,
     {},
     currentElements,
+    outputBuffer,
   );
 
   return steps;
 };
 
 const PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 8, 13, 16],
+  skipLines: [4, 9, 12],
   distractors: [
     "output_buffer = list(data)",
     "grid_dim = len(data) // 32",
@@ -249,27 +226,26 @@ const PYTORCHCUSTOMCUDAOPWRAPPERREGISTER_TRIVIA: TriviaMeta = {
     "output_buffer.append(val + target)",
   ],
   hints: [
-    { line: 7, hint: "Calculate CUDA grid dimension based on tensor length." },
-    { line: 12, hint: "Execute custom CUDA operator transformation when thread value matches target." },
+    { line: 3, hint: "Calculate CUDA grid dimension based on tensor length." },
+    {
+      line: 8,
+      hint: "Execute custom CUDA operator transformation when thread value matches target.",
+    },
   ],
   lineExplanations: {
     1: "Function signature for PyTorch `@CustomOp.register` C++ CUDA kernel wrapper taking data list and target scalar.",
-    2: "Begin docstring describing PyTorch custom C++/CUDA operator registration and kernel dispatch.",
-    3: "Docstring line detailing C++ custom op registration semantics.",
-    4: "Docstring line detailing GPU grid dispatch and thread execution.",
-    5: "End docstring.",
-    6: "Initialize empty list output_buffer to hold computed C++ CUDA kernel output tensor values.",
-    7: "Calculate CUDA grid dimension grid_dim = len(data) for thread block dispatch.",
-    8: "Blank line before grid dispatch loop.",
-    9: "Dispatch CUDA thread grid over range(grid_dim).",
-    10: "Extract element val = data[thread_id] into GPU thread register.",
-    11: "Check if val equals target scalar threshold.",
-    12: "If match: execute custom CUDA kernel operation (processed_val = val * 2).",
-    13: "Else branch for non-matching elements.",
-    14: "If no match: identity pass-through (processed_val = val).",
-    15: "Store processed_val in device VRAM output_buffer.",
-    16: "Blank line before returning results.",
-    17: "Return output_buffer tensor from C++ extension wrapper to PyTorch Python runtime.",
+    2: "Initialize empty list output_buffer to hold computed C++ CUDA kernel output tensor values.",
+    3: "Calculate CUDA grid dimension grid_dim = len(data) for thread block dispatch.",
+    4: "Blank line before grid dispatch loop.",
+    5: "Dispatch CUDA thread grid over range(grid_dim).",
+    6: "Extract element val = data[thread_id] into GPU thread register.",
+    7: "Check if val equals target scalar threshold.",
+    8: "If match: execute custom CUDA kernel operation (processed_val = val * 2).",
+    9: "Else branch for non-matching elements.",
+    10: "If no match: identity pass-through (processed_val = val).",
+    11: "Store processed_val in device VRAM output_buffer.",
+    12: "Blank line before returning results.",
+    13: "Return output_buffer tensor from C++ extension wrapper to PyTorch Python runtime.",
   },
 };
 
@@ -277,12 +253,8 @@ export const pytorchCustomCudaOpWrapperRegister: AlgorithmDefinition<pytorchCust
   {
     id: "pytorch-custom-cuda-op-wrapper-register",
     title: "PyTorch `@CustomOp.register` C++ CUDA Kernel Register",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_hardware_kernels"],
+    topicIds: ["ml_llm_serving", "ml_hardware_kernels"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "Integrating custom high-performance C++ and CUDA operators (such as FlashAttention, PagedAttention, or custom quantized GEMMs) into PyTorch model computational graphs requires registering native extension bindings via PyTorch's `torch.library.custom_op` API. This pattern exposes C++ CUDA kernels directly to PyTorch autograd engine, managing device pointer unwrapping, contiguous memory layout validation, schema type checking, and stream synchronization.\n\n### CUDA Grid Thread Dispatch & Transformation\nFor thread index $i \\in \\{0, \\dots, N-1\\}$ in grid dimension $N$:\n$$\\text{out}[i] = \\begin{cases} 2 \\cdot \\text{data}[i] & \\text{if } \\text{data}[i] = \\text{target} \\\\ \\text{data}[i] & \\text{otherwise} \\end{cases}$$\n\n### Input Parameters\n- `data`: Array of numerical values representing GPU/CPU input tensor buffer.\n- `target`: Target scalar threshold for thread-level kernel transformation.\n\n### Output\n- Returns output tensor buffer post C++/CUDA kernel execution.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],

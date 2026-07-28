@@ -5,13 +5,13 @@ import {
   generateSieveSteps,
   PYTHON_SIEVE_CODE,
 } from "../sievePrimes";
-import type { VectorVisualSnapshot } from "../../../types/dsa";
+import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("sievePrimes spec logic", () => {
   it("has category math_and_number_theory and valid metadata", () => {
     expect(sievePrimes.id).toBe("sieve-primes");
     expect(sievePrimes.title).toBe("Sieve of Eratosthenes");
-    expect(sievePrimes.category).toBe("math_and_number_theory");
+    expect(sievePrimes.topicIds).toContain("math_and_number_theory");
     expect(sievePrimes.difficulty).toBe("Medium");
     expect(sievePrimes.defaultInput).toEqual(DEFAULT_SIEVE_INPUT);
     expect(sievePrimes.code).toBe(PYTHON_SIEVE_CODE);
@@ -47,8 +47,8 @@ describe("sievePrimes spec logic", () => {
     expect(lastStep.auxiliaryState.hashMap?.["isPrime[4]"]).toBe("false");
     expect(lastStep.auxiliaryState.hashMap?.["isPrime[29]"]).toBe("true");
 
-    const snap = lastStep.primarySnapshot as VectorVisualSnapshot;
-    expect(snap.kind).toBe("vector");
+    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
+    expect(snap.kind).toBe("array");
   });
 
   it("handles small limits like 10", () => {
@@ -56,10 +56,10 @@ describe("sievePrimes spec logic", () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.primeCount).toBe(4); // 2, 3, 5, 7
 
-    const snapshot = lastStep.primarySnapshot as VectorVisualSnapshot;
-    expect(snapshot.vectors.length).toBe(11);
-    expect(snapshot.vectors.find((el) => el.id === "num-7")?.state).toBe("result");
-    expect(snapshot.vectors.find((el) => el.id === "num-8")?.state).toBe("sorted");
+    const snapshot = lastStep.primarySnapshot as ArrayVisualSnapshot;
+    expect(snapshot.elements.length).toBe(11);
+    expect(snapshot.elements.find((el) => el.id === "num-7")?.state).toBe("sorted");
+    expect(snapshot.elements.find((el) => el.id === "num-8")?.state).toBe("visited");
   });
 
   it("handles limit < 2 cleanly", () => {
@@ -71,8 +71,8 @@ describe("sievePrimes spec logic", () => {
 
   it("snapshots array elements correctly", () => {
     const steps = generateSieveSteps({ limit: 5 });
-    const firstSnapshot = steps[0].primarySnapshot as VectorVisualSnapshot;
-    expect(firstSnapshot.vectors.map((el) => el.id)).toEqual([
+    const firstSnapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
+    expect(firstSnapshot.elements.map((el) => el.id)).toEqual([
       "num-0",
       "num-1",
       "num-2",

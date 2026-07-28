@@ -5,12 +5,13 @@ import {
   twoSumSorted,
 } from "../twoSumSorted";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("twoSumSorted algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(twoSumSorted.id).toBe("two-sum-sorted");
     expect(twoSumSorted.title).toBe("Two Sum II (Sorted)");
-    expect(twoSumSorted.category).toBe("two_pointers");
+    expect(twoSumSorted.topicIds).toContain("two_pointers");
     expect(twoSumSorted.difficulty).toBe("Medium");
     expect(twoSumSorted.defaultInput).toEqual(DEFAULT_TWO_SUM_SORTED_INPUT);
   });
@@ -78,7 +79,11 @@ describe("twoSumSorted algorithm spec", () => {
     const N = twoSumSorted.code.split("\n").length;
     const inputs = [
       twoSumSorted.defaultInput,
-      ...(twoSumSorted.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        twoSumSorted,
+        (input): input is typeof twoSumSorted.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const inp of inputs) {

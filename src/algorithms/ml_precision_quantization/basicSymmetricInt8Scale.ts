@@ -194,7 +194,10 @@ const BASICSYMMETRICINT8SCALE_TRIVIA: TriviaMeta = {
     { line: 1, hint: "Defines function accepting list of floating-point values." },
     { line: 2, hint: "Scan values to compute peak absolute magnitude max_abs." },
     { line: 3, hint: "Divide peak magnitude by 127.0 to calculate symmetric scale factor S." },
-    { line: 4, hint: "Divide each element by scale S, round to nearest integer, and clamp to [-128, 127]." },
+    {
+      line: 4,
+      hint: "Divide each element by scale S, round to nearest integer, and clamp to [-128, 127].",
+    },
   ],
   lineExplanations: {
     1: "Declares function signature basic_symmetric_int8_scale accepting input array `values`.",
@@ -208,12 +211,8 @@ const BASICSYMMETRICINT8SCALE_TRIVIA: TriviaMeta = {
 export const basicSymmetricInt8Scale: AlgorithmDefinition<basicSymmetricInt8ScaleInput> = {
   id: "basic-symmetric-int8-scale",
   title: "Basic Symmetric Int8 Scale",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Basic Symmetric INT8 Scale Quantization
 
 Symmetric INT8 Quantization maps 32-bit floating point values (FP32) into signed 8-bit integer range $[-127, 127]$ symmetrically around zero without using a zero-point offset ($Z = 0$).

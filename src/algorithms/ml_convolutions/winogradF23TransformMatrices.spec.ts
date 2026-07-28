@@ -5,14 +5,15 @@ import {
   generateWinogradF23TransformMatricesSteps,
 } from "./winogradF23TransformMatrices";
 
-describe("winogradF23TransformMatrices", () => {
+describe("winograd-f23-transform-matrices", () => {
   it("should have correct metadata", () => {
-    expect(winogradF23TransformMatrices.id).toBe("winogradF23TransformMatrices");
-    expect(winogradF23TransformMatrices.isMlInfra).toBe(true);
-    expect(winogradF23TransformMatrices.mlInfraLevel).toBe(8);
-    expect(winogradF23TransformMatrices.mlInfraCategory).toBe("ml_convolutions");
-    expect(winogradF23TransformMatrices.categories).toContain("ml_convolutions");
-    expect(winogradF23TransformMatrices.categories).toContain("ml_gemm_roofline");
+    expect(winogradF23TransformMatrices.id).toBe("winograd-f23-transform-matrices");
+    expect(winogradF23TransformMatrices.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(winogradF23TransformMatrices.topicIds).toContain("ml_convolutions");
+    expect(winogradF23TransformMatrices.topicIds).toContain("ml_convolutions");
+    expect(winogradF23TransformMatrices.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

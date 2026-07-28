@@ -27,31 +27,24 @@ export const DEFAULT_SINGLE_SKIP_LIST_INPUT: SingleSkipListLayerTraversalInput =
 };
 
 export const SINGLE_SKIP_LIST_CODE = `def single_skip_list_layer_traversal(nodes: dict, start_id: int, target: int) -> tuple[int, list[int]]:
-    """
-    Traverses a 1D skip-list layer greedily towards 'target'.
-    Prefers express 'skip' pointers when available and skip_val <= target, falling back to 'next' pointers.
-    """
     curr_id = start_id
     path = [curr_id]
 
     while curr_id in nodes:
         curr_node = nodes[curr_id]
-        
-        # Check express skip pointer first
+
         skip_id = curr_node.get("skipId")
         if skip_id and skip_id in nodes and nodes[skip_id]["value"] <= target:
             curr_id = skip_id
             path.append(curr_id)
             continue
 
-        # Fallback to sequential next pointer
         next_id = curr_node.get("nextId")
         if next_id and next_id in nodes and nodes[next_id]["value"] <= target:
             curr_id = next_id
             path.append(curr_id)
             continue
 
-        # Found closest node <= target
         break
 
     return curr_id, path`;
@@ -69,7 +62,7 @@ export const generateSingleSkipListSteps = (
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: `Initialize 1D Skip-List Traversal at Node ${startId} (val=${nodes[startId]?.value})`,
       why: `Target value = ${target}. Traverses express skip edges before standard sequential edges.`,
@@ -115,7 +108,7 @@ export const generateSingleSkipListSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 12,
+        codeLine: 9,
         explanation: {
           what: `Express Skip Pointer Jump: N${prevId} (val=${nodes[prevId].value}) -> N${currId} (val=${nodes[currId].value})`,
           why: `Skip pointer destination N${currId} value ${nodes[currId].value} <= target ${target}. Rapidly bypassed intermediate nodes.`,
@@ -159,7 +152,7 @@ export const generateSingleSkipListSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 19,
+        codeLine: 15,
         explanation: {
           what: `Sequential Next Step: N${prevId} (val=${nodes[prevId].value}) -> N${currId} (val=${nodes[currId].value})`,
           why: `Express skip edge unavailable or exceeded target. Advanced to next adjacent node.`,
@@ -205,7 +198,7 @@ export const generateSingleSkipListSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 24,
+    codeLine: 22,
     explanation: {
       what: `Skip-List Layer Traversal Complete at Node N${currId} (val=${finalVal})`,
       why: `Found closest node N${currId} with value ${finalVal} <= target ${target}. Traversal path: [${path
@@ -246,14 +239,10 @@ export const generateSingleSkipListSteps = (
 
 export const singleSkipListLayerTraversal: AlgorithmDefinition<SingleSkipListLayerTraversalInput> =
   {
-    id: "singleSkipListLayerTraversal",
+    id: "single-skip-list-layer-traversal",
     title: "Single Skip-List Layer Traversal",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search", "graph_traversal"],
+    topicIds: ["ml_vector_search", "graph_traversal"],
     difficulty: "Easy",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "Simulates 1D skip-list layer routing (Pugh, 1990), serving as the foundational predecessor to HNSW spatial graph search. Given nodes with sequential `next` and express `skip` pointers, the traversal algorithm greedily takes express skip edges whenever the destination value <= target, falling back to sequential edges.\n\nInput Format:\n- nodes: Map of node ID to SkipListNode {id, value, nextId, skipId}.\n- startId: Entry node ID.\n- target: Scalar numerical search target value.\n\nOutput Format:\n- Returns tuple (closestNodeId, traversalPath).\n\nEdge Cases & Constraints:\n- Target smaller than startId node value: Remains at startId node.",
     constraints: ["Node values must be strictly sorted along nextId chains."],

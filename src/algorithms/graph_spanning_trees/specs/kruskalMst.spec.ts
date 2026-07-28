@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_KRUSKAL_INPUT, generateKruskalSteps, kruskalMst } from "../kruskalMst";
+import { requireExampleInputs, requireLineExplanations } from "../../specs/assertions";
 
 describe("kruskalMst algorithm spec", () => {
   it("should have correct metadata", () => {
     expect(kruskalMst.id).toBe("kruskal-mst");
     expect(kruskalMst.title).toBe("Kruskal's Minimum Spanning Tree");
-    expect(kruskalMst.category).toBe("graph_spanning_trees");
+    expect(kruskalMst.topicIds).toContain("graph_spanning_trees");
     expect(kruskalMst.defaultInput).toEqual(DEFAULT_KRUSKAL_INPUT);
   });
 
@@ -37,7 +38,7 @@ describe("kruskalMst algorithm spec", () => {
 
   it("should map every line of pythonCode in lineExplanations", () => {
     const codeLines = kruskalMst.code.split("\n").length;
-    const explanations = kruskalMst.trivia?.lineExplanations ?? {};
+    const explanations = requireLineExplanations(kruskalMst);
     for (let i = 1; i <= codeLines; i++) {
       expect(explanations[i], `Missing explanation for line ${i}`).toBeDefined();
     }
@@ -47,7 +48,11 @@ describe("kruskalMst algorithm spec", () => {
     const totalLines = kruskalMst.code.split("\n").length;
     const inputs = [
       kruskalMst.defaultInput,
-      ...kruskalMst.examples.map((e) => e.input),
+      ...requireExampleInputs(
+        kruskalMst,
+        (input): input is typeof kruskalMst.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
     for (const input of inputs) {
       const steps = kruskalMst.generateSteps(input);

@@ -32,6 +32,7 @@ export function Slider({
   const autoId = useId();
   const inputId = id ?? autoId;
   const display = formatValue ? formatValue(value) : String(value);
+  const isFixed = min === max;
 
   return (
     <div className={cx("ui-slider", disabled && "is-disabled", className)} style={style}>
@@ -45,29 +46,49 @@ export function Slider({
         )}
         <span className="ui-slider__value">{display}</span>
       </div>
-      <BaseSlider.Root
-        id={id}
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onValueChange={(val: number | readonly number[]) => {
-          onChange(typeof val === "number" ? val : val[0]);
-        }}
-        disabled={disabled}
-        className="ui-slider__root"
-      >
-        <BaseSlider.Control className="ui-slider__control">
-          <BaseSlider.Track className="ui-slider__track">
-            <BaseSlider.Indicator className="ui-slider__indicator" />
-          </BaseSlider.Track>
-          <BaseSlider.Thumb
-            className="ui-slider__thumb"
-            aria-labelledby={label !== undefined ? `${inputId}-label` : undefined}
-            id={inputId}
-          />
-        </BaseSlider.Control>
-      </BaseSlider.Root>
+      {isFixed ? (
+        <div className="ui-slider__root" data-disabled>
+          <div className="ui-slider__control">
+            <div className="ui-slider__track">
+              <div className="ui-slider__indicator" style={{ width: "100%" }} />
+            </div>
+            <div
+              className="ui-slider__thumb"
+              id={inputId}
+              role="slider"
+              aria-labelledby={label !== undefined ? `${inputId}-label` : undefined}
+              aria-valuemin={min}
+              aria-valuemax={max}
+              aria-valuenow={value}
+              aria-disabled="true"
+            />
+          </div>
+        </div>
+      ) : (
+        <BaseSlider.Root
+          id={id}
+          value={value}
+          min={min}
+          max={max}
+          step={step}
+          onValueChange={(val: number | readonly number[]) => {
+            onChange(typeof val === "number" ? val : val[0]);
+          }}
+          disabled={disabled}
+          className="ui-slider__root"
+        >
+          <BaseSlider.Control className="ui-slider__control">
+            <BaseSlider.Track className="ui-slider__track">
+              <BaseSlider.Indicator className="ui-slider__indicator" />
+            </BaseSlider.Track>
+            <BaseSlider.Thumb
+              className="ui-slider__thumb"
+              aria-labelledby={label !== undefined ? `${inputId}-label` : undefined}
+              id={inputId}
+            />
+          </BaseSlider.Control>
+        </BaseSlider.Root>
+      )}
     </div>
   );
 }

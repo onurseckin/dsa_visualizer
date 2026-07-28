@@ -9,7 +9,7 @@ describe("Scalar Int8 Quantization", () => {
   it("should have correct metadata", () => {
     expect(scalarInt8Quantization.id).toBe("scalar-int8-quantization");
     expect(scalarInt8Quantization.title).toBe("Scalar Int8 Quantization");
-    expect(scalarInt8Quantization.category).toBe("ml_precision_quantization");
+    expect(scalarInt8Quantization.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

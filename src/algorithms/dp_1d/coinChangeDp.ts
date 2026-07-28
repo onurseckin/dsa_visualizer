@@ -146,9 +146,10 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
         codeLine: 7,
         explanation: {
           what: `Evaluate condition if i - coin >= 0 (${i} - ${coin} = ${i - coin})`,
-          why: i - coin >= 0
-            ? `Coin ${coin} <= amount ${i}, so subtracting coin ${coin} yields valid subproblem amount ${i - coin}.`
-            : `Coin ${coin} > amount ${i}, so this coin cannot be used to form amount ${i}.`,
+          why:
+            i - coin >= 0
+              ? `Coin ${coin} <= amount ${i}, so subtracting coin ${coin} yields valid subproblem amount ${i - coin}.`
+              : `Coin ${coin} > amount ${i}, so this coin cannot be used to form amount ${i}.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -156,7 +157,12 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
             id: `dp-${idx}`,
             value: v === Infinity ? -1 : v,
             state: idx === i ? "active" : idx === i - coin ? "compare" : "default",
-            pointers: idx === i ? [`target ${i}`] : (i - coin >= 0 && idx === i - coin) ? [`sub ${i - coin}`] : undefined,
+            pointers:
+              idx === i
+                ? [`target ${i}`]
+                : i - coin >= 0 && idx === i - coin
+                  ? [`sub ${i - coin}`]
+                  : undefined,
           })),
         },
         auxiliaryState: {
@@ -184,7 +190,8 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
               id: `dp-${idx}`,
               value: v === Infinity ? -1 : v,
               state: idx === i ? "active" : idx === i - coin ? "compare" : "default",
-              pointers: idx === i ? [`target: ${i}`] : idx === i - coin ? [`sub: ${i - coin}`] : undefined,
+              pointers:
+                idx === i ? [`target: ${i}`] : idx === i - coin ? [`sub: ${i - coin}`] : undefined,
             })),
           },
           auxiliaryState: {
@@ -245,8 +252,7 @@ const COIN_CHANGE_DP_TRIVIA: TriviaMeta = {
 export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   id: "coin-change-dp",
   title: "Coin Change Minimum Coins (Dynamic Programming)",
-  category: "dp_1d",
-  categories: ["dp_1d"],
+  topicIds: ["dp_1d"],
   difficulty: "Medium",
   description: `The **Coin Change Problem** (LeetCode #322) asks for the minimum number of coins needed to make a target sum $A$ (amount) using a set of coin denominations $C = \\{c_1, c_2, \\dots, c_n\\}$ with an unlimited supply of each coin. If the amount cannot be formed, return $-1$.
 
@@ -377,4 +383,3 @@ A greedy approach of picking the largest denomination first fails for arbitrary 
   defaultInput: DEFAULT_COIN_CHANGE_INPUT,
   generateSteps: generateCoinChangeSteps,
 };
-

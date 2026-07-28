@@ -1,14 +1,15 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { getAllAlgorithms } from "../../../algorithms/registry";
+import { getAlgorithmTopics } from "../../../app/topics";
 import { TriviaDeckBuilder } from "../../../ui";
 
 const ALL = getAllAlgorithms();
 const TOTAL = ALL.length;
 
-const arraysIds = ALL.filter((algorithm) => algorithm.category === "arrays_and_hashing").map(
-  (algorithm) => algorithm.id,
-);
+const arraysIds = ALL.filter((algorithm) =>
+  getAlgorithmTopics(algorithm).includes("arrays_and_hashing"),
+).map((algorithm) => algorithm.id);
 
 const groupRow = (container: HTMLElement, label: string): HTMLElement => {
   const title = Array.from(container.querySelectorAll<HTMLElement>(".ui-collapsible__title")).find(
@@ -19,7 +20,7 @@ const groupRow = (container: HTMLElement, label: string): HTMLElement => {
   return row;
 };
 
-const openCategory = (container: HTMLElement, label: string): HTMLElement => {
+const openTopic = (container: HTMLElement, label: string): HTMLElement => {
   const row = groupRow(container, label);
   const trigger =
     row.querySelector<HTMLElement>(".ui-collapsible__trigger") ||
@@ -30,7 +31,7 @@ const openCategory = (container: HTMLElement, label: string): HTMLElement => {
 };
 
 describe("TriviaDeckBuilderSelection", () => {
-  it("groups the whole registry by category in roadmap order", () => {
+  it("groups the whole registry by topic in roadmap order", () => {
     const { container } = render(<TriviaDeckBuilder deck={[]} onChange={vi.fn()} />);
 
     const titles = Array.from(container.querySelectorAll(".ui-collapsible__title")).map(
@@ -41,7 +42,7 @@ describe("TriviaDeckBuilderSelection", () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 
-  it("adds a whole category in one click", () => {
+  it("adds a whole topic in one click", () => {
     const onChange = vi.fn();
     const { container } = render(<TriviaDeckBuilder deck={[]} onChange={onChange} />);
 
@@ -52,7 +53,7 @@ describe("TriviaDeckBuilderSelection", () => {
     expect(onChange.mock.calls[0][0]).toEqual(arraysIds);
   });
 
-  it("keeps ids already in the deck when adding a category", () => {
+  it("keeps ids already in the deck when adding a topic", () => {
     const onChange = vi.fn();
     const { container } = render(
       <TriviaDeckBuilder deck={["bfs-graph", arraysIds[0]]} onChange={onChange} />,
@@ -67,7 +68,7 @@ describe("TriviaDeckBuilderSelection", () => {
     arraysIds.forEach((id) => expect(next).toContain(id));
   });
 
-  it("disables the category add button once that category is complete", () => {
+  it("disables the topic add button once that topic is complete", () => {
     const { container } = render(<TriviaDeckBuilder deck={arraysIds} onChange={vi.fn()} />);
 
     const row = groupRow(container, "Arrays & Hashing");
@@ -101,7 +102,7 @@ describe("TriviaDeckBuilderSelection", () => {
     const onChange = vi.fn();
     const { container, rerender } = render(<TriviaDeckBuilder deck={[]} onChange={onChange} />);
 
-    openCategory(container, "Arrays & Hashing");
+    openTopic(container, "Arrays & Hashing");
     const row = screen.getByRole("button", { name: /Two Sum/i });
     expect(row).not.toHaveClass("ui-btn--selected");
 
@@ -117,7 +118,7 @@ describe("TriviaDeckBuilderSelection", () => {
     expect(onChange).toHaveBeenLastCalledWith([]);
   });
 
-  it("reports per-category and overall counts", () => {
+  it("reports per-topic and overall counts", () => {
     const { container, rerender } = render(<TriviaDeckBuilder deck={[]} onChange={vi.fn()} />);
 
     expect(screen.getByText("0 in deck")).toBeInTheDocument();
@@ -138,7 +139,7 @@ describe("TriviaDeckBuilderSelection", () => {
   it("gives each row its semantic difficulty badge and refuses to wrap the title", () => {
     const { container } = render(<TriviaDeckBuilder deck={[]} onChange={vi.fn()} />);
 
-    const row = openCategory(container, "Arrays & Hashing");
+    const row = openTopic(container, "Arrays & Hashing");
     const rowButtons = Array.from(
       row.querySelectorAll<HTMLElement>(".ui-collapsible__content .ui-btn"),
     );

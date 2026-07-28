@@ -1,15 +1,21 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  GraphEdgeItem,
+  GraphNodeItem,
+  GraphVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface circularDependencyDetectionInput {
-  data: number[];
+  numNodes?: number;
+  edges?: [number, number][];
+  data?: number[];
   target?: number;
 }
 
 export const CIRCULARDEPENDENCYDETECTION_CODE = `def circular_dependency_detection(num_nodes, edges):
-    """
-    Detects cycles in autograd computation graph using 3-color DFS traversal.
-    """
     adj = [[] for _ in range(num_nodes)]
     for u, v in edges:
         adj[u].append(v)
@@ -34,6 +40,13 @@ export const CIRCULARDEPENDENCYDETECTION_CODE = `def circular_dependency_detecti
     return has_cycle`;
 
 export const DEFAULT_CIRCULARDEPENDENCYDETECTION_INPUT: circularDependencyDetectionInput = {
+  numNodes: 5,
+  edges: [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+  ],
   data: [10, 20, 30, 40, 50],
   target: 30,
 };
@@ -43,221 +56,337 @@ export const generateCircularDependencyDetectionSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const arrayData = input?.data || [10, 20, 30, 40, 50];
-  const target = input?.target ?? 30;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const numNodes = input?.numNodes ?? (input?.data?.length || 5);
+  const edges: [number, number][] =
+    input?.edges ??
+    (input?.data && input.data.length > 1
+      ? input.data.slice(0, -1).map((_, i) => [i, i + 1] as [number, number])
+      : [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 4],
+        ]);
+
+  const adj: number[][] = Array.from({ length: numNodes }, () => []);
+  for (const [u, v] of edges) {
+    if (u >= 0 && u < numNodes && v >= 0 && v < numNodes) {
+      adj[u].push(v);
+    }
+  }
+
+  const nodesBase: GraphNodeItem[] = Array.from({ length: numNodes }, (_, i) => {
+    const angle = (2 * Math.PI * i) / numNodes - Math.PI / 2;
+    const radius = 140;
+    const cx = 250;
+    const cy = 180;
+    return {
+      id: String(i),
+      label: `Node ${i}`,
+      val: i,
+      x: Math.round(cx + radius * Math.cos(angle)),
+      y: Math.round(cy + radius * Math.sin(angle)),
+      state: "default",
+    };
+  });
+
+  const visited: number[] = new Array(numNodes).fill(0);
+  let hasCycle = false;
+  const activeStack: number[] = [];
+  const traversedEdges = new Set<string>();
+  const backEdges = new Set<string>();
+
+  const getSnapshot = (overrideNodeState?: Record<number, ElementState>): GraphVisualSnapshot => {
+    const nodes: GraphNodeItem[] = nodesBase.map((n) => {
+      const idx = Number(n.id);
+      let state: ElementState = "default";
+      if (overrideNodeState && overrideNodeState[idx]) {
+        state = overrideNodeState[idx];
+      } else if (visited[idx] === 1) {
+        state = "active";
+      } else if (visited[idx] === 2) {
+        state = "visited";
+      } else {
+        state = "default";
+      }
+      return { ...n, state };
+    });
+
+    const graphEdges: GraphEdgeItem[] = edges.map(([u, v]) => {
+      const key = `${u}->${v}`;
+      return {
+        from: String(u),
+        to: String(v),
+        isTraversed: traversedEdges.has(key),
+        isPath:
+          backEdges.has(key) ||
+          (activeStack.includes(u) &&
+            activeStack.includes(v) &&
+            activeStack.indexOf(v) === activeStack.indexOf(u) + 1),
+      };
+    });
+
+    return {
+      kind: "graph",
+      nodes,
+      edges: graphEdges,
+    };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
-    customState?: Record<string, string | number>,
+    vars: Record<string, string | number | boolean>,
+    overrideNodeState?: Record<number, ElementState>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: getSnapshot(overrideNodeState),
       auxiliaryState: {
         customState: {
-          data: `[${arrayData.join(", ")}]`,
-          target: String(target),
-          ...customState,
+          "Visited States": `[${visited.map((v) => (v === 0 ? "0 (White)" : v === 1 ? "1 (Gray)" : "2 (Black)")).join(", ")}]`,
+          "Recursion Stack": `[${activeStack.join(", ")}]`,
+          "Has Cycle": String(hasCycle),
         },
       },
-      variables,
+      variables: vars,
     });
   };
 
+  // Line 1: Function signature entry
   addStep(
     1,
     "Initialize 3-Color DFS Cycle Detector for Autograd Graph",
-    "Constructing graph adjacency list and preparing 3-color state tracking array (0=White/Unvisited, 1=Gray/Visiting, 2=Black/Visited).",
-    { numNodes: arrayData.length, hasCycle: false, phase: "DFS_INIT" },
-    undefined,
-    { white: "Unvisited(0)", gray: "Visiting(1)", black: "Visited(2)" },
+    "Setting up graph data structures and color state tracking (0=White/Unvisited, 1=Gray/Visiting, 2=Black/Visited).",
+    { numNodes, totalEdges: edges.length, hasCycle: false },
   );
 
+  // Line 2: adj = [[] for _ in range(num_nodes)]
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Detects cycles in autograd computation graph using 3-color DFS traversal.",
-    {},
+    "Allocate Adjacency List `adj`",
+    `Allocated empty neighbor lists for all ${numNodes} vertices.`,
+    { numNodes },
   );
 
+  // Line 3: for u, v in edges:
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
+    "Populate Adjacency List from Directed Edges",
+    `Iterating through ${edges.length} directed edge(s) to populate outgoing neighbor lists.`,
+    { edgesCount: edges.length },
+  );
+
+  // Line 6: visited = [0] * num_nodes
+  addStep(
+    6,
+    "Initialize 3-Color Visited Array: `visited = [0] * num_nodes`",
+    "Color state array initialized to 0 (White/Unvisited) for all vertices.",
+    { visited: `[${visited.join(", ")}]` },
+  );
+
+  // Line 7: has_cycle = False
+  addStep(
+    7,
+    "Initialize Cycle Detection Flag `has_cycle = False`",
+    "Boolean flag `has_cycle` will be toggled to True if a back-edge to a Gray (1) node is encountered.",
+    { hasCycle: false },
+  );
+
+  // Line 9: def dfs(u):
+  addStep(
+    9,
+    "Define Recursive Helper Function `dfs(u)`",
+    "Helper function performs 3-color depth-first search traversal.",
     {},
   );
 
+  const runDfs = (u: number) => {
+    // Line 10: nonlocal has_cycle
+    addStep(
+      10,
+      `DFS(${u}): Bind Outer Scope Flag \`has_cycle\``,
+      `Binds nonlocal \`has_cycle\` variable inside \`dfs(${u})\`.`,
+      { u, hasCycle },
+    );
+
+    // Line 11: visited[u] = 1
+    visited[u] = 1;
+    activeStack.push(u);
+    addStep(
+      11,
+      `Enter DFS(u=${u}): Set visited[${u}] = 1 (Gray / Visiting)`,
+      `Pushing node ${u} onto active DFS recursion stack. Color state set to 1 (Gray).`,
+      { u, color: "1 (Gray)", stack: `[${activeStack.join(", ")}]` },
+    );
+
+    // Line 12: for v in adj[u]:
+    addStep(
+      12,
+      `DFS(u=${u}): Inspect Outgoing Neighbors in adj[${u}]`,
+      `Scanning outgoing directed edges from node ${u}: [${adj[u].join(", ")}].`,
+      { u, neighbors: `[${adj[u].join(", ")}]` },
+    );
+
+    for (const v of adj[u]) {
+      const edgeKey = `${u}->${v}`;
+      traversedEdges.add(edgeKey);
+
+      // Line 13: if visited[v] == 1:
+      addStep(
+        13,
+        `Inspect Edge ${u} -> ${v}: Check visited[${v}] == 1 (Gray)`,
+        `Checking color of target neighbor ${v}. Current state: ${
+          visited[v] === 1
+            ? "1 (Gray - Active Stack Ancestor)"
+            : visited[v] === 0
+              ? "0 (White - Unvisited)"
+              : "2 (Black - Visited)"
+        }.`,
+        {
+          u,
+          v,
+          neighborColor:
+            visited[v] === 1 ? "1 (Gray)" : visited[v] === 0 ? "0 (White)" : "2 (Black)",
+        },
+      );
+
+      if (visited[v] === 1) {
+        // Line 14: has_cycle = True
+        hasCycle = true;
+        backEdges.add(edgeKey);
+        addStep(
+          14,
+          `BACK EDGE DETECTED (${u} -> ${v}): Set has_cycle = True!`,
+          `Edge ${u} -> ${v} points back to active ancestor node ${v} on current recursion stack. Circular dependency cycle confirmed!`,
+          { u, v, hasCycle: true, backEdge: `${u}->${v}` },
+          { [u]: "active", [v]: "compare" },
+        );
+      } else if (visited[v] === 0) {
+        // Line 15: elif visited[v] == 0:
+        addStep(
+          15,
+          `Evaluate Neighbor Node ${v}: visited[${v}] == 0 (White)`,
+          `Neighbor ${v} is Unvisited (0/White). Recursing into downstream subtree.`,
+          { u, v, color: "0 (White)" },
+        );
+
+        // Line 16: dfs(v)
+        addStep(
+          16,
+          `Recurse: Invoke dfs(${v}) from parent node ${u}`,
+          `Descending into unvisited node ${v}.`,
+          { u, v },
+        );
+        runDfs(v);
+      }
+    }
+
+    // Line 17: visited[u] = 2
+    visited[u] = 2;
+    activeStack.pop();
+    addStep(
+      17,
+      `Exit DFS(u=${u}): Set visited[${u}] = 2 (Black / Visited)`,
+      `All outgoing subtrees from node ${u} fully explored without cycles. Popping node ${u} from stack. Color set to 2 (Black).`,
+      { u, color: "2 (Black)", stack: `[${activeStack.join(", ")}]` },
+    );
+  };
+
+  // Line 19: for i in range(num_nodes):
   addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
+    19,
+    "Main Loop: Scan All Vertices for Disconnected Components",
+    "Iterating through all node indices 0..num_nodes-1 to validate graph topology.",
+    { numNodes },
   );
 
-  addStep(
-    5,
-    "Build Graph Adjacency List `adj`",
-    "Allocating neighbor lists for each computation graph node to prepare for depth-first traversal.",
-    { numNodes: arrayData.length, edgesCount: arrayData.length - 1, phase: "BUILD_ADJ" },
-  );
-
-  arrayData.forEach((val, idx) => {
-    const isTarget = val === target;
-
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`node=${idx}`, "White(0)"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      22,
-      `Main Loop: Inspect Node ${idx} State`,
-      `Checking if node ${idx} is Unvisited (0/White). Triggering DFS traversal.`,
-      { node: idx, state: 0, isUnvisited: true, phase: "MAIN_LOOP_CHECK" },
-      stateA,
-      { currentNode: `Node_${idx}` },
-    );
-
-    const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "active", pointers: [`node=${idx}`, "Gray(1)"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      14,
-      `Enter DFS(node=${idx}): Set visited[${idx}] = 1 (Gray/Visiting)`,
-      `Pushing node ${idx} onto current DFS recursion stack. Marking state 1 (Gray).`,
-      { node: idx, colorState: "Gray (1)", onStack: true, phase: "MARK_GRAY" },
-      stateB,
-      { dfsStack: `[${idx}]` },
-    );
-
-    addStep(
-      15,
-      `Inspect Outgoing Edges for Node ${idx}`,
-      `Scanning outgoing adjacency edges from node ${idx} to downstream graph targets.`,
-      { node: idx, targetNeighbor: (idx + 1) % arrayData.length, phase: "INSPECT_EDGES" },
-      stateB,
-    );
-
-    const neighborState = idx === arrayData.length - 1 ? 0 : 0;
-    addStep(
-      16,
-      `Evaluate Neighbor Node State: visited[v] == ${neighborState}`,
-      "Checking neighbor color. If Gray (1), a back-edge is detected confirming a cycle! If White (0), recurse.",
-      { currNode: idx, neighbor: (idx + 1) % arrayData.length, neighborColor: neighborState === 1 ? "Gray (1)" : "White (0)", isCycle: neighborState === 1, phase: "CHECK_NEIGHBOR" },
-      stateB,
-    );
-
-    const stateE: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "sorted", pointers: ["Black(2)"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+  for (let i = 0; i < numNodes; i++) {
+    // Line 20: if visited[i] == 0:
     addStep(
       20,
-      `Exit DFS(node=${idx}): Set visited[${idx}] = 2 (Black/Visited)`,
-      `All outgoing subtrees from node ${idx} evaluated without back-edges. Popping from recursion stack. Marking state 2 (Black).`,
-      { node: idx, colorState: "Black (2)", completed: true, phase: "MARK_BLACK" },
-      stateE,
-      { completedNode: `Node_${idx}` },
+      `Main Loop: Inspect Node ${i} State: visited[${i}] == 0`,
+      `Checking if seed vertex ${i} is Unvisited (0/White). State: ${
+        visited[i] === 0 ? "0 (White)" : visited[i] === 1 ? "1 (Gray)" : "2 (Black)"
+      }.`,
+      { i, state: visited[i] === 0 ? "0 (White)" : "2 (Black)" },
     );
-  });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-  addStep(
-    22,
-    "Verify Graph Topology DAG Property",
-    "Checking that all nodes were colored Black (2) with zero back-edges encountered. Graph is a valid DAG.",
-    { totalNodesChecked: arrayData.length, hasCycle: false, validDag: true },
-    finalElements,
-  );
+    if (visited[i] === 0) {
+      // Line 21: dfs(i)
+      addStep(
+        21,
+        `Trigger DFS Traversal for Seed Node ${i}`,
+        `Invoking dfs(${i}) to explore component starting at node ${i}.`,
+        { i },
+      );
+      runDfs(i);
+    }
+  }
 
+  // Line 23: return has_cycle
   addStep(
-    26,
-    "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
-    { completed: true, totalSteps: stepIndex },
-    finalElements,
+    23,
+    `Execution Complete: Return has_cycle = ${hasCycle ? "True" : "False"}`,
+    hasCycle
+      ? "Circular dependency detected! Autograd computation graph is INVALID (contains cycles)."
+      : "No circular dependencies found. Autograd graph is a VALID Directed Acyclic Graph (DAG).",
+    { completed: true, hasCycle, isDag: !hasCycle },
   );
 
   return steps;
 };
 
 const CIRCULARDEPENDENCYDETECTION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 8, 11, 21, 25],
+  skipLines: [5, 8, 18, 22],
   distractors: [
-    "result.append(item * 2)",
-    "return result[::-1]",
-    "if len(input_data) == 0: return -1",
     "if visited[v] == 2: has_cycle = True",
+    "visited[u] = 3",
+    "return True if len(visited) == 0 else False",
+    "visited.pop()",
   ],
   hints: [
-    { line: 9, hint: "Initialize visited array to 0 (Unvisited White) for all nodes." },
-    { line: 14, hint: "Mark node u as state 1 (Gray/Visiting) on recursion entry." },
-    { line: 16, hint: "If neighbor v is state 1 (Gray), a back-edge cycle is found!" },
-    { line: 20, hint: "Mark node u as state 2 (Black/Visited) on recursion exit." },
+    { line: 6, hint: "Initialize visited array to 0 (Unvisited White) for all nodes." },
+    { line: 11, hint: "Mark node u as state 1 (Gray/Visiting) on recursion entry." },
+    { line: 13, hint: "If neighbor v is state 1 (Gray), a back-edge cycle is found!" },
+    { line: 17, hint: "Mark node u as state 2 (Black/Visited) on recursion exit." },
   ],
   lineExplanations: {
     1: "Defines entry point for circular_dependency_detection graph cycle checker.",
-    2: "Docstring opening: describes 3-color DFS traversal for autograd graph cycle detection.",
-    3: "Docstring body: detects cycles in computation graphs to ensure valid DAG topology.",
-    4: "Docstring closing.",
-    5: "Constructs empty adjacency lists for each node u in the graph.",
-    6: "Iterates through directed edge tuples (u, v) in input edge list.",
-    7: "Appends target node v to outgoing adjacency list adj[u].",
-    8: "Empty line separating graph adjacency list construction from state array initialization.",
-    9: "Allocates 3-color state array initialized to 0 (0=White/Unvisited).",
-    10: "Initializes boolean flag has_cycle to False.",
-    11: "Empty line separating global state initialization from recursive DFS helper function.",
-    12: "Defines recursive depth-first search helper function dfs(u).",
-    13: "Binds outer scope boolean variable has_cycle via nonlocal keyword.",
-    14: "Marks current node u as state 1 (Gray/Visiting) on DFS stack push.",
-    15: "Iterates through outgoing neighbor nodes v in adjacency list adj[u].",
-    16: "Checks if neighbor v is currently state 1 (Gray), confirming a back-edge to an active ancestor.",
-    17: "Sets has_cycle flag to True upon back-edge detection.",
-    18: "Checks if neighbor v is state 0 (White/Unvisited).",
-    19: "Recursively invokes dfs(v) to traverse unvisited downstream subtree.",
-    20: "Marks current node u as state 2 (Black/Visited) on DFS stack pop.",
-    21: "Empty line separating DFS helper function definition from outer component traversal loop.",
-    22: "Iterates through all graph node indices in main loop to handle disconnected components.",
-    23: "Triggers DFS for unvisited state 0 (White) component seed nodes.",
-    24: "Invokes dfs(i) for node i.",
-    25: "Empty line before returning cycle detection result.",
-    26: "Returns final has_cycle boolean flag indicating whether graph contains circular dependencies.",
+    2: "Constructs empty adjacency lists for each node u in the graph.",
+    3: "Iterates through directed edge tuples (u, v) in input edge list.",
+    4: "Appends target node v to outgoing adjacency list adj[u].",
+    5: "Empty line separating graph adjacency list construction from state array initialization.",
+    6: "Allocates 3-color state array initialized to 0 (0=White/Unvisited).",
+    7: "Initializes boolean flag has_cycle to False.",
+    8: "Empty line separating global state initialization from recursive DFS helper function.",
+    9: "Defines recursive depth-first search helper function dfs(u).",
+    10: "Binds outer scope boolean variable has_cycle via nonlocal keyword.",
+    11: "Marks current node u as state 1 (Gray/Visiting) on DFS stack push.",
+    12: "Iterates through outgoing neighbor nodes v in adjacency list adj[u].",
+    13: "Checks if neighbor v is currently state 1 (Gray), confirming a back-edge to an active ancestor.",
+    14: "Sets has_cycle flag to True upon back-edge detection.",
+    15: "Checks if neighbor v is state 0 (White/Unvisited).",
+    16: "Recursively invokes dfs(v) to traverse unvisited downstream subtree.",
+    17: "Marks current node u as state 2 (Black/Visited) on DFS stack pop.",
+    18: "Empty line separating DFS helper function definition from outer component traversal loop.",
+    19: "Iterates through all graph node indices in main loop to handle disconnected components.",
+    20: "Checks if node i is state 0 (White/Unvisited).",
+    21: "Invokes dfs(i) for unvisited seed node i.",
+    22: "Empty line before returning cycle detection result.",
+    23: "Returns final has_cycle boolean flag indicating whether graph contains circular dependencies.",
   },
 };
 
 export const circularDependencyDetection: AlgorithmDefinition<circularDependencyDetectionInput> = {
   id: "circular-dependency-detection",
   title: "Circular Dependency Detection in Graph",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Circular Dependency Detection (3-Color DFS)
 
 In deep learning computation graph engines (**PyTorch autograd**, **JIT Compilers**, **ONNX Runtime**, and **TensorRT**), execution graphs must strictly be **Directed Acyclic Graphs (DAGs)**.
@@ -265,7 +394,7 @@ In deep learning computation graph engines (**PyTorch autograd**, **JIT Compiler
 #### Why It Exists & What It Solves
 Automatic differentiation algorithms rely on topological sorting to sequence forward tensor operations and reverse gradient backpropagation.
 
-If a circular dependency cycle exists ($A \to B \to C \to A$):
+If a circular dependency cycle exists ($A \\to B \\to C \\to A$):
 1. Topological sorting becomes mathematically impossible (Kahn's BFS fails to resolve in-degrees).
 2. Autograd backpropagation enters infinite stack recursion or deadlocks GPU worker threads.
 
@@ -278,47 +407,70 @@ With 3-color DFS cycle detection:
 
 #### Step-by-Step Mechanism
 1. **Adjacency Construction**: Build directed adjacency lists \`adj[u]\` for all nodes.
-2. **Color Array Allocation**: Initialize \`visited[u] = 0\` (White) for all $u \in V$.
+2. **Color Array Allocation**: Initialize \`visited[u] = 0\` (White) for all $u \\in V$.
 3. **DFS Recursion**:
    - Upon visiting node $u$, set \`visited[u] = 1\` (Gray).
-   - For each neighbor $v \in \\text{adj}[u]$:
+   - For each neighbor $v \\in \\text{adj}[u]$:
      - If \`visited[v] == 1\` (Gray): **Cycle Detected!** Set \`has_cycle = True\`.
      - If \`visited[v] == 0\` (White): Recurse \`dfs(v)\`.
    - Upon completion of all outgoing edges, set \`visited[u] = 2\` (Black).
 4. **Outer Component Scan**: Loop over all node indices to ensure disconnected graph components are validated.
 
 #### Complexity & Trade-Offs
-- **Time Complexity**: $\mathcal{O}(V + E)$ where $V$ is node count and $E$ is edge count.
-- **Space Complexity**: $\mathcal{O}(V)$ for color state array and recursion call stack space.
+- **Time Complexity**: $\\mathcal{O}(V + E)$ where $V$ is node count and $E$ is edge count.
+- **Space Complexity**: $\\mathcal{O}(V)$ for color state array and recursion call stack space.
 - **Trade-Off**: Enables early graph compilation failure before allocating expensive GPU memory resources.`,
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+  constraints: ["1 <= num_nodes <= 1000", "0 <= edges.length <= 5000"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Autograd Pass",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "Evaluated Graph State",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Standard execution pass over computation graph.",
+      title: "Valid DAG (No Cycles)",
+      inputDisplay: "num_nodes = 5, edges = [[0,1], [1,2], [2,3], [3,4]]",
+      outputDisplay: "has_cycle = False",
+      input: {
+        numNodes: 5,
+        edges: [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 4],
+        ],
+      },
+      output: "false",
+      explanation: "Standard computation graph DAG with sequential dependencies and no cycles.",
     },
     {
       kind: "complex",
-      title: "Larger DAG Input",
-      inputDisplay: "data = [10, 20, 30, 40, 50]",
-      outputDisplay: "Evaluated Graph State",
-      input: { data: [10, 20, 30, 40, 50] },
-      output: "[10, 20, 30, 40, 50]",
-      explanation: "Evaluates multi-node computation graph DAG.",
+      title: "Graph with Circular Dependency",
+      inputDisplay: "num_nodes = 4, edges = [[0,1], [1,2], [2,3], [3,1]]",
+      outputDisplay: "has_cycle = True",
+      input: {
+        numNodes: 4,
+        edges: [
+          [0, 1],
+          [1, 2],
+          [2, 3],
+          [3, 1],
+        ],
+      },
+      output: "true",
+      explanation:
+        "Contains a circular dependency loop (1 -> 2 -> 3 -> 1), causing 3-color DFS to detect a back-edge to Gray node 1.",
     },
     {
       kind: "negative",
-      title: "Edge Case DAG",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "Evaluated Graph State",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Edge case handling completes safely.",
+      title: "Disconnected Graph Component DAG",
+      inputDisplay: "num_nodes = 4, edges = [[0,1], [2,3]]",
+      outputDisplay: "has_cycle = False",
+      input: {
+        numNodes: 4,
+        edges: [
+          [0, 1],
+          [2, 3],
+        ],
+      },
+      output: "false",
+      explanation: "Disconnected DAG components evaluated cleanly without circular dependencies.",
     },
   ],
   code: CIRCULARDEPENDENCYDETECTION_CODE,

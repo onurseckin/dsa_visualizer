@@ -10,16 +10,11 @@ export const FUSED_SOFTMAX_LSE_CODE = `import math
 def fused_softmax_lse(logits: list[float]) -> tuple[list[float], float]:
     if not logits:
         return [], 0.0
-    # Step 1: Maximum logit extraction for numerical stability
     m = max(logits)
-    
-    # Step 2: Fused exponent summation and Log-Sum-Exp (LSE)
     exp_sum = 0.0
     for x in logits:
         exp_sum += math.exp(x - m)
     lse = m + math.log(exp_sum)
-    
-    # Step 3: Probability normalization via exp(x - LSE)
     probs = [math.exp(x - lse) for x in logits]
     return probs, lse`;
 
@@ -70,7 +65,7 @@ export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): Algor
   }));
 
   addStep(
-    1,
+    3,
     "Initialize Fused Log-Sum-Exp & Softmax",
     `Input logits vector: [${logits.map((v) => v.toFixed(2)).join(", ")}].`,
     { n },
@@ -79,7 +74,7 @@ export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): Algor
 
   if (n === 0) {
     addStep(
-      4,
+      5,
       "Empty logits vector provided",
       "Returning empty probability array [] and LSE 0.0.",
       { n: 0, lse: 0.0 },
@@ -104,15 +99,24 @@ export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): Algor
   );
 
   addStep(
-    7,
+    6,
     `Extract max logit m = ${maxLogit.toFixed(2)}`,
-    `Subtracting max logit prevents floating point overflow in exp(x). All exp inputs will be <= 0.`,
+    `Subtracting max logit prevents floating point overflow in exp(x). All exponent inputs (x - m) will be <= 0.`,
     { m: maxLogit, maxIdx },
     maxElements,
     { maxLogit },
   );
 
-  // Step 2: Exp summation
+  // Step 2: Exp summation initialization
+  addStep(
+    7,
+    "Initialize exponent accumulator exp_sum = 0.0",
+    "Prepares floating-point accumulator for exponentiated shifted logits exp(x_i - m).",
+    { m: maxLogit, expSum: 0.0 },
+    maxElements,
+    { maxLogit, expSum: 0.0 },
+  );
+
   let expSum = 0.0;
   for (let i = 0; i < n; i++) {
     const shift = logits[i] - maxLogit;
@@ -130,7 +134,7 @@ export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): Algor
     );
 
     addStep(
-      11,
+      9,
       `Accumulate exp(logits[${i}] - m) = exp(${shift.toFixed(2)}) = ${expVal.toFixed(4)}`,
       `Running exp sum: ${expSum.toFixed(4)}.`,
       { i, logit: logits[i], shift, expVal, expSum },
@@ -142,8 +146,8 @@ export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): Algor
   const lse = maxLogit + Math.log(expSum);
 
   addStep(
-    13,
-    `Compute Log-Sum-Exp (LSE) = m + ln(exp_sum) = ${lse.toFixed(4)}`,
+    10,
+    `Compute Log-Sum-Exp (LSE) = m + ln(exp_sum) = ${maxLogit.toFixed(2)} + ln(${expSum.toFixed(4)}) = ${lse.toFixed(4)}`,
     `Fused LSE scalar denominator computed safely in log-space.`,
     { m: maxLogit, expSum, lse },
     maxElements,
@@ -163,14 +167,23 @@ export const generateFusedSoftmaxLseSteps = (input: FusedSoftmaxLseInput): Algor
       state: "sorted",
       pointers: [`p_${i} = ${prob.toFixed(4)}`],
     });
+
+    addStep(
+      11,
+      `Compute Softmax probability p_${i} = exp(logits[${i}] - LSE) = ${prob.toFixed(4)}`,
+      `Log-space normalization guarantees exact Softmax probability.`,
+      { i, logit: logits[i], prob, lse },
+      [...probElements],
+      { lse, currentProb: prob.toFixed(4) },
+    );
   }
 
   addStep(
-    16,
-    `Compute final normalized Softmax probabilities p_i = exp(logit_i - LSE)`,
+    12,
+    `Return normalized Softmax probabilities and LSE scalar`,
     `Probabilities: [${probs.map((p) => p.toFixed(4)).join(", ")}]. Sum = ${probs
       .reduce((a, b) => a + b, 0)
-      .toFixed(4)}.`,
+      .toFixed(4)}. LSE = ${lse.toFixed(4)}.`,
     { lse, sumProbs: 1.0 },
     probElements,
     { lse, probabilities: probs.map((p) => p.toFixed(4)).join(", ") },
@@ -189,35 +202,38 @@ const FUSED_SOFTMAX_LSE_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 7,
+      line: 6,
       hint: "Extract maximum logit to subtract from all logits, guaranteeing all exponents are non-positive.",
     },
     {
-      line: 11,
+      line: 9,
       hint: "Sum exp(x - m) for numerical stability.",
     },
     {
-      line: 16,
+      line: 11,
       hint: "Compute Softmax probabilities in log-space via exp(x - LSE).",
     },
   ],
   lineExplanations: {
-    1: "Defines fused Log-Sum-Exp and numerical stable Softmax function.",
+    1: "Imports math module for exponential and logarithm operations.",
+    3: "Defines fused Log-Sum-Exp and numerically stable Softmax function.",
     4: "Handles empty logits input boundary condition.",
-    7: "Extracts max logit m for numerical overflow prevention.",
-    11: "Accumulates exponentiated shifted logits exp(x - m).",
-    13: "Calculates total Log-Sum-Exp denominator m + ln(exp_sum).",
-    16: "Normalizes logits into Softmax probability distribution.",
+    5: "Returns empty result tuple when input logits vector is empty.",
+    6: "Extracts max logit m for numerical overflow prevention.",
+    7: "Initializes floating point accumulator exp_sum for shifted exponentials.",
+    8: "Iterates through logits vector to compute stable exponentials.",
+    9: "Accumulates exponentiated shifted logits exp(x - m).",
+    10: "Calculates total Log-Sum-Exp denominator m + ln(exp_sum).",
+    11: "Normalizes logits into Softmax probability distribution via exp(x - LSE).",
+    12: "Returns normalized probability distribution and LSE scalar.",
   },
 };
 
 export const fusedSoftmaxLse: AlgorithmDefinition<FusedSoftmaxLseInput> = {
   id: "fused-softmax-lse",
   title: "Fused Log-Sum-Exp & Numerically Stable Softmax",
-  category: "ml_precision_quantization",
+  topicIds: ["ml_precision_quantization"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
   description:
     "Computes numerically stable Softmax probabilities and Log-Sum-Exp (LSE) denominator in a single fused pass, preventing floating point overflow and underflow.",
   constraints: [

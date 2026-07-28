@@ -42,7 +42,7 @@ describe("workspace.$algorithmId route", () => {
     }
   });
 
-  it("handles workspace keyboard shortcuts (ArrowRight, ArrowLeft, Space, Spacebar)", async () => {
+  it("handles workspace keyboard shortcuts (ArrowRight, ArrowLeft, Space)", async () => {
     renderWorkspaceRoute("bubble-sort");
     expect(await screen.findByRole("navigation")).toBeInTheDocument();
 
@@ -56,9 +56,9 @@ describe("workspace.$algorithmId route", () => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
     });
 
-    // Spacebar (legacy key) toggle play
+    // Standard Space key toggles play.
     act(() => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Spacebar", bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
     });
 
     // Space key on a button is ignored by global shortcut so button activates instead

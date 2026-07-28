@@ -9,7 +9,7 @@ describe("bipartiteGraphCheck spec logic", () => {
   it("has category graph_traversal and valid metadata", () => {
     expect(bipartiteGraphCheck.id).toBe("bipartite-graph-check");
     expect(bipartiteGraphCheck.title).toBe("Bipartite Graph Check (2-Coloring)");
-    expect(bipartiteGraphCheck.category).toBe("graph_traversal");
+    expect(bipartiteGraphCheck.topicIds).toContain("graph_traversal");
     expect(bipartiteGraphCheck.defaultInput).toEqual(DEFAULT_BIPARTITE_INPUT);
     expect(bipartiteGraphCheck.difficulty).toBe("Medium");
   });

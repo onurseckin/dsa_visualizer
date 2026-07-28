@@ -10,35 +10,27 @@ export interface groupedQueryAttentionGqaEngineInput {
 }
 
 export const GROUPEDQUERYATTENTIONGQAENGINE_CODE = `def grouped_query_attention(
-    q_heads: list[list[float]],  # Shape [H_q, d_k]
-    k_heads: list[list[float]],  # Shape [H_kv, d_k]
-    v_heads: list[list[float]],  # Shape [H_kv, d_v]
+    q_heads: list[list[float]],
+    k_heads: list[list[float]],
+    v_heads: list[list[float]],
     num_query_heads: int,
     num_kv_heads: int,
     scale: float
 ) -> list[list[float]]:
-    """
-    Simulates Grouped-Query Attention (GQA) forward mapping.
-    Maps H_q query heads to H_kv key/value heads via group ratio G = H_q // H_kv.
-    Broadcasts each shared KV head across its assigned query head group.
-    """
     import math
 
     group_size = num_query_heads // num_kv_heads
     gqa_outputs = []
 
     for q_idx in range(num_query_heads):
-        # Determine shared KV head index for current query head
         kv_idx = q_idx // group_size
         q_vec = q_heads[q_idx]
         k_vec = k_heads[kv_idx]
         v_vec = v_heads[kv_idx]
 
-        # Compute scaled dot-product logits with shared KV head
         score = sum(q * k for q, k in zip(q_vec, k_vec)) * scale
-        attn_weight = math.exp(score)  # Simplified 1-token softmax
+        attn_weight = math.exp(score)
 
-        # Compute output head vector
         head_out = [attn_weight * v for v in v_vec]
         gqa_outputs.append(head_out)
 
@@ -57,8 +49,8 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const numQueryHeads = Math.max(input.numQueryHeads ?? 8, 8);
-  const numKvHeads = Math.max(input.numKvHeads ?? 2, 2);
+  const numQueryHeads = Math.max(input.numQueryHeads ?? 8, 4);
+  const numKvHeads = Math.max(input.numKvHeads ?? 2, 1);
   const groupSize = Math.floor(numQueryHeads / numKvHeads);
 
   const matrixValues: (string | number)[][] = Array.from({ length: numQueryHeads }, () =>
@@ -130,21 +122,21 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
   );
 
   addStep(
-    14,
+    9,
     "Import Math Package",
     "Loading mathematical exponential primitives for Softmax weight calculations.",
     { import: "math" },
   );
 
   addStep(
-    16,
+    11,
     `Calculate GQA Group Size Ratio G = ${groupSize}`,
     `Group size G = ${numQueryHeads} // ${numKvHeads} = ${groupSize}. Each KV head serves ${groupSize} query heads.`,
     { group_size: groupSize },
   );
 
   addStep(
-    17,
+    12,
     "Initialize GQA Output Container",
     "Allocated top-level list for storing projected head output vectors across all query heads.",
     { gqa_outputs: "[]" },
@@ -154,7 +146,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     const kvIdx = Math.floor(qIdx / groupSize);
 
     addStep(
-      19,
+      14,
       `Begin Processing Query Head Q${qIdx}`,
       `Starting attention dot-product and projection for Query Head Q${qIdx}.`,
       { qIdx, numQueryHeads },
@@ -162,7 +154,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     );
 
     addStep(
-      21,
+      15,
       `Map Q${qIdx} to Shared KV Head KV${kvIdx}`,
       `Integer division q_idx // group_size (${qIdx} // ${groupSize}) maps Q${qIdx} to shared KV Head KV${kvIdx}.`,
       { qIdx, kvIdx, groupSize },
@@ -174,7 +166,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     matrixStates[qIdx][0] = "pivot";
 
     addStep(
-      22,
+      16,
       `Load Vector Q${qIdx}`,
       `Fetching Query vector Q${qIdx} from head memory buffer.`,
       { qIdx },
@@ -183,7 +175,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     );
 
     addStep(
-      23,
+      17,
       `Load Shared Key Vector K${kvIdx}`,
       `Fetching Key vector K${kvIdx} from shared GQA head memory.`,
       { kvIdx },
@@ -192,7 +184,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     );
 
     addStep(
-      24,
+      18,
       `Load Shared Value Vector V${kvIdx}`,
       `Fetching Value vector V${kvIdx} from shared GQA head memory.`,
       { kvIdx },
@@ -204,7 +196,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     const attnWeight = +Math.exp(mockScore - 1.0).toFixed(3);
 
     addStep(
-      27,
+      20,
       `Compute Scaled Dot Product Q${qIdx} @ K${kvIdx}^T`,
       `Calculated scaled dot product score = ${mockScore}.`,
       { qIdx, kvIdx, score: mockScore },
@@ -216,8 +208,8 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     matrixStates[qIdx][1] = "compared";
 
     addStep(
-      28,
-      `Compute Exponent Softmax Weight for Q${qIdx}`,
+      21,
+      `Compute Softmax Attention Weight for Q${qIdx}`,
       `Softmax exp weight = ${attnWeight}.`,
       { qIdx, attnWeight },
       qIdx,
@@ -232,7 +224,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     matrixStates[qIdx][3] = "sorted";
 
     addStep(
-      31,
+      23,
       `Project Output Vector for Head Q${qIdx}`,
       `Scaled shared Value vector V${kvIdx} by attention weight ${attnWeight} -> output vector [${headOutVal}].`,
       { qIdx, kvIdx, headOutVal },
@@ -241,7 +233,7 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     );
 
     addStep(
-      32,
+      24,
       `Append Output Vector Q${qIdx} to Results`,
       `Stored projected head output Q${qIdx} into GQA output tensor list.`,
       { qIdx },
@@ -250,19 +242,8 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
     );
   }
 
-  while (steps.length < 19) {
-    addStep(
-      32,
-      "Finalize GQA Head Output Buffer Padding",
-      `Step ${steps.length + 1}: Finalizing GQA head vector outputs.`,
-      { completed: false },
-      numQueryHeads - 1,
-      3,
-    );
-  }
-
   addStep(
-    34,
+    26,
     "Execution Complete",
     `Grouped-Query Attention (GQA) completed across ${numQueryHeads} query heads using ${numKvHeads} shared KV heads (G=${groupSize}).`,
     { completed: true, total_heads: numQueryHeads },
@@ -272,55 +253,47 @@ export const generateGroupedQueryAttentionGqaEngineSteps = (
 };
 
 const GROUPEDQUERYATTENTIONGQAENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 15, 18, 20, 26, 30, 33],
+  skipLines: [2, 3, 4, 5, 6, 7, 8, 10, 13, 19, 22, 25],
   distractors: [
     "kv_idx = q_idx % num_kv_heads",
     "group_size = num_kv_heads // num_query_heads",
     "gqa_outputs.append(q_vec + k_vec)",
   ],
   hints: [
-    { line: 16, hint: "Compute group size ratio G = H_q / H_kv." },
+    { line: 11, hint: "Compute group size ratio G = H_q / H_kv." },
     {
-      line: 21,
+      line: 15,
       hint: "Map query head q_idx to KV head using integer division kv_idx = q_idx // group_size.",
     },
-    { line: 27, hint: "Scale inner product dot score by 1/sqrt(d_k)." },
+    { line: 20, hint: "Scale inner product dot score by scaling factor scale." },
   ],
   lineExplanations: {
     1: "Defines Grouped-Query Attention (GQA) engine function signature.",
-    2: "Specifies type annotations for input Query head tensor.",
-    3: "Specifies type annotations for input Key head tensor.",
-    4: "Specifies type annotations for input Value head tensor.",
+    2: "Specifies type annotation for input Query head tensor.",
+    3: "Specifies type annotation for input Key head tensor.",
+    4: "Specifies type annotation for input Value head tensor.",
     5: "Specifies type annotation for total number of query heads H_q.",
     6: "Specifies type annotation for total number of key/value heads H_kv.",
     7: "Specifies type annotation for dot product scaling factor.",
     8: "Specifies return type annotation for output head vector list.",
-    9: "Docstring opening delimiter tag.",
-    10: "Describes Grouped-Query Attention forward pass simulation.",
-    11: "Explains mapping H_q query heads to H_kv shared KV heads via group ratio G.",
-    12: "Summarizes broadcasting each shared KV head across its assigned query group.",
-    13: "Docstring closing tag.",
-    14: "Imports math library for exponent computation.",
-    15: "Empty whitespace separator line.",
-    16: "Calculates group ratio group_size = num_query_heads // num_kv_heads.",
-    17: "Initializes list container for collecting projected GQA output vectors.",
-    18: "Empty whitespace separator line.",
-    19: "Iterates over each query head index q_idx from 0 to num_query_heads - 1.",
-    20: "Comment indicating shared KV head index determination.",
-    21: "Determines shared KV head index kv_idx = q_idx // group_size.",
-    22: "Extracts Query head vector q_vec for current query head q_idx.",
-    23: "Extracts shared Key head vector k_vec for mapped KV head index kv_idx.",
-    24: "Extracts shared Value head vector v_vec for mapped KV head index kv_idx.",
+    9: "Imports math library for exponent computation.",
+    10: "Empty whitespace separator line.",
+    11: "Calculates group ratio group_size = num_query_heads // num_kv_heads.",
+    12: "Initializes list container for collecting projected GQA output vectors.",
+    13: "Empty whitespace separator line.",
+    14: "Iterates over each query head index q_idx from 0 to num_query_heads - 1.",
+    15: "Determines shared KV head index kv_idx = q_idx // group_size.",
+    16: "Extracts Query head vector q_vec for current query head q_idx.",
+    17: "Extracts shared Key head vector k_vec for mapped KV head index kv_idx.",
+    18: "Extracts shared Value head vector v_vec for mapped KV head index kv_idx.",
+    19: "Empty whitespace separator line.",
+    20: "Computes scaled query-key dot product score = sum(q * k) * scale.",
+    21: "Computes single-token Softmax attention weight attn_weight = exp(score).",
+    22: "Empty whitespace separator line.",
+    23: "Computes projected head output vector by scaling Value vector by attention weight.",
+    24: "Appends completed query head output vector to top-level GQA outputs list.",
     25: "Empty whitespace separator line.",
-    26: "Comment indicating scaled dot product computation.",
-    27: "Computes scaled query-key dot product score = sum(q * k) * scale.",
-    28: "Computes single-token Softmax attention weight attn_weight = exp(score).",
-    29: "Empty whitespace separator line.",
-    30: "Comment indicating output head vector computation.",
-    31: "Computes projected head output vector by scaling Value vector by attention weight.",
-    32: "Appends completed query head output vector to top-level GQA outputs list.",
-    33: "Empty whitespace separator line.",
-    34: "Returns final GQA output vectors across all query heads.",
+    26: "Returns final GQA output vectors across all query heads.",
   },
 };
 
@@ -328,12 +301,8 @@ export const groupedQueryAttentionGqaEngine: AlgorithmDefinition<groupedQueryAtt
   {
     id: "grouped-query-attention-gqa-engine",
     title: "Grouped-Query Attention (GQA) Engine",
-    category: "ml_attention_geometry",
-    categories: ["ml_attention_geometry", "ml_llm_serving"],
+    topicIds: ["ml_attention_geometry", "ml_llm_serving"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 7,
-    mlInfraCategory: "ml_attention_geometry",
     description:
       "Grouped-Query Attention (GQA, Ainslie et al., 2023) is an architectural innovation designed to break the memory bandwidth wall in LLM autoregressive inference. Standard Multi-Head Attention (MHA) maintains $H_Q$ independent Key and Value heads ($H_{KV} = H_Q$), requiring massive memory transfers to load KV caches during generation. Multi-Query Attention (MQA) collapses to $H_{KV} = 1$, causing quality degradation.\n\n### Why It Exists\nGQA groups $H_Q$ query heads into $G = H_Q / H_{KV}$ groups, where each group of $G$ query heads shares a single Key/Value head. For example, LLaMA-3-70B uses 64 Query heads and 8 KV heads ($G=8$). This reduces KV cache memory footprint and memory access traffic by $8\\times$ while maintaining near-MHA task performance.\n\n### Mathematical Formulation\nFor query head $i \\in \\{0 \\dots H_Q-1\\}$, its shared KV head index is $\\text{kv\\_idx} = \\lfloor i / G \\rfloor$, where $G = H_Q / H_{KV}$:\n\n$$S^{(i)} = \\frac{Q^{(i)} (K^{(\\lfloor i/G \\rfloor)})^T}{\\sqrt{d_k}}$$\n\n$$A^{(i)} = \\text{Softmax}\\left(S^{(i)}\\right)$$\n\n$$O^{(i)} = A^{(i)} V^{(\\lfloor i/G \\rfloor)}$$\n\n### Step-by-Step Intuition\n1. **Compute Group Ratio**: Compute $G = H_Q / H_{KV}$.\n2. **Head Mapping**: Query heads $0 \\dots G-1$ map to KV head 0; query heads $G \\dots 2G-1$ map to KV head 1.\n3. **Broadcasting**: In Triton/CUDA kernels, shared KV head vectors are loaded into registers once and reused across all $G$ query heads in the group.\n\n### Key Trade-Offs & Complexity\n- **Memory Bandwidth**: Reduces KV cache DRAM load traffic by $G\\times$, directly accelerating decode throughput.\n- **Quality vs Speed**: Outperforms MQA on long-context quality while running up to $8\\times$ faster than MHA.",
     constraints: ["1 <= numQueryHeads <= 128", "1 <= numKvHeads <= 32"],

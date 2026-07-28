@@ -19,9 +19,7 @@ function renderInlineMath(text: string): React.ReactNode[] {
       (part.startsWith("$") && part.endsWith("$") && part.length > 1) ||
       (part.startsWith("\\(") && part.endsWith("\\)"))
     ) {
-      const rawMath = part.startsWith("$")
-        ? part.slice(1, -1)
-        : part.slice(2, -2);
+      const rawMath = part.startsWith("$") ? part.slice(1, -1) : part.slice(2, -2);
       return (
         <span
           key={`math-${index}`}
@@ -190,7 +188,19 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         }
 
         // Bullet lists
-        if (trimmed.split("\n").every((line) => line.trim().startsWith("- ") || line.trim().startsWith("* ") || line.trim().startsWith("1. ") || line.trim().startsWith("2. ") || line.trim().startsWith("3. ") || line.trim().startsWith("4. "))) {
+        if (
+          trimmed
+            .split("\n")
+            .every(
+              (line) =>
+                line.trim().startsWith("- ") ||
+                line.trim().startsWith("* ") ||
+                line.trim().startsWith("1. ") ||
+                line.trim().startsWith("2. ") ||
+                line.trim().startsWith("3. ") ||
+                line.trim().startsWith("4. "),
+            )
+        ) {
           const lines = trimmed.split("\n");
           const isOrdered = lines[0].trim().match(/^\d+\./);
           const ListTag = isOrdered ? "ol" : "ul";

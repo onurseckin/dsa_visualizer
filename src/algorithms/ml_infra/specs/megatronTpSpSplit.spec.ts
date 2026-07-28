@@ -10,9 +10,8 @@ import {
 describe("megatronTpSpSplit (Level 9 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(megatronTpSpSplit.id).toBe("megatron-tp-sp-split");
-    expect(megatronTpSpSplit.isMlInfra).toBe(true);
-    expect(megatronTpSpSplit.mlInfraLevel).toBe(9);
-    expect(megatronTpSpSplit.category).toBe("ml_distributed_systems");
+    expect(megatronTpSpSplit.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(megatronTpSpSplit.topicIds).toContain("ml_distributed_systems");
     expect(megatronTpSpSplit.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 9" },
     ]);

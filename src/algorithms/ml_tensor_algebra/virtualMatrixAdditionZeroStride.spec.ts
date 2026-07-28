@@ -9,10 +9,11 @@ import {
 describe("virtual-matrix-addition-zero-stride (Zero-Stride Broadcasting Matrix Addition)", () => {
   it("should have correct metadata", () => {
     expect(virtualMatrixAdditionZeroStride.id).toBe("virtual-matrix-addition-zero-stride");
-    expect(virtualMatrixAdditionZeroStride.isMlInfra).toBe(true);
-    expect(virtualMatrixAdditionZeroStride.mlInfraLevel).toBe(1);
-    expect(virtualMatrixAdditionZeroStride.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(virtualMatrixAdditionZeroStride.categories).toContain("ml_tensor_algebra");
+    expect(
+      virtualMatrixAdditionZeroStride.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(virtualMatrixAdditionZeroStride.topicIds).toContain("ml_tensor_algebra");
+    expect(virtualMatrixAdditionZeroStride.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 steps with matrix primarySnapshot for default input", () => {
@@ -28,7 +29,7 @@ describe("virtual-matrix-addition-zero-stride (Zero-Stride Broadcasting Matrix A
   it("should map every line of code in lineExplanations", () => {
     const codeLines = VIRTUALMATRIXADDITIONZEROSTRIDE_CODE.trim().split("\n");
     const totalLines = codeLines.length;
-    expect(totalLines).toBe(16);
+    expect(totalLines).toBe(13);
 
     const lineExplanations = virtualMatrixAdditionZeroStride.trivia?.lineExplanations || {};
     for (let lineNum = 1; lineNum <= totalLines; lineNum++) {

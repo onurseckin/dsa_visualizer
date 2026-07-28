@@ -9,9 +9,8 @@ import {
 describe("stridedIndexArithmetic algorithm spec", () => {
   it("should have correct ML Infra Level 1 metadata", () => {
     expect(stridedIndexArithmetic.id).toBe("strided-index-arithmetic");
-    expect(stridedIndexArithmetic.isMlInfra).toBe(true);
-    expect(stridedIndexArithmetic.mlInfraLevel).toBe(1);
-    expect(stridedIndexArithmetic.category).toBe("ml_tensor_algebra");
+    expect(stridedIndexArithmetic.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(stridedIndexArithmetic.topicIds).toContain("ml_tensor_algebra");
     expect(stridedIndexArithmetic.defaultInput).toEqual(DEFAULT_STRIDED_INDEX_ARITHMETIC_INPUT);
     expect(stridedIndexArithmetic.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

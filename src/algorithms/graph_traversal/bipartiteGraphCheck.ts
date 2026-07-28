@@ -112,7 +112,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
     codeLine: 1,
     explanation: {
       what: "Import deque from collections",
-      why: "BFS needs a FIFO queue. Python's deque provides O(1) append and popleft, which a regular list cannot match for popleft.",
+      why: "BFS needs a FIFO queue. Python's deque provides O(1) append and popleft operations.",
     },
     primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
     auxiliaryState: { visited: [], customState: { Colors: "{}" } },
@@ -168,9 +168,10 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
       },
       auxiliaryState: {
         customState: {
-          Colors: Object.entries(color)
-            .map(([k, v]) => `${k}:${v}`)
-            .join(", ") || "{}",
+          Colors:
+            Object.entries(color)
+              .map(([k, v]) => `${k}:${v}`)
+              .join(", ") || "{}",
         },
       },
       variables: { currentNode: startNode.id, isColored: color[startNode.id] !== undefined },
@@ -195,9 +196,10 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
         },
         auxiliaryState: {
           customState: {
-            Colors: Object.entries(color)
-              .map(([k, v]) => `${k}:${v}`)
-              .join(", ") || "{}",
+            Colors:
+              Object.entries(color)
+                .map(([k, v]) => `${k}:${v}`)
+                .join(", ") || "{}",
           },
         },
         variables: { rootNode: startNode.id },
@@ -330,7 +332,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
               nodes: nodes.map((n) => ({
                 ...n,
                 group: color[n.id],
-                state: n.id === v ? "swap" : n.id === u ? "active" : "default",
+                state: n.id === v ? "compare" : n.id === u ? "active" : "default",
               })),
               edges: edges.map((e) => ({
                 ...e,
@@ -346,6 +348,36 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
               },
             },
             variables: { u, v, colorV: color[v] },
+          });
+
+          steps.push({
+            stepIndex: stepIdx++,
+            codeLine: 12,
+            explanation: {
+              what: `Check if neighbor "${v}" is uncolored (if v not in color).`,
+              why: `Determines whether neighbor "${v}" needs a color assignment or is already colored.`,
+            },
+            primarySnapshot: {
+              kind: "graph",
+              nodes: nodes.map((n) => ({
+                ...n,
+                group: color[n.id],
+                state: n.id === v ? "compare" : n.id === u ? "active" : "default",
+              })),
+              edges: edges.map((e) => ({
+                ...e,
+                isPath: (e.from === u && e.to === v) || (e.from === v && e.to === u),
+              })),
+            },
+            auxiliaryState: {
+              queue: [...queue],
+              customState: {
+                Colors: Object.entries(color)
+                  .map(([k, c]) => `${k}:${c}`)
+                  .join(", "),
+              },
+            },
+            variables: { u, v, isUncolored: color[v] === undefined },
           });
 
           if (color[v] === undefined) {
@@ -375,7 +407,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
                 queue: [...queue],
                 customState: {
                   Colors: Object.entries(color)
-                    .map(([k, v]) => `${k}:${v}`)
+                    .map(([k, c]) => `${k}:${c}`)
                     .join(", "),
                 },
               },
@@ -402,7 +434,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
                 queue: [...queue],
                 customState: {
                   Colors: Object.entries(color)
-                    .map(([k, v]) => `${k}:${v}`)
+                    .map(([k, c]) => `${k}:${c}`)
                     .join(", "),
                 },
               },
@@ -464,7 +496,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
           } else {
             steps.push({
               stepIndex: stepIdx++,
-              codeLine: 12,
+              codeLine: 15,
               explanation: {
                 what: `Valid edge ${u} -- ${v}: neighbor "${v}" already has opposite Color ${color[v]}.`,
                 why: "No color collision; 2-coloring condition satisfied for this edge.",
@@ -485,7 +517,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
                 queue: [...queue],
                 customState: {
                   Colors: Object.entries(color)
-                    .map(([k, v]) => `${k}:${v}`)
+                    .map(([k, c]) => `${k}:${c}`)
                     .join(", "),
                 },
               },
@@ -496,6 +528,32 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 
         if (!isBipartite) break;
       }
+    } else {
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 6,
+        explanation: {
+          what: `Node "${startNode.id}" is already colored (Color ${color[startNode.id]}).`,
+          why: "Skipping component initialization because node was already processed in a previous component search.",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({
+            ...n,
+            group: color[n.id],
+            state: n.id === startNode.id ? "visited" : "default",
+          })),
+          edges: [...edges],
+        },
+        auxiliaryState: {
+          customState: {
+            Colors: Object.entries(color)
+              .map(([k, c]) => `${k}:${c}`)
+              .join(", "),
+          },
+        },
+        variables: { currentNode: startNode.id, color: color[startNode.id] },
+      });
     }
     if (!isBipartite) break;
   }
@@ -577,8 +635,7 @@ export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): Al
 export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> = {
   id: "bipartite-graph-check",
   title: "Bipartite Graph Check (2-Coloring)",
-  category: "graph_traversal",
-  categories: ["graph_traversal"],
+  topicIds: ["graph_traversal"],
   difficulty: "Medium",
   description:
     "Determines whether an undirected graph $G = (V, E)$ is bipartite (2-colorable). A graph is bipartite if its vertex set $V$ can be partitioned into two disjoint independent sets $U$ and $W$ ($V = U \\cup W, U \\cap W = \\emptyset$) such that every edge $(u, v) \\in E$ satisfies $u \\in U$ and $v \\in W$. Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. We perform a 2-coloring traversal (assigning colors $c(v) \\in \\{0, 1\\}$) across all connected components in $\\mathcal{O}(|V| + |E|)$ time and $\\mathcal{O}(|V|)$ space.",
@@ -653,7 +710,8 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   spaceComplexity: "O(V)",
   complexityAnalysis: {
     time: "Each vertex and edge in graph $G=(V,E)$ is inspected once during BFS 2-coloring, taking $\\mathcal{O}(|V| + |E|)$ total time.",
-    space: "The color assignment map and BFS queue store at most $|V|$ items, taking $\\mathcal{O}(|V|)$ space.",
+    space:
+      "The color assignment map and BFS queue store at most $|V|$ items, taking $\\mathcal{O}(|V|)$ space.",
   },
   topicGuide: {
     overview:
@@ -681,7 +739,7 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
       {
         term: "2-Coloring",
         definition:
-          "Assigning binary colors $\{0, 1\}$ such that $c(u) \\neq c(v)$ for all $(u,v) \\in E$.",
+          "Assigning binary colors ${0, 1}$ such that $c(u) \\neq c(v)$ for all $(u,v) \\in E$.",
       },
       {
         term: "Odd Cycle",

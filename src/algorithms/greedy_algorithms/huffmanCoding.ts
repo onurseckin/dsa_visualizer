@@ -10,8 +10,7 @@ export { PYTHON_HUFFMAN_CODE, DEFAULT_HUFFMAN_CODING_INPUT, generateHuffmanCodin
 export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   id: "huffman-coding",
   title: "Huffman Coding",
-  category: "heap_and_priority_queue",
-  categories: ["heap_and_priority_queue", "greedy_algorithms"],
+  topicIds: ["heap_and_priority_queue", "greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.\n\n" +

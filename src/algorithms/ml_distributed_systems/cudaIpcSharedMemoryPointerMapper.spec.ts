@@ -9,10 +9,11 @@ import {
 describe("cuda-ipc-shared-memory-pointer-mapper (CUDA IPC Zero-Copy Shared Memory Pointer Mapper)", () => {
   it("should have correct metadata", () => {
     expect(cudaIpcSharedMemoryPointerMapper.id).toBe("cuda-ipc-shared-memory-pointer-mapper");
-    expect(cudaIpcSharedMemoryPointerMapper.isMlInfra).toBe(true);
-    expect(cudaIpcSharedMemoryPointerMapper.mlInfraLevel).toBe(11);
-    expect(cudaIpcSharedMemoryPointerMapper.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(cudaIpcSharedMemoryPointerMapper.categories).toContain("ml_distributed_systems");
+    expect(
+      cudaIpcSharedMemoryPointerMapper.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(cudaIpcSharedMemoryPointerMapper.topicIds).toContain("ml_distributed_systems");
+    expect(cudaIpcSharedMemoryPointerMapper.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {

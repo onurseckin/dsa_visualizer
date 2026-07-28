@@ -17,13 +17,11 @@ export interface hbmVsSramBandwidthCalculatorInput {
 }
 
 export const HBMVSSRAMBANDWIDTHCALCULATOR_CODE = `def calculate_roofline_bandwidth(bytes_transferred: int, flops_executed: int, hbm_bandwidth_tbps: float = 3.35, sram_bandwidth_tbps: float = 33.0) -> tuple[float, float, float, str]:
-    """Calculates Roofline Model memory bandwidth metrics comparing HBM vs SRAM execution."""
     arithmetic_intensity = flops_executed / max(1, bytes_transferred)
 
     hbm_time_us = (bytes_transferred / (hbm_bandwidth_tbps * 1e12)) * 1e6
     sram_time_us = (bytes_transferred / (sram_bandwidth_tbps * 1e12)) * 1e6
 
-    # NVIDIA H100 SXM5 Ridge Point ~ 295 FLOPs/byte
     ridge_point = 295.0
     bound_status = "Memory-Bound (HBM Bottleneck)" if arithmetic_intensity < ridge_point else "Compute-Bound (Tensor Core Max)"
 
@@ -66,12 +64,24 @@ export const generateHBMVSSRAMBANDWIDTHCALCULATORSteps = (
 
   const getSnapshot = (
     activeWorkloadIdx: number = -1,
+    currentPartial?: {
+      ai?: number;
+      hbmTimeUs?: number;
+      sramTimeUs?: number;
+      status?: string;
+    },
   ) => {
     const rows = n + 1;
     const cols = 5;
     const cells: MatrixCellItem[] = [];
 
-    const headers = ["Workload Kernel", "Intensity (FLOP/B)", "HBM Time (µs)", "SRAM Time (µs)", "Roofline Regime"];
+    const headers = [
+      "Workload Kernel",
+      "Intensity (FLOP/B)",
+      "HBM Time (µs)",
+      "SRAM Time (µs)",
+      "Roofline Regime",
+    ];
     for (let c = 0; c < 5; c++) {
       cells.push({ row: 0, col: c, value: headers[c], label: "Header", state: "default" });
     }
@@ -81,15 +91,35 @@ export const generateHBMVSSRAMBANDWIDTHCALCULATORSteps = (
       const wl = workloads[r];
       const res = results[r];
       const isCurrent = r === activeWorkloadIdx;
-      const isCompute = res ? res.status.includes("Compute") : false;
+
+      let displayAi = "-";
+      let displayHbm = "-";
+      let displaySram = "-";
+      let displayStatus = "-";
+
+      if (res) {
+        displayAi = res.ai.toFixed(1);
+        displayHbm = res.hbmTimeUs.toFixed(2);
+        displaySram = res.sramTimeUs.toFixed(2);
+        displayStatus = res.status;
+      } else if (isCurrent && currentPartial) {
+        if (currentPartial.ai !== undefined) displayAi = currentPartial.ai.toFixed(1);
+        if (currentPartial.hbmTimeUs !== undefined)
+          displayHbm = currentPartial.hbmTimeUs.toFixed(2);
+        if (currentPartial.sramTimeUs !== undefined)
+          displaySram = currentPartial.sramTimeUs.toFixed(2);
+        if (currentPartial.status !== undefined) displayStatus = currentPartial.status;
+      }
+
+      const isCompute = (res ? res.status : currentPartial?.status || "").includes("Compute");
       const state = isCurrent ? "active" : res ? (isCompute ? "sorted" : "compared") : "default";
 
       cells.push(
         { row: rowIdx, col: 0, value: wl.name, state },
-        { row: rowIdx, col: 1, value: res ? res.ai.toFixed(1) : "-", state },
-        { row: rowIdx, col: 2, value: res ? res.hbmTimeUs.toFixed(2) : "-", state },
-        { row: rowIdx, col: 3, value: res ? res.sramTimeUs.toFixed(2) : "-", state },
-        { row: rowIdx, col: 4, value: res ? res.status : "-", state },
+        { row: rowIdx, col: 1, value: displayAi, state },
+        { row: rowIdx, col: 2, value: displayHbm, state },
+        { row: rowIdx, col: 3, value: displaySram, state },
+        { row: rowIdx, col: 4, value: displayStatus, state },
       );
     }
 
@@ -108,15 +138,21 @@ export const generateHBMVSSRAMBANDWIDTHCALCULATORSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     activeWorkloadIdx: number = -1,
+    currentPartial?: {
+      ai?: number;
+      hbmTimeUs?: number;
+      sramTimeUs?: number;
+      status?: string;
+    },
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: getSnapshot(activeWorkloadIdx),
+      primarySnapshot: getSnapshot(activeWorkloadIdx, currentPartial),
       auxiliaryState: {
         customState: {
-          "Algorithm": "GPU HBM vs SRAM Bandwidth Calculator (Roofline Model)",
+          Algorithm: "GPU HBM vs SRAM Bandwidth Calculator (Roofline Model)",
           "HBM3 DRAM Bandwidth": `${hbmTbps} TB/s (NVIDIA H100 SXM5)`,
           "SRAM Shared Memory Bandwidth": `${sramTbps} TB/s (NVIDIA H100 SM90)`,
           "H100 Hardware Ridge Point": `${ridgePoint} FLOPs/Byte`,
@@ -147,48 +183,54 @@ export const generateHBMVSSRAMBANDWIDTHCALCULATORSteps = (
 
     const ai = wl.flops / Math.max(1, wl.bytes);
     addStep(
-      3,
+      2,
       `Calculate Arithmetic Intensity: AI = ${ai.toFixed(2)} FLOPs/Byte`,
-      `Evaluated Arithmetic Intensity AI = ${wl.flops.toLocaleString()} / ${wl.bytes.toLocaleString()} = ${ai.toFixed(2)} FLOPs/Byte.`,
-      { ai },
+      `Evaluated Arithmetic Intensity AI = ${wl.flops.toLocaleString()} FLOPs / ${wl.bytes.toLocaleString()} B = ${ai.toFixed(2)} FLOPs/Byte. Lower AI indicates memory bandwidth bound.`,
+      { arithmetic_intensity: ai.toFixed(2), bytes: wl.bytes, flops: wl.flops },
       idx,
+      { ai },
     );
 
     const hbmTimeUs = (wl.bytes / (hbmTbps * 1e12)) * 1e6;
     addStep(
-      5,
+      4,
       `Calculate HBM3 DRAM Transfer Time: hbm_time_us = ${hbmTimeUs.toFixed(2)} µs`,
-      `Evaluated HBM3 transfer time: ${wl.bytes.toLocaleString()} B / (${hbmTbps} TB/s) = ${hbmTimeUs.toFixed(2)} µs.`,
-      { hbmTimeUs },
+      `Evaluated HBM3 transfer latency: ${wl.bytes.toLocaleString()} B / (${hbmTbps} TB/s DRAM) = ${hbmTimeUs.toFixed(2)} µs.`,
+      { hbm_time_us: hbmTimeUs.toFixed(2), hbm_bandwidth_tbps: hbmTbps },
       idx,
+      { ai, hbmTimeUs },
     );
 
     const sramTimeUs = (wl.bytes / (sramTbps * 1e12)) * 1e6;
     addStep(
-      6,
+      5,
       `Calculate SRAM Shared Memory Transfer Time: sram_time_us = ${sramTimeUs.toFixed(2)} µs`,
-      `Evaluated SRAM transfer time: ${wl.bytes.toLocaleString()} B / (${sramTbps} TB/s) = ${sramTimeUs.toFixed(2)} µs (10x faster!).`,
-      { sramTimeUs },
+      `Evaluated SRAM transfer latency: ${wl.bytes.toLocaleString()} B / (${sramTbps} TB/s SRAM) = ${sramTimeUs.toFixed(2)} µs (${(hbmTimeUs / Math.max(0.001, sramTimeUs)).toFixed(1)}x faster transfer!).`,
+      { sram_time_us: sramTimeUs.toFixed(2), sram_bandwidth_tbps: sramTbps },
       idx,
+      { ai, hbmTimeUs, sramTimeUs },
     );
 
+    addStep(
+      7,
+      `Compare AI (${ai.toFixed(2)} FLOP/B) against H100 Hardware Ridge Point (${ridgePoint} FLOP/B)`,
+      `Comparing Arithmetic Intensity (${ai.toFixed(2)}) against NVIDIA H100 SXM5 Ridge Point (${ridgePoint} FLOPs/Byte = Peak FLOPS / HBM Bandwidth).`,
+      { arithmetic_intensity: ai.toFixed(2), ridge_point: ridgePoint },
+      idx,
+      { ai, hbmTimeUs, sramTimeUs },
+    );
+
+    const boundStatus =
+      ai < ridgePoint ? "Memory-Bound (HBM Bottleneck)" : "Compute-Bound (Tensor Core Max)";
     addStep(
       8,
-      `Compare AI against H100 Hardware Ridge Point (${ridgePoint} FLOPs/Byte)`,
-      `Comparing Arithmetic Intensity (${ai.toFixed(2)}) against NVIDIA H100 SXM5 Ridge Point (${ridgePoint} FLOPs/Byte).`,
-      { ridgePoint },
-      idx,
-    );
-
-    const boundStatus = ai < ridgePoint ? "Memory-Bound (HBM Bottleneck)" : "Compute-Bound (Tensor Core Max)";
-    addStep(
-      9,
       `Determine Roofline Regime: "${boundStatus}"`,
       ai < ridgePoint
-        ? `Arithmetic Intensity (${ai.toFixed(2)} FLOP/B) < Ridge Point (${ridgePoint}) -> Memory-Bound! Bottlenecked by HBM DRAM bandwidth.`
-        : `Arithmetic Intensity (${ai.toFixed(2)} FLOP/B) >= Ridge Point (${ridgePoint}) -> Compute-Bound! Reaching maximum Tensor Core TFLOPS.`,
-      { boundStatus },
+        ? `Arithmetic Intensity (${ai.toFixed(2)} FLOP/B) < Ridge Point (${ridgePoint}) → Memory-Bound! Bottlenecked by HBM DRAM bandwidth.`
+        : `Arithmetic Intensity (${ai.toFixed(2)} FLOP/B) ≥ Ridge Point (${ridgePoint}) → Compute-Bound! Reaching maximum Tensor Core TFLOPS.`,
+      { boundStatus, arithmetic_intensity: ai.toFixed(2), ridge_point: ridgePoint },
       idx,
+      { ai, hbmTimeUs, sramTimeUs, status: boundStatus },
     );
 
     results.push({
@@ -200,27 +242,30 @@ export const generateHBMVSSRAMBANDWIDTHCALCULATORSteps = (
     });
 
     addStep(
-      11,
+      8,
       `Record Results for Workload "${wl.name}"`,
       `Logged workload metrics into Roofline Comparison Table: Speedup SRAM/HBM = ${(hbmTimeUs / Math.max(0.001, sramTimeUs)).toFixed(1)}x.`,
-      { speedup: (hbmTimeUs / Math.max(0.001, sramTimeUs)).toFixed(1) },
+      {
+        speedup_sram_vs_hbm: `${(hbmTimeUs / Math.max(0.001, sramTimeUs)).toFixed(1)}x`,
+        status: boundStatus,
+      },
       idx,
     );
   }
 
-  // Return step (12)
+  // Return step (10)
   addStep(
-    12,
+    10,
     "Execution Complete: Return Roofline Model Metrics",
-    `Completed Roofline Model analysis across ${n} AI workloads. SRAM shared memory tiling yields 10x lower latency for memory-bound kernels!`,
-    { n, completed: true },
+    `Completed Roofline Model analysis across ${n} AI workloads. SRAM shared memory tiling yields ~10x lower latency for memory-bound kernels!`,
+    { total_workloads: n, completed: true },
   );
 
   return steps;
 };
 
 const HBMVSSRAMBANDWIDTHCALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 7, 10],
+  skipLines: [3, 6, 9],
   distractors: [
     "arithmetic_intensity = bytes_transferred / flops_executed",
     "hbm_time_us = bytes_transferred * hbm_bandwidth_tbps",
@@ -228,51 +273,46 @@ const HBMVSSRAMBANDWIDTHCALCULATOR_TRIVIA: TriviaMeta = {
     "bound_status = 'Always Compute-Bound'",
   ],
   hints: [
-    { line: 3, hint: "Arithmetic Intensity equation: FLOPs / Bytes transferred." },
-    { line: 9, hint: "Check Roofline regime: Arithmetic Intensity < Ridge Point implies Memory-Bound." },
+    { line: 2, hint: "Arithmetic Intensity equation: FLOPs / Bytes transferred." },
+    {
+      line: 8,
+      hint: "Check Roofline regime: Arithmetic Intensity < Ridge Point implies Memory-Bound.",
+    },
   ],
   lineExplanations: {
     1: "Defines entry point for calculate_roofline_bandwidth function.",
-    2: "Docstring describing Roofline Model memory bandwidth metrics comparing HBM vs SRAM execution.",
-    3: "Calculates Arithmetic Intensity (FLOPs / Byte) = flops_executed / max(1, bytes_transferred).",
-    4: "Blank line before transfer time calculations.",
-    5: "Calculates HBM3 DRAM memory transfer latency in microseconds hbm_time_us.",
-    6: "Calculates SRAM shared memory transfer latency in microseconds sram_time_us.",
-    7: "Comment specifying NVIDIA H100 SXM5 Hardware Ridge Point (~ 295 FLOPs/byte).",
-    8: "Defines hardware ridge point constant ridge_point = 295.0 FLOPs/byte.",
-    9: "Determines Roofline regime: Memory-Bound if arithmetic_intensity < ridge_point else Compute-Bound.",
-    10: "Blank line separating logic from return statement.",
-    11: "Docstring continuation tag.",
-    12: "Returns tuple of (arithmetic_intensity, hbm_time_us, sram_time_us, bound_status).",
+    2: "Calculates Arithmetic Intensity (FLOPs / Byte) = flops_executed / max(1, bytes_transferred).",
+    3: "Blank line before transfer time calculations.",
+    4: "Calculates HBM3 DRAM memory transfer latency in microseconds hbm_time_us.",
+    5: "Calculates SRAM shared memory transfer latency in microseconds sram_time_us.",
+    6: "Blank line before hardware ridge point calculation.",
+    7: "Defines hardware ridge point constant ridge_point = 295.0 FLOPs/byte.",
+    8: "Determines Roofline regime: Memory-Bound if arithmetic_intensity < ridge_point else Compute-Bound.",
+    9: "Blank line separating logic from return statement.",
+    10: "Returns tuple of (arithmetic_intensity, hbm_time_us, sram_time_us, bound_status).",
   },
 };
 
 export const hbmVsSramBandwidthCalculator: AlgorithmDefinition<hbmVsSramBandwidthCalculatorInput> =
   {
-    id: "hbmVsSramBandwidthCalculator",
+    id: "hbm-vs-sram-bandwidth-calculator",
     title: "GPU HBM vs SRAM Bandwidth Calculator (Roofline Model)",
-    category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_hardware_kernels",
     description:
       "The GPU HBM vs SRAM Bandwidth Calculator evaluates AI kernel execution performance using Williams et al.'s **Roofline Model**. Modern GPU accelerators (NVIDIA H100 SXM5) feature two primary memory tiers: High Bandwidth Memory (**HBM3 DRAM** at **3.35 TB/s**) and on-chip Shared Memory (**SRAM** at **33.0 TB/s**). This algorithm calculates **Arithmetic Intensity ($I = \\frac{\\text{FLOPs}}{\\text{Bytes}}$)** and determines whether a kernel is **Memory-Bound** (bottlenecked by HBM DRAM bandwidth) or **Compute-Bound** (saturating Tensor Core TFLOPS).\n\n### Why It Exists\nUnderstanding the Roofline Model is fundamental to GPU kernel optimization. Softmax, LayerNorm, and Activation kernels have low Arithmetic Intensity ($I \\le 2 \\text{ FLOPs/B}$), causing them to stall on HBM DRAM bandwidth while Tensor Cores idle 95%+ of the time. SRAM tiling (used in FlashAttention and CUTLASS GEMM) increases Arithmetic Intensity, shifting workloads from the memory-bound regime into the compute-bound regime.\n\n### Mathematical Formulation\nFor kernel memory transfer $B$ (Bytes), operations $F$ (FLOPs), HBM bandwidth $BW_{HBM}$, SRAM bandwidth $BW_{SRAM}$, and Peak Tensor Core FLOPS $P_{peak}$:\n\n$$1. \\quad I = \\frac{F}{B} \\quad (\\text{Arithmetic Intensity in FLOPs/Byte})$$\n\n$$2. \\quad I_{ridge} = \\frac{P_{peak}}{BW_{HBM}} = \\frac{989 \\times 10^{12} \\text{ TFLOPS}}{3.35 \\times 10^{12} \\text{ TB/s}} \\approx 295 \\text{ FLOPs/Byte} \\quad (\\text{H100 SXM5 Ridge Point})$$\n\n$$3. \\quad T_{HBM} = \\frac{B}{BW_{HBM}}, \\quad T_{SRAM} = \\frac{B}{BW_{SRAM}} \\quad (\\text{10x SRAM Latency Reduction})$$\n\n$$\\mathbf{\\text{Roofline Regime}} = \\begin{cases} \\text{Memory-Bound} & \\text{if } I < I_{ridge} \\\\ \\text{Compute-Bound} & \\text{if } I \\ge I_{ridge} \\end{cases}$$\n\n### Step-by-Step Intuition\n1. **Arithmetic Intensity Calculation**: Divide total floating point operations by bytes transferred $I = \\frac{\\text{FLOPs}}{\\text{Bytes}}$.\n2. **HBM & SRAM Latency Estimation**: Calculate microsecond transfer latency over HBM3 ($3.35 \\text{ TB/s}$) vs SRAM ($33.0 \\text{ TB/s}$).\n3. **Hardware Ridge Point Comparison**: Compare $I$ against NVIDIA H100 Ridge Point ($I_{ridge} = 295 \\text{ FLOPs/B}$)....\n4. **Regime Classification**: If $I < 295$, the kernel is bottlenecked by HBM memory bandwidth; if $I \\ge 295$, the kernel saturates Tensor Core TFLOPS.\n\n### Key Trade-Offs & Hardware Execution\n- **10x Bandwidth Advantage**: SRAM shared memory provides **10x higher bandwidth** ($33 \\text{ TB/s}$) than HBM3 DRAM ($3.35 \\text{ TB/s}$).\n- **Kernel Fusion Impact**: Fusing Softmax into FlashAttention eliminates HBM intermediate DRAM writes, turning a memory-bound kernel ($I \\approx 2$) into a compute-bound kernel ($I \\ge 300$).",
-    constraints: [
-      "1 <= workloads.length <= 16",
-      "bytes_transferred >= 1",
-      "flops_executed >= 1",
-    ],
+    constraints: ["1 <= workloads.length <= 16", "bytes_transferred >= 1", "flops_executed >= 1"],
     examples: [
       {
         kind: "basic",
         title: "Roofline Analysis of 5 AI Kernel Workloads",
         inputDisplay: "5 Workloads (Softmax, FlashAttention, GEMM, LayerNorm, Conv2D)",
-        outputDisplay: "Softmax (AI=2.0, Memory-Bound), FlashAttention (AI=256.0, SRAM Speedup 10x)",
+        outputDisplay:
+          "Softmax (AI=2.0, Memory-Bound), FlashAttention (AI=256.0, SRAM Speedup 10x)",
         input: DEFAULT_HBMVSSRAMBANDWIDTHCALCULATOR_INPUT,
         output: "Roofline Workload Matrix",
-        explanation: "Calculates Arithmetic Intensity for 5 kernels. Identifies Naïve Softmax & LayerNorm as Memory-Bound, and FlashAttention & GEMM as Compute-Bound.",
+        explanation:
+          "Calculates Arithmetic Intensity for 5 kernels. Identifies Naïve Softmax & LayerNorm as Memory-Bound, and FlashAttention & GEMM as Compute-Bound.",
       },
     ],
     code: HBMVSSRAMBANDWIDTHCALCULATOR_CODE,
@@ -306,7 +346,8 @@ export const hbmVsSramBandwidthCalculator: AlgorithmDefinition<hbmVsSramBandwidt
       keyTerms: [
         {
           term: "Roofline Model",
-          definition: "Performance model relating Arithmetic Intensity to hardware memory bandwidth and peak FLOP limits.",
+          definition:
+            "Performance model relating Arithmetic Intensity to hardware memory bandwidth and peak FLOP limits.",
         },
         {
           term: "Arithmetic Intensity (I)",
@@ -314,11 +355,13 @@ export const hbmVsSramBandwidthCalculator: AlgorithmDefinition<hbmVsSramBandwidt
         },
         {
           term: "Hardware Ridge Point",
-          definition: "Intensity threshold (Peak TFLOPS / Memory Bandwidth) separating memory-bound and compute-bound regimes.",
+          definition:
+            "Intensity threshold (Peak TFLOPS / Memory Bandwidth) separating memory-bound and compute-bound regimes.",
         },
         {
           term: "Memory-Bound Kernel",
-          definition: "Kernel bottlenecked by HBM DRAM bandwidth where Tensor Cores idle waiting for data.",
+          definition:
+            "Kernel bottlenecked by HBM DRAM bandwidth where Tensor Cores idle waiting for data.",
         },
       ],
     },

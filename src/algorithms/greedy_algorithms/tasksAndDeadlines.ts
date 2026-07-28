@@ -56,8 +56,9 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
       return {
         id: task.id,
         value: task.duration,
+        label: task.id,
         state,
-        pointers: [task.id, `d:${task.duration},D:${task.deadline}`],
+        pointers: [`d:${task.duration}`, `D:${task.deadline}`],
       };
     });
   };
@@ -88,7 +89,9 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
   });
 
   // Line 2: Sort tasks by duration
-  const sortedTasks = [...rawTasks].sort((a, b) => a.duration - b.duration || a.deadline - b.deadline);
+  const sortedTasks = [...rawTasks].sort(
+    (a, b) => a.duration - b.duration || a.deadline - b.deadline,
+  );
 
   steps.push({
     stepIndex: stepIndex++,
@@ -185,35 +188,6 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
       },
     });
 
-    const prevTime = currentTime;
-
-    // Line 7: Compute new completion time
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 7,
-      explanation: {
-        what: `Calculate completion time: t = ${prevTime} + ${task.duration} = ${prevTime + task.duration}.`,
-        why: `Executing ${task.id} requires ${task.duration} units of processor time.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(sortedTasks, i, processedIndices),
-      },
-      auxiliaryState: {
-        visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
-        customState: {
-          activeTask: task.id,
-          prevTime,
-          nextTime: prevTime + task.duration,
-        },
-      },
-      variables: {
-        prevTime,
-        taskDuration: task.duration,
-        nextTime: prevTime + task.duration,
-      },
-    });
-
     currentTime += task.duration;
 
     // Line 7: Update current_time state
@@ -221,8 +195,8 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
       stepIndex: stepIndex++,
       codeLine: 7,
       explanation: {
-        what: `Update \`current_time\` to ${currentTime}.`,
-        why: `Task ${task.id} officially finishes at timestamp t = ${currentTime}.`,
+        what: `Execute \`current_time += duration\`: advance clock by +${task.duration} to t = ${currentTime}.`,
+        why: `Task ${task.id} requires ${task.duration} units of processor time and finishes at t = ${currentTime}.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -232,45 +206,19 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
         visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
         customState: {
           activeTask: task.id,
+          taskDuration: task.duration,
           completionTime: currentTime,
+          totalReward,
         },
       },
       variables: {
+        taskDuration: task.duration,
         currentTime,
+        totalReward,
       },
     });
 
     const taskReward = task.deadline - currentTime;
-
-    // Line 8: Calculate task reward margin
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 8,
-      explanation: {
-        what: `Calculate reward contribution: deadline (${task.deadline}) - completion (${currentTime}) = ${taskReward}.`,
-        why: taskReward >= 0
-          ? `Task finished ${taskReward} time units before its deadline.`
-          : `Task finished ${Math.abs(taskReward)} time units past its deadline, incurring a penalty.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(sortedTasks, i, processedIndices),
-      },
-      auxiliaryState: {
-        visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
-        customState: {
-          taskReward,
-          taskDeadline: task.deadline,
-          completionTime: currentTime,
-        },
-      },
-      variables: {
-        taskReward,
-        taskDeadline: task.deadline,
-        currentTime,
-      },
-    });
-
     totalReward += taskReward;
     processedIndices.add(i);
 
@@ -279,8 +227,11 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
       stepIndex: stepIndex++,
       codeLine: 8,
       explanation: {
-        what: `Accumulate reward: total_reward is now ${totalReward}.`,
-        why: `Added task ${task.id}'s score (${taskReward}) to running total.`,
+        what: `Execute \`total_reward += (deadline - current_time)\`: add (${task.deadline} - ${currentTime}) = ${taskReward} to reward.`,
+        why:
+          taskReward >= 0
+            ? `Task ${task.id} finished ${taskReward} unit(s) before deadline (${task.deadline}). Total reward is now ${totalReward}.`
+            : `Task ${task.id} finished ${Math.abs(taskReward)} unit(s) past deadline (${task.deadline}). Total reward is now ${totalReward}.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -289,38 +240,21 @@ export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): A
       auxiliaryState: {
         visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
         customState: {
-          runningTotalReward: totalReward,
+          activeTask: task.id,
+          taskReward,
+          taskDeadline: task.deadline,
+          completionTime: currentTime,
+          totalReward,
         },
       },
       variables: {
+        taskReward,
+        taskDeadline: task.deadline,
+        currentTime,
         totalReward,
       },
     });
   }
-
-  // Line 9: Post-loop complete
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 9,
-    explanation: {
-      what: "Completed processing all tasks in the schedule.",
-      why: "Every task has been assigned a completion time and its reward calculated.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: createArrayElements(sortedTasks, null, processedIndices),
-    },
-    auxiliaryState: {
-      visited: sortedTasks.map((t) => t.id),
-      customState: {
-        finalReward: totalReward,
-        completedTasks: sortedTasks.length,
-      },
-    },
-    variables: {
-      finalReward: totalReward,
-    },
-  });
 
   // Line 10: Return total_reward
   steps.push({
@@ -380,11 +314,13 @@ export const TASKS_AND_DEADLINES_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Reward Function",
-      definition: "The cumulative metric $\\sum_{i=1}^n (D_i - X_i)$ measuring deadline buffer margins.",
+      definition:
+        "The cumulative metric $\\sum_{i=1}^n (D_i - X_i)$ measuring deadline buffer margins.",
     },
     {
       term: "Exchange Argument",
-      definition: "Proof technique showing adjacent inversion of un-ordered items strictly improves objective value.",
+      definition:
+        "Proof technique showing adjacent inversion of un-ordered items strictly improves objective value.",
     },
   ],
 };
@@ -407,8 +343,7 @@ export const TASKS_AND_DEADLINES_TRIVIA: TriviaMeta = {
 export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   id: "tasks-and-deadlines",
   title: "Tasks and Deadlines",
-  category: "heap_and_priority_queue",
-  categories: ["heap_and_priority_queue", "greedy_algorithms"],
+  topicIds: ["heap_and_priority_queue", "greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Given $n$ tasks with durations $d_i$ and deadlines $D_i$, find an execution order on a single processor that maximizes total reward $\\sum_{i=1}^n (D_i - X_i)$.\n\n" +

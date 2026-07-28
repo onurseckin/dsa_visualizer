@@ -1,10 +1,11 @@
 import React from "react";
-import { CategoryType, DifficultyLevel, LeetCodeMeta, ProblemSource } from "../../types/dsa";
+import { TopicId, DifficultyLevel, LeetCodeMeta, ProblemSource } from "../../types/dsa";
+import { getTopicLabel } from "../../app/topics";
 import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../../ui";
 
 export interface ProblemHeaderProps {
   title: string;
-  category: CategoryType;
+  topicIds: readonly TopicId[];
   difficulty?: DifficultyLevel;
   leetcode?: LeetCodeMeta | { id: number; url: string };
   sources?: ProblemSource[];
@@ -12,14 +13,9 @@ export interface ProblemHeaderProps {
   style?: React.CSSProperties;
 }
 
-export const humanizeCategory = (category: string): string => {
-  const spaced = category.replace(/[-_]/g, " ").trim();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-};
-
 export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
   title,
-  category,
+  topicIds,
   difficulty = "Easy",
   leetcode,
   sources,
@@ -39,9 +35,11 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
         <Badge variant={difficultyBadgeVariant(difficulty)} size="md">
           {difficulty}
         </Badge>
-        <Badge variant="neutral" size="md">
-          {humanizeCategory(category)}
-        </Badge>
+        {topicIds.map((topicId) => (
+          <Badge key={topicId} variant="neutral" size="md">
+            {getTopicLabel(topicId)}
+          </Badge>
+        ))}
         <SourceBadgeList sources={sources} leetcode={leetcode} size="md" />
       </div>
     </div>

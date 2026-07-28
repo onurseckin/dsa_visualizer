@@ -8,10 +8,11 @@ import {
 describe("hash-based-prefix-cache-trie-allocator (Hash-Based Prefix Caching Radix Trie Allocator)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(hashBasedPrefixCacheTrieAllocator.id).toBe("hash-based-prefix-cache-trie-allocator");
-    expect(hashBasedPrefixCacheTrieAllocator.isMlInfra).toBe(true);
-    expect(hashBasedPrefixCacheTrieAllocator.mlInfraLevel).toBe(12);
-    expect(hashBasedPrefixCacheTrieAllocator.mlInfraCategory).toBe("ml_llm_serving");
-    expect(hashBasedPrefixCacheTrieAllocator.categories).toContain("ml_llm_serving");
+    expect(
+      hashBasedPrefixCacheTrieAllocator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(hashBasedPrefixCacheTrieAllocator.topicIds).toContain("ml_llm_serving");
+    expect(hashBasedPrefixCacheTrieAllocator.topicIds).toContain("ml_llm_serving");
     expect(hashBasedPrefixCacheTrieAllocator.defaultInput).toEqual(
       DEFAULT_HASHBASEDPREFIXCACHETRIEALLOCATOR_INPUT,
     );
@@ -32,6 +33,6 @@ describe("hash-based-prefix-cache-trie-allocator (Hash-Based Prefix Caching Radi
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(3);
-    expect(steps[steps.length - 1].codeLine).toBe(34);
+    expect(steps[steps.length - 1].codeLine).toBe(27);
   });
 });

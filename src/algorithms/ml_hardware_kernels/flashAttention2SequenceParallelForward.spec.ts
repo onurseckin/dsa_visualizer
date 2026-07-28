@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { flashAttention2SequenceParallelForward } from "./flashAttention2SequenceParallelForward";
 
-describe("flashAttention2SequenceParallelForward", () => {
+describe("flash-attention-2-sequence-parallel-forward", () => {
   it("should have valid metadata", () => {
     expect(flashAttention2SequenceParallelForward.id).toBeDefined();
     expect(flashAttention2SequenceParallelForward.title).toBeDefined();

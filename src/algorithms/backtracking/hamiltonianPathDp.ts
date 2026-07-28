@@ -75,7 +75,34 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
   const steps: AlgorithmStep[] = [];
   let stepIdx = 0;
 
-  const buildGraphSnapshot = (mask: number, currNode: number, pathEdges: Set<string>) => {
+  const dp: boolean[][] = Array.from({ length: 1 << n }, () => Array(n).fill(false));
+  const parentMap = new Map<string, number>();
+
+  // Step 1: Base cases
+  for (let u = 0; u < n; u++) {
+    dp[1 << u][u] = true;
+    parentMap.set(`${1 << u}-${u}`, -1);
+  }
+
+  const getPathEdges = (targetMask: number, endNode: number): Set<string> => {
+    const edgeSet = new Set<string>();
+    if (endNode < 0) return edgeSet;
+    let curr = endNode;
+    let m = targetMask;
+    while (curr !== -1) {
+      const prev = parentMap.get(`${m}-${curr}`);
+      if (prev === undefined || prev === -1) break;
+      edgeSet.add(`${prev}-${curr}`);
+      edgeSet.add(`${curr}-${prev}`);
+      m = m ^ (1 << curr);
+      curr = prev;
+    }
+    return edgeSet;
+  };
+
+  const buildGraphSnapshot = (mask: number, currNode: number) => {
+    const activePathEdges = getPathEdges(mask, currNode);
+
     const nodes: GraphNodeItem[] = Array.from({ length: n }, (_, i) => {
       const isVisited = (mask & (1 << i)) !== 0;
       const isActive = i === currNode;
@@ -92,7 +119,7 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
     const edges: GraphEdgeItem[] = edgeList.map(([u, v]) => {
       const key1 = `${u}-${v}`;
       const key2 = `${v}-${u}`;
-      const isPath = pathEdges.has(key1) || pathEdges.has(key2);
+      const isPath = activePathEdges.has(key1) || activePathEdges.has(key2);
       return {
         from: String(u),
         to: String(v),
@@ -104,13 +131,6 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
     return { kind: "graph" as const, nodes, edges };
   };
 
-  const dp: boolean[][] = Array.from({ length: 1 << n }, () => Array(n).fill(false));
-
-  // Step 1: Base cases
-  for (let u = 0; u < n; u++) {
-    dp[1 << u][u] = true;
-  }
-
   steps.push({
     stepIndex: stepIdx++,
     codeLine: 12,
@@ -118,7 +138,7 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
       what: `Initialized Bitmask DP base cases: single-node paths for all ${n} vertices.`,
       why: "dp[1 << u][u] = True for each vertex u starting its own path.",
     },
-    primarySnapshot: buildGraphSnapshot(0, -1, new Set()),
+    primarySnapshot: buildGraphSnapshot(0, -1),
     auxiliaryState: {
       customState: {
         "Active Mask": "0000 (Base)",
@@ -132,7 +152,6 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
   });
 
   const fullMask = (1 << n) - 1;
-  const pathEdges = new Set<string>();
   let pathFound = false;
   let finalEndNode = -1;
 
@@ -143,8 +162,10 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
       for (const v of adj[u]) {
         if ((mask & (1 << v)) === 0) {
           const nextMask = mask | (1 << v);
-          dp[nextMask][v] = true;
-          pathEdges.add(`${u}-${v}`);
+          if (!dp[nextMask][v]) {
+            dp[nextMask][v] = true;
+            parentMap.set(`${nextMask}-${v}`, u);
+          }
 
           if (nextMask === fullMask) {
             if (!isCircuit || adj[v].includes(0)) {
@@ -159,9 +180,9 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
               codeLine: 20,
               explanation: {
                 what: `Extended path from V${u} to V${v}. New mask: binary ${nextMask.toString(2).padStart(n, "0")}.`,
-                why: `v=V${v} was unvisited in mask ${mask.toString(2)}. Set dp[nextMask][${v}] = True.`,
+                why: `v=V${v} was unvisited in mask ${mask.toString(2).padStart(n, "0")}. Set dp[nextMask][${v}] = True.`,
               },
-              primarySnapshot: buildGraphSnapshot(nextMask, v, pathEdges),
+              primarySnapshot: buildGraphSnapshot(nextMask, v),
               auxiliaryState: {
                 customState: {
                   "Mask Binary": nextMask.toString(2).padStart(n, "0"),
@@ -192,7 +213,7 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
         ? `dp[${fullMask}][${finalEndNode}] is True, meaning all ${n} vertices were visited.`
         : `dp[${fullMask}] had no reachable end state visiting all ${n} nodes.`,
     },
-    primarySnapshot: buildGraphSnapshot(fullMask, finalEndNode, pathEdges),
+    primarySnapshot: buildGraphSnapshot(fullMask, finalEndNode),
     auxiliaryState: {
       customState: {
         Result: pathFound ? "Path Found!" : "No Path Exists",
@@ -211,8 +232,7 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
 export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   id: "hamiltonian-path-dp",
   title: "Hamiltonian Path & Circuit (Bitmask DP)",
-  category: "backtracking",
-  categories: ["backtracking"],
+  topicIds: ["backtracking"],
   difficulty: "Hard",
   description:
     "Determine whether an undirected graph contains a Hamiltonian Path (visiting every vertex exactly once) or Hamiltonian Circuit using Bitmask Dynamic Programming.\n\n### Problem Statement\nGiven an undirected graph with $N$ vertices (labeled 0 to $N-1$) and a list of edges, determine whether there exists a Hamiltonian Path (a simple path visiting every vertex exactly once) or a Hamiltonian Circuit (a closed loop returning to the start vertex).\n\nWhile brute-force depth-first search requires $O(N!)$ factorial time, Bitmask Dynamic Programming (Held-Karp algorithm) optimizes state exploration to $O(2^N \\cdot N^2)$ by encoding visited vertex sets into binary bitmask integers.\n\n### Input Parameters\n- `numNodes` (int): Number of vertices $N$.\n- `edges` (list[tuple[int, int]]): Undirected edge list.\n- `isCircuit` (bool, optional): Whether to check for a closed Hamiltonian Circuit.\n\n### Output\n- bool: True if a valid Hamiltonian Path/Circuit exists, False otherwise.\n\n### Constraints & Edge Cases\n- `1 <= numNodes <= 12`\n- `0 <= edges.length <= numNodes * (numNodes - 1) / 2`\n- Disconnected components or isolated vertices correctly return False.",

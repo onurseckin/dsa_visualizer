@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { bankConflictSwizzleCalculator } from "./bankConflictSwizzleCalculator";
 
-describe("bankConflictSwizzleCalculator", () => {
+describe("bank-conflict-swizzle-calculator", () => {
   it("should have valid metadata", () => {
     expect(bankConflictSwizzleCalculator.id).toBeDefined();
     expect(bankConflictSwizzleCalculator.title).toBeDefined();

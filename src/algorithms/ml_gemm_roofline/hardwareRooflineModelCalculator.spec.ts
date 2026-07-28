@@ -5,14 +5,16 @@ import {
   generateHardwareRooflineModelCalculatorSteps,
   HARDWAREROOFLINEMODELCALCULATOR_CODE,
 } from "./hardwareRooflineModelCalculator";
+import { requireLineExplanations } from "../specs/assertions";
 
 describe("hardware-roofline-model-calculator (Berkeley Hardware Roofline Model Calculator)", () => {
   it("should have correct metadata", () => {
     expect(hardwareRooflineModelCalculator.id).toBe("hardware-roofline-model-calculator");
-    expect(hardwareRooflineModelCalculator.isMlInfra).toBe(true);
-    expect(hardwareRooflineModelCalculator.mlInfraLevel).toBe(2);
-    expect(hardwareRooflineModelCalculator.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(hardwareRooflineModelCalculator.categories).toContain("ml_gemm_roofline");
+    expect(
+      hardwareRooflineModelCalculator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(hardwareRooflineModelCalculator.topicIds).toContain("ml_gemm_roofline");
+    expect(hardwareRooflineModelCalculator.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {
@@ -27,14 +29,12 @@ describe("hardware-roofline-model-calculator (Berkeley Hardware Roofline Model C
 
   it("should map every line of code in lineExplanations", () => {
     const codeLines = HARDWAREROOFLINEMODELCALCULATOR_CODE.split("\n");
-    const trivia = hardwareRooflineModelCalculator.trivia;
-    expect(trivia).toBeDefined();
-    if (!trivia) return;
+    const explanations = requireLineExplanations(hardwareRooflineModelCalculator);
 
     for (let i = 1; i <= codeLines.length; i++) {
-      expect(trivia.lineExplanations[i]).toBeDefined();
-      expect(typeof trivia.lineExplanations[i]).toBe("string");
-      expect(trivia.lineExplanations[i].length).toBeGreaterThan(0);
+      expect(explanations[i]).toBeDefined();
+      expect(typeof explanations[i]).toBe("string");
+      expect(explanations[i].length).toBeGreaterThan(0);
     }
   });
 });

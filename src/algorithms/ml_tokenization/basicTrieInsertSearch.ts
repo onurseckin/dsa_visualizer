@@ -35,30 +35,148 @@ class BasicTrie:
             curr = curr.children[char]
         return curr.is_end_of_word`;
 
+interface InternalTrieNode {
+  id: string;
+  char: string;
+  isEndOfWord: boolean;
+  children: Map<string, InternalTrieNode>;
+  depth: number;
+}
+
+function buildGraphSnapshot(root: InternalTrieNode, activeId: string | null, pathIds: Set<string>) {
+  const nodes: ElementState extends string
+    ? Array<{
+        id: string;
+        label: string;
+        x: number;
+        y: number;
+        state: ElementState;
+      }>
+    : never = [];
+  const edges: Array<{
+    from: string;
+    to: string;
+    isTraversed: boolean;
+    isPath: boolean;
+  }> = [];
+
+  const getLeaves = (n: InternalTrieNode): InternalTrieNode[] => {
+    if (n.children.size === 0) return [n];
+    const leaves: InternalTrieNode[] = [];
+    for (const child of n.children.values()) {
+      leaves.push(...getLeaves(child));
+    }
+    return leaves;
+  };
+
+  const getTreeMaxDepth = (n: InternalTrieNode): number => {
+    if (n.children.size === 0) return n.depth;
+    let max = n.depth;
+    for (const child of n.children.values()) {
+      max = Math.max(max, getTreeMaxDepth(child));
+    }
+    return max;
+  };
+
+  const allLeaves = getLeaves(root);
+  const leafCount = Math.max(allLeaves.length, 1);
+  const canvasW = 800;
+  const canvasH = 480;
+  const marginX = 70;
+  const marginY = 50;
+
+  const stepX = leafCount > 1 ? (canvasW - 2 * marginX) / (leafCount - 1) : 0;
+  const leafXMap = new Map<string, number>();
+
+  if (leafCount === 1) {
+    leafXMap.set(allLeaves[0].id, canvasW / 2);
+  } else {
+    allLeaves.forEach((leaf, idx) => {
+      leafXMap.set(leaf.id, marginX + idx * stepX);
+    });
+  }
+
+  const maxDepth = Math.max(getTreeMaxDepth(root), 1);
+  const stepY = (canvasH - 2 * marginY) / Math.max(maxDepth, 1);
+
+  const calculatePositions = (n: InternalTrieNode): number => {
+    let x: number;
+    if (n.children.size === 0) {
+      x = leafXMap.get(n.id) ?? canvasW / 2;
+    } else {
+      const childXs: number[] = [];
+      for (const child of n.children.values()) {
+        childXs.push(calculatePositions(child));
+      }
+      x = childXs.reduce((a, b) => a + b, 0) / childXs.length;
+    }
+
+    const y = marginY + n.depth * stepY;
+
+    let state: ElementState = "default";
+    if (n.id === activeId) {
+      state = "active";
+    } else if (pathIds.has(n.id)) {
+      state = "visited";
+    } else if (n.isEndOfWord) {
+      state = "sorted";
+    }
+
+    nodes.push({
+      id: n.id,
+      label: n.char === "ROOT" ? "ROOT" : `'${n.char}'`,
+      x,
+      y,
+      state,
+    });
+
+    for (const child of n.children.values()) {
+      const isPathEdge = pathIds.has(n.id) && pathIds.has(child.id);
+      edges.push({
+        from: n.id,
+        to: child.id,
+        isTraversed: pathIds.has(child.id),
+        isPath: isPathEdge,
+      });
+    }
+
+    return x;
+  };
+
+  calculatePositions(root);
+
+  return {
+    kind: "graph" as const,
+    nodes,
+    edges,
+  };
+}
+
 export const generateBasicTrieSteps = (input: BasicTrieInsertSearchInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   const { wordsToInsert, searchTarget } = input;
   let stepIndex = 0;
+  let nodeCounter = 0;
 
-  // Step 0: Init
+  const root: InternalTrieNode = {
+    id: "node-root",
+    char: "ROOT",
+    isEndOfWord: false,
+    children: new Map(),
+    depth: 0,
+  };
+
+  // Step 0: Init root
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 8,
     explanation: {
       what: "Initialize Prefix Trie Data Structure",
-      why: `Inserting vocabulary tokens [${wordsToInsert
+      why: `Instantiated BasicTrie root node. Vocabulary to insert: [${wordsToInsert
         .map((w) => `"${w}"`)
-        .join(", ")}], then searching for target "${searchTarget}".`,
+        .join(", ")}]; Search target: "${searchTarget}".`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: wordsToInsert.map((w, idx) => ({
-        id: `w-${idx}`,
-        value: idx,
-        label: `"${w}"`,
-        state: "default" as ElementState,
-      })),
-    },
+    primarySnapshot: buildGraphSnapshot(root, root.id, new Set([root.id])),
     auxiliaryState: {
       customState: {
         insertedWords: "[]",
@@ -66,131 +184,256 @@ export const generateBasicTrieSteps = (input: BasicTrieInsertSearchInput): Algor
         status: "Initialized",
       },
     },
-    variables: { insertedCount: 0, target: searchTarget },
+    variables: { totalWords: wordsToInsert.length, target: searchTarget },
   });
 
-  const inserted: string[] = [];
+  const insertedWordsList: string[] = [];
 
   for (let i = 0; i < wordsToInsert.length; i++) {
     const word = wordsToInsert[i];
-    inserted.push(word);
+    let curr = root;
+    const currentPathIds: string[] = [root.id];
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 10,
+      codeLine: 11,
       explanation: {
-        what: `Insert Word "${word}" into Trie`,
-        why: `Traversing/creating character nodes [${word
+        what: `Start inserting word "${word}" (Word ${i + 1}/${wordsToInsert.length})`,
+        why: `Set pointer curr = root to traverse/insert character sequence [${word
           .split("")
           .map((c) => `'${c}'`)
-          .join(" -> ")}]. Marking final node as is_end_of_word = True.`,
+          .join(" -> ")}].`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: wordsToInsert.map((w, idx) => ({
-          id: `w-${idx}`,
-          value: idx,
-          label: `"${w}"`,
-          state:
-            idx === i
-              ? ("active" as ElementState)
-              : idx < i
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === i ? [`Inserted "${word}"`] : [],
-        })),
-      },
+      primarySnapshot: buildGraphSnapshot(root, curr.id, new Set(currentPathIds)),
       auxiliaryState: {
         customState: {
-          insertedWords: inserted.map((w) => `"${w}"`).join(", "),
-          activeWord: word,
+          insertedWords: insertedWordsList.map((w) => `"${w}"`).join(", ") || "[]",
+          activeWord: `"${word}"`,
+          phase: "Insertion",
         },
       },
-      variables: { inserted: word, totalInserted: inserted.length },
+      variables: { currentWord: word, currNode: curr.char },
     });
-  }
 
-  // Search Step
-  let searchFound = true;
-  const charTrace: string[] = [];
+    for (let cIdx = 0; cIdx < word.length; cIdx++) {
+      const char = word[cIdx];
 
-  for (let cIdx = 0; cIdx < searchTarget.length; cIdx++) {
-    const char = searchTarget[cIdx];
-    charTrace.push(`'${char}'`);
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 13,
+        explanation: {
+          what: `Check character '${char}' in curr.children`,
+          why: `Inspecting child node pointers of '${curr.char}' for character '${char}' (Position ${cIdx + 1}/${word.length} of "${word}").`,
+        },
+        primarySnapshot: buildGraphSnapshot(root, curr.id, new Set(currentPathIds)),
+        auxiliaryState: {
+          customState: {
+            insertedWords: insertedWordsList.map((w) => `"${w}"`).join(", ") || "[]",
+            activeWord: `"${word}"`,
+            currentChar: `'${char}'`,
+            prefix: word.substring(0, cIdx + 1),
+          },
+        },
+        variables: { currentWord: word, char, charIndex: cIdx },
+      });
+
+      if (!curr.children.has(char)) {
+        nodeCounter++;
+        const newNode: InternalTrieNode = {
+          id: `node-${nodeCounter}`,
+          char,
+          isEndOfWord: false,
+          children: new Map(),
+          depth: curr.depth + 1,
+        };
+        curr.children.set(char, newNode);
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 14,
+          explanation: {
+            what: `Create new TrieNode for character '${char}'`,
+            why: `Character '${char}' was missing from curr.children; created new TrieNode '${char}' at depth ${newNode.depth}.`,
+          },
+          primarySnapshot: buildGraphSnapshot(
+            root,
+            newNode.id,
+            new Set([...currentPathIds, newNode.id]),
+          ),
+          auxiliaryState: {
+            customState: {
+              insertedWords: insertedWordsList.map((w) => `"${w}"`).join(", ") || "[]",
+              activeWord: `"${word}"`,
+              createdChar: `'${char}'`,
+            },
+          },
+          variables: { currentWord: word, newChar: char, newNodeId: newNode.id },
+        });
+      }
+
+      curr = curr.children.get(char)!;
+      currentPathIds.push(curr.id);
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 15,
+        explanation: {
+          what: `Advance curr pointer to '${curr.char}'`,
+          why: `Moved pointer curr = curr.children['${char}'] along path prefix "${word.substring(0, cIdx + 1)}".`,
+        },
+        primarySnapshot: buildGraphSnapshot(root, curr.id, new Set(currentPathIds)),
+        auxiliaryState: {
+          customState: {
+            insertedWords: insertedWordsList.map((w) => `"${w}"`).join(", ") || "[]",
+            activeWord: `"${word}"`,
+            currNode: `'${curr.char}'`,
+          },
+        },
+        variables: { currentWord: word, currNode: curr.char, prefix: word.substring(0, cIdx + 1) },
+      });
+    }
+
+    curr.isEndOfWord = true;
+    insertedWordsList.push(word);
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 18,
+      codeLine: 16,
       explanation: {
-        what: `Search Character '${char}' (Position ${cIdx + 1}/${searchTarget.length})`,
-        why: `Matching character path [${charTrace.join(" -> ")}] in Trie node children.`,
+        what: `Mark node '${curr.char}' as is_end_of_word = True`,
+        why: `Finished inserting all characters of "${word}". Marked node '${curr.char}' as terminal word boundary.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: searchTarget.split("").map((ch, idx) => ({
-          id: `ch-${idx}`,
-          value: idx,
-          label: `'${ch}'`,
-          state:
-            idx === cIdx
-              ? ("highlighted" as ElementState)
-              : idx < cIdx
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === cIdx ? ["Matching Node"] : [],
-        })),
-      },
+      primarySnapshot: buildGraphSnapshot(root, curr.id, new Set(currentPathIds)),
       auxiliaryState: {
         customState: {
-          target: `"${searchTarget}"`,
-          matchedPrefix: searchTarget.substring(0, cIdx + 1),
+          insertedWords: insertedWordsList.map((w) => `"${w}"`).join(", "),
+          activeWord: `"${word}"`,
+          status: `Inserted "${word}"`,
         },
       },
-      variables: { cIdx, char },
+      variables: { currentWord: word, is_end_of_word: true },
     });
   }
 
-  // Final Step: Search result
+  // Search Phase
+  let searchCurr: InternalTrieNode | null = root;
+  const searchPathIds: string[] = [root.id];
+
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 21,
+    codeLine: 19,
     explanation: {
-      what: `Search Complete for Target "${searchTarget}": ${searchFound ? "FOUND (is_end_of_word = True)" : "NOT FOUND"}`,
-      why: searchFound
-        ? `Successfully traversed prefix path "${searchTarget}" and confirmed terminal word node.`
-        : `Target "${searchTarget}" not found in Trie vocabulary.`,
+      what: `Start search for word "${searchTarget}"`,
+      why: `Set pointer curr = root to query exact word match for target "${searchTarget}".`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: searchTarget.split("").map((ch, idx) => ({
-        id: `ch-${idx}`,
-        value: idx,
-        label: `'${ch}'`,
-        state: "sorted" as ElementState,
-      })),
-    },
+    primarySnapshot: buildGraphSnapshot(root, root.id, new Set(searchPathIds)),
     auxiliaryState: {
       customState: {
         searchTarget: `"${searchTarget}"`,
-        searchResult: searchFound ? "FOUND" : "NOT FOUND",
-        status: "Completed",
+        phase: "Search",
       },
     },
-    variables: { searchFound, complete: true },
+    variables: { searchTarget, currNode: "ROOT" },
   });
+
+  let searchFound = false;
+
+  for (let cIdx = 0; cIdx < searchTarget.length; cIdx++) {
+    const char = searchTarget[cIdx];
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 21,
+      explanation: {
+        what: `Check character '${char}' in curr.children`,
+        why: `Inspecting child pointers of node '${searchCurr!.char}' for character '${char}' (Pos ${cIdx + 1}/${searchTarget.length}).`,
+      },
+      primarySnapshot: buildGraphSnapshot(root, searchCurr!.id, new Set(searchPathIds)),
+      auxiliaryState: {
+        customState: {
+          searchTarget: `"${searchTarget}"`,
+          currentChar: `'${char}'`,
+          matchedPrefix: searchTarget.substring(0, cIdx),
+        },
+      },
+      variables: { searchTarget, char, charIndex: cIdx },
+    });
+
+    if (!searchCurr!.children.has(char)) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 22,
+        explanation: {
+          what: `Character '${char}' not found: return False`,
+          why: `Child node for character '${char}' missing under node '${searchCurr!.char}'. Target "${searchTarget}" is not in Trie.`,
+        },
+        primarySnapshot: buildGraphSnapshot(root, searchCurr!.id, new Set(searchPathIds)),
+        auxiliaryState: {
+          customState: {
+            searchTarget: `"${searchTarget}"`,
+            searchResult: "False",
+            status: "Search Failed",
+          },
+        },
+        variables: { searchTarget, missingChar: char, result: false },
+      });
+      searchCurr = null;
+      break;
+    }
+
+    searchCurr = searchCurr!.children.get(char)!;
+    searchPathIds.push(searchCurr.id);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 23,
+      explanation: {
+        what: `Advance curr pointer to '${searchCurr.char}'`,
+        why: `Matched character '${char}'; moved pointer to node '${searchCurr.char}' along prefix "${searchTarget.substring(0, cIdx + 1)}".`,
+      },
+      primarySnapshot: buildGraphSnapshot(root, searchCurr.id, new Set(searchPathIds)),
+      auxiliaryState: {
+        customState: {
+          searchTarget: `"${searchTarget}"`,
+          matchedPrefix: searchTarget.substring(0, cIdx + 1),
+          currNode: `'${searchCurr.char}'`,
+        },
+      },
+      variables: { searchTarget, currNode: searchCurr.char },
+    });
+  }
+
+  if (searchCurr !== null) {
+    searchFound = searchCurr.isEndOfWord;
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 24,
+      explanation: {
+        what: `Return curr.is_end_of_word (${searchFound ? "True" : "False"})`,
+        why: searchFound
+          ? `Reached node '${searchCurr.char}' for "${searchTarget}" with is_end_of_word = True. Target exists as an exact word!`
+          : `Reached node '${searchCurr.char}' for "${searchTarget}", but is_end_of_word = False. "${searchTarget}" is only a prefix, not a complete word.`,
+      },
+      primarySnapshot: buildGraphSnapshot(root, searchCurr.id, new Set(searchPathIds)),
+      auxiliaryState: {
+        customState: {
+          searchTarget: `"${searchTarget}"`,
+          searchResult: searchFound ? "True" : "False",
+          status: "Completed",
+        },
+      },
+      variables: { searchTarget, is_end_of_word: searchCurr.isEndOfWord, result: searchFound },
+    });
+  }
 
   return steps;
 };
 
 export const basicTrieInsertSearch: AlgorithmDefinition<BasicTrieInsertSearchInput> = {
-  id: "basicTrieInsertSearch",
+  id: "basic-trie-insert-search",
   title: "Basic Trie Insert & Prefix Search",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization", "tries_and_strings"],
+  topicIds: ["ml_tokenization", "tries_and_strings"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Standard Prefix Trie (Reorder Tree) insertion and search operations. Serves as the fundamental building block for subword token vocabulary lookup, prefix matching, and wordpiece tokenization in NLP models.\n\nInput Format:\n- wordsToInsert: Array of vocabulary strings to populate into Trie.\n- searchTarget: Target word string to query.\n\nOutput Format:\n- Returns boolean true if searchTarget exists as a complete word in Trie, false otherwise.\n\nEdge Cases & Constraints:\n- Prefix match vs exact word: Requires is_end_of_word flag to distinguish 'app' from 'apple'.",
   constraints: ["wordsToInsert strings contain standard ASCII or UTF-8 characters."],

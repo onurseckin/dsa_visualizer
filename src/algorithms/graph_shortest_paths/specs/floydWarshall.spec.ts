@@ -9,7 +9,7 @@ describe("floydWarshall algorithm logic spec", () => {
   it("should have correct algorithm definition metadata", () => {
     expect(floydWarshall.id).toBe("floyd-warshall");
     expect(floydWarshall.title).toBe("Floyd-Warshall All-Pairs Shortest Path");
-    expect(floydWarshall.category).toBe("graph_shortest_paths");
+    expect(floydWarshall.topicIds).toContain("graph_shortest_paths");
     expect(floydWarshall.difficulty).toBe("Medium");
     expect(floydWarshall.defaultInput).toEqual(DEFAULT_FLOYD_WARSHALL_INPUT);
     expect(floydWarshall.code).toContain("def floyd_warshall");
@@ -28,10 +28,11 @@ describe("floydWarshall algorithm logic spec", () => {
     expect(lastStep.variables.completed).toBe(true);
 
     const snapshot = lastStep.primarySnapshot;
-    if (snapshot.kind === "grid") {
-      expect(snapshot.kind).toBe("grid");
-      expect(snapshot.grid.length).toBe(4);
-      expect(snapshot.grid[0].length).toBe(4);
+    expect(snapshot.kind).toBe("matrix");
+    if (snapshot.kind === "matrix") {
+      expect(snapshot.rows).toBe(4);
+      expect(snapshot.cols).toBe(4);
+      expect(snapshot.cells.length).toBe(16);
     }
 
     // Verify distance calculation for 1 -> 4

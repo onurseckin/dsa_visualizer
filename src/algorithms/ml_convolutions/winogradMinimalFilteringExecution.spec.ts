@@ -5,14 +5,15 @@ import {
   generateWinogradMinimalFilteringExecutionSteps,
 } from "./winogradMinimalFilteringExecution";
 
-describe("winogradMinimalFilteringExecution", () => {
+describe("winograd-minimal-filtering-execution", () => {
   it("should have correct metadata", () => {
-    expect(winogradMinimalFilteringExecution.id).toBe("winogradMinimalFilteringExecution");
-    expect(winogradMinimalFilteringExecution.isMlInfra).toBe(true);
-    expect(winogradMinimalFilteringExecution.mlInfraLevel).toBe(8);
-    expect(winogradMinimalFilteringExecution.mlInfraCategory).toBe("ml_convolutions");
-    expect(winogradMinimalFilteringExecution.categories).toContain("ml_convolutions");
-    expect(winogradMinimalFilteringExecution.categories).toContain("ml_gemm_roofline");
+    expect(winogradMinimalFilteringExecution.id).toBe("winograd-minimal-filtering-execution");
+    expect(
+      winogradMinimalFilteringExecution.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(winogradMinimalFilteringExecution.topicIds).toContain("ml_convolutions");
+    expect(winogradMinimalFilteringExecution.topicIds).toContain("ml_convolutions");
+    expect(winogradMinimalFilteringExecution.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

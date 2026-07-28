@@ -5,7 +5,7 @@ describe("bfsGraph spec logic", () => {
   it("has category graph_traversal and valid metadata", () => {
     expect(bfsGraph.id).toBe("bfs-graph");
     expect(bfsGraph.title).toBe("BFS Graph Traversal");
-    expect(bfsGraph.category).toBe("graph_traversal");
+    expect(bfsGraph.topicIds).toContain("graph_traversal");
     expect(bfsGraph.defaultInput).toEqual(DEFAULT_BFS_INPUT);
     expect(bfsGraph.difficulty).toBe("Medium");
   });

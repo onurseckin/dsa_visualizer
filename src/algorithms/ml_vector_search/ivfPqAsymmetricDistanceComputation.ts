@@ -1,4 +1,4 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 
 export interface IvfPqAsymmetricDistanceComputationInput {
   query: number[];
@@ -36,15 +36,9 @@ def l2_distance_sq(v1: list[float], v2: list[float]) -> float:
     return sum((a - b) ** 2 for a, b in zip(v1, v2))
 
 def ivf_pq_asymmetric_distance(query: list[float], num_subvectors: int, codebooks: list[list[list[float]]], quantized_codes: list[dict]) -> list[tuple[float, int]]:
-    """
-    Asymmetric Distance Computation (ADC) for Product Quantization (PQ).
-    Precomputes distance lookup table (LUT) between uncompressed query subvectors and PQ codebook centroids.
-    Calculates distance to quantized database vectors via O(M) table lookups.
-    """
     sub_dim = len(query) // num_subvectors
     query_subvectors = [query[m * sub_dim : (m + 1) * sub_dim] for m in range(num_subvectors)]
 
-    # Step 1: Build Look-Up Table (LUT) LUT[m][k] = ||query_m - codebook[m][k]||^2
     lut = []
     for m in range(num_subvectors):
         m_lut = []
@@ -53,7 +47,6 @@ def ivf_pq_asymmetric_distance(query: list[float], num_subvectors: int, codebook
             m_lut.append(dist_sq)
         lut.append(m_lut)
 
-    # Step 2: Calculate ADC distance for each quantized database vector: sum_m LUT[m][codes[m]]
     results = []
     for item in quantized_codes:
         vec_id = item["id"]
@@ -75,23 +68,79 @@ export const generateIvfPqAdcSteps = (
   const l2DistSq = (v1: number[], v2: number[]) =>
     v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0);
 
-  // Step 0: Init
+  const querySubvectors: number[][] = [];
+  for (let m = 0; m < numSubvectors; m++) {
+    querySubvectors.push(query.slice(m * subDim, (m + 1) * subDim));
+  }
+
+  const maxCentroids = Math.max(...codebooks.map((cb) => cb.length));
+  const lutRowHeaders = Array.from({ length: numSubvectors }, (_, m) => `Subvector ${m}`);
+  const lutColHeaders = Array.from({ length: maxCentroids }, (_, k) => `Centroid ${k}`);
+
+  const buildLutCells = (
+    currentM?: number,
+    currentK?: number,
+    lutState: number[][] = [],
+    isComplete = false,
+    selectedCodes?: number[],
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < numSubvectors; r++) {
+      for (let c = 0; c < (codebooks[r]?.length || 0); c++) {
+        let cellValue: string | number = "-";
+        let cellState: MatrixCellItem["state"] = "default";
+        let label: string | undefined = undefined;
+
+        if (lutState[r] !== undefined && lutState[r][c] !== undefined) {
+          cellValue = Number(lutState[r][c].toFixed(3));
+        }
+
+        if (isComplete) {
+          if (selectedCodes && selectedCodes[r] === c) {
+            cellState = "active";
+            label = `Sub ${r} Lookup`;
+          } else {
+            cellState = "sorted";
+          }
+        } else if (currentM === r && currentK === c) {
+          cellState = "active";
+          label = "Computing";
+        } else if (
+          currentM !== undefined &&
+          currentK !== undefined &&
+          (r < currentM || (r === currentM && c < currentK))
+        ) {
+          cellState = "compared";
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: cellValue,
+          label,
+          state: cellState,
+        });
+      }
+    }
+    return cells;
+  };
+
+  // Step 0: Partition query vector into subvectors & Init LUT
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 7,
     explanation: {
-      what: "Initialize Asymmetric Distance Computation (ADC) Engine",
-      why: `Query vector dimension D = ${query.length}, split into M = ${numSubvectors} subvectors of dimension ${subDim}.`,
+      what: "Partition Query Vector & Initialize Look-Up Table (LUT)",
+      why: `Uncompressed query Q of dimension D=${query.length} is split into M=${numSubvectors} subvectors of dimension d_sub=${subDim}. Query subvectors: [${querySubvectors.map((s) => `[${s.join(", ")}]`).join(", ")}].`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: query.map((val, idx) => ({
-        id: `q-${idx}`,
-        value: val,
-        label: `Q[${idx}]`,
-        state: "default" as ElementState,
-        pointers: idx === 0 ? ["Subvector 0"] : idx === subDim ? ["Subvector 1"] : [],
-      })),
+      kind: "matrix",
+      rows: numSubvectors,
+      cols: maxCentroids,
+      rowHeaders: lutRowHeaders,
+      colHeaders: lutColHeaders,
+      title: "Query-to-Codebook Distance Look-Up Table (LUT)",
+      cells: buildLutCells(),
     },
     auxiliaryState: {
       customState: {
@@ -104,49 +153,79 @@ export const generateIvfPqAdcSteps = (
     variables: { numSubvectors, subDim },
   });
 
-  // Step 1: Precompute Look-Up Table (LUT)
+  // Step 1: Precompute Look-Up Table (LUT) cell-by-cell
   const lut: number[][] = [];
   for (let m = 0; m < numSubvectors; m++) {
-    const qSub = query.slice(m * subDim, (m + 1) * subDim);
+    const qSub = querySubvectors[m];
     const mLut: number[] = [];
 
     for (let k = 0; k < codebooks[m].length; k++) {
       const cent = codebooks[m][k];
       const dSq = l2DistSq(qSub, cent);
       mLut.push(dSq);
+
+      const currentLutState = [...lut, mLut];
+
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 14,
+        explanation: {
+          what: `Compute LUT[m=${m}][k=${k}] Squared Euclidean Distance`,
+          why: `Squared distance from query subvector ${m} [${qSub.join(", ")}] to centroid ${k} [${cent.join(", ")}] is ||q_${m} - c_{${m},${k}}||^2 = ${dSq.toFixed(4)}.`,
+        },
+        primarySnapshot: {
+          kind: "matrix",
+          rows: numSubvectors,
+          cols: maxCentroids,
+          rowHeaders: lutRowHeaders,
+          colHeaders: lutColHeaders,
+          title: `Precomputing LUT Matrix (Subvector ${m}, Centroid ${k})`,
+          cells: buildLutCells(m, k, currentLutState),
+        },
+        auxiliaryState: {
+          customState: {
+            subvector: String(m),
+            centroidIdx: String(k),
+            querySubvector: `[${qSub.join(", ")}]`,
+            centroidVector: `[${cent.join(", ")}]`,
+            distSq: dSq.toFixed(4),
+          },
+        },
+        variables: { m, k, distSq: Math.round(dSq * 10000) / 10000 },
+      });
     }
     lut.push(mLut);
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 13,
-      explanation: {
-        what: `Precompute ADC Distance Look-Up Table (LUT) for Subvector ${m}`,
-        why: `Calculated squared distance from query subvector [${qSub.join(",")}] to codebook centroids: [${mLut
-          .map((d) => d.toFixed(3))
-          .join(", ")}].`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: mLut.map((d, kIdx) => ({
-          id: `lut-${m}-${kIdx}`,
-          value: Math.round(d * 100),
-          label: `LUT[m=${m}][k=${kIdx}] = ${d.toFixed(3)}`,
-          state: "active" as ElementState,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          subvector: String(m),
-          lutValues: mLut.map((d, k) => `k=${k}:${d.toFixed(3)}`).join(", "),
-        },
-      },
-      variables: { subvector: m },
-    });
   }
 
+  // Step 1 Completed: LUT Fully Built
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 16,
+    explanation: {
+      what: "ADC Distance Look-Up Table (LUT) Precomputation Completed",
+      why: `Precomputed distance LUT matrix for all M=${numSubvectors} subvectors across codebook centroids. Total size: ${numSubvectors}x${maxCentroids}.`,
+    },
+    primarySnapshot: {
+      kind: "matrix",
+      rows: numSubvectors,
+      cols: maxCentroids,
+      rowHeaders: lutRowHeaders,
+      colHeaders: lutColHeaders,
+      title: "Precomputed Query Distance Look-Up Table (LUT)",
+      cells: buildLutCells(undefined, undefined, lut, true),
+    },
+    auxiliaryState: {
+      customState: {
+        numSubvectors: String(numSubvectors),
+        maxCentroids: String(maxCentroids),
+        status: "LUT Built",
+      },
+    },
+    variables: { completeLut: true },
+  });
+
   // Step 2: Evaluate Quantized Vectors via Fast LUT Lookups
-  const results: { id: number; dist: number; totalDistSq: number }[] = [];
+  const results: { id: number; dist: number; totalDistSq: number; codes: number[] }[] = [];
 
   for (const item of quantizedCodes) {
     const { id, codes } = item;
@@ -161,60 +240,88 @@ export const generateIvfPqAdcSteps = (
     }
 
     const finalDist = Math.sqrt(totalDistSq);
-    results.push({ id, dist: finalDist, totalDistSq });
+    results.push({ id, dist: finalDist, totalDistSq, codes });
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 23,
+      codeLine: 22,
       explanation: {
         what: `Compute ADC Distance for Quantized Vector ID ${id} (codes: [${codes.join(", ")}])`,
         why: `Fast O(M) lookup summation: ${subDists.join(" + ")} = ${totalDistSq.toFixed(
-          3,
-        )} (sqrt = ${finalDist.toFixed(4)}). Zero vector decompression required!`,
+          4,
+        )} (sqrt = ${finalDist.toFixed(4)}). Vector remains compressed as byte codes!`,
       },
       primarySnapshot: {
-        kind: "array",
-        elements: quantizedCodes.map((v) => ({
-          id: `vec-${v.id}`,
-          value: v.id,
-          label: `ID ${v.id} (dist=${v.id === id ? finalDist.toFixed(3) : "?"})`,
-          state: v.id === id ? ("active" as ElementState) : ("visited" as ElementState),
-          pointers: v.id === id ? [`codes=[${codes.join(",")}]`] : [],
-        })),
+        kind: "matrix",
+        rows: numSubvectors,
+        cols: maxCentroids,
+        rowHeaders: lutRowHeaders,
+        colHeaders: lutColHeaders,
+        title: `ADC Lookup for Vector ID ${id} (codes: [${codes.join(", ")}]) -> dist = ${finalDist.toFixed(4)}`,
+        cells: buildLutCells(undefined, undefined, lut, true, codes),
       },
       auxiliaryState: {
         customState: {
           activeVectorId: String(id),
           codes: `[${codes.join(", ")}]`,
-          totalDistSq: totalDistSq.toFixed(3),
+          totalDistSq: totalDistSq.toFixed(4),
           finalDist: finalDist.toFixed(4),
         },
       },
-      variables: { vectorId: id, dist: Math.round(finalDist * 100) / 100 },
+      variables: { vectorId: id, dist: Math.round(finalDist * 10000) / 10000 },
     });
   }
 
-  // Step Final: Complete
+  // Step Final: Sort Candidate Results
   results.sort((a, b) => a.dist - b.dist);
+
+  const resultRowHeaders = results.map((_, rank) => `Rank ${rank + 1}`);
+  const resultColHeaders = ["Vector ID", "PQ Codes", "ADC Distance"];
+
+  const resultCells: MatrixCellItem[] = [];
+  results.forEach((res, rank) => {
+    const isTop = rank === 0;
+    const cellState: MatrixCellItem["state"] = isTop ? "sorted" : "compared";
+    resultCells.push(
+      {
+        row: rank,
+        col: 0,
+        value: `ID ${res.id}`,
+        state: cellState,
+        label: isTop ? "Top Match" : undefined,
+      },
+      {
+        row: rank,
+        col: 1,
+        value: `[${res.codes.join(", ")}]`,
+        state: cellState,
+      },
+      {
+        row: rank,
+        col: 2,
+        value: res.dist.toFixed(4),
+        state: cellState,
+      },
+    );
+  });
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 26,
+    codeLine: 25,
     explanation: {
       what: "IVF-PQ Asymmetric Distance Computation Complete",
-      why: `Top match: Vector ID ${results[0]?.id} with estimated distance ${results[0]?.dist.toFixed(
+      why: `Top match: Vector ID ${results[0]?.id} with distance ${results[0]?.dist.toFixed(
         4,
-      )}. Computed entirely via SIMD table lookups.`,
+      )}. Database search performed entirely via fast table lookups without vector dequantization.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: results.map((res, rank) => ({
-        id: `res-${res.id}`,
-        value: res.id,
-        label: `Rank ${rank + 1}: ID ${res.id} (dist=${res.dist.toFixed(3)})`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-        pointers: rank === 0 ? ["Top Candidate"] : [],
-      })),
+      kind: "matrix",
+      rows: results.length,
+      cols: 3,
+      rowHeaders: resultRowHeaders,
+      colHeaders: resultColHeaders,
+      title: "Sorted Database Candidates by ADC Distance",
+      cells: resultCells,
     },
     auxiliaryState: {
       customState: {
@@ -231,14 +338,10 @@ export const generateIvfPqAdcSteps = (
 
 export const ivfPqAsymmetricDistanceComputation: AlgorithmDefinition<IvfPqAsymmetricDistanceComputationInput> =
   {
-    id: "ivfPqAsymmetricDistanceComputation",
+    id: "ivf-pq-asymmetric-distance-computation",
     title: "IVF-PQ Asymmetric Distance Computation (ADC)",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search", "ml_precision_quantization"],
+    topicIds: ["ml_vector_search", "ml_precision_quantization"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "Asymmetric Distance Computation (ADC) computes nearest-neighbor distances between an uncompressed continuous query vector Q and millions of quantized database vectors encoded as Product Quantization (PQ) codebook indices. By precomputing a query-to-codebook distance Look-Up Table (LUT), evaluating database vectors reduces to fast O(M) scalar additions.\n\nInput Format:\n- query: D-dimensional uncompressed query embedding vector.\n- numSubvectors: Number of subvector quantization splits M.\n- codebooks: M codebooks, each containing K sub-centroids of dimension D/M.\n- quantizedCodes: Database vectors stored as M-byte integer code arrays.\n\nOutput Format:\n- Returns sorted list of (distance, vectorId) candidates.\n\nEdge Cases & Constraints:\n- M must evenly divide query dimension D.",
     constraints: [

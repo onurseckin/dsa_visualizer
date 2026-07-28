@@ -60,9 +60,9 @@ const DSU_TRIVIA: TriviaMeta = {
 };
 
 export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): AlgorithmStep[] => {
-  const n = Math.max(2, Math.min(10, input.numNodes));
+  const n = Math.max(2, Math.min(10, input?.numNodes ?? DEFAULT_DISJOINT_SET_UNION_INPUT.numNodes));
   const ops =
-    input.operations && input.operations.length > 0
+    input?.operations && input.operations.length > 0
       ? input.operations
       : DEFAULT_DISJOINT_SET_UNION_INPUT.operations;
 
@@ -73,8 +73,8 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
   const nodePositions = Array.from({ length: n }, (_, i) => {
     const angle = (2 * Math.PI * i) / n - Math.PI / 2;
     return {
-      x: 200 + 120 * Math.cos(angle),
-      y: 180 + 120 * Math.sin(angle),
+      x: Math.round(200 + 120 * Math.cos(angle)),
+      y: Math.round(180 + 120 * Math.sin(angle)),
     };
   });
 
@@ -129,13 +129,13 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
     return { kind: "graph" as const, nodes, edges };
   };
 
-  // Step 1: Init
+  // Step 1: Init (Line 2)
   steps.push({
     stepIndex: stepIdx++,
     codeLine: 2,
     explanation: {
-      what: `Initialized Disjoint Set Union with ${n} isolated sets.`,
-      why: "Each node i is its own root leader (parent[i] = i, rank[i] = 0).",
+      what: `Initialized Disjoint Set Union structure with ${n} isolated element components.`,
+      why: "Each node V_i starts as its own self-referential root leader (parent[i] = i, rank[i] = 0).",
     },
     primarySnapshot: buildGraphSnapshot(),
     auxiliaryState: {
@@ -152,15 +152,12 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
   });
 
   const findWithCompression = (u: number): number => {
-    const path: number[] = [];
-    let curr = u;
-
     steps.push({
       stepIndex: stepIdx++,
       codeLine: 6,
       explanation: {
         what: `Start find(${u}) query.`,
-        why: `Traverse parent pointers starting from node V${u} to locate root leader.`,
+        why: `Traverse parent pointers starting from node V${u} to locate the set's representative root leader.`,
       },
       primarySnapshot: buildGraphSnapshot(new Set([u])),
       auxiliaryState: {
@@ -170,34 +167,74 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
           "Parent Array": `[${parent.join(", ")}]`,
         },
       },
-      variables: { u, curr },
+      variables: { u },
     });
 
+    if (parent[u] === u) {
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 7,
+        explanation: {
+          what: `Base case check: parent[V${u}] == V${u}.`,
+          why: `Node V${u} is its own parent, meaning V${u} is already the root leader of its set.`,
+        },
+        primarySnapshot: buildGraphSnapshot(new Set([u])),
+        auxiliaryState: {
+          customState: {
+            Operation: `find(${u})`,
+            "Root Leader": `V${u}`,
+            "Parent Array": `[${parent.join(", ")}]`,
+          },
+        },
+        variables: { u, isRoot: true },
+      });
+
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 8,
+        explanation: {
+          what: `Return representative root leader V${u}.`,
+          why: `Since V${u} is the root leader, find(${u}) immediately returns V${u}.`,
+        },
+        primarySnapshot: buildGraphSnapshot(new Set([u]), new Set([u])),
+        auxiliaryState: {
+          customState: {
+            Operation: `find(${u})`,
+            "Returned Root": `V${u}`,
+            "Parent Array": `[${parent.join(", ")}]`,
+          },
+        },
+        variables: { u, root: u },
+      });
+
+      return u;
+    }
+
+    const path: number[] = [];
+    let curr = u;
     while (curr !== parent[curr]) {
       path.push(curr);
       curr = parent[curr];
     }
     const root = curr;
 
-    if (path.length > 0) {
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 9,
-        explanation: {
-          what: `Found root V${root}. Applying path compression on path [${path.join(", ")}].`,
-          why: "Path compression rewires traversed nodes directly to root leader V" + root + ", flattening tree depth.",
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 9,
+      explanation: {
+        what: `Found root leader V${root}. Applying path compression along path [${path.join(" -> ")}].`,
+        why: `Path compression rewires all nodes along search path directly to root leader V${root}, flattening tree depth.`,
+      },
+      primarySnapshot: buildGraphSnapshot(new Set(path), new Set([root])),
+      auxiliaryState: {
+        customState: {
+          Operation: `find(${u})`,
+          "Path to Flatten": path.join(" -> "),
+          "Root Leader": `V${root}`,
         },
-        primarySnapshot: buildGraphSnapshot(new Set(path), new Set([root])),
-        auxiliaryState: {
-          customState: {
-            Operation: `find(${u})`,
-            "Path to Flatten": path.join(" -> "),
-            "Root Leader": `V${root}`,
-          },
-        },
-        variables: { u, root, pathLength: path.length },
-      });
-    }
+      },
+      variables: { u, root, pathLength: path.length },
+    });
 
     for (const node of path) {
       parent[node] = root;
@@ -207,8 +244,8 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
       stepIndex: stepIdx++,
       codeLine: 10,
       explanation: {
-        what: `find(${u}) completed -> Representative Root: V${root}.`,
-        why: `All nodes along search path now point directly to root leader V${root}.`,
+        what: `find(${u}) completed -> Representative Root Leader: V${root}.`,
+        why: `All nodes traversed during find(${u}) now point directly to root leader V${root}.`,
       },
       primarySnapshot: buildGraphSnapshot(new Set([u]), new Set([root])),
       auxiliaryState: {
@@ -237,7 +274,7 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
         codeLine: 12,
         explanation: {
           what: `Start union(${u}, ${v}) query.`,
-          why: `Determining component roots for V${u} and V${v} before merging.`,
+          why: `Determining component roots for V${u} and V${v} before attempting set merge.`,
         },
         primarySnapshot: buildGraphSnapshot(new Set([u, v])),
         auxiliaryState: {
@@ -256,10 +293,11 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
         stepIndex: stepIdx++,
         codeLine: 15,
         explanation: {
-          what: `Comparing root leaders: root(V${u}) = V${rootU}, root(V${v}) = V${rootV}.`,
-          why: rootU !== rootV
-            ? `Roots differ (V${rootU} vs V${rootV}). Proceeding with union by rank.`
-            : `Roots are identical (V${rootU}). Nodes are already in the same component.`,
+          what: `Check distinct sets: root(V${u}) = V${rootU}, root(V${v}) = V${rootV}.`,
+          why:
+            rootU !== rootV
+              ? `Root leaders differ (V${rootU} ≠ V${rootV}). Sets are disjoint; proceeding with union by rank.`
+              : `Root leaders are identical (V${rootU} = V${rootV}). Nodes are already in the same component.`,
         },
         primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU, rootV])),
         auxiliaryState: {
@@ -278,66 +316,143 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
         let newRoot = rootU;
         let childRoot = rootV;
 
+        steps.push({
+          stepIndex: stepIdx++,
+          codeLine: 16,
+          explanation: {
+            what: `Comparing component ranks: rank[V${rootU}] = ${rank[rootU]}, rank[V${rootV}] = ${rank[rootV]}.`,
+            why:
+              rank[rootU] < rank[rootV]
+                ? `rank[V${rootU}] < rank[V${rootV}]: attach V${rootU} under taller root V${rootV}.`
+                : rank[rootU] > rank[rootV]
+                  ? `rank[V${rootU}] > rank[V${rootV}]: attach V${rootV} under taller root V${rootU}.`
+                  : `Ranks are equal (${rank[rootU]}): attach V${rootV} under V${rootU} and increment rank[V${rootU}].`,
+          },
+          primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU, rootV])),
+          auxiliaryState: {
+            customState: {
+              Operation: `union(${u}, ${v})`,
+              "Rank Root U": rank[rootU],
+              "Rank Root V": rank[rootV],
+            },
+          },
+          variables: { u, v, rootU, rootV, rankU: rank[rootU], rankV: rank[rootV] },
+        });
+
         if (rank[rootU] < rank[rootV]) {
-          parent[rootU] = rootV;
           newRoot = rootV;
           childRoot = rootU;
-        } else if (rank[rootU] > rank[rootV]) {
-          parent[rootV] = rootU;
-          newRoot = rootU;
-          childRoot = rootV;
-        } else {
-          parent[rootV] = rootU;
-          rank[rootU]++;
-          newRoot = rootU;
-          childRoot = rootV;
+          steps.push({
+            stepIndex: stepIdx++,
+            codeLine: 17,
+            explanation: {
+              what: `Swapped root handles so higher-rank root V${newRoot} becomes new parent.`,
+              why: "Union by rank maintains lower tree height by hanging shorter trees off taller roots.",
+            },
+            primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU, rootV])),
+            auxiliaryState: {
+              customState: {
+                Operation: `union(${u}, ${v})`,
+                "Selected Leader": `V${newRoot}`,
+              },
+            },
+            variables: { newRoot, childRoot },
+          });
         }
+
+        parent[childRoot] = newRoot;
 
         steps.push({
           stepIndex: stepIdx++,
           codeLine: 18,
           explanation: {
-            what: `Executed union(${u}, ${v}) -> Attached V${childRoot} under root V${newRoot}.`,
-            why: `Union by rank attached tree of smaller/equal rank under larger rank root.`,
+            what: `Set parent[V${childRoot}] = V${newRoot}.`,
+            why: `Tree root V${childRoot} is now attached directly under root leader V${newRoot}.`,
           },
           primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([newRoot])),
           auxiliaryState: {
             customState: {
               Operation: `union(${u}, ${v})`,
-              "New Leader": `V${newRoot}`,
+              "New Parent Edge": `V${childRoot} -> V${newRoot}`,
               "Parent Array": `[${parent.join(", ")}]`,
-              "Rank Array": `[${rank.join(", ")}]`,
             },
           },
-          variables: {
-            u,
-            v,
-            rootU,
-            rootV,
-            newRoot,
+          variables: { childRoot, newRoot },
+        });
+
+        if (rank[rootU] === rank[rootV]) {
+          steps.push({
+            stepIndex: stepIdx++,
+            codeLine: 19,
+            explanation: {
+              what: `Ranks were equal prior to merge (rank[V${newRoot}] == rank[V${childRoot}] == ${rank[newRoot]}).`,
+              why: "Merging two trees of identical height increases the overall height bound of the combined tree.",
+            },
+            primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([newRoot])),
+            auxiliaryState: {
+              customState: {
+                Operation: `union(${u}, ${v})`,
+                "Equal Ranks": rank[newRoot],
+              },
+            },
+            variables: { equalRank: rank[newRoot] },
+          });
+
+          rank[newRoot]++;
+
+          steps.push({
+            stepIndex: stepIdx++,
+            codeLine: 20,
+            explanation: {
+              what: `Increment rank: rank[V${newRoot}] becomes ${rank[newRoot]}.`,
+              why: "Tree height upper bound increased by 1 due to merging equal-rank trees.",
+            },
+            primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([newRoot])),
+            auxiliaryState: {
+              customState: {
+                Operation: `union(${u}, ${v})`,
+                "New Rank": rank[newRoot],
+                "Rank Array": `[${rank.join(", ")}]`,
+              },
+            },
+            variables: { newRank: rank[newRoot] },
+          });
+        }
+
+        steps.push({
+          stepIndex: stepIdx++,
+          codeLine: 21,
+          explanation: {
+            what: `union(${u}, ${v}) returned True (sets merged).`,
+            why: `Successfully merged set containing V${u} and set containing V${v} under leader V${newRoot}.`,
           },
+          primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([newRoot])),
+          auxiliaryState: {
+            customState: {
+              Operation: `union(${u}, ${v})`,
+              Result: "Merged (True)",
+              "New Component Leader": `V${newRoot}`,
+            },
+          },
+          variables: { u, v, merged: true, leader: newRoot },
         });
       } else {
         steps.push({
           stepIndex: stepIdx++,
           codeLine: 22,
           explanation: {
-            what: `Executed union(${u}, ${v}) -> Nodes V${u} and V${v} already in same component!`,
-            why: `Both nodes trace back to shared root V${rootU}. No edge added.`,
+            what: `union(${u}, ${v}) returned False (nodes already connected).`,
+            why: `Both V${u} and V${v} share root leader V${rootU}. No set modification needed.`,
           },
           primarySnapshot: buildGraphSnapshot(new Set([u, v]), new Set([rootU])),
           auxiliaryState: {
             customState: {
               Operation: `union(${u}, ${v})`,
-              Status: "Already Connected",
+              Result: "Already Connected (False)",
               "Shared Root": `V${rootU}`,
             },
           },
-          variables: {
-            u,
-            v,
-            alreadyConnected: true,
-          },
+          variables: { u, v, merged: false, sharedRoot: rootU },
         });
       }
     }
@@ -349,15 +464,16 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
     stepIndex: stepIdx++,
     codeLine: 21,
     explanation: {
-      what: `Completed all DSU operations! Remaining disjoint components: ${finalRoots.size}.`,
-      why: "Union-Find operations completed in near-constant amortized time O(α(N)).",
+      what: `All DSU operations completed! Final connected components: ${finalRoots.size}.`,
+      why: "Path compression and union by rank achieved near-constant amortized time per operation.",
     },
     primarySnapshot: buildGraphSnapshot(),
     auxiliaryState: {
       customState: {
-        Status: "Complete!",
-        "Final Component Count": finalRoots.size,
+        Status: "Complete",
+        "Final Components": finalRoots.size,
         "Parent Array": `[${parent.join(", ")}]`,
+        "Rank Array": `[${rank.join(", ")}]`,
       },
     },
     variables: {
@@ -372,8 +488,7 @@ export const generateDisjointSetUnionSteps = (input: DisjointSetUnionInput): Alg
 export const disjointSetUnion: AlgorithmDefinition<DisjointSetUnionInput> = {
   id: "disjoint-set-union",
   title: "Disjoint Set Union (DSU / Union-Find)",
-  category: "graph_spanning_trees",
-  categories: ["graph_spanning_trees"],
+  topicIds: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
     "Disjoint Set Union (DSU / Union-Find) maintains a dynamic partition of an $N$-element universe into non-overlapping connected sets. It provides two core operations: `find(u)`, which determines the canonical representative leader of the set containing $u$ while flattening pointer paths via **Path Compression**, and `union(u, v)`, which merges the sets containing $u$ and $v$ using **Union by Rank/Size** to keep tree depths minimal. Together, these optimizations guarantee amortized $\\mathcal{O}(\\alpha(N))$ time per query—where $\\alpha$ is the inverse Ackermann function—making DSU essential for Kruskal's MST, dynamic connectivity, and cycle detection.",

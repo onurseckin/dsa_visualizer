@@ -5,20 +5,18 @@ import {
   generateDiagonalCacheThrashingSteps,
   DIAGONALCACHETHRASHING_CODE,
 } from "./diagonalCacheThrashing";
+import { requireLineExplanations } from "../specs/assertions";
 
 describe("diagonal-cache-thrashing (Diagonal Matrix Access Cache Thrashing)", () => {
   it("should have correct metadata", () => {
     expect(diagonalCacheThrashing.id).toBe("diagonal-cache-thrashing");
-    expect(diagonalCacheThrashing.isMlInfra).toBe(true);
-    expect(diagonalCacheThrashing.mlInfraLevel).toBe(2);
-    expect(diagonalCacheThrashing.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(diagonalCacheThrashing.categories).toContain("ml_gemm_roofline");
+    expect(diagonalCacheThrashing.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(diagonalCacheThrashing.topicIds).toContain("ml_gemm_roofline");
+    expect(diagonalCacheThrashing.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 steps with matrix snapshots", () => {
-    const steps = generateDiagonalCacheThrashingSteps(
-      DEFAULT_DIAGONALCACHETHRASHING_INPUT,
-    );
+    const steps = generateDiagonalCacheThrashingSteps(DEFAULT_DIAGONALCACHETHRASHING_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Diagonal Cache Thrashing Simulator");
     expect(steps[steps.length - 1].explanation.what).toBe("Diagonal Access Simulation Complete");
@@ -31,7 +29,7 @@ describe("diagonal-cache-thrashing (Diagonal Matrix Access Cache Thrashing)", ()
   it("should map every line of code in lineExplanations", () => {
     const lines = DIAGONALCACHETHRASHING_CODE.trim().split("\n");
     const lineCount = lines.length;
-    const explanations = diagonalCacheThrashing.trivia.lineExplanations;
+    const explanations = requireLineExplanations(diagonalCacheThrashing);
 
     for (let i = 1; i <= lineCount; i++) {
       expect(explanations[i]).toBeDefined();

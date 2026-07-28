@@ -43,8 +43,7 @@ export const FORD_FULKERSON_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Bottleneck",
-      definition:
-        "The minimal residual capacity $\\gamma$ along an augmenting path $P$.",
+      definition: "The minimal residual capacity $\\gamma$ along an augmenting path $P$.",
     },
     {
       term: "Max-Flow Min-Cut Theorem",
@@ -62,11 +61,10 @@ export const FORD_FULKERSON_TOPIC_GUIDE: TopicGuide = {
 export const FORD_FULKERSON_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines the main Ford-Fulkerson function taking nodes, edges, source, and sink.",
-    2: "Initializes empty capacity dictionary mapping edge tuples to max limits.",
-    3: "Initializes empty flow dictionary mapping edge tuples to current flow.",
-    4: "Iterates through each input edge tuple to populate initial values.",
-    5: "Sets initial capacity limit for directed edge (u, v).",
-    6: "Initializes starting flow to zero for directed edge (u, v).",
+    2: "Initializes empty capacity and flow dictionaries mapping edge tuples.",
+    3: "Iterates through each input edge tuple to populate initial values.",
+    4: "Sets initial capacity limit for directed edge (u, v).",
+    5: "Initializes starting flow to zero for directed edge (u, v).",
     8: "Defines helper recursive depth-first search to find an augmenting path.",
     9: "Base case: check if we reached the sink target node.",
     10: "Return the bottleneck flow accumulated along this path to the sink.",
@@ -76,7 +74,7 @@ export const FORD_FULKERSON_TRIVIA: TriviaMeta = {
     14: "Calculates remaining residual capacity (capacity minus current flow).",
     15: "Only proceed if there is positive residual capacity available.",
     16: "Recursively search deeper, updating minimum bottleneck capacity along path.",
-    17: "Checks if a valid augmenting path to sink was found with positive flow.",
+    17: "Augments flow along directed edge by adding bottleneck flow.",
     18: "Returns the bottleneck flow amount back up the recursion stack.",
     19: "If no outgoing edge leads to the sink, return 0 indicating no path.",
     21: "Initializes total accumulated maximum flow to zero.",

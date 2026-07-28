@@ -7,11 +7,7 @@ export interface ModularExponentiationInput {
   mod: number;
 }
 
-export const PYTHON_MODULAR_EXPONENTIATION_CODE = `
-def mod_pow(base: int, exp: int, mod: int) -> int:
-    """
-    Computes (base^exp) % mod in O(log exp) time using binary exponentiation.
-    """
+export const PYTHON_MODULAR_EXPONENTIATION_CODE = `def mod_pow(base: int, exp: int, mod: int) -> int:
     res = 1
     base = base % mod
     while exp > 0:
@@ -22,11 +18,7 @@ def mod_pow(base: int, exp: int, mod: int) -> int:
     return res
 
 def mod_inverse(a: int, m: int) -> int:
-    """
-    Computes modular inverse a^(-1) mod m via Fermat's Little Theorem (assumes m is prime).
-    """
-    return mod_pow(a, m - 2, m)
-`;
+    return mod_pow(a, m - 2, m)`;
 
 export const DEFAULT_MODULAR_EXPONENTIATION_INPUT: ModularExponentiationInput = {
   base: 7,
@@ -48,11 +40,34 @@ export const generateModularExponentiationSteps = (
   let currentExp = origExp;
   let res = 1;
 
-  const createVectorSnapshot = (rVal: number, bVal: number, eVal: number, activeSlot?: "res" | "base" | "exp") => {
+  const createVectorSnapshot = (
+    rVal: number,
+    bVal: number,
+    eVal: number,
+    activeSlot?: "res" | "base" | "exp",
+  ) => {
     const vectors: VectorItem[] = [
-      { id: "res", label: `res = ${rVal}`, x: rVal % 100, y: 0, state: activeSlot === "res" ? "active" : "result" },
-      { id: "base", label: `base = ${bVal}`, x: bVal % 100, y: 1, state: activeSlot === "base" ? "active" : "compared" },
-      { id: "exp", label: `exp = ${eVal} (0b${eVal.toString(2)})`, x: eVal, y: 2, state: activeSlot === "exp" ? "active" : "default" },
+      {
+        id: "res",
+        label: `res = ${rVal}`,
+        x: rVal % 100,
+        y: 0,
+        state: activeSlot === "res" ? "active" : "result",
+      },
+      {
+        id: "base",
+        label: `base = ${bVal}`,
+        x: bVal % 100,
+        y: 1,
+        state: activeSlot === "base" ? "active" : "compared",
+      },
+      {
+        id: "exp",
+        label: `exp = ${eVal} (0b${eVal.toString(2)})`,
+        x: eVal,
+        y: 2,
+        state: activeSlot === "exp" ? "active" : "default",
+      },
     ];
 
     return {
@@ -65,7 +80,7 @@ export const generateModularExponentiationSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
+    codeLine: 1,
     explanation: {
       what: `Starting Binary Modular Exponentiation: (${origBase}^${origExp}) mod ${mod}.`,
       why: "Binary exponentiation computes base^exp in O(log exp) multiplications by scanning binary bits.",
@@ -83,28 +98,28 @@ export const generateModularExponentiationSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 2,
     explanation: {
       what: "Set initial accumulator res = 1.",
-      why: "Multiplicative identity base case.",
+      why: "Multiplicative identity base case for exponentiation.",
     },
     primarySnapshot: createVectorSnapshot(res, currentBase, currentExp, "res"),
     auxiliaryState: {
-      hashMap: { "res": 1 },
+      hashMap: { res: 1 },
     },
     variables: { base: currentBase, exp: currentExp, res: 1 },
   });
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 3,
     explanation: {
       what: `Reduced base: base = ${origBase} % ${mod} = ${currentBase}.`,
-      why: "Initial modular reduction prevents large number multiplication overflow.",
+      why: "Initial modular reduction prevents unnecessary overflow during multiplications.",
     },
     primarySnapshot: createVectorSnapshot(res, currentBase, currentExp, "base"),
     auxiliaryState: {
-      hashMap: { "base": currentBase },
+      hashMap: { base: currentBase },
     },
     variables: { base: currentBase, exp: currentExp, res: 1 },
   });
@@ -114,12 +129,10 @@ export const generateModularExponentiationSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 8,
+      codeLine: 4,
       explanation: {
-        what: `Evaluating current exponent exp = ${currentExp} (binary ${currentExp.toString(2)}).`,
-        why: isOdd
-          ? `Exponent ${currentExp} is odd (lowest binary bit is 1), so multiply res by current base.`
-          : `Exponent ${currentExp} is even (lowest binary bit is 0), skip result multiplication.`,
+        what: `Evaluating loop condition: exp = ${currentExp} > 0.`,
+        why: `Exponent is positive (binary 0b${currentExp.toString(2)}), continuing exponentiation loop.`,
       },
       primarySnapshot: createVectorSnapshot(res, currentBase, currentExp, "exp"),
       auxiliaryState: {
@@ -131,13 +144,32 @@ export const generateModularExponentiationSteps = (
       variables: { base: currentBase, exp: currentExp, res },
     });
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 5,
+      explanation: {
+        what: `Checking if exp % 2 == 1: ${currentExp} % 2 == ${currentExp % 2}.`,
+        why: isOdd
+          ? `Exponent ${currentExp} is odd (lowest bit is 1), so multiply res by current base power.`
+          : `Exponent ${currentExp} is even (lowest bit is 0), skip result multiplication.`,
+      },
+      primarySnapshot: createVectorSnapshot(res, currentBase, currentExp, "exp"),
+      auxiliaryState: {
+        hashMap: {
+          "Exponent (binary)": currentExp.toString(2),
+          "Is Odd": isOdd ? "True" : "False",
+        },
+      },
+      variables: { base: currentBase, exp: currentExp, res },
+    });
+
     if (isOdd) {
       const prevRes = res;
       res = (res * currentBase) % mod;
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 10,
+        codeLine: 6,
         explanation: {
           what: `Updated res = (${prevRes} * ${currentBase}) % ${mod} = ${res}.`,
           why: "Accumulated current base power into running result.",
@@ -159,7 +191,7 @@ export const generateModularExponentiationSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 11,
+      codeLine: 7,
       explanation: {
         what: `Squared base: (${prevBase} * ${prevBase}) % ${mod} = ${currentBase}.`,
         why: "Repeated squaring doubles power of base for next binary bit position.",
@@ -177,7 +209,7 @@ export const generateModularExponentiationSteps = (
     currentExp = Math.floor(currentExp / 2);
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
+      codeLine: 8,
       explanation: {
         what: `Halved exp: exp //= 2 -> ${currentExp}.`,
         why: "Shift right to next binary bit position.",
@@ -192,10 +224,26 @@ export const generateModularExponentiationSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 4,
+    explanation: {
+      what: `Evaluating loop condition: exp = 0 > 0 -> False.`,
+      why: "Exponent reached 0, terminating loop.",
+    },
+    primarySnapshot: createVectorSnapshot(res, currentBase, 0, "exp"),
+    auxiliaryState: {
+      hashMap: {
+        "Remaining exp": 0,
+      },
+    },
+    variables: { base: currentBase, exp: 0, res },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 9,
     explanation: {
       what: `Finished Modular Exponentiation: (${origBase}^${origExp}) mod ${mod} = ${res}.`,
-      why: "Exponent exp reached 0.",
+      why: "Return final accumulated result.",
     },
     primarySnapshot: createVectorSnapshot(res, currentBase, 0, "res"),
     auxiliaryState: {
@@ -236,49 +284,43 @@ export const MODULAR_EXPONENTIATION_TOPIC_GUIDE: TopicGuide = {
   keyTerms: [
     {
       term: "Binary Exponentiation",
-      definition: "An algorithm evaluating $b^e \\bmod m$ in $\\mathcal{O}(\\log e)$ operations via repeated squaring.",
+      definition:
+        "An algorithm evaluating $b^e \\bmod m$ in $\\mathcal{O}(\\log e)$ operations via repeated squaring.",
     },
     {
       term: "Fermat's Little Theorem",
-      definition: "The number-theoretic identity $a^{p-1} \\equiv 1 \\pmod p$ for prime $p$ and $\\gcd(a, p) = 1$.",
+      definition:
+        "The number-theoretic identity $a^{p-1} \\equiv 1 \\pmod p$ for prime $p$ and $\\gcd(a, p) = 1$.",
     },
     {
       term: "Modular Multiplicative Inverse",
-      definition: "An integer $x$ satisfying $a \\cdot x \\equiv 1 \\pmod m$, denoted $a^{-1} \\bmod m$.",
+      definition:
+        "An integer $x$ satisfying $a \\cdot x \\equiv 1 \\pmod m$, denoted $a^{-1} \\bmod m$.",
     },
   ],
 };
 
 export const MODULAR_EXPONENTIATION_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Empty leading line for code formatting.",
-    2: "Defines mod_pow function signature taking base $b$, exponent $e$, and modulus $m$.",
-    3: "Opening docstring tag.",
-    4: "Docstring describing $\\mathcal{O}(\\log e)$ binary modular exponentiation.",
-    5: "Closing docstring tag.",
-    6: "Initializes result accumulator $res = 1$, representing $b^0$.",
-    7: "Reduces initial base modulo $mod$ ($b \\leftarrow b \\bmod m$).",
-    8: "Loops while exponent $exp > 0$, iterating over binary bits.",
-    9: "Checks if current lowest bit of $exp$ is 1 ($exp \\bmod 2 == 1$).",
-    10: "Multiplies running result $res$ by current base power modulo $mod$ when bit is 1.",
-    11: "Squares base modulo $mod$ ($base \\leftarrow base^2 \\bmod m$) for next binary power.",
-    12: "Halves exponent power ($exp \\leftarrow \\lfloor exp / 2 \\rfloor$) via right-shift.",
-    13: "Returns final modular exponentiation result $b^e \\bmod m$.",
-    14: "Empty line separating functions.",
-    15: "Defines mod_inverse function signature taking integer $a$ and prime modulus $m$.",
-    16: "Opening docstring tag.",
-    17: "Docstring describing Fermat's Little Theorem modular inverse.",
-    18: "Closing docstring tag.",
-    19: "Returns mod_pow(a, m - 2, m), computing $a^{-1} \\equiv a^{m-2} \\pmod m$.",
-    20: "Empty trailing line for code formatting.",
+    1: "Defines mod_pow function signature taking base $b$, exponent $e$, and modulus $m$.",
+    2: "Initializes result accumulator $res = 1$, representing $b^0$.",
+    3: "Reduces initial base modulo $mod$ ($b \\leftarrow b \\bmod m$).",
+    4: "Loops while exponent $exp > 0$, iterating over binary bits.",
+    5: "Checks if current lowest bit of $exp$ is 1 ($exp \\bmod 2 == 1$).",
+    6: "Multiplies running result $res$ by current base power modulo $mod$ when bit is 1.",
+    7: "Squares base modulo $mod$ ($base \\leftarrow base^2 \\bmod m$) for next binary power.",
+    8: "Halves exponent power ($exp \\leftarrow \\lfloor exp / 2 \\rfloor$) via right-shift.",
+    9: "Returns final modular exponentiation result $b^e \\bmod m$.",
+    10: "Empty line separating functions.",
+    11: "Defines mod_inverse function signature taking integer $a$ and prime modulus $m$.",
+    12: "Returns mod_pow(a, m - 2, m), computing $a^{-1} \\equiv a^{m-2} \\pmod m$.",
   },
 };
 
 export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentiationInput> = {
   id: "modular-exponentiation-inverse",
   title: "Modular Exponentiation & Inverse",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Compute $(b^e) \\bmod m$ in $\\mathcal{O}(\\log e)$ time using binary exponentiation, and calculate modular multiplicative inverse $a^{-1} \\bmod p$ via Fermat's Little Theorem when $p$ is prime.\n\n$$\\text{mod\\_pow}(b, e, m) = \\prod_{b_i = 1} b^{2^i} \\bmod m$$\n\n### Mathematical State Vector\nThe dynamic state is represented by state vector $\\mathbf{v} = (res, base, exp)^T \\in \\mathbb{Z}^3$, where at step $k$, $exp_k = \\lfloor e / 2^k \\rfloor$ and $base_k = b^{2^k} \\bmod m$.\n\n### Input Parameters\n- `base` ($b \\in \\mathbb{Z}$): Base integer.\n- `exp` ($e \\in \\mathbb{Z}_{\\ge 0}$): Exponent power.\n- `mod` ($m \\in \\mathbb{Z}_{> 0}$): Modulo divisor.\n\n### Output\n- `int`: $(b^e) \\bmod m$.\n\n### Edge Cases & Constraints\n- `exp = 0`: Returns 1.\n- Fermat's Inverse: Assumes $m$ is prime, computing $a^{m-2} \\bmod m$.",
@@ -296,7 +338,8 @@ export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentia
       title: "Modular Inverse (3^(-1) mod 11)",
       input: { base: 3, exp: 9, mod: 11 },
       output: "4",
-      explanation: "3^(-1) mod 11 via Fermat = 3^(11-2) mod 11 = 3^9 mod 11 = 4. (3*4 = 12 ≡ 1 mod 11).",
+      explanation:
+        "3^(-1) mod 11 via Fermat = 3^(11-2) mod 11 = 3^9 mod 11 = 4. (3*4 = 12 ≡ 1 mod 11).",
     },
     {
       kind: "negative",
@@ -315,7 +358,8 @@ export const modularExponentiationInverse: AlgorithmDefinition<ModularExponentia
   spaceComplexity: "O(1)",
   complexityAnalysis: {
     time: "The loop executes $\\lfloor \\log_2 exp \\rfloor + 1$ iterations. Each step performs $\\mathcal{O}(1)$ modular multiplications, yielding overall runtime $\\mathcal{O}(\\log exp)$.",
-    space: "Requires $\\mathcal{O}(1)$ space as only accumulator variables $(res, base, exp)$ are stored.",
+    space:
+      "Requires $\\mathcal{O}(1)$ space as only accumulator variables $(res, base, exp)$ are stored.",
   },
   topicGuide: MODULAR_EXPONENTIATION_TOPIC_GUIDE,
   trivia: MODULAR_EXPONENTIATION_TRIVIA,

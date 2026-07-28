@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
 import type {
-  CategoryType,
+  TopicId,
   SourceKind,
   LeetCodeSource,
   BookSource,
@@ -9,7 +9,7 @@ import type {
 } from "../../types/dsa";
 import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
 import { getAllAlgorithms } from "../../algorithms/registry";
-import { getAlgorithmCategories, getAlgorithmPrimaryCategory } from "../../app/categories";
+import { getAlgorithmTopics, isMlInfraAlgorithm } from "../../app/topics";
 import {
   Badge,
   Button,
@@ -21,16 +21,16 @@ import {
 } from "../index";
 import { Dialog } from "@base-ui-components/react/dialog";
 
-import { CATEGORIES } from "../../app/categories";
+import { TOPICS } from "../../app/topics";
 
-export const ALL_CATEGORIES: { id: CategoryType; label: string }[] = CATEGORIES;
+export const ALL_TOPICS: readonly { id: TopicId; label: string }[] = TOPICS;
 
 export interface QuickAccessDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectAlgorithm: (algorithmId: string, categoryFolder?: CategoryType) => void;
+  onSelectAlgorithm: (algorithmId: string) => void;
   activeAlgorithmId?: string;
-  categories?: { id: CategoryType; label: string }[];
+  topics?: readonly { id: TopicId; label: string }[];
 }
 
 export function QuickAccessDrawer({
@@ -38,55 +38,53 @@ export function QuickAccessDrawer({
   onClose,
   onSelectAlgorithm,
   activeAlgorithmId,
-  categories = ALL_CATEGORIES,
+  topics = ALL_TOPICS,
 }: QuickAccessDrawerProps): React.ReactElement {
   const allAlgorithms = useMemo(() => getAllAlgorithms(), []);
   const algMap = useMemo(() => new Map(allAlgorithms.map((alg) => [alg.id, alg])), [allAlgorithms]);
 
-  const activeCategoryId = useMemo(
-    () => (activeAlgorithmId !== undefined ? algMap.get(activeAlgorithmId)?.category : undefined),
+  const activeTopicIds = useMemo(
+    () => (activeAlgorithmId !== undefined ? algMap.get(activeAlgorithmId)?.topicIds : undefined),
     [algMap, activeAlgorithmId],
   );
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"all" | SourceKind>("all");
 
-  const [openMap, setOpenMap] = useState<Partial<Record<CategoryType, boolean>>>(() =>
-    activeCategoryId !== undefined ? { [activeCategoryId]: true } : {},
+  const [openMap, setOpenMap] = useState<Partial<Record<TopicId, boolean>>>(() =>
+    Object.fromEntries((activeTopicIds ?? []).map((topicId) => [topicId, true])),
   );
 
   useEffect(() => {
     if (!isOpen) return;
     setSearchQuery("");
     setSourceFilter("all");
-    setOpenMap(activeCategoryId !== undefined ? { [activeCategoryId]: true } : {});
-  }, [isOpen, activeCategoryId]);
+    setOpenMap(Object.fromEntries((activeTopicIds ?? []).map((topicId) => [topicId, true])));
+  }, [isOpen, activeTopicIds]);
 
   const query = searchQuery.trim().toLowerCase();
   const isFiltering = query.length > 0 || sourceFilter !== "all";
 
-  const categoryIdSet = useMemo(() => new Set(categories.map((cat) => cat.id)), [categories]);
+  const topicIdSet = useMemo(() => new Set(topics.map((topic) => topic.id)), [topics]);
   const totalAlgorithms = useMemo(
     () =>
-      allAlgorithms.filter((alg) => getAlgorithmCategories(alg).some((c) => categoryIdSet.has(c)))
-        .length,
-    [allAlgorithms, categoryIdSet],
+      allAlgorithms.filter((algorithm) =>
+        getAlgorithmTopics(algorithm).some((topicId) => topicIdSet.has(topicId)),
+      ).length,
+    [allAlgorithms, topicIdSet],
   );
 
   const groups = useMemo(() => {
-    return categories
-      .map((cat) => {
-        const catAlgorithms = allAlgorithms.filter((alg) =>
-          getAlgorithmCategories(alg).includes(cat.id),
+    return topics
+      .map((topic) => {
+        const topicAlgorithms = allAlgorithms.filter((algorithm) =>
+          getAlgorithmTopics(algorithm).includes(topic.id),
         );
-        const matches = catAlgorithms.filter((alg) => {
+        const matches = topicAlgorithms.filter((alg) => {
           if (sourceFilter !== "all") {
             const sources = getAlgorithmSources(alg);
             const matchesSource = sources.some((s) => getSourceKind(s) === sourceFilter);
-            const isMl =
-              sourceFilter === "ml_infra" &&
-              (Boolean(alg.isMlInfra) ||
-                getAlgorithmCategories(alg).some((c) => c.startsWith("ml_")));
+            const isMl = sourceFilter === "ml_infra" && isMlInfraAlgorithm(alg);
             if (!matchesSource && !isMl) {
               return false;
             }
@@ -97,7 +95,7 @@ export function QuickAccessDrawer({
           if (
             alg.title.toLowerCase().includes(query) ||
             alg.description.toLowerCase().includes(query) ||
-            cat.label.toLowerCase().includes(query) ||
+            topic.label.toLowerCase().includes(query) ||
             (alg.difficulty?.toLowerCase().includes(query) ?? false)
           ) {
             return true;
@@ -136,13 +134,13 @@ export function QuickAccessDrawer({
             return false;
           });
         });
-        return { category: cat, algorithms: matches, totalCount: catAlgorithms.length };
+        return { topic, algorithms: matches, totalCount: topicAlgorithms.length };
       })
       .filter((group) => !isFiltering || group.algorithms.length > 0);
-  }, [categories, allAlgorithms, isFiltering, query, sourceFilter]);
+  }, [topics, allAlgorithms, isFiltering, query, sourceFilter]);
 
-  const handleSelect = (algorithmId: string, categoryFolder: CategoryType) => {
-    onSelectAlgorithm(algorithmId, categoryFolder);
+  const handleSelect = (algorithmId: string) => {
+    onSelectAlgorithm(algorithmId);
     onClose();
   };
 
@@ -163,7 +161,7 @@ export function QuickAccessDrawer({
           <div className="ui-drawer__body p-6 md:p-8">
             <div className="flex flex-col gap-3">
               <p className="m-0 text-sm text-[var(--text-muted)]">
-                {totalAlgorithms} algorithms across {categories.length} categories
+                {totalAlgorithms} algorithms across {topics.length} topics
               </p>
 
               <Input
@@ -223,18 +221,18 @@ export function QuickAccessDrawer({
                 <div className="flex flex-col gap-2">
                   {groups.map((group) => (
                     <Collapsible
-                      key={group.category.id}
+                      key={group.topic.id}
                       className="border border-[var(--border-subtle)] rounded-[var(--radius-md)] overflow-hidden shadow-sm"
-                      title={group.category.label}
+                      title={group.topic.label}
                       meta={
                         <Badge size="sm" variant="neutral">
                           {isFiltering ? group.algorithms.length : group.totalCount}
                         </Badge>
                       }
-                      open={isFiltering ? true : openMap[group.category.id] === true}
+                      open={isFiltering ? true : openMap[group.topic.id] === true}
                       onOpenChange={(open) => {
                         if (isFiltering) return;
-                        setOpenMap((prev) => ({ ...prev, [group.category.id]: open }));
+                        setOpenMap((prev) => ({ ...prev, [group.topic.id]: open }));
                       }}
                       contentClassName="!p-0"
                     >
@@ -251,7 +249,7 @@ export function QuickAccessDrawer({
                               icon={
                                 isActive ? <Check className="w-3.5 h-3.5 shrink-0" /> : undefined
                               }
-                              onClick={() => handleSelect(alg.id, getAlgorithmPrimaryCategory(alg))}
+                              onClick={() => handleSelect(alg.id)}
                               className="justify-start text-left font-normal"
                             >
                               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">

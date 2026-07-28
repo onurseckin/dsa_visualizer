@@ -73,22 +73,39 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
   const LOGN = Math.max(1, Math.ceil(Math.log2(n + 1)));
   const depth = Array(n).fill(0);
   const up: number[][] = Array.from({ length: n }, () => Array(LOGN).fill(0));
-  const children: number[][] = Array.from({ length: n }, () => []);
 
-  // Precompute DFS tree from root 0
+  // Precompute tree children structure rooted at 0 for tree snapshot layout
+  const children: number[][] = Array.from({ length: n }, () => []);
+  const buildTreeChildren = (curr: number, p: number) => {
+    for (const nxt of adj[curr]) {
+      if (nxt !== p) {
+        children[curr].push(nxt);
+        buildTreeChildren(nxt, curr);
+      }
+    }
+  };
+  if (n > 0) buildTreeChildren(0, 0);
+
   const steps: AlgorithmStep[] = [];
   let stepIdx = 0;
 
-  const buildTreeSnapshot = (activeU: number, activeV: number, lcaNode: number = -1) => {
+  const buildTreeSnapshot = (
+    activeU: number,
+    activeV: number,
+    lcaNode: number = -1,
+    visitingNode: number = -1,
+  ) => {
     const treeNodes: TreeNodeItem[] = Array.from({ length: n }, (_, i) => {
       const leftChild = children[i]?.[0];
       const rightChild = children[i]?.[1];
       const isActive = i === activeU || i === activeV;
       const isLca = i === lcaNode;
+      const isVisiting = i === visitingNode;
 
       let state: TreeNodeItem["state"] = "default";
       if (isLca) state = "sorted";
       else if (isActive) state = "active";
+      else if (isVisiting) state = "compare";
 
       return {
         id: String(i),
@@ -106,12 +123,13 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     };
   };
 
+  // Step 1: Function entry / init
   steps.push({
     stepIndex: stepIdx++,
     codeLine: 3,
     explanation: {
       what: `Initialize Binary Lifting LCA for $N = ${n}$ nodes and query LCA(${targetU}, ${targetV}).`,
-      why: "Build tree graph and prepare binary jump table.",
+      why: "Target query pair is set. We will build adjacency representation, DFS depths, and the $2^j$ binary jump table.",
     },
     primarySnapshot: buildTreeSnapshot(targetU, targetV),
     auxiliaryState: {
@@ -123,43 +141,31 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     variables: { targetU, targetV, numNodes: n },
   });
 
-  const dfs = (u: number, p: number, d: number) => {
-    depth[u] = d;
-    up[u][0] = p;
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 14,
-      explanation: {
-        what: `DFS visit Node ${u}: depth[${u}] = ${d}, 1-step parent up[${u}][0] = ${p}.`,
-        why: "Record vertex depth and immediate parent pointer.",
+  // Step 2: Adjacency list creation
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 4,
+    explanation: {
+      what: `Built undirected adjacency list for ${n} vertices with ${edgeList.length} edges.`,
+      why: "Adjacency list allows fast neighbor exploration during tree traversal.",
+    },
+    primarySnapshot: buildTreeSnapshot(targetU, targetV),
+    auxiliaryState: {
+      customState: {
+        Status: "Adjacency List Built",
+        "Target Query": `LCA(${targetU}, ${targetV})`,
       },
-      primarySnapshot: buildTreeSnapshot(targetU, targetV),
-      auxiliaryState: {
-        customState: {
-          "Visiting Node": u,
-          Depth: d,
-          "Direct Parent": p,
-        },
-      },
-      variables: { currNode: u, depth: d, parent: p },
-    });
+    },
+    variables: { numNodes: n, numEdges: edgeList.length },
+  });
 
-    for (const v of adj[u]) {
-      if (v !== p) {
-        children[u].push(v);
-        dfs(v, u, d + 1);
-      }
-    }
-  };
-
-  if (n > 0) dfs(0, 0, 0);
-
+  // Step 3: Calculate LOGN limit
   steps.push({
     stepIndex: stepIdx++,
     codeLine: 9,
     explanation: {
-      what: `Calculated MAX_LOG = ${LOGN} based on $N = ${n}$.`,
-      why: "Upward jumps will use powers of two up to $2^{${LOGN - 1}}$.",
+      what: `Calculated LOGN = ceil(log2(${n} + 1)) = ${LOGN}.`,
+      why: `The maximum power-of-two jump height needed for $N=${n}$ nodes is $2^{${LOGN - 1}} = ${1 << (LOGN - 1)}$.`,
     },
     primarySnapshot: buildTreeSnapshot(targetU, targetV),
     auxiliaryState: {
@@ -171,24 +177,109 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     variables: { LOGN },
   });
 
+  // Step 4: Initialize depth array
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 20,
+    codeLine: 10,
     explanation: {
-      what: `Ran DFS from root 0 to assign depths and 1-step parent pointers (up[i][0]).`,
-      why: `Root depth is 0. Depths range from 0 to ${Math.max(...depth)}.`,
+      what: `Initialized depth array of size ${n} with 0.`,
+      why: "Each node's distance from root (depth) will dictate how far up we must equalize nodes during query execution.",
     },
     primarySnapshot: buildTreeSnapshot(targetU, targetV),
     auxiliaryState: {
       customState: {
-        Depths: depth.map((d, i) => `V${i}:${d}`).join(", "),
-        "1-Step Parents": up.map((r, i) => `V${i}->${r[0]}`).join(", "),
+        Status: "Depth Array Initialized",
+        LOGN,
       },
     },
-    variables: { rootDepth: 0 },
+    variables: { numNodes: n },
   });
 
-  // Precompute binary lifting table with step logging
+  // Step 5: Initialize 2D up table
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 11,
+    explanation: {
+      what: `Initialized binary lifting table up[${n}][${LOGN}] with 0s.`,
+      why: "up[u][j] will store the 2^j-th ancestor for vertex u.",
+    },
+    primarySnapshot: buildTreeSnapshot(targetU, targetV),
+    auxiliaryState: {
+      customState: {
+        Status: "2D Table Initialized",
+        "Table Size": `${n} x ${LOGN}`,
+      },
+    },
+    variables: { numNodes: n, LOGN },
+  });
+
+  // Step 6: Invoke DFS from root 0
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 20,
+    explanation: {
+      what: `Execute DFS traversal starting from root node 0 with parent 0 and depth 0.`,
+      why: "Rooting the tree at node 0 allows calculating depth[node] and 1-step parent up[node][0].",
+    },
+    primarySnapshot: buildTreeSnapshot(targetU, targetV, -1, 0),
+    auxiliaryState: {
+      customState: {
+        Status: "Starting DFS",
+        "Root Node": 0,
+      },
+    },
+    variables: { root: 0, depth: 0 },
+  });
+
+  const dfs = (u: number, p: number, d: number) => {
+    depth[u] = d;
+    up[u][0] = p;
+
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 14,
+      explanation: {
+        what: `DFS visit Node ${u}: set depth[${u}] = ${d}.`,
+        why: "Depth records the node's distance from root 0.",
+      },
+      primarySnapshot: buildTreeSnapshot(targetU, targetV, -1, u),
+      auxiliaryState: {
+        customState: {
+          "Visiting Node": u,
+          Depth: d,
+          "1-Step Parent": p,
+        },
+      },
+      variables: { currNode: u, depth: d, parent: p },
+    });
+
+    steps.push({
+      stepIndex: stepIdx++,
+      codeLine: 15,
+      explanation: {
+        what: `Set immediate parent up[${u}][0] = ${p}.`,
+        why: "up[u][0] serves as the base case 2^0 = 1 jump ancestor for binary lifting DP.",
+      },
+      primarySnapshot: buildTreeSnapshot(targetU, targetV, -1, u),
+      auxiliaryState: {
+        customState: {
+          "Visiting Node": u,
+          "up[u][0]": p,
+        },
+      },
+      variables: { currNode: u, parent: p },
+    });
+
+    for (const v of adj[u]) {
+      if (v !== p) {
+        dfs(v, u, d + 1);
+      }
+    }
+  };
+
+  if (n > 0) dfs(0, 0, 0);
+
+  // Precompute binary lifting DP table
   for (let j = 1; j < LOGN; j++) {
     for (let i = 0; i < n; i++) {
       up[i][j] = up[up[i][j - 1]][j - 1];
@@ -196,14 +287,15 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
         stepIndex: stepIdx++,
         codeLine: 23,
         explanation: {
-          what: `DP table up[Node ${i}][2^${j}=${1 << j}] = 2^${j - 1} ancestor of Node ${up[i][j - 1]} -> Node ${up[i][j]}.`,
-          why: "Precomputing power-of-two ancestor jumps for O(log N) LCA queries.",
+          what: `DP recurrence: up[Node ${i}][2^${j}=${1 << j}] = up[up[${i}][${j - 1}]][${j - 1}] = Node ${up[i][j]}.`,
+          why: `The 2^${j}-th ancestor of Node ${i} is found by jumping 2^${j - 1} levels to Node ${up[i][j - 1]}, then jumping another 2^${j - 1} levels.`,
         },
         primarySnapshot: buildTreeSnapshot(targetU, targetV),
         auxiliaryState: {
           customState: {
             "DP Cell": `up[${i}][${j}] = ${up[i][j]}`,
-            "2^j Ancestor": up[i][j],
+            "Jump Level": `2^${j} (${1 << j} steps)`,
+            "Intermediate Node": up[i][j - 1],
           },
         },
         variables: { node: i, power: j, ancestor: up[i][j] },
@@ -219,7 +311,10 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     codeLine: 25,
     explanation: {
       what: `Check depth condition: depth[${u}] = ${depth[u]}, depth[${v}] = ${depth[v]}.`,
-      why: depth[u] < depth[v] ? `depth[${u}] < depth[${v}], so we swap u and v.` : `depth[${u}] >= depth[${v}], no swap needed.`,
+      why:
+        depth[u] < depth[v]
+          ? `depth[${u}] < depth[${v}], so swap u and v to ensure u is deeper.`
+          : `depth[${u}] >= depth[${v}], node u is already deeper or at equal depth.`,
     },
     primarySnapshot: buildTreeSnapshot(u, v),
     auxiliaryState: {
@@ -239,8 +334,8 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
       stepIndex: stepIdx++,
       codeLine: 26,
       explanation: {
-        what: `Swapped target nodes so Node ${u} is the deeper node.`,
-        why: "We always lift the deeper node u first to match node v's depth.",
+        what: `Swapped target nodes so u = Node ${u} (depth ${depth[u]}) and v = Node ${v} (depth ${depth[v]}).`,
+        why: "We always lift the deeper node u first to equalize depths.",
       },
       primarySnapshot: buildTreeSnapshot(u, v),
       auxiliaryState: {
@@ -258,8 +353,11 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     stepIndex: stepIdx++,
     codeLine: 28,
     explanation: {
-      what: `Depth difference diff = depth[${u}] - depth[${v}] = ${diff}.`,
-      why: diff > 0 ? `Node ${u} must be lifted by ${diff} levels.` : "Nodes already at identical depths.",
+      what: `Calculated depth difference diff = depth[${u}] - depth[${v}] = ${diff}.`,
+      why:
+        diff > 0
+          ? `Node ${u} must be lifted by ${diff} levels to match Node ${v}'s depth.`
+          : "Nodes are already at identical depths.",
     },
     primarySnapshot: buildTreeSnapshot(u, v),
     auxiliaryState: {
@@ -279,7 +377,9 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
         codeLine: 30,
         explanation: {
           what: `Check bit ${j} (2^${j} = ${1 << j}) of diff (${diff}): bit is ${bitSet ? "1" : "0"}.`,
-          why: bitSet ? `Jump Node u up by ${1 << j} levels to Node ${up[u][j]}.` : `Do not jump at level 2^${j}.`,
+          why: bitSet
+            ? `Jump Node u up by 2^${j} = ${1 << j} levels to Node ${up[u][j]}.`
+            : `Bit is 0, do not jump at power 2^${j}.`,
         },
         primarySnapshot: buildTreeSnapshot(u, v),
         auxiliaryState: {
@@ -299,7 +399,7 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
           codeLine: 31,
           explanation: {
             what: `Lifted Node u to Node ${u} at depth ${depth[u]}.`,
-            why: `Applied 2^${j} = ${1 << j} ancestor jump.`,
+            why: `Applied 2^${j} = ${1 << j} ancestor jump using up[${u}][${j}].`,
           },
           primarySnapshot: buildTreeSnapshot(u, v),
           auxiliaryState: {
@@ -318,8 +418,11 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     stepIndex: stepIdx++,
     codeLine: 33,
     explanation: {
-      what: `Check if u == v after depth equalization: u=${u}, v=${v}.`,
-      why: u === v ? `Node ${v} was an ancestor of original target node! Return ${u}.` : "Nodes are distinct at same depth, proceed to parallel binary lifting.",
+      what: `Check if u == v after depth equalization: u = ${u}, v = ${v}.`,
+      why:
+        u === v
+          ? `u == v (${u}), so original Node ${v} was an ancestor of Node ${targetU}. Return ${u} as LCA.`
+          : `u !== v (${u} != ${v}), nodes sit at the same depth but in separate subtrees. Proceed to parallel binary lifting.`,
     },
     primarySnapshot: buildTreeSnapshot(u, v, u === v ? u : -1),
     auxiliaryState: {
@@ -346,8 +449,8 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
         explanation: {
           what: `Inspect 2^${j} = ${1 << j} ancestors: up[${u}][${j}] = ${uAncestor}, up[${v}][${j}] = ${vAncestor}.`,
           why: diffAncestors
-            ? `Ancestors differ (${uAncestor} != ${vAncestor}), so jump up safely.`
-            : `Ancestors equal (${uAncestor}), jump power 2^${j} is too high (overshoots LCA).`,
+            ? `Ancestors differ (${uAncestor} != ${vAncestor}), so jump both nodes up by ${1 << j} levels.`
+            : `Ancestors are identical (${uAncestor}), jump 2^${j} would overshoot LCA or reach it prematurely. Skip this jump level.`,
         },
         primarySnapshot: buildTreeSnapshot(u, v),
         auxiliaryState: {
@@ -368,8 +471,8 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
           stepIndex: stepIdx++,
           codeLine: 38,
           explanation: {
-            what: `Lifted both nodes to u = ${u}, v = ${v} at depth ${depth[u]}.`,
-            why: `Parallel jump by ${1 << j} levels completed.`,
+            what: `Lifted both nodes to u = Node ${u}, v = Node ${v} at depth ${depth[u]}.`,
+            why: `Parallel jump by 2^${j} = ${1 << j} levels completed.`,
           },
           primarySnapshot: buildTreeSnapshot(u, v),
           auxiliaryState: {
@@ -390,8 +493,8 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
     stepIndex: stepIdx++,
     codeLine: 41,
     explanation: {
-      what: `Found LCA of nodes ${targetU} and ${targetV}: Node ${finalLca}!`,
-      why: "Lowest common ancestor identified in $O(\\log N)$ jump steps.",
+      what: `Found LCA of original nodes ${targetU} and ${targetV}: Node ${finalLca}!`,
+      why: "The Lowest Common Ancestor is the direct 1-step parent up[u][0] of the parallel-lifted positions.",
     },
     primarySnapshot: buildTreeSnapshot(u, v, finalLca),
     auxiliaryState: {
@@ -413,8 +516,7 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
 export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
   id: "binary-lifting-lca",
   title: "Binary Lifting for LCA",
-  category: "tree_fundamentals",
-  categories: ["tree_fundamentals", "tree_queries_and_diameter"],
+  topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
     "Compute the Lowest Common Ancestor (LCA) of nodes $u$ and $v$ in $O(\\log N)$ time per query after an $O(N \\log N)$ binary lifting precomputation.\n\n### Problem Statement\nGiven a tree with $N$ nodes rooted at node $0$ and a query pair of nodes $(u, v)$, find their Lowest Common Ancestor (LCA) using Binary Lifting (doubling dynamic programming).\n\nBinary Lifting precomputes a 2D dynamic programming table `up[u][j]` representing the $2^j$-th ancestor of node $u$. Query execution first equalizes the depths of $u$ and $v$ using powers-of-two jump steps, then lifts both nodes in parallel until they sit directly beneath their lowest common ancestor.\n\n### Input Parameters\n- `numNodes`: Integer $N$, total number of vertices ($0$ to $N-1$).\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `query`: A tuple `[u, v]` specifying the two target nodes for LCA evaluation.\n\n### Output\n- Returns the node index of the Lowest Common Ancestor $LCA(u, v)$.\n\n### Constraints & Edge Cases\n- $1 \\le N \\le 10^5$.\n- $0 \\le u, v < N$.\n- Root node is fixed at `0`.\n- Single node tree ($N=1$): returns `0`.\n- Ancestor query ($u$ is direct ancestor of $v$): returns $u$.",

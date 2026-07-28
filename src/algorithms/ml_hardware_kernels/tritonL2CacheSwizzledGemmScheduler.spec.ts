@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tritonL2CacheSwizzledGemmScheduler } from "./tritonL2CacheSwizzledGemmScheduler";
 
-describe("tritonL2CacheSwizzledGemmScheduler", () => {
+describe("triton-l2-cache-swizzled-gemm-scheduler", () => {
   it("should have valid metadata", () => {
     expect(tritonL2CacheSwizzledGemmScheduler.id).toBeDefined();
     expect(tritonL2CacheSwizzledGemmScheduler.title).toBeDefined();

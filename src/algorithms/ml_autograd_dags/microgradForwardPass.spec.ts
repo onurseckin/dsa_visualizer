@@ -8,10 +8,9 @@ import {
 describe("micrograd-forward-pass (Micrograd Computational Graph Forward Pass)", () => {
   it("should have correct metadata", () => {
     expect(microgradForwardPass.id).toBe("micrograd-forward-pass");
-    expect(microgradForwardPass.isMlInfra).toBe(true);
-    expect(microgradForwardPass.mlInfraLevel).toBe(3);
-    expect(microgradForwardPass.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(microgradForwardPass.categories).toContain("ml_autograd_dags");
+    expect(microgradForwardPass.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(microgradForwardPass.topicIds).toContain("ml_autograd_dags");
+    expect(microgradForwardPass.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

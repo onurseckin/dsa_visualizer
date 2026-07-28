@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface IvfPqCoarseCentroid {
@@ -21,7 +21,6 @@ export interface IvfPqAdcInput {
 }
 
 export const IVF_PQ_ADC_SEARCH_CODE = `def ivf_pq_adc_search(coarse_centroids: list[dict], codebook: list[list[list[float]]], vectors: list[dict], query: list[float], nprobe: int) -> list[tuple[str, float]]:
-    # Step 1: Probe nearest coarse inverted list centroids
     coarse_dists = []
     for c in coarse_centroids:
         d_sq = sum((q - x) ** 2 for q, x in zip(query, c["vector"]))
@@ -31,11 +30,9 @@ export const IVF_PQ_ADC_SEARCH_CODE = `def ivf_pq_adc_search(coarse_centroids: l
     
     results = []
     for c_id, c_vec, _ in probed:
-        # Step 2: Compute query residual w.r.t coarse centroid
         q_res = [q - c for q, c in zip(query, c_vec)]
         sub_len = len(q_res) // len(codebook)
         
-        # Step 3: Build Asymmetric Distance Lookup Table (LUT)
         lut = []
         for m, sub_cb in enumerate(codebook):
             q_sub = q_res[m * sub_len : (m + 1) * sub_len]
@@ -45,7 +42,6 @@ export const IVF_PQ_ADC_SEARCH_CODE = `def ivf_pq_adc_search(coarse_centroids: l
                 sub_lut.append(dist_sq)
             lut.append(sub_lut)
             
-        # Step 4: Sum precomputed sub-space LUT distances for IVF vectors
         ivf_list = [v for v in vectors if v["coarseId"] == c_id]
         for v in ivf_list:
             adc_dist = sum(lut[m][code] for m, code in enumerate(v["pqCodes"]))
@@ -90,25 +86,44 @@ export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 8,
+    codeLine: 7,
     explanation: {
-      what: `Probe Inverted File (nprobe=${input.nprobe})`,
-      why: `Query [${input.query.join(", ")}] probed nearest coarse centroid ${probed[0].id} (dist²=${probed[0].distSq.toFixed(1)}). IVF search limits candidate scanning.`,
+      what: `Probe Inverted File Coarse Centroids (nprobe=${input.nprobe})`,
+      why: `Query vector [${input.query.join(", ")}] calculated squared distances to ${input.coarseCentroids.length} coarse centroids. Top nprobe=${input.nprobe} closest centroid selected: ${probed[0]?.id} (dist²=${probed[0]?.distSq.toFixed(1)}).`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: input.coarseCentroids.map((c) => ({
-        id: `coarse-${c.id}`,
-        value: coarseDists.find((cd) => cd.id === c.id)?.distSq ?? 0,
-        state: probedIds.has(c.id) ? ("sorted" as ElementState) : ("default" as ElementState),
-      })),
+      kind: "vector",
+      vectors: [
+        {
+          id: "query",
+          label: "Query",
+          x: input.query[0] ?? 0,
+          y: input.query[1] ?? 0,
+          state: "active",
+          subText: `q=[${input.query.join(", ")}]`,
+        },
+        ...input.coarseCentroids.map((c) => {
+          const cd = coarseDists.find((d) => d.id === c.id);
+          const isProbed = probedIds.has(c.id);
+          return {
+            id: `coarse-${c.id}`,
+            label: `Centroid ${c.id}`,
+            x: c.vector[0] ?? 0,
+            y: c.vector[1] ?? 0,
+            state: isProbed ? ("result" as const) : ("default" as const),
+            subText: cd ? `dist²=${cd.distSq.toFixed(1)}` : `[${c.vector.join(", ")}]`,
+          };
+        }),
+      ],
+      planeTitle: `IVF Coarse Centroid Selection (nprobe=${input.nprobe})`,
+      dimensions: "2d",
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(coarseDists.map((cd) => [`Coarse_${cd.id}`, cd.distSq])),
     },
     variables: {
       nprobe: input.nprobe,
-      probedCentroid: probed[0].id,
+      probedCentroid: probed[0]?.id ?? "",
     },
   });
 
@@ -117,6 +132,54 @@ export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep
   for (const p of probed) {
     const qRes = input.query.map((q, idx) => q - p.vector[idx]);
     const subLen = Math.floor(qRes.length / input.codebook.length);
+
+    // Residual Step
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 11,
+      explanation: {
+        what: `Compute Query Residual Vector w.r.t. ${p.id}`,
+        why: `Subtract coarse centroid ${p.id} [${p.vector.join(", ")}] from Query [${input.query.join(", ")}] to yield residual vector q_res = [${qRes.map((r) => r.toFixed(1)).join(", ")}].`,
+      },
+      primarySnapshot: {
+        kind: "vector",
+        vectors: [
+          {
+            id: "query",
+            label: "Query",
+            x: input.query[0] ?? 0,
+            y: input.query[1] ?? 0,
+            state: "active",
+            subText: `[${input.query.join(", ")}]`,
+          },
+          {
+            id: `coarse-${p.id}`,
+            label: `Centroid ${p.id}`,
+            x: p.vector[0] ?? 0,
+            y: p.vector[1] ?? 0,
+            state: "compared",
+            subText: `[${p.vector.join(", ")}]`,
+          },
+          {
+            id: "residual",
+            label: "q_res",
+            x: qRes[0] ?? 0,
+            y: qRes[1] ?? 0,
+            state: "result",
+            subText: `q_res=[${qRes.map((r) => r.toFixed(1)).join(", ")}]`,
+          },
+        ],
+        planeTitle: `Query Residual Vector for Coarse List ${p.id}`,
+        dimensions: "2d",
+      },
+      auxiliaryState: {
+        distanceTable: Object.fromEntries(coarseDists.map((cd) => [`Coarse_${cd.id}`, cd.distSq])),
+      },
+      variables: {
+        coarseId: p.id,
+        subSpaces: input.codebook.length,
+      },
+    });
 
     // Build LUT
     const lut: number[][] = [];
@@ -131,20 +194,32 @@ export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep
       lut.push(subLut);
     }
 
+    const numRows = input.codebook.length;
+    const numCols = Math.max(...input.codebook.map((cb) => cb.length));
+
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 20,
+      codeLine: 15,
       explanation: {
-        what: `Build ADC Lookup Table (LUT) for ${p.id}`,
-        why: `Product Quantization (PQ) splits residual vectors into M=${input.codebook.length} sub-spaces. The M x K lookup table caches distances to codebook sub-centroids.`,
+        what: `Build ADC Lookup Table (LUT) Matrix for ${p.id}`,
+        why: `Product Quantization (PQ) decomposes residual vector into M=${numRows} sub-spaces. Precomputed matrix caches squared distances between query sub-vectors and codebook centroids.`,
       },
       primarySnapshot: {
-        kind: "array",
-        elements: input.vectors.map((v) => ({
-          id: `vec-${v.id}`,
-          value: 0,
-          state: v.coarseId === p.id ? ("active" as ElementState) : ("default" as ElementState),
-        })),
+        kind: "matrix",
+        rows: numRows,
+        cols: numCols,
+        rowHeaders: input.codebook.map((_, m) => `Sub-space ${m}`),
+        colHeaders: Array.from({ length: numCols }, (_, k) => `Code k=${k}`),
+        cells: lut.flatMap((subLut, m) =>
+          subLut.map((val, k) => ({
+            row: m,
+            col: k,
+            value: Number(val.toFixed(2)),
+            label: `LUT[${m}][${k}]`,
+            state: "active" as const,
+          })),
+        ),
+        title: `ADC Distance Lookup Table Matrix (M=${numRows} x K=${numCols})`,
       },
       auxiliaryState: {
         distanceTable: Object.fromEntries(
@@ -161,30 +236,36 @@ export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep
     for (const v of ivfList) {
       let adcDist = 0;
       v.pqCodes.forEach((code, m) => {
-        adcDist += lut[m][code];
+        adcDist += lut[m]?.[code] ?? 0;
       });
       results.push({ id: v.id, adcDist });
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 26,
+        codeLine: 25,
         explanation: {
           what: `Compute ADC Distance for Vector ${v.id}`,
-          why: `Vector ${v.id} (pqCodes:[${v.pqCodes.join(",")}]) yields ADC distance² = ${adcDist.toFixed(2)}. Summing LUT values approximates Euclidean distance.`,
+          why: `Vector ${v.id} (pqCodes: [${v.pqCodes.join(", ")}]) looks up sub-space distances from LUT: ${v.pqCodes.map((code, m) => `LUT[${m}][${code}]=${(lut[m]?.[code] ?? 0).toFixed(1)}`).join(" + ")} = ADC dist² of ${adcDist.toFixed(2)}.`,
         },
         primarySnapshot: {
-          kind: "array",
-          elements: input.vectors.map((item) => {
-            const res = results.find((r) => r.id === item.id);
-            let state: ElementState = "default";
-            if (item.id === v.id) state = "active";
-            else if (res) state = "visited";
-            return {
-              id: `vec-${item.id}`,
-              value: res?.adcDist ?? 0,
-              state,
-            };
-          }),
+          kind: "matrix",
+          rows: numRows,
+          cols: numCols,
+          rowHeaders: input.codebook.map((_, m) => `Sub-space ${m}`),
+          colHeaders: Array.from({ length: numCols }, (_, k) => `Code k=${k}`),
+          cells: lut.flatMap((subLut, m) =>
+            subLut.map((val, k) => {
+              const isSelected = v.pqCodes[m] === k;
+              return {
+                row: m,
+                col: k,
+                value: Number(val.toFixed(2)),
+                label: isSelected ? `V${v.id} Code` : `LUT[${m}][${k}]`,
+                state: isSelected ? ("sorted" as const) : ("inactive" as const),
+              };
+            }),
+          ),
+          title: `Vector ${v.id} ADC Lookups in Matrix (dist² = ${adcDist.toFixed(2)})`,
         },
         auxiliaryState: {
           distanceTable: Object.fromEntries(results.map((r) => [r.id, r.adcDist])),
@@ -201,18 +282,32 @@ export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 29,
+    codeLine: 28,
     explanation: {
       what: `Rank Probed IVF-PQ Nearest Neighbors`,
       why: `Final ranked candidates: ${results.map((r) => `${r.id} (dist²=${r.adcDist.toFixed(2)})`).join(", ")}.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: results.map((r, idx) => ({
-        id: `vec-${r.id}`,
-        value: r.adcDist,
-        state: idx === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-      })),
+      kind: "matrix",
+      rows: results.length,
+      cols: 2,
+      rowHeaders: results.map((_, idx) => `Rank ${idx + 1}`),
+      colHeaders: ["Vector ID", "ADC Squared Dist"],
+      cells: results.flatMap((r, idx) => [
+        {
+          row: idx,
+          col: 0,
+          value: r.id,
+          state: idx === 0 ? ("sorted" as const) : ("default" as const),
+        },
+        {
+          row: idx,
+          col: 1,
+          value: Number(r.adcDist.toFixed(2)),
+          state: idx === 0 ? ("sorted" as const) : ("default" as const),
+        },
+      ]),
+      title: "IVF-PQ ADC Final Ranked Results",
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries(results.map((r) => [r.id, r.adcDist])),
@@ -229,39 +324,37 @@ export const generateIvfPqAdcSearchSteps = (input: IvfPqAdcInput): AlgorithmStep
 const IVF_PQ_ADC_SEARCH_TRIVIA: TriviaMeta = {
   skipLines: [1],
   distractors: [
-    "coarse_dists.sort(key=lambda x: -x[2]) # Sort descending",
+    "coarse_dists.sort(key=lambda x: -x[2])",
     "sub_lut.append(sum((qs - ks) for qs, ks in zip(q_sub, k_centroid)))",
     "adc_dist = sum(lut[m][0] for m, code in enumerate(v['pqCodes']))",
   ],
   hints: [
     {
-      line: 8,
+      line: 7,
       hint: "Sort coarse inverted list centroids by distance to query and take top nprobe lists.",
     },
     {
-      line: 20,
+      line: 15,
       hint: "Precompute sub-space distance lookup table (LUT) between query residual and codebook centroids.",
     },
     {
-      line: 26,
+      line: 25,
       hint: "Accumulate sub-space LUT values using vector's quantized PQ indices to calculate ADC distance.",
     },
   ],
   lineExplanations: {
     1: "Defines IVF-PQ Asymmetric Distance Computation (ADC) vector search.",
-    8: "Selects nprobe coarse centroids closest to query vector.",
-    20: "Populates asymmetric lookup table (LUT) for PQ sub-vectors.",
-    26: "Sums LUT entries indexed by vector PQ codes to get approximate distance.",
+    7: "Selects nprobe coarse centroids closest to query vector.",
+    15: "Populates asymmetric lookup table (LUT) for PQ sub-vectors.",
+    25: "Sums LUT entries indexed by vector PQ codes to get approximate distance.",
   },
 };
 
 export const ivfPqAdcSearch: AlgorithmDefinition<IvfPqAdcInput> = {
   id: "ivf-pq-adc-search",
   title: "IVF-PQ Asymmetric Distance Computation (ADC)",
-  category: "ml_vector_search",
+  topicIds: ["ml_vector_search"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 4,
   description:
     "Accelerates vector database search (Faiss IVF-PQ) by coarse centroid pruning (IVF) and asymmetric distance calculation (ADC) using precomputed sub-quantizer lookup tables (LUT).",
   constraints: [

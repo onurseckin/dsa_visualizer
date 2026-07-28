@@ -22,10 +22,6 @@ export const DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT: XgboostHistogramSplitSearchI
 };
 
 export const XGBOOST_HISTOGRAM_SPLIT_SEARCH_CODE = `def xgboost_histogram_split_search(hist_G: list[float], hist_H: list[float], bin_boundaries: list[float], lambda_reg: float = 1.0, gamma_reg: float = 0.0) -> tuple[float, float, int]:
-    """
-    Performs O(num_bins) fast split search over pre-built gradient and hessian histograms (LightGBM / XGBoost 'hist').
-    Iteratively accumulates G_L, H_L across bins and evaluates XGBoost regularized split gain score.
-    """
     G_total = sum(hist_G)
     H_total = sum(hist_H)
 
@@ -71,10 +67,7 @@ export const generateXgboostHistogramSplitSearchSteps = (
   const Htotal = histH.reduce((a, b) => a + b, 0);
   const numBins = histG.length;
 
-  const getSnapshot = (
-    currentBin: number = -1,
-    bestBin: number = -1,
-  ) => {
+  const getSnapshot = (currentBin: number = -1, bestBin: number = -1) => {
     return {
       kind: "array" as const,
       elements: histG.map((g, idx) => {
@@ -83,12 +76,16 @@ export const generateXgboostHistogramSplitSearchSteps = (
         else if (idx === bestBin) state = "sorted";
         else if (currentBin >= 0 && idx <= currentBin) state = "visited";
 
+        const pointers: string[] = [];
+        if (idx === currentBin) pointers.push(`b=${idx}`);
+        if (idx === bestBin) pointers.push(`best_bin`);
+
         return {
           id: `bin-${idx}`,
-          value: Math.round(g * 10),
+          value: Number(g.toFixed(2)),
           label: `Bin ${idx} (G=${g.toFixed(2)}, H=${histH[idx].toFixed(2)})`,
           state,
-          pointers: idx === currentBin ? [`b=${idx}`] : [],
+          pointers,
         };
       }),
     };
@@ -109,19 +106,19 @@ export const generateXgboostHistogramSplitSearchSteps = (
       primarySnapshot: getSnapshot(currentBin, bestBin),
       auxiliaryState: {
         customState: {
-          "Algorithm": "O(B) XGBoost Histogram Split Search",
+          Algorithm: "O(B) XGBoost Histogram Split Search",
           "numBins B": String(numBins),
-          "G_total": Gtotal.toFixed(4),
-          "H_total": Htotal.toFixed(4),
-          "lambda": String(lambdaReg),
-          "gamma": String(gammaReg),
+          G_total: Gtotal.toFixed(4),
+          H_total: Htotal.toFixed(4),
+          lambda: String(lambdaReg),
+          gamma: String(gammaReg),
         },
       },
       variables,
     });
   };
 
-  // Step 1: Entry
+  // Step 1: Entry (Line 1)
   addStep(
     1,
     "XGBoost Histogram Split Search Entry",
@@ -129,142 +126,107 @@ export const generateXgboostHistogramSplitSearchSteps = (
     { numBins, lambdaReg, gammaReg },
   );
 
-  // Step 2: Compute G_total (6)
-    addStep(
+  // Step 2: Compute G_total (Line 2)
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
+    `Calculate Total Gradient Sum G_total = sum(hist_G)`,
+    `Evaluated total gradient sum G_total = ${Gtotal.toFixed(4)} across all ${numBins} bins.`,
+    { G_total: Number(Gtotal.toFixed(4)) },
   );
 
+  // Step 3: Compute H_total (Line 3)
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "Performs O(num_bins) fast split search over pre-built gradient and hessian ",
-    {},
+    `Calculate Total Hessian Sum H_total = sum(hist_H)`,
+    `Evaluated total hessian sum H_total = ${Htotal.toFixed(4)} across all ${numBins} bins.`,
+    { H_total: Number(Htotal.toFixed(4)) },
   );
 
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "Iteratively accumulates G_L, H_L across bins and evaluates XGBoost regulari",
-    {},
-  );
-
-  addStep(
-    5,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    6,
-    `Calculate Total Gradient: G_total = sum(hist_G) = ${Gtotal.toFixed(4)}`,
-    `Evaluated total gradient sum G_total = ${Gtotal.toFixed(4)}.`,
-    { Gtotal },
-  );
-
-  // Step 3: Compute H_total (7)
-  addStep(
-    7,
-    `Calculate Total Hessian: H_total = sum(hist_H) = ${Htotal.toFixed(4)}`,
-    `Evaluated total hessian sum H_total = ${Htotal.toFixed(4)}.`,
-    { Htotal },
-  );
-
-  // Step 4: Init best_gain (9)
+  // Step 4: Init best_gain (Line 5)
   let bestGain = -Infinity;
   addStep(
-    9,
+    5,
     "Initialize best_gain = -inf",
-    "Set best_gain accumulator to negative infinity.",
+    "Set best_gain accumulator to negative infinity before scanning split candidates.",
     { best_gain: "-inf" },
   );
 
-  // Step 5: Init best_bin (10)
+  // Step 5: Init best_bin (Line 6)
   let bestBin = -1;
-  addStep(
-    10,
-    "Initialize best_bin = -1",
-    "Set best_bin pointer to -1.",
-    { best_bin: -1 },
-  );
+  addStep(6, "Initialize best_bin = -1", "Set best_bin pointer to -1.", { best_bin: -1 });
 
-  // Step 6: Init best_threshold (11)
+  // Step 6: Init best_threshold (Line 7)
   let bestThreshold: number | null = null;
-  addStep(
-    11,
-    "Initialize best_threshold = None",
-    "Set best_threshold pointer to None.",
-    { best_threshold: "None" },
-  );
+  addStep(7, "Initialize best_threshold = None", "Set best_threshold pointer to None.", {
+    best_threshold: "None",
+  });
 
-  // Step 7: Init G_L, H_L (13)
+  // Step 7: Init G_L, H_L (Line 9)
   let GL = 0.0;
   let HL = 0.0;
   addStep(
-    13,
+    9,
     "Initialize Left Accumulators G_L = 0.0, H_L = 0.0",
     "Set left gradient sum G_L = 0.0 and left hessian sum H_L = 0.0.",
     { G_L: 0.0, H_L: 0.0 },
   );
 
-  // Step 8: Read num_bins (14)
+  // Step 8: Read num_bins (Line 10)
   addStep(
-    14,
-    `Read Histogram Length: num_bins = ${numBins}`,
-    `Total histogram bins count B = ${numBins}.`,
-    { numBins },
+    10,
+    `Read Histogram Length num_bins = len(hist_G)`,
+    `Total histogram bins count num_bins = ${numBins}.`,
+    { num_bins: numBins },
   );
 
-  // Loop over bins (16..31)
+  // Loop over bins (Lines 12..27)
   for (let b = 0; b < numBins - 1; b++) {
+    const currentThreshold = binBoundaries[b] ?? b;
     addStep(
-      16,
-      `Bin Loop: b = ${b} of ${numBins - 2}`,
-      `Scanning candidate bin boundary b = ${b} (threshold x = ${binBoundaries[b] ?? b}).`,
-      { b },
+      12,
+      `Bin Loop Header: Evaluate Split Candidate b = ${b}`,
+      `Scanning candidate bin boundary b = ${b} (feature threshold boundary t = ${currentThreshold}).`,
+      { b, threshold: currentThreshold },
       b,
       bestBin,
     );
 
     GL += histG[b];
     addStep(
-      17,
-      `Accumulate Left Gradient: G_L += hist_G[${b}] (${histG[b].toFixed(2)}) -> ${GL.toFixed(4)}`,
-      `Updated left gradient sum G_L = ${GL.toFixed(4)}.`,
-      { G_L: GL },
+      13,
+      `Accumulate Left Gradient G_L += hist_G[${b}] (${histG[b].toFixed(2)})`,
+      `Updated left gradient prefix sum G_L = ${GL.toFixed(4)}.`,
+      { G_L: Number(GL.toFixed(4)) },
       b,
       bestBin,
     );
 
     HL += histH[b];
     addStep(
-      18,
-      `Accumulate Left Hessian: H_L += hist_H[${b}] (${histH[b].toFixed(2)}) -> ${HL.toFixed(4)}`,
-      `Updated left hessian sum H_L = ${HL.toFixed(4)}.`,
-      { H_L: HL },
+      14,
+      `Accumulate Left Hessian H_L += hist_H[${b}] (${histH[b].toFixed(2)})`,
+      `Updated left hessian prefix sum H_L = ${HL.toFixed(4)}.`,
+      { H_L: Number(HL.toFixed(4)) },
       b,
       bestBin,
     );
 
     const GR = Gtotal - GL;
     addStep(
-      19,
-      `Compute Right Gradient: G_R = G_total - G_L = ${GR.toFixed(4)}`,
-      `Evaluated right gradient sum G_R = ${Gtotal.toFixed(4)} - ${GL.toFixed(4)} = ${GR.toFixed(4)}.`,
-      { G_R: GR },
+      15,
+      `Compute Right Gradient G_R = G_total - G_L`,
+      `Evaluated right gradient sum G_R = ${Gtotal.toFixed(4)} - ${GL.toFixed(4)} = ${GR.toFixed(4)} in O(1) time.`,
+      { G_R: Number(GR.toFixed(4)) },
       b,
       bestBin,
     );
 
     const HR = Htotal - HL;
     addStep(
-      20,
-      `Compute Right Hessian: H_R = H_total - H_L = ${HR.toFixed(4)}`,
-      `Evaluated right hessian sum H_R = ${Htotal.toFixed(4)} - ${HL.toFixed(4)} = ${HR.toFixed(4)}.`,
-      { H_R: HR },
+      16,
+      `Compute Right Hessian H_R = H_total - H_L`,
+      `Evaluated right hessian sum H_R = ${Htotal.toFixed(4)} - ${HL.toFixed(4)} = ${HR.toFixed(4)} in O(1) time.`,
+      { H_R: Number(HR.toFixed(4)) },
       b,
       bestBin,
     );
@@ -275,37 +237,79 @@ addStep(
     const gain = 0.5 * (scoreL + scoreR - scoreP) - gammaReg;
 
     addStep(
-      22,
-      `Compute XGBoost Split Gain = ${gain.toFixed(4)}`,
-      `Evaluated Gain for bin boundary b=${b}: Gain = ${gain.toFixed(4)}.`,
-      { gain, scoreL, scoreR, scoreP },
+      18,
+      `Compute XGBoost Split Gain Score = ${gain.toFixed(4)}`,
+      `Evaluated split gain for bin b=${b}: Score_L=${scoreL.toFixed(4)}, Score_R=${scoreR.toFixed(4)}, Score_Parent=${scoreP.toFixed(4)}, Gain=${gain.toFixed(4)}.`,
+      {
+        gain: Number(gain.toFixed(4)),
+        score_L: Number(scoreL.toFixed(4)),
+        score_R: Number(scoreR.toFixed(4)),
+        score_P: Number(scoreP.toFixed(4)),
+      },
+      b,
+      bestBin,
+    );
+
+    const prevBestGain = bestGain;
+    addStep(
+      24,
+      `Compare Gain ${gain.toFixed(4)} > Best Gain ${prevBestGain === -Infinity ? "-inf" : prevBestGain.toFixed(4)}`,
+      gain > prevBestGain
+        ? `Gain ${gain.toFixed(4)} strictly exceeds previous best gain ${prevBestGain === -Infinity ? "-inf" : prevBestGain.toFixed(4)}.`
+        : `Gain ${gain.toFixed(4)} does not exceed previous best gain ${prevBestGain.toFixed(4)}.`,
+      {
+        gain: Number(gain.toFixed(4)),
+        best_gain: prevBestGain === -Infinity ? "-inf" : Number(prevBestGain.toFixed(4)),
+      },
       b,
       bestBin,
     );
 
     if (gain > bestGain) {
       bestGain = gain;
-      bestBin = b;
-      bestThreshold = binBoundaries[b] ?? b;
-
       addStep(
-        29,
-        `New Best Split Found! Bin b = ${bestBin}, Threshold t = ${bestThreshold}, Gain = ${bestGain.toFixed(4)}`,
-        `Updated best split: Bin ${bestBin}, Threshold ${bestThreshold}, Gain ${bestGain.toFixed(4)}.`,
-        { bestGain, bestBin, bestThreshold },
+        25,
+        `Update Best Gain = ${gain.toFixed(4)}`,
+        `Recorded new maximum split gain = ${gain.toFixed(4)}.`,
+        { best_gain: Number(gain.toFixed(4)) },
+        b,
+        bestBin,
+      );
+
+      bestBin = b;
+      addStep(
+        26,
+        `Update Best Bin Pointer = ${bestBin}`,
+        `Recorded candidate bin ${bestBin} as optimal split boundary index.`,
+        { best_bin: bestBin },
+        b,
+        bestBin,
+      );
+
+      bestThreshold = currentThreshold;
+      addStep(
+        27,
+        `Update Best Threshold t = ${bestThreshold}`,
+        `Retrieved split feature threshold t = ${bestThreshold} from bin_boundaries[${bestBin}].`,
+        { best_threshold: bestThreshold },
         b,
         bestBin,
       );
     }
   }
 
-  // Final step (33)
+  // Final step (Line 29)
   const roundedGain = Math.round(bestGain * 10000) / 10000;
   addStep(
-    33,
-    `Execution Complete: Return Best Threshold t = ${bestThreshold}, Gain = ${roundedGain}, Bin b = ${bestBin}`,
-    `Completed O(B) histogram split search. Optimal threshold t = ${bestThreshold} at bin ${bestBin} with Gain = ${roundedGain}.`,
-    { bestThreshold: bestThreshold ?? 0, bestGain: roundedGain, bestBin, completed: true },
+    29,
+    `Execution Complete: Return Best Split (t=${bestThreshold}, gain=${roundedGain}, bin=${bestBin})`,
+    `Completed O(B) histogram split search across ${numBins} bins. Optimal split threshold t = ${bestThreshold} at bin ${bestBin} with maximum gain = ${roundedGain}.`,
+    {
+      best_threshold: bestThreshold ?? 0,
+      best_gain: roundedGain,
+      best_bin: bestBin,
+      completed: true,
+    },
     -1,
     bestBin,
   );
@@ -314,7 +318,7 @@ addStep(
 };
 
 const XGBOOST_HISTOGRAM_SPLIT_SEARCH_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 8, 12, 15, 21, 23, 24, 25, 26, 27, 31, 32],
+  skipLines: [4, 8, 11, 17, 19, 20, 21, 22, 23, 28],
   distractors: [
     "gain = G_L + G_R",
     "best_bin = num_bins",
@@ -322,71 +326,63 @@ const XGBOOST_HISTOGRAM_SPLIT_SEARCH_TRIVIA: TriviaMeta = {
     "for b in range(num_bins): G_L = sum(hist_G[:b])",
   ],
   hints: [
-    { line: 22, hint: "XGBoost split gain equation: 0.5 * [ G_L^2/(H_L+lambda) + G_R^2/(H_R+lambda) - G_total^2/(H_total+lambda) ] - gamma." },
-    { line: 30, hint: "Look up threshold from bin_boundaries array: bin_boundaries[best_bin]." },
+    {
+      line: 18,
+      hint: "XGBoost split gain equation: 0.5 * [ G_L^2/(H_L+lambda) + G_R^2/(H_R+lambda) - G_total^2/(H_total+lambda) ] - gamma.",
+    },
+    { line: 27, hint: "Look up threshold from bin_boundaries array: bin_boundaries[best_bin]." },
   ],
   lineExplanations: {
     1: "Defines entry point for xgboost_histogram_split_search function implementing LightGBM / XGBoost 'hist' split search.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes O(num_bins) fast split search over pre-built gradient and hessian histograms.",
-    4: "Docstring detailing iterative accumulation of G_L, H_L across bins and regularized Gain score evaluation.",
-    5: "Docstring closing delimiter tag.",
-    6: "Sums total gradient G_total across all histogram bins.",
-    7: "Sums total hessian H_total across all histogram bins.",
-    8: "Blank line before best split accumulators initialization.",
-    9: "Initializes best_gain to negative infinity.",
-    10: "Initializes best_bin index to -1.",
-    11: "Initializes best_threshold to None.",
-    12: "Blank line before left accumulators initialization.",
-    13: "Initializes left gradient sum G_L = 0.0 and left hessian sum H_L = 0.0.",
-    14: "Measures total histogram bins count num_bins = len(hist_G).",
-    15: "Blank line before bin loop.",
-    16: "Iterates over bin index b from 0 to num_bins - 2.",
-    17: "Accumulates gradient of bin b into G_L: G_L += hist_G[b].",
-    18: "Accumulates hessian of bin b into H_L: H_L += hist_H[b].",
-    19: "Computes right gradient sum G_R = G_total - G_L in O(1) time.",
-    20: "Computes right hessian sum H_R = H_total - H_L in O(1) time.",
-    21: "Blank line before gain calculation.",
-    22: "Evaluates XGBoost regularized split gain score for candidate bin boundary b.",
-    23: "Left child score term: (G_L ** 2) / (H_L + lambda_reg).",
-    24: "Right child score term: (G_R ** 2) / (H_R + lambda_reg).",
-    25: "Parent node score subtraction term: (G_total ** 2) / (H_total + lambda_reg).",
-    26: "Subtracts L1 tree complexity penalty gamma_reg.",
-    27: "Blank line before checking best gain.",
-    28: "Checks if evaluated split gain exceeds current best_gain.",
-    29: "Updates best_gain to current gain.",
-    30: "Updates best_bin to current bin index b.",
-    31: "Retrieves split threshold value best_threshold = bin_boundaries[b].",
-    32: "Blank line separating bin loop from return statement.",
-    33: "Returns tuple of (best_threshold, rounded best_gain, best_bin).",
+    2: "Sums total gradient G_total across all histogram bins.",
+    3: "Sums total hessian H_total across all histogram bins.",
+    4: "Blank line before best split accumulators initialization.",
+    5: "Initializes best_gain to negative infinity.",
+    6: "Initializes best_bin index to -1.",
+    7: "Initializes best_threshold to None.",
+    8: "Blank line before left accumulators initialization.",
+    9: "Initializes left gradient sum G_L = 0.0 and left hessian sum H_L = 0.0.",
+    10: "Measures total histogram bins count num_bins = len(hist_G).",
+    11: "Blank line before bin loop.",
+    12: "Iterates over bin index b from 0 to num_bins - 2.",
+    13: "Accumulates gradient of bin b into G_L: G_L += hist_G[b].",
+    14: "Accumulates hessian of bin b into H_L: H_L += hist_H[b].",
+    15: "Computes right gradient sum G_R = G_total - G_L in O(1) time.",
+    16: "Computes right hessian sum H_R = H_total - H_L in O(1) time.",
+    17: "Blank line before gain calculation.",
+    18: "Evaluates XGBoost regularized split gain score for candidate bin boundary b.",
+    19: "Left child score term: (G_L ** 2) / (H_L + lambda_reg).",
+    20: "Right child score term: (G_R ** 2) / (H_R + lambda_reg).",
+    21: "Parent node score subtraction term: (G_total ** 2) / (H_total + lambda_reg).",
+    22: "Subtracts L1 tree complexity penalty gamma_reg.",
+    23: "Blank line before checking best gain.",
+    24: "Checks if evaluated split gain exceeds current best_gain.",
+    25: "Updates best_gain to current gain.",
+    26: "Updates best_bin to current bin index b.",
+    27: "Retrieves split threshold value best_threshold = bin_boundaries[b].",
+    28: "Blank line separating bin loop from return statement.",
+    29: "Returns tuple of (best_threshold, rounded best_gain, best_bin).",
   },
 };
 
 export const xgboostHistogramSplitSearch: AlgorithmDefinition<XgboostHistogramSplitSearchInput> = {
-  id: "xgboostHistogramSplitSearch",
+  id: "xgboost-histogram-split-search",
   title: "XGBoost Histogram-Based Split Search",
-  category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "advanced_range_queries"],
+  topicIds: ["ml_tree_ensembles", "advanced_range_queries"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_tree_ensembles",
   description:
     "The XGBoost Histogram-Based Split Search algorithm executes fast $O(B)$ candidate split evaluation over pre-built gradient and hessian histograms ($B \\le 256$ bins), powering the high-speed training engines of **LightGBM** and **XGBoost (`tree_method='hist'`)**. Instead of scanning $N$ individual samples ($O(N \\log N)$), the engine scans $B-1$ histogram bin boundaries, accumulating prefix sums $G_L, H_L$ and computing regularized Split Gain scores in $O(1)$ time per bin.\n\n### Why It Exists\nFor massive datasets ($N = 10^7$ samples), exact greedy split search becomes compute and memory bound. Histogram-based split search decouples split search time from dataset sample size $N$: whether $N = 10^4$ or $N = 10^8$, evaluating candidate splits takes exactly $B-1$ bin steps ($O(B)$ time).\n\n### Mathematical Formulation\nGiven gradient histogram `hist_G` and hessian histogram `hist_H` of size $B$, total sums $G_{total} = \\sum_{b=0}^{B-1} \\text{hist}_G[b], H_{total} = \\sum_{b=0}^{B-1} \\text{hist}_H[b]$:\n\n$$1. \\quad G_{L, k} = G_{L, k-1} + \\text{hist}_G[k], \\quad H_{L, k} = H_{L, k-1} + \\text{hist}_H[k] \\quad (O(1) \\text{ Prefix Accumulation})$$\n\n$$2. \\quad G_{R, k} = G_{total} - G_{L, k}, \\quad H_{R, k} = H_{total} - H_{L, k}$$\n\n$$3. \\quad \\text{Gain}_k = \\frac{1}{2} \\left[ \\frac{G_{L,k}^2}{H_{L,k} + \\lambda} + \\frac{G_{R,k}^2}{H_{R,k} + \\lambda} - \\frac{G_{total}^2}{H_{total} + \\lambda} \\right] - \\gamma$$\n\n$$4. \\quad b^* = \\arg\\max_{k \\in \\{0 \\dots B-2\\}} \\text{Gain}_k, \\quad t^* = \\text{bin\\_boundaries}[b^*]$$\n\n### Step-by-Step Intuition\n1. **Total Sum Evaluation**: Compute $G_{total} = \\sum \\text{hist}_G[b]$ and $H_{total} = \\sum \\text{hist}_H[b]$.\n2. **Bin Loop Scanning**: Iterate through bins $b = 0 \\dots B-2$.\n3. **Prefix Accumulation**: Accumulate left gradient $G_L += \\text{hist}_G[b]$ and left hessian $H_L += \\text{hist}_H[b]$.\n4. **O(1) Right Subtraction**: Compute $G_R = G_{total} - G_L$ and $H_R = H_{total} - H_L$.\n5. **Gain Evaluation & Max Tracking**: Compute regularized Gain score and track maximum gain bin $b^*$ and threshold $t^*$.\n\n### Key Trade-Offs & Hardware Execution\n- **100x Speedup**: Reduces split evaluation steps from $N=10,000,000$ down to $B=256$, enabling real-time GPU GBDT training.\n- **Quantization Error Bound**: Quantizing continuous features into $B=256$ bins introduces minimal loss in model accuracy (typically $< 0.01\\%$ AUC difference compared to exact greedy).",
-  constraints: [
-    "1 <= numBins <= 256",
-    "lambdaReg >= 0.0",
-    "gammaReg >= 0.0",
-  ],
+  constraints: ["1 <= numBins <= 256", "lambdaReg >= 0.0", "gammaReg >= 0.0"],
   examples: [
     {
       kind: "basic",
       title: "4-Bin Histogram Fast Split Search (lambda = 1.0)",
       inputDisplay: "hist_G = [-0.8, -0.4, 0.2, 0.9], hist_H = [0.25, 0.25, 0.25, 0.25]",
-      outputDisplay: "Best Bin b = 1, Best Threshold t = 3.00, Max Gain = 0.5333",
+      outputDisplay: "Best Bin b = 1, Best Threshold t = 3.00, Max Gain = 0.8808",
       input: DEFAULT_XGBOOST_HISTOGRAM_SPLIT_INPUT,
-      output: "(3.0, 0.5333, 1)",
-      explanation: "Scans 3 bin boundaries in O(B) time. Optimal split at bin boundary 1 (t=3.00) yields maximum Gain = 0.5333.",
+      output: "(3.0, 0.8808, 1)",
+      explanation:
+        "Scans 3 bin boundaries in O(B) time. Optimal split at bin boundary 1 (t=3.00) yields maximum Gain = 0.8808.",
     },
   ],
   code: XGBOOST_HISTOGRAM_SPLIT_SEARCH_CODE,
@@ -420,11 +416,13 @@ export const xgboostHistogramSplitSearch: AlgorithmDefinition<XgboostHistogramSp
     keyTerms: [
       {
         term: "Histogram Split Search",
-        definition: "Evaluating candidate decision tree splits across B discrete histogram bins in O(B) time.",
+        definition:
+          "Evaluating candidate decision tree splits across B discrete histogram bins in O(B) time.",
       },
       {
         term: "Prefix Accumulation",
-        definition: "Accumulating G_L += hist_G[b] and H_L += hist_H[b] sequentially across bin boundaries.",
+        definition:
+          "Accumulating G_L += hist_G[b] and H_L += hist_H[b] sequentially across bin boundaries.",
       },
       {
         term: "Bin Boundary (t)",

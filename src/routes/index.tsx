@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "../ui/templates/PageHeader";
-import { CategoryType } from "../types/dsa";
+import { isTopicId } from "../app/topics";
 import { KnowledgeGraph } from "../ui";
 
 export const Route = createFileRoute("/")({
@@ -22,10 +22,10 @@ function KnowledgeTreePage(): React.ReactElement {
         className="text-center flex flex-col items-center justify-center max-w-3xl mx-auto mt-6 md:mt-8 mb-6"
       />
       <KnowledgeGraph
-        onSelectCategoryFolder={(folder) => {
-          // Roadmap nodes emit canonical CategoryType ids as plain strings; the
-          // /problems validateSearch re-checks the value against the real list.
-          navigate({ to: "/problems", search: { category: folder as CategoryType } });
+        onSelectTopic={(topicId) => {
+          if (isTopicId(topicId)) {
+            navigate({ to: "/problems", search: { topic: topicId } });
+          }
         }}
       />
     </main>

@@ -7,17 +7,16 @@ import {
 
 describe("conv1dSlidingWindowDirect (1D Cross-Correlation Basics)", () => {
   it("should have correct metadata", () => {
-    expect(conv1dSlidingWindowDirect.id).toBe("conv1dSlidingWindowDirect");
-    expect(conv1dSlidingWindowDirect.isMlInfra).toBe(true);
-    expect(conv1dSlidingWindowDirect.mlInfraLevel).toBe(8);
-    expect(conv1dSlidingWindowDirect.mlInfraCategory).toBe("ml_convolutions");
-    expect(conv1dSlidingWindowDirect.categories).toContain("ml_convolutions");
+    expect(conv1dSlidingWindowDirect.id).toBe("conv1d-sliding-window-direct");
+    expect(conv1dSlidingWindowDirect.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(conv1dSlidingWindowDirect.topicIds).toContain("ml_convolutions");
+    expect(conv1dSlidingWindowDirect.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {
-    const steps = generateConv1dSlidingWindowDirectSteps(
-      DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT,
-    );
+    const steps = generateConv1dSlidingWindowDirectSteps(DEFAULT_CONV1DSLIDINGWINDOWDIRECT_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("1D Cross-Correlation Basics");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");

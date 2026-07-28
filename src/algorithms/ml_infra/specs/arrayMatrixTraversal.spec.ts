@@ -10,9 +10,8 @@ import type { GridVisualSnapshot } from "../../../types/dsa";
 describe("arrayMatrixTraversal algorithm spec", () => {
   it("should have correct ML Infra Level 1 metadata", () => {
     expect(arrayMatrixTraversal.id).toBe("2d-array-matrix-traversal");
-    expect(arrayMatrixTraversal.isMlInfra).toBe(true);
-    expect(arrayMatrixTraversal.mlInfraLevel).toBe(1);
-    expect(arrayMatrixTraversal.category).toBe("ml_tensor_algebra");
+    expect(arrayMatrixTraversal.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(arrayMatrixTraversal.topicIds).toContain("ml_tensor_algebra");
     expect(arrayMatrixTraversal.defaultInput).toEqual(DEFAULT_ARRAY_MATRIX_TRAVERSAL_INPUT);
     expect(arrayMatrixTraversal.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

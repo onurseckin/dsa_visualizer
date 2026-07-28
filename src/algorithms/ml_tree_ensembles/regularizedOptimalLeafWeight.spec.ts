@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { regularizedOptimalLeafWeight } from "./regularizedOptimalLeafWeight";
 
-describe("regularizedOptimalLeafWeight", () => {
+describe("regularized-optimal-leaf-weight", () => {
   it("should have valid metadata", () => {
     expect(regularizedOptimalLeafWeight.id).toBeDefined();
     expect(regularizedOptimalLeafWeight.title).toBeDefined();

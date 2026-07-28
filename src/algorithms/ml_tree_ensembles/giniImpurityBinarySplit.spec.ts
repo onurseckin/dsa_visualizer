@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { giniImpurityBinarySplit } from "./giniImpurityBinarySplit";
 
-describe("giniImpurityBinarySplit", () => {
+describe("gini-impurity-binary-split", () => {
   it("should have valid metadata", () => {
     expect(giniImpurityBinarySplit.id).toBeDefined();
     expect(giniImpurityBinarySplit.title).toBeDefined();

@@ -11,25 +11,10 @@ export interface SoftmaxRowNormalizeInput {
 export const SOFTMAXROWNORMALIZE_CODE = `import math
 
 def safe_softmax_row_normalize(logits: list[float]) -> tuple[list[float], float, float]:
-    """
-    Computes numerically stable Softmax over a vector of logit scores.
-    1. Subtracts maximum logit m = max(logits) to prevent exp() float overflow.
-    2. Sums exponentiated values lse = sum(exp(x - m)).
-    3. Normalizes p_i = exp(x_i - m) / lse.
-    Returns (probabilities, max_logit, log_sum_exp).
-    """
-    # Step 1: Maximum logit reduction for numerical stability
     max_logit = max(logits)
-
-    # Step 2: Subtract max and exponentiate
     exp_vals = [math.exp(x - max_logit) for x in logits]
-
-    # Step 3: Sum exponentiated terms (log-sum-exp denominator)
     lse_sum = sum(exp_vals)
-
-    # Step 4: Normalize to produce probability distribution summing to 1.0
     probabilities = [val / lse_sum for val in exp_vals]
-
     return probabilities, max_logit, lse_sum`;
 
 export const DEFAULT_SOFTMAXROWNORMALIZE_INPUT: SoftmaxRowNormalizeInput = {
@@ -53,6 +38,11 @@ export const generateSoftmaxRowNormalizeSteps = (
   const matrixStates: MatrixCellItem["state"][][] = Array.from({ length: N }, () =>
     Array.from({ length: 4 }, () => "default"),
   );
+
+  for (let i = 0; i < N; i++) {
+    matrixValues[i][0] = String(logits[i]);
+    matrixStates[i][0] = "pivot";
+  }
 
   const getSnapshot = (activeR?: number, activeC?: number): MatrixVisualSnapshot => {
     const cells: MatrixCellItem[] = [];
@@ -120,16 +110,11 @@ export const generateSoftmaxRowNormalizeSteps = (
     { N },
   );
 
-  for (let i = 0; i < N; i++) {
-    matrixValues[i][0] = String(logits[i]);
-    matrixStates[i][0] = "pivot";
-  }
-
   const maxLogit = Math.max(...logits);
   const maxIdx = logits.indexOf(maxLogit);
 
   addStep(
-    12,
+    4,
     `Compute Max Logit Reduction: max_logit = max(logits) -> ${maxLogit}`,
     `Found maximum logit scalar ${maxLogit} at index ${maxIdx} to prevent IEEE 754 float overflow.`,
     { maxLogit, maxIdx },
@@ -145,25 +130,25 @@ export const generateSoftmaxRowNormalizeSteps = (
     const expVal = Math.exp(centered);
     expVals.push(expVal);
 
+    matrixValues[i][1] = String(+centered.toFixed(2));
+    matrixStates[i][1] = "compared";
+    matrixValues[i][2] = String(+expVal.toFixed(4));
+    matrixStates[i][2] = "compared";
+
     addStep(
-      15,
+      5,
       `Subtract Max and Exponentiate x[${i}]: exp(${logits[i]} - ${maxLogit}) = ${expVal.toFixed(4)}`,
       `Computed centered exponent for index ${i}: exp(${centered.toFixed(2)}) = ${expVal.toFixed(4)}.`,
       { i, centered: +centered.toFixed(2), expVal: +expVal.toFixed(4) },
       i,
       2,
     );
-
-    matrixValues[i][1] = String(+centered.toFixed(2));
-    matrixStates[i][1] = "compared";
-    matrixValues[i][2] = String(+expVal.toFixed(4));
-    matrixStates[i][2] = "compared";
   }
 
   const lseSum = expVals.reduce((a, b) => a + b, 0);
 
   addStep(
-    18,
+    6,
     `Compute Partition Denominator Sum: lse_sum = sum(exp_vals) -> ${lseSum.toFixed(4)}`,
     `Calculated Log-Sum-Exp normalization denominator sum = ${lseSum.toFixed(4)}.`,
     { lseSum: +lseSum.toFixed(4) },
@@ -174,32 +159,21 @@ export const generateSoftmaxRowNormalizeSteps = (
     const p = expVals[i] / lseSum;
     probabilities.push(p);
 
-    addStep(
-      21,
-      `Normalize Probability p[${i}] = exp_vals[${i}] / lse_sum = ${p.toFixed(4)}`,
-      `Normalized logit ${i} to probability ${p.toFixed(4)} (${(p * 100).toFixed(2)}%).`,
-      { i, p: +p.toFixed(4), pct: +((p * 100).toFixed(2)) },
-      i,
-      3,
-    );
-
     matrixValues[i][3] = String(+p.toFixed(4));
     matrixStates[i][3] = "sorted";
-  }
 
-  while (steps.length < 19) {
     addStep(
-      21,
-      "Finalize Softmax Row Normalizer Tensor Padding",
-      `Step ${steps.length + 1}: Finalizing probability distribution calculation.`,
-      { completed: false },
-      N - 1,
+      7,
+      `Normalize Probability p[${i}] = exp_vals[${i}] / lse_sum = ${p.toFixed(4)}`,
+      `Normalized logit ${i} to probability ${p.toFixed(4)} (${(p * 100).toFixed(2)}%).`,
+      { i, p: +p.toFixed(4), pct: +(p * 100).toFixed(2) },
+      i,
       3,
     );
   }
 
   addStep(
-    23,
+    8,
     "Execution Complete",
     `Successfully normalized ${N} logit scores into a valid probability distribution summing to 1.0!`,
     { completed: true, maxLogit, lseSum: +lseSum.toFixed(4) },
@@ -209,53 +183,40 @@ export const generateSoftmaxRowNormalizeSteps = (
 };
 
 const SOFTMAXROWNORMALIZE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 16, 17, 19, 20, 22],
+  skipLines: [2],
   distractors: [
     "exp_vals = [math.exp(x) for x in logits]",
     "probabilities = [val / max_logit for val in exp_vals]",
     "lse_sum = max(exp_vals)",
   ],
   hints: [
-    { line: 12, hint: "Find maximum logit max_logit = max(logits) to prevent exp() float overflow." },
-    { line: 15, hint: "Subtract max_logit before exponentiation: math.exp(x - max_logit)." },
-    { line: 21, hint: "Divide each exponentiated value by lse_sum to normalize probabilities to 1.0." },
+    {
+      line: 4,
+      hint: "Find maximum logit max_logit = max(logits) to prevent exp() float overflow.",
+    },
+    { line: 5, hint: "Subtract max_logit before exponentiation: math.exp(x - max_logit)." },
+    {
+      line: 7,
+      hint: "Divide each exponentiated value by lse_sum to normalize probabilities to 1.0.",
+    },
   ],
   lineExplanations: {
     1: "Imports Python math library.",
     2: "Empty whitespace separator line.",
     3: "Defines entry point for safe_softmax_row_normalize function.",
-    4: "Docstring opening delimiter tag.",
-    5: "Describes computing numerically stable Softmax over logit scores.",
-    6: "Explains subtracting maximum logit m = max(logits) to prevent exp() float overflow.",
-    7: "Explains summing exponentiated values lse = sum(exp(x - m)).",
-    8: "Explains normalizing p_i = exp(x_i - m) / lse.",
-    9: "Summarizes returning tuple (probabilities, max_logit, log_sum_exp).",
-    10: "Docstring closing tag.",
-    11: "Comment: Step 1: Maximum logit reduction for numerical stability.",
-    12: "Calculates maximum logit scalar max_logit = max(logits) across vector.",
-    13: "Empty whitespace separator line.",
-    14: "Comment: Step 2: Subtract max and exponentiate.",
-    15: "Subtracts max_logit and exponentiates each score exp_vals = [exp(x - max_logit)].",
-    16: "Empty whitespace separator line.",
-    17: "Comment: Step 3: Sum exponentiated terms (log-sum-exp denominator).",
-    18: "Calculates lse_sum = sum(exp_vals) as partition denominator.",
-    19: "Empty whitespace separator line.",
-    20: "Comment: Step 4: Normalize to produce probability distribution summing to 1.0.",
-    21: "Normalizes probabilities = [val / lse_sum for val in exp_vals].",
-    22: "Empty whitespace separator line.",
-    23: "Returns tuple containing (probabilities, max_logit, lse_sum).",
+    4: "Calculates maximum logit scalar max_logit = max(logits) across vector.",
+    5: "Subtracts max_logit and exponentiates each score exp_vals = [exp(x - max_logit)].",
+    6: "Calculates lse_sum = sum(exp_vals) as partition denominator.",
+    7: "Normalizes probabilities = [val / lse_sum for val in exp_vals].",
+    8: "Returns tuple containing (probabilities, max_logit, lse_sum).",
   },
 };
 
 export const softmaxRowNormalize: AlgorithmDefinition<SoftmaxRowNormalizeInput> = {
   id: "softmax-row-normalize",
   title: "Softmax Row Normalizer",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "math_and_number_theory"],
+  topicIds: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 7,
-  mlInfraCategory: "ml_attention_geometry",
   description:
     "Softmax Row Normalization converts a vector of un-normalized logit scores $x \\in \\mathbb{R}^N$ into a probability distribution $p \\in [0, 1]^N$ where $\\sum_{i=1}^N p_i = 1.0$. Naive evaluation $p_i = e^{x_i} / \\sum_j e^{x_j}$ suffers from severe floating-point overflow when $x_i > 88.7$ in IEEE 754 float32 ($e^{88.7} > 3.4 \\times 10^{38}$).\n\nSafe Softmax subtracts the maximum logit $m = \\max_j x_j$ before exponentiation:\n\n$$p_i = \\frac{e^{x_i - m}}{\\sum_{j=1}^N e^{x_j - m}}$$\n\nSince $x_i - m \\le 0$, every exponent $e^{x_i - m} \\in (0, 1]$, guaranteeing complete numerical stability against overflow.\n\n### Step-by-Step Intuition\n1. **Max Logit Reduction**: Find $m = \\max_j x_j$ across logit vector.\n2. **Shifted Exponentiation**: Compute $e^{x_i - m} \\le 1.0$ for each element.\n3. **Partition Normalization**: Sum exponents $\\ell = \\sum_j e^{x_j - m}$ and divide each term to produce $p_i$.\n\n### Complexity & Performance\n- **Time**: $\\mathcal{O}(N)$ requiring two linear passes over $N$ elements.\n- **Space**: $\\mathcal{O}(N)$ auxiliary memory for normalized probabilities.",
   constraints: ["1 <= logits.length <= 1000"],

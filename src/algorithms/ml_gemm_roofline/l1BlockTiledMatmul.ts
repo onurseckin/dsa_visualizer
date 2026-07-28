@@ -9,9 +9,6 @@ export interface l1BlockTiledMatmulInput {
 }
 
 export const L1BLOCKTILEDMATMUL_CODE = `def l1_block_tiled_matmul(matrix_a, matrix_b, block_size=2):
-    """
-    Tiles GEMM loop nest to fit sub-matrices inside CPU L1 cache lines.
-    """
     n = len(matrix_a)
     matrix_c = [[0] * n for _ in range(n)]
 
@@ -155,41 +152,17 @@ export const generateL1BlockTiledMatmulSteps = (
     { n, blockSize },
   );
 
-  // Step 2: Docstring start
+  // Step 2: Get dimension N
   addStep(
     2,
-    "Load L1 Cache Tiling Architecture Spec",
-    "Dividing N x N matrix multiplication into sub-blocks of size B x B matching CPU 32KB/64KB L1 cache capacity.",
-    { n, blockSize },
-  );
-
-  // Step 3: Docstring description
-  addStep(
-    3,
-    "Verify Block Size Constraint",
-    `Ensuring sub-matrix block size (B = ${blockSize}) fits within L1 cache lines (3 * B^2 * sizeof(float) <= 32KB).`,
-    { n, blockSize },
-  );
-
-  // Step 4: Docstring end
-  addStep(
-    4,
-    "Inspect Matrix Dimensions",
-    `Matrix A and B are ${n} x ${n} square matrices.`,
-    { n },
-  );
-
-  // Step 5: Get dimension N
-  addStep(
-    5,
     `Get Matrix Dimension N (${n})`,
     "Reading dimension length N for outer loop range bound.",
     { n },
   );
 
-  // Step 6: Allocate matrix C
+  // Step 3: Allocate matrix C
   addStep(
-    6,
+    3,
     `Allocate ${n} x ${n} Output Matrix C`,
     "Zero-initializing output matrix C in RAM memory workspace.",
     { n, totalCells: n * n },
@@ -198,7 +171,7 @@ export const generateL1BlockTiledMatmulSteps = (
   // Outer loop bi
   for (let bi = 0; bi < n; bi += blockSize) {
     addStep(
-      8,
+      5,
       `Outer Tile Loop bi=${bi}: Processing Row Block [${bi} .. ${Math.min(n, bi + blockSize) - 1}]`,
       `Iterating outer row tile block index bi from ${bi} with step size B=${blockSize}.`,
       { bi, blockSize },
@@ -211,7 +184,7 @@ export const generateL1BlockTiledMatmulSteps = (
     // Outer loop bj
     for (let bj = 0; bj < n; bj += blockSize) {
       addStep(
-        9,
+        6,
         `Outer Tile Loop bj=${bj}: Processing Column Block [${bj} .. ${Math.min(n, bj + blockSize) - 1}]`,
         `Iterating outer column tile block index bj from ${bj} with step size B=${blockSize}.`,
         { bi, bj, blockSize },
@@ -224,7 +197,7 @@ export const generateL1BlockTiledMatmulSteps = (
       // Outer loop bk
       for (let bk = 0; bk < n; bk += blockSize) {
         addStep(
-          10,
+          7,
           `Outer Tile Loop bk=${bk}: Loading Contraction Block K [${bk} .. ${Math.min(n, bk + blockSize) - 1}]`,
           `Loading sub-matrices A[${bi}:${bi + blockSize}][${bk}:${bk + blockSize}] and B[${bk}:${bk + blockSize}][${bj}:${bj + blockSize}] into fast L1 cache lines.`,
           { bi, bj, bk, blockSize },
@@ -237,7 +210,7 @@ export const generateL1BlockTiledMatmulSteps = (
         // Inner loop i
         for (let i = bi; i < Math.min(n, bi + blockSize); i++) {
           addStep(
-            11,
+            8,
             `Inner Loop i=${i} (Row ${i} in Current Row Tile)`,
             `Iterating inner row index i within L1 cache resident row block.`,
             { bi, bj, bk, i },
@@ -250,7 +223,7 @@ export const generateL1BlockTiledMatmulSteps = (
           // Inner loop j
           for (let j = bj; j < Math.min(n, bj + blockSize); j++) {
             addStep(
-              12,
+              9,
               `Inner Loop j=${j} (Column ${j} in Current Column Tile)`,
               `Targeting output cell C[${i}][${j}] in L1 cache accumulator.`,
               { bi, bj, bk, i, j },
@@ -263,7 +236,7 @@ export const generateL1BlockTiledMatmulSteps = (
             // Inner loop k
             for (let k = bk; k < Math.min(n, bk + blockSize); k++) {
               addStep(
-                13,
+                10,
                 `Inner Contraction Loop k=${k}`,
                 `Fetching A[${i}][${k}] and B[${k}][${j}] directly from L1 cache lines.`,
                 { bi, bj, bk, i, j, k },
@@ -279,7 +252,7 @@ export const generateL1BlockTiledMatmulSteps = (
               matrixC[i][j] += prod;
 
               addStep(
-                14,
+                11,
                 `L1 Multiply-Accumulate: C[${i}][${j}] += A[${i}][${k}] * B[${k}][${j}]`,
                 `C[${i}][${j}] += ${valA} * ${valB} (${prod}) -> New C[${i}][${j}] = ${matrixC[i][j]}`,
                 { i, j, k, valA, valB, prod, currentC: matrixC[i][j] },
@@ -295,9 +268,9 @@ export const generateL1BlockTiledMatmulSteps = (
     }
   }
 
-  // Step 16: Return matrix C
+  // Step: Return matrix C
   addStep(
-    16,
+    13,
     "Execution Complete: Return Product Matrix C",
     "L1 cache block-tiled GEMM completed with optimal cache line reuse.",
     { completed: true, matrixSize: `${n}x${n}` },
@@ -311,7 +284,7 @@ export const generateL1BlockTiledMatmulSteps = (
 };
 
 const L1BLOCKTILEDMATMUL_TRIVIA: TriviaMeta = {
-  skipLines: [7, 15],
+  skipLines: [4, 12],
   distractors: [
     "for bi in range(0, n): for bj in range(0, n):",
     "matrix_c[i][j] = matrix_a[i][k] + matrix_b[k][j]",
@@ -319,39 +292,38 @@ const L1BLOCKTILEDMATMUL_TRIVIA: TriviaMeta = {
     "return matrix_c[::-1]",
   ],
   hints: [
-    { line: 8, hint: "Outer 3 loops (bi, bj, bk) iterate over matrix block tiles with step block_size." },
-    { line: 11, hint: "Inner 3 loops (i, j, k) iterate over scalar elements inside L1 cache resident sub-tiles." },
-    { line: 14, hint: "Multiply element A[i][k] by B[k][j] and accumulate into C[i][j]." },
+    {
+      line: 5,
+      hint: "Outer 3 loops (bi, bj, bk) iterate over matrix block tiles with step block_size.",
+    },
+    {
+      line: 8,
+      hint: "Inner 3 loops (i, j, k) iterate over scalar elements inside L1 cache resident sub-tiles.",
+    },
+    { line: 11, hint: "Multiply element A[i][k] by B[k][j] and accumulate into C[i][j]." },
   ],
   lineExplanations: {
     1: "Defines L1 cache block-tiled matrix multiplication function signature.",
-    2: "Start of docstring explaining cache-tiled loop nesting.",
-    3: "Describes partitioning GEMM loops into L1 cache-sized sub-blocks.",
-    4: "End of docstring.",
-    5: "Gets square matrix dimension length N from matrix A.",
-    6: "Allocates N x N output matrix C initialized to zero.",
-    7: "Blank line between initialization and 6-loop nest.",
-    8: "Outer loop bi iterates through row block tiles starting at 0 with step block_size.",
-    9: "Outer loop bj iterates through column block tiles starting at 0 with step block_size.",
-    10: "Outer loop bk iterates through K contraction block tiles with step block_size.",
-    11: "Inner loop i iterates through rows within current row block tile bi to min(N, bi + block_size).",
-    12: "Inner loop j iterates through columns within current column block tile bj to min(N, bj + block_size).",
-    13: "Inner loop k iterates through contraction elements within current K block tile bk.",
-    14: "Accumulates element product matrix_a[i][k] * matrix_b[k][j] into output matrix_c[i][j].",
-    15: "Blank line prior to returning matrix C.",
-    16: "Returns computed N x N product matrix C.",
+    2: "Gets square matrix dimension length N from matrix A.",
+    3: "Allocates N x N output matrix C initialized to zero.",
+    4: "Blank line between initialization and 6-loop nest.",
+    5: "Outer loop bi iterates through row block tiles starting at 0 with step block_size.",
+    6: "Outer loop bj iterates through column block tiles starting at 0 with step block_size.",
+    7: "Outer loop bk iterates through K contraction block tiles with step block_size.",
+    8: "Inner loop i iterates through rows within current row block tile bi to min(N, bi + block_size).",
+    9: "Inner loop j iterates through columns within current column block tile bj to min(N, bj + block_size).",
+    10: "Inner loop k iterates through contraction elements within current K block tile bk.",
+    11: "Accumulates element product matrix_a[i][k] * matrix_b[k][j] into output matrix_c[i][j].",
+    12: "Blank line prior to returning matrix C.",
+    13: "Returns computed N x N product matrix C.",
   },
 };
 
 export const l1BlockTiledMatmul: AlgorithmDefinition<l1BlockTiledMatmulInput> = {
   id: "l1-block-tiled-matmul",
   title: "L1 Cache Block-Tiled MatMul Engine",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "On modern CPU microarchitectures (x86 AVX-512, ARM Neon, Apple Silicon Firestorm), L1 data cache access latency is 4-5 clock cycles (bandwidth > 3 TB/s), whereas main memory (DRAM) access takes 200+ clock cycles (bandwidth ~50-100 GB/s). Naive 3-loop matrix multiplication leads to non-strided column reads on matrix B, evicting cache lines before they can be reused.\n\nL1 Block Tiling reorganizes the 3-loop matmul nest $(i, j, k)$ into a 6-loop nest $(bi, bj, bk, i, j, k)$. The outer 3 loops iterate across matrix sub-blocks of size $B \\times B$, ensuring that active sub-matrix tiles fit entirely within the CPU's 32KB/64KB L1 data cache lines. This reduces DRAM memory bus traffic by a factor of $B$, boosting throughput by up to 50x.\n\nInput Format:\n- matrixA: N x N square input matrix A.\n- matrixB: N x N square input matrix B.\n- blockSize: Sub-matrix tile dimension B (default B=2 or 32).\n\nOutput Format:\n- Returns N x N product matrix C.\n\nEdge Cases & Constraints:\n- Matrix dimension N not evenly divisible by B (handled via `min(N, bi + B)` bounds).\n- Small 1x1 matrix inputs.\n- Block size B exceeding L1 cache capacity.",
   constraints: ["1 <= matrixA.length <= 64", "1 <= blockSize <= 32"],
@@ -371,7 +343,8 @@ export const l1BlockTiledMatmul: AlgorithmDefinition<l1BlockTiledMatmulInput> = 
   spaceComplexity: "O(N^2)",
   complexityAnalysis: {
     time: "Requires 2 * N^3 floating-point operations ($O(N^3)$ total FLOPs). Tiling does not change the FLOP count, but drastically improves hardware operational efficiency.",
-    space: "Allocates $O(N^2)$ space for output matrix C. Sub-matrix tile buffers reside in CPU registers/L1 cache.",
+    space:
+      "Allocates $O(N^2)$ space for output matrix C. Sub-matrix tile buffers reside in CPU registers/L1 cache.",
   },
   topicGuide: {
     overview:

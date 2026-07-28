@@ -14,24 +14,13 @@ export const PAGEDKVCACHEBLOCKMAPPING_CODE = `def map_logical_to_physical_kv_add
     block_table: list[int],
     block_size: int
 ) -> list[tuple[int, int, int]]:
-    """
-    Translates logical token sequence indices into physical PagedAttention block addresses.
-    Maps logical index t -> (physical_block_id, block_offset, physical_slot_index).
-    """
     address_mappings = []
-
     for t in token_indices:
         logical_block_idx = t // block_size
         block_offset = t % block_size
-
-        # Look up physical block ID in session block table
         physical_block_id = block_table[logical_block_idx]
-
-        # Calculate absolute physical slot index in physical KV cache memory
         physical_slot_index = physical_block_id * block_size + block_offset
-
         address_mappings.append((physical_block_id, block_offset, physical_slot_index))
-
     return address_mappings`;
 
 export const DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT: pagedKvCacheBlockMappingInput = {
@@ -47,11 +36,11 @@ export const generatePagedKvCacheBlockMappingSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const tokenCount = Math.max(input.tokenCount ?? 8, 8);
-  const blockSize = Math.max(input.blockSize ?? 4, 4);
+  const tokenCount = Math.max(input.tokenCount ?? 8, 4);
+  const blockSize = Math.max(input.blockSize ?? 4, 1);
 
-  // Mock block table: logical block 0 -> phys block 12, logical block 1 -> phys block 43
-  const blockTable = [12, 43, 7, 29];
+  // Dynamic/mock block table mapping logical block index -> physical block ID
+  const blockTable = [12, 43, 7, 29, 15, 62, 88, 31];
 
   const matrixValues: string[][] = Array.from({ length: tokenCount }, () =>
     Array.from({ length: 5 }, () => "-"),
@@ -112,7 +101,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
         customState: {
           token_count: tokenCount,
           block_size: blockSize,
-          block_table: `[${blockTable.join(", ")}]`,
+          block_table: `[${blockTable.slice(0, Math.ceil(tokenCount / blockSize)).join(", ")}]`,
           active_token: activeR !== undefined ? `t=${activeR}` : "None",
         },
       },
@@ -128,7 +117,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
   );
 
   addStep(
-    10,
+    6,
     "Initialize Address Mappings Container",
     "Allocated top-level list to store translated physical (block_id, offset, slot_index) tuples.",
     { address_mappings: "[]" },
@@ -136,7 +125,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
 
   for (let t = 0; t < tokenCount; t++) {
     addStep(
-      12,
+      7,
       `Begin Address Translation for Logical Token t=${t}`,
       `Translating virtual sequence position t=${t} to physical GPU KV cache memory slot.`,
       { t },
@@ -147,7 +136,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     const blockOffset = t % blockSize;
 
     addStep(
-      13,
+      8,
       `Compute Logical Block Index: ${t} // ${blockSize} = ${logicalBlockIdx}`,
       `Integer division t // block_size determines logical page table row ${logicalBlockIdx}.`,
       { t, blockSize, logicalBlockIdx },
@@ -159,7 +148,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     matrixStates[t][0] = "compared";
 
     addStep(
-      14,
+      9,
       `Compute Token Block Offset: ${t} % ${blockSize} = ${blockOffset}`,
       `Modulo t % block_size determines slot offset ${blockOffset} inside physical block.`,
       { t, blockSize, blockOffset },
@@ -173,7 +162,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     const physBlockId = blockTable[logicalBlockIdx % blockTable.length];
 
     addStep(
-      17,
+      10,
       `Look Up Physical Block ID in Session Page Table: block_table[${logicalBlockIdx}] -> ${physBlockId}`,
       `Virtual memory page table maps logical block ${logicalBlockIdx} to non-contiguous physical block ID ${physBlockId}.`,
       { logicalBlockIdx, physBlockId },
@@ -187,7 +176,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     const physSlotIndex = physBlockId * blockSize + blockOffset;
 
     addStep(
-      20,
+      11,
       `Calculate Absolute Physical Slot Index: ${physBlockId} * ${blockSize} + ${blockOffset} = ${physSlotIndex}`,
       `Formula physical_block_id * block_size + offset yields absolute GPU DRAM slot index ${physSlotIndex}.`,
       { physBlockId, blockSize, blockOffset, physSlotIndex },
@@ -202,7 +191,7 @@ export const generatePagedKvCacheBlockMappingSteps = (
     matrixStates[t][4] = "sorted";
 
     addStep(
-      22,
+      12,
       `Append Mapped Address Tuple (${physBlockId}, ${blockOffset}, ${physSlotIndex})`,
       `Stored translated address tuple for logical token t=${t}.`,
       { t, physBlockId, blockOffset, physSlotIndex },
@@ -211,19 +200,8 @@ export const generatePagedKvCacheBlockMappingSteps = (
     );
   }
 
-  while (steps.length < 19) {
-    addStep(
-      22,
-      "Finalize Paged KV Cache Memory Mapping Padding",
-      `Step ${steps.length + 1}: Finalizing PagedAttention block mapping operations.`,
-      { completed: false },
-      tokenCount - 1,
-      3,
-    );
-  }
-
   addStep(
-    24,
+    13,
     "Execution Complete",
     `Successfully mapped ${tokenCount} logical sequence token positions to non-contiguous physical PagedAttention blocks.`,
     { completed: true, total_tokens: tokenCount },
@@ -233,17 +211,17 @@ export const generatePagedKvCacheBlockMappingSteps = (
 };
 
 const PAGEDKVCACHEBLOCKMAPPING_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 11, 15, 16, 18, 19, 21, 23],
+  skipLines: [1, 2, 3, 4, 5],
   distractors: [
     "logical_block_idx = t % block_size",
     "physical_slot_index = physical_block_id + block_offset",
     "block_offset = t // block_size",
   ],
   hints: [
-    { line: 13, hint: "Compute logical block index via integer division t // block_size." },
-    { line: 14, hint: "Compute token offset within block via modulo t % block_size." },
+    { line: 8, hint: "Compute logical block index via integer division t // block_size." },
+    { line: 9, hint: "Compute token offset within block via modulo t % block_size." },
     {
-      line: 20,
+      line: 11,
       hint: "Calculate absolute physical memory address physical_block_id * block_size + offset.",
     },
   ],
@@ -251,39 +229,24 @@ const PAGEDKVCACHEBLOCKMAPPING_TRIVIA: TriviaMeta = {
     1: "Defines entry point function for PagedAttention block table translation.",
     2: "Specifies type annotation for input logical token indices list.",
     3: "Specifies type annotation for session physical block table array.",
-    4: "Specifies type annotation for fixed page block size (e.g., 16 tokens/block).",
+    4: "Specifies type annotation for fixed page block size (e.g., 4 tokens/block).",
     5: "Specifies return tuple type for physical block ID, offset, and slot index.",
-    6: "Docstring opening delimiter tag.",
-    7: "Describes logical to physical PagedAttention address translation.",
-    8: "Explains mapping logical index t to physical slot address.",
-    9: "Docstring closing tag.",
-    10: "Initializes list container for collecting translated physical address tuples.",
-    11: "Empty whitespace separator line.",
-    12: "Iterates over each logical sequence token index t.",
-    13: "Calculates logical block index by integer dividing token position by block size.",
-    14: "Calculates token offset within the block using modulo arithmetic.",
-    15: "Empty whitespace separator line.",
-    16: "Comment indicating physical block ID lookup in session page table.",
-    17: "Looks up physical block ID in request block table array.",
-    18: "Empty whitespace separator line.",
-    19: "Comment indicating absolute physical memory slot index calculation.",
-    20: "Computes absolute physical memory address slot for GPU cache access.",
-    21: "Empty whitespace separator line.",
-    22: "Appends translated address tuple to output list.",
-    23: "Empty whitespace separator line.",
-    24: "Returns translated physical address tuple mappings for all sequence tokens.",
+    6: "Initializes list container for collecting translated physical address tuples.",
+    7: "Iterates over each logical sequence token index t.",
+    8: "Calculates logical block index by integer dividing token position by block size.",
+    9: "Calculates token offset within the block using modulo arithmetic.",
+    10: "Looks up physical block ID in request block table array.",
+    11: "Computes absolute physical memory address slot for GPU cache access.",
+    12: "Appends translated address tuple to output list.",
+    13: "Returns translated physical address tuple mappings for all sequence tokens.",
   },
 };
 
 export const pagedKvCacheBlockMapping: AlgorithmDefinition<pagedKvCacheBlockMappingInput> = {
   id: "paged-kv-cache-block-mapping",
   title: "Paged KV-Cache Block Table Mapper",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "ml_llm_serving"],
+  topicIds: ["ml_attention_geometry", "ml_llm_serving"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 7,
-  mlInfraCategory: "ml_attention_geometry",
   description:
     "PagedAttention (vLLM, Kwon et al., SOSP 2023) eliminates external and internal memory fragmentation in Large Language Model (LLM) serving. Naive contiguous KV caches reserve pre-allocated memory for maximum sequence length (e.g. 2048 tokens), wasting up to 60%-80% of GPU VRAM.\n\n### Why It Exists\nInspired by OS virtual memory paging, PagedAttention stores key and value vectors in non-contiguous physical memory blocks of fixed size (e.g. 16 tokens). A per-request block table maps logical sequence token indices $t$ to non-contiguous physical block IDs in GPU VRAM, achieving near-zero memory waste (>96% GPU memory utilization).\n\n### Mathematical Formulation\nFor logical token index $t$ and block size $B$:\n\n$$\\text{logical\\_block} = \\lfloor t / B \\rfloor, \\quad \\text{offset} = t \\bmod B$$\n\n$$\\text{phys\\_block\\_id} = \\text{block\\_table}[\\text{logical\\_block}]$$\n\n$$\\text{phys\\_slot\\_index} = \\text{phys\\_block\\_id} \\times B + \\text{offset}$$\n\n### Step-by-Step Intuition\n1. **Page Division**: Divide token position $t$ by block size $B$ to find logical page number.\n2. **Page Table Lookup**: Look up physical block ID in the request's dynamic block table.\n3. **Address Synthesis**: Multiply physical block ID by $B$ and add offset to get absolute DRAM address.\n\n### Key Trade-Offs & Complexity\n- **Memory Efficiency**: Eliminates external memory fragmentation and boosts LLM serving throughput by up to $4\\times$.\n- **Virtual Address Translation**: Requires lightweight page table lookup in CUDA kernels during attention tile loading.",
   constraints: ["1 <= tokenCount <= 4096", "1 <= blockSize <= 128"],

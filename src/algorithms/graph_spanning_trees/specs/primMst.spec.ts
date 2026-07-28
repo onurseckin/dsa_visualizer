@@ -4,7 +4,7 @@ import { primMst, DEFAULT_PRIM_MST_INPUT, generatePrimMstSteps } from "../primMs
 describe("primMst definition and step generator", () => {
   it("has correct metadata and category", () => {
     expect(primMst.id).toBe("prim-mst");
-    expect(primMst.category).toBe("graph_spanning_trees");
+    expect(primMst.topicIds).toContain("graph_spanning_trees");
   });
 
   it("produces >= 20 steps for default input", () => {

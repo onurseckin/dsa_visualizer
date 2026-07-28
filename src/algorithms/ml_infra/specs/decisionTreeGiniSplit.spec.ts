@@ -10,9 +10,8 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("decisionTreeGiniSplit algorithm spec", () => {
   it("should have correct ML Infra Level 5 metadata", () => {
     expect(decisionTreeGiniSplit.id).toBe("decision-tree-gini-split");
-    expect(decisionTreeGiniSplit.isMlInfra).toBe(true);
-    expect(decisionTreeGiniSplit.mlInfraLevel).toBe(5);
-    expect(decisionTreeGiniSplit.category).toBe("ml_tree_ensembles");
+    expect(decisionTreeGiniSplit.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(decisionTreeGiniSplit.topicIds).toContain("ml_tree_ensembles");
     expect(decisionTreeGiniSplit.defaultInput).toEqual(DEFAULT_DECISION_TREE_GINI_SPLIT_INPUT);
     expect(decisionTreeGiniSplit.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

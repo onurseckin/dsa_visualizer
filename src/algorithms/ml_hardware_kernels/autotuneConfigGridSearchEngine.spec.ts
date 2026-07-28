@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { autotuneConfigGridSearchEngine } from "./autotuneConfigGridSearchEngine";
 
-describe("autotuneConfigGridSearchEngine", () => {
+describe("autotune-config-grid-search-engine", () => {
   it("should have valid metadata", () => {
     expect(autotuneConfigGridSearchEngine.id).toBeDefined();
     expect(autotuneConfigGridSearchEngine.title).toBeDefined();

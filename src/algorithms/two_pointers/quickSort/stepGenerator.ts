@@ -1,4 +1,4 @@
-import type { AlgorithmStep, ArrayElement } from "../../../types/dsa";
+import type { AlgorithmStep, ArrayElement, ElementState } from "../../../types/dsa";
 
 export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -17,6 +17,8 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
+    pointersMap: Record<number, string[]> = {},
+    stateOverrides: Record<number, ElementState> = {},
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -24,9 +26,10 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: workingElements.map((el) => ({
+        elements: workingElements.map((el, idx) => ({
           ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
+          state: stateOverrides[idx] ?? el.state,
+          pointers: pointersMap[idx] ? [...pointersMap[idx]] : undefined,
         })),
       },
       auxiliaryState: { stack: [...callStack] },
@@ -54,12 +57,10 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       { low: 0, high: Math.max(0, n - 1) },
     );
     while (steps.length < 20) {
-      addStep(
-        1,
-        `Verification step ${steps.length + 1}`,
-        "Base case boundary verified.",
-        { low: 0, high: Math.max(0, n - 1) },
-      );
+      addStep(1, `Verification step ${steps.length + 1}`, "Base case boundary verified.", {
+        low: 0,
+        high: Math.max(0, n - 1),
+      });
     }
     return steps;
   }
@@ -98,14 +99,14 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     );
 
     const pivotVal = workingElements[high].value;
-    workingElements[high].state = "pivot";
-    workingElements[high].pointers = ["pivot"];
 
     addStep(
       7,
       `Enter partition([${low}..${high}])`,
       `The partition helper takes over: it picks a pivot and rearranges the slice so everything ≤ pivot is on the left and everything > pivot is on the right.`,
       { low, high },
+      { [high]: ["pivot"] },
+      { [high]: "pivot" },
     );
 
     addStep(
@@ -113,6 +114,8 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       `Pick the pivot ${pivotVal}`,
       `We take the rightmost element, ${pivotVal}, as our yardstick — every other value in this slice will be judged as either "at most ${pivotVal}" or "bigger".`,
       { low, high, pivot: pivotVal },
+      { [high]: ["pivot"] },
+      { [high]: "pivot" },
     );
 
     let i = low - 1;
@@ -121,20 +124,43 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       `Set the boundary i = ${i}`,
       `The pointer i marks the end of the "small values" zone. It starts at ${i}, just before the slice, because we haven't found anything <= ${pivotVal} yet.`,
       { low, high, i, pivot: pivotVal },
+      { [high]: ["pivot"] },
+      { [high]: "pivot" },
     );
 
     for (let j = low; j < high; j++) {
-      workingElements[j].state = "compare";
-      if (i >= low) workingElements[i].pointers = ["i"];
-      workingElements[j].pointers = ["j"];
-
       const currentVal = workingElements[j].value;
+
+      const getPointers = (extra?: Record<number, string[]>) => {
+        const pm: Record<number, string[]> = {
+          [high]: ["pivot"],
+          [j]: ["j"],
+        };
+        if (i >= low) pm[i] = ["i"];
+        if (extra) {
+          Object.assign(pm, extra);
+        }
+        return pm;
+      };
+
+      const getStates = (extra?: Record<number, ElementState>) => {
+        const sm: Record<number, ElementState> = {
+          [high]: "pivot",
+          [j]: "compare",
+        };
+        if (extra) {
+          Object.assign(sm, extra);
+        }
+        return sm;
+      };
 
       addStep(
         10,
-        `for j = ${j}: scan element ${workingElements[j].value}`,
+        `for j = ${j}: scan element ${currentVal}`,
         `The for loop scans each position from ${low} to ${high - 1}, comparing every element against the pivot to decide which side it belongs on.`,
         { low, high, i, j, pivot: pivotVal },
+        getPointers(),
+        getStates(),
       );
 
       addStep(
@@ -144,6 +170,8 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
           ? `${currentVal} is at most ${pivotVal}, so it belongs on the pivot's left — we'll grow the small-values zone to take it in.`
           : `${currentVal} is bigger than ${pivotVal}, so we leave it where it stands; it will end up on the pivot's right side.`,
         { low, high, i, j, "arr[j]": currentVal, pivot: pivotVal },
+        getPointers(),
+        getStates(),
       );
 
       if (currentVal <= pivotVal) {
@@ -153,10 +181,10 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
           `Grow the small zone to index ${i}`,
           `Sliding i forward to ${i} opens the next seat in the <=-pivot zone, ready to receive ${currentVal}.`,
           { low, high, i, j, "arr[j]": currentVal, pivot: pivotVal },
+          getPointers({ [i]: ["i"] }),
+          getStates({ [i]: "active" }),
         );
 
-        workingElements[i].state = "swap";
-        workingElements[j].state = "swap";
         const temp = workingElements[i];
         workingElements[i] = workingElements[j];
         workingElements[j] = temp;
@@ -173,27 +201,21 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
             "arr[i]": workingElements[i].value,
             "arr[j]": workingElements[j].value,
           },
+          getPointers({ [i]: ["i"], [j]: ["j"] }),
+          getStates({ [i]: "swap", [j]: "swap" }),
         );
-
-        workingElements[i].state = "default";
-        workingElements[j].state = "default";
-      } else {
-        workingElements[j].state = "default";
       }
-
-      if (i >= low && i < n) workingElements[i].pointers = undefined;
-      workingElements[j].pointers = undefined;
     }
 
     const pivotIdx = i + 1;
-    workingElements[pivotIdx].state = "swap";
-    workingElements[high].state = "swap";
 
     addStep(
       14,
       `Move pivot ${pivotVal} to index ${pivotIdx}`,
       `Index ${pivotIdx} is the first seat after the small-values zone — exactly where ${pivotVal} belongs. Once it lands there, it will never need to move again.`,
       { low, high, pivotIdx, pivot: pivotVal },
+      { [pivotIdx]: ["i+1"], [high]: ["pivot"] },
+      { [pivotIdx]: "swap", [high]: "swap" },
     );
 
     const tempPivot = workingElements[pivotIdx];
@@ -201,18 +223,16 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     workingElements[high] = tempPivot;
 
     workingElements[pivotIdx].state = "sorted";
-    workingElements[pivotIdx].pointers = undefined;
-    if (high !== pivotIdx) {
-      workingElements[high].state = "default";
-      workingElements[high].pointers = undefined;
-    }
 
     addStep(
       15,
       `Partition done at index ${pivotIdx}`,
       `Everything left of index ${pivotIdx} is at most ${pivotVal}, and everything right of it is at least ${pivotVal} — so the pivot now sits in its final sorted position.`,
       { low, high, pivotIdx },
+      { [pivotIdx]: ["pivot"] },
+      { [pivotIdx]: "sorted" },
     );
+
     addStep(
       4,
       `Recurse into the left side`,
@@ -236,7 +256,6 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
 
   for (let k = 0; k < n; k++) {
     workingElements[k].state = "sorted";
-    workingElements[k].pointers = undefined;
   }
 
   addStep(
@@ -247,12 +266,10 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   );
 
   while (steps.length < 20) {
-    addStep(
-      1,
-      `Verification step ${steps.length + 1}`,
-      "Verifying array is fully sorted.",
-      { low: 0, high: n - 1 },
-    );
+    addStep(1, `Verification step ${steps.length + 1}`, "Verifying array is fully sorted.", {
+      low: 0,
+      high: n - 1,
+    });
   }
 
   return steps;

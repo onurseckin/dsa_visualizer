@@ -9,7 +9,7 @@ describe("eulerTourTechnique algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(eulerTourTechnique.id).toBe("euler-tour-technique");
     expect(eulerTourTechnique.title).toBe("Euler Tour Technique (Tree Flattening)");
-    expect(eulerTourTechnique.category).toBe("tree_queries_and_diameter");
+    expect(eulerTourTechnique.topicIds).toContain("tree_fundamentals");
     expect(eulerTourTechnique.difficulty).toBe("Medium");
     expect(eulerTourTechnique.defaultInput).toEqual(DEFAULT_EULER_TOUR_INPUT);
   });

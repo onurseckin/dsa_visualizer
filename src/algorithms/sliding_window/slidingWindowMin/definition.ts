@@ -95,8 +95,7 @@ const SLIDING_WINDOW_MIN_TRIVIA: TriviaMeta = {
 export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   id: "sliding-window-min",
   title: "Sliding Window Minimum",
-  category: "sliding_window",
-  categories: ["sliding_window"],
+  topicIds: ["sliding_window"],
   difficulty: "Hard",
   description: `Finds the minimum element in every contiguous sliding window of size $k$ in an array \`nums\` as the window slides from left to right.
 
@@ -177,7 +176,8 @@ $$\\text{nums}[dq[-1]] \\ge \\text{nums}[i] \\implies \\text{pop}()$$
   spaceComplexity: "O(k)",
   complexityAnalysis: {
     time: "Each index is pushed onto the deque exactly once and popped from the front or back at most once. Total push and pop operations across the entire loop are bounded by $2N$. The amortized time per step is $O(1)$, yielding total runtime complexity of $O(N)$.",
-    space: "The deque stores indices belonging strictly to the active sliding window, so its size never exceeds $K$. Auxiliary space complexity is $O(K)$ excluding the output array.",
+    space:
+      "The deque stores indices belonging strictly to the active sliding window, so its size never exceeds $K$. Auxiliary space complexity is $O(K)$ excluding the output array.",
   },
   topicGuide: SLIDING_WINDOW_MIN_TOPIC_GUIDE,
   trivia: SLIDING_WINDOW_MIN_TRIVIA,

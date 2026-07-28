@@ -7,9 +7,6 @@ export interface optimalSubgraphActivationCheckpointingInput {
 }
 
 export const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_CODE = `def optimal_subgraph_activation_checkpointing(num_layers, checkpoint_interval=2):
-    """
-    Saves activation checkpoints every K layers to trade re-computation FLOPs for SRAM memory.
-    """
     checkpoints = []
     for i in range(num_layers):
         is_checkpoint = (i % checkpoint_interval == 0)
@@ -66,7 +63,7 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
     });
   };
 
-  // Step 1: Init Checkpointing Scheduler
+  // Step 1 (codeLine 1): Init Checkpointing Scheduler
   addStep(
     1,
     "Initialize Optimal Subgraph Activation Checkpointing Scheduler",
@@ -76,38 +73,17 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
     { memory_mode: "CHECKPOINTED", interval: "2" },
   );
 
+  // Step 2 (codeLine 2): Allocate checkpoints list
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Saves activation checkpoints every K layers to trade re-computation FLOPs for SR",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Step 2: Init checkpoints list
-  addStep(
-    5,
     "Allocate Checkpoint Array `checkpoints = []`",
-    "Initializing list log to store per-layer (layer_index, is_checkpoint) tuple decisions.",
-    { phase: "ALLOC_CHECKPOINTS_LIST" },
+    "Initializing empty list log to store per-layer (layer_index, is_checkpoint) decision tuples.",
+    { numLayers: arrayData.length, phase: "ALLOC_CHECKPOINTS_LIST" },
   );
 
-  // Step 3: Inspect memory bounds
+  // Step 3 (codeLine 2): Calculate memory footprint target
   addStep(
-    6,
+    2,
     "Calculate Optimal SRAM Memory Footprint Target",
     "Deriving peak memory bound O(sqrt(N)) for checkpoint schedule.",
     { numLayers: arrayData.length, maxVramRatio: "0.50", phase: "CALC_MEMORY_BOUND" },
@@ -115,72 +91,103 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
 
   // Multi-step loop per layer
   const checkpointList: { layer: number; isCkpt: boolean }[] = [];
-  arrayData.forEach((val, idx) => {
+  arrayData.forEach((_, idx) => {
     const isCkpt = idx % 2 === 0;
     checkpointList.push({ layer: idx, isCkpt });
-    const isTarget = val === target;
 
     const stateA: ArrayElement[] = elements.map((el, i) => {
       if (i === idx) return { ...el, state: "compare", pointers: [`Layer_${idx}`] };
-      if (i < idx) return { ...el, state: "visited" };
+      if (i < idx) {
+        const saved = i % 2 === 0;
+        return {
+          ...el,
+          state: saved ? "active" : "visited",
+          pointers: [saved ? "CKPT" : "RECOMP"],
+        };
+      }
       return el;
     });
 
     addStep(
-      6,
+      3,
       `Inspect Layer ${idx} Activation Footprint`,
-      `Iterating through neural network graph layer ${idx}. Evaluating checkpoint interval modulo rule (i % 2 == 0).`,
+      `Iterating through neural network graph layer ${idx} of ${arrayData.length} total layers.`,
       { layer: idx, interval: 2, phase: "INSPECT_LAYER" },
       stateA,
       { currentLayer: `Layer_${idx}` },
     );
 
     addStep(
-      7,
+      4,
       `Evaluate Modulo Rule: (${idx} % 2 == 0) -> ${isCkpt}`,
       isCkpt
         ? `Layer ${idx} satisfies checkpoint condition. Storing activation in GPU VRAM memory!`
-        : `Layer ${idx} is intermediate. Activation will be discarded during forward pass and re-computed during backward.`,
+        : `Layer ${idx} is intermediate. Activation will be discarded during forward pass and re-computed during backward pass.`,
       { layer: idx, isCheckpoint: isCkpt, phase: "EVAL_MODULO" },
       stateA,
       { isCheckpoint: String(isCkpt) },
     );
 
     const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isCkpt ? "active" : "sorted", value: isCkpt ? "CKPT" : "RECOMP", pointers: [isCkpt ? "SAVED_VRAM" : "DISCARDED"] };
-      if (i < idx) return { ...el, state: "visited" };
+      if (i === idx)
+        return {
+          ...el,
+          state: isCkpt ? "active" : "sorted",
+          value: isCkpt ? "CKPT" : "RECOMP",
+          pointers: [isCkpt ? "SAVED_VRAM" : "DISCARDED"],
+        };
+      if (i < idx) {
+        const saved = i % 2 === 0;
+        return {
+          ...el,
+          state: saved ? "active" : "visited",
+          value: saved ? "CKPT" : "RECOMP",
+          pointers: [saved ? "SAVED_VRAM" : "DISCARDED"],
+        };
+      }
       return el;
     });
 
     addStep(
-      8,
+      5,
       `Log Decision: checkpoints.append((${idx}, ${isCkpt}))`,
       `Recorded layer ${idx} decision: ${isCkpt ? "SAVED_CHECKPOINT" : "DISCARD_AND_RECOMPUTE"}.`,
-      { layer: idx, isCheckpoint: isCkpt, totalCheckpointsSaved: checkpointList.filter((c) => c.isCkpt).length, phase: "LOG_DECISION" },
+      {
+        layer: idx,
+        isCheckpoint: isCkpt,
+        totalCheckpointsSaved: checkpointList.filter((c) => c.isCkpt).length,
+        phase: "LOG_DECISION",
+      },
       stateB,
       { checkpoint_count: String(checkpointList.filter((c) => c.isCkpt).length) },
     );
   });
 
-  // Step final-1: Verify Checkpoint Memory Schedule
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  const finalElements: ArrayElement[] = elements.map((el, idx) => {
+    const isCkpt = idx % 2 === 0;
+    return {
+      ...el,
+      state: isCkpt ? "active" : "sorted",
+      value: isCkpt ? "CKPT" : "RECOMP",
+      pointers: [isCkpt ? "SAVED_VRAM" : "DISCARDED"],
+    };
+  });
 
   addStep(
-    9,
-    "Verify Activation Checkpoint Schedule Topology",
+    6,
+    "Return Checkpoints Schedule: `return checkpoints`",
     `Schedule complete: saved ${checkpointList.filter((c) => c.isCkpt).length} checkpoints across ${arrayData.length} layers. Reduced peak VRAM footprint by ~50%.`,
-    { totalLayers: arrayData.length, totalCheckpoints: checkpointList.filter((c) => c.isCkpt).length },
+    {
+      totalLayers: arrayData.length,
+      totalCheckpoints: checkpointList.filter((c) => c.isCkpt).length,
+    },
     finalElements,
   );
 
-  // Step final: Complete
   addStep(
-    9,
+    6,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully computed optimal activation checkpoint schedule for neural network computation graph.",
     { completed: true, totalSteps: stepIndex },
     finalElements,
   );
@@ -189,7 +196,6 @@ export const generateOptimalSubgraphActivationCheckpointingSteps = (
 };
 
 const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -197,20 +203,18 @@ const OPTIMALSUBGRAPHACTIVATIONCHECKPOINTING_TRIVIA: TriviaMeta = {
     "is_checkpoint = (i % checkpoint_interval != 0)",
   ],
   hints: [
-    { line: 5, hint: "Initialize empty array checkpoints to log layer decisions." },
-    { line: 7, hint: "Evaluate modulo rule (i % checkpoint_interval == 0) to mark saved layers." },
-    { line: 8, hint: "Append (layer_index, is_checkpoint) tuple to schedule array." },
+    { line: 2, hint: "Initialize empty array checkpoints to log layer decisions." },
+    { line: 4, hint: "Evaluate modulo rule (i % checkpoint_interval == 0) to mark saved layers." },
+    { line: 5, hint: "Append (layer_index, is_checkpoint) tuple to schedule array." },
+    { line: 6, hint: "Return the schedule list of activation checkpoints." },
   ],
   lineExplanations: {
     1: "Defines entry point for optimal_subgraph_activation_checkpointing scheduler.",
-    2: "Docstring opening: describes activation checkpointing every K layers.",
-    3: "Docstring body: saves activation checkpoints to trade re-computation FLOPs for GPU SRAM/VRAM memory reduction.",
-    4: "Docstring closing.",
-    5: "Initializes empty list checkpoints to store (layer_index, is_checkpoint) decision tuples.",
-    6: "Iterates through layer indices i from 0 to num_layers - 1.",
-    7: "Evaluates boolean checkpoint condition (i % checkpoint_interval == 0).",
-    8: "Appends (i, is_checkpoint) tuple to decision schedule list checkpoints.",
-    9: "Returns checkpoints decision schedule list.",
+    2: "Initializes empty list checkpoints to store (layer_index, is_checkpoint) decision tuples.",
+    3: "Iterates through layer indices i from 0 to num_layers - 1.",
+    4: "Evaluates boolean checkpoint condition (i % checkpoint_interval == 0).",
+    5: "Appends (i, is_checkpoint) tuple to decision schedule list checkpoints.",
+    6: "Returns checkpoints decision schedule list.",
   },
 };
 
@@ -218,12 +222,8 @@ export const optimalSubgraphActivationCheckpointing: AlgorithmDefinition<optimal
   {
     id: "optimal-subgraph-activation-checkpointing",
     title: "Optimal Subgraph Activation Checkpointing Scheduler",
-    category: "ml_autograd_dags",
-    categories: ["ml_autograd_dags", "graph_traversal"],
+    topicIds: ["ml_autograd_dags", "graph_traversal"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 3,
-    mlInfraCategory: "ml_autograd_dags",
     description: `### Optimal Subgraph Activation Checkpointing Scheduler
 
 In training large neural network models (**LLMs**, **Vision Transformers**, and **Deep ResNets**), storing all intermediate forward activations in High-Bandwidth Memory (HBM) for backward autograd passes easily causes **Out-Of-Memory (OOM)** crashes.
@@ -301,7 +301,7 @@ With **Activation Checkpointing** (\`torch.utils.checkpoint\` / **Gradient Check
         },
         {
           heading: "Implementation Details & Modulo Scheduling",
-          body: "Implementation evaluates modulo condition (\`i % checkpoint_interval == 0\`) to designate saved layer boundary checkpoints.",
+          body: "Implementation evaluates modulo condition (`i % checkpoint_interval == 0`) to designate saved layer boundary checkpoints.",
         },
         {
           heading: "Edge Case Analysis & Interval Selection",

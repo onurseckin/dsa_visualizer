@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface SramGemmTilingInput {
@@ -14,14 +19,13 @@ export const SRAM_GEMM_TILING_CODE = `def sram_gemm_tiling(M: int, N: int, K: in
     num_tiles_m = (M + tile_m - 1) // tile_m
     num_tiles_n = (N + tile_n - 1) // tile_n
     num_tiles_k = (K + tile_k - 1) // tile_k
-    
+
     total_tile_steps = num_tiles_m * num_tiles_n * num_tiles_k
-    # Memory loaded from HBM in FP16 (2 bytes/elem)
     hbm_read_bytes = (num_tiles_m * num_tiles_n * num_tiles_k) * (tile_m * tile_k + tile_k * tile_n) * 2
     flop_count = 2 * M * N * K
-    
+
     arithmetic_intensity = flop_count / max(1, hbm_read_bytes)
-    
+
     return {
         "grid_dim": [num_tiles_m, num_tiles_n],
         "k_iterations": num_tiles_k,
@@ -45,107 +49,215 @@ export const generateSramGemmTilingSteps = (input: SramGemmTilingInput): Algorit
 
   const { M, N, K, tileM, tileN, tileK } = input;
 
-  const elements: ArrayElement[] = [
-    { id: "dim-m", value: M, state: "default", pointers: ["M"] },
-    { id: "dim-n", value: N, state: "default", pointers: ["N"] },
-    { id: "dim-k", value: K, state: "default", pointers: ["K"] },
-  ];
-
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
-    customState?: Record<string, string | number>,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: customState || {
-          matrixShape: `${M}x${N}x${K}`,
-          tileShape: `${tileM}x${tileN}x${tileK}`,
-        },
-      },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Initialize SRAM GEMM Tiling Calculation",
-    `Matrix dimensions M=${M}, N=${N}, K=${K} with SRAM tile size T_M=${tileM}, T_N=${tileN}, T_K=${tileK}.`,
-    { M, N, K, tileM, tileN, tileK },
-  );
-
   const numTilesM = Math.ceil(M / Math.max(1, tileM));
   const numTilesN = Math.ceil(N / Math.max(1, tileN));
   const numTilesK = Math.ceil(K / Math.max(1, tileK));
-
-  addStep(
-    2,
-    `Compute Tile Grid: num_tiles_m=${numTilesM}, num_tiles_n=${numTilesN}, num_tiles_k=${numTilesK}`,
-    `num_tiles_m = ceil(${M} / ${tileM}) = ${numTilesM}. num_tiles_n = ceil(${N} / ${tileN}) = ${numTilesN}. num_tiles_k = ceil(${K} / ${tileK}) = ${numTilesK}. Grid: [${numTilesM} × ${numTilesN}] Threadblocks.`,
-    { numTilesM, numTilesN, numTilesK },
-    elements.map((el) => ({ ...el, state: "active" })),
-    { gridDim: `[${numTilesM}, ${numTilesN}]`, k_iterations: numTilesK },
-  );
 
   const totalTileSteps = numTilesM * numTilesN * numTilesK;
   const flopCount = 2 * M * N * K;
   const hbmReadBytes = totalTileSteps * (tileM * tileK + tileK * tileN) * 2;
   const intensity = flopCount / Math.max(1, hbmReadBytes);
 
+  const getMatrixSnapshot = (
+    cellState: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive" = "default",
+    activeRow?: number,
+    activeCol?: number,
+    titleExt?: string,
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < numTilesM; r++) {
+      for (let c = 0; c < numTilesN; c++) {
+        const isCurrent =
+          (activeRow !== undefined && r === activeRow) ||
+          (activeCol !== undefined && c === activeCol);
+        cells.push({
+          row: r,
+          col: c,
+          value: `Tile[${r},${c}]`,
+          label: `${tileM}x${tileN}`,
+          state: isCurrent ? "active" : cellState,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows: numTilesM,
+      cols: numTilesN,
+      title: titleExt
+        ? `Threadblock Grid: ${titleExt}`
+        : `Threadblock Tile Grid (${numTilesM}x${numTilesN} Tiles, K-Iter=${numTilesK})`,
+      rowHeaders: Array.from({ length: numTilesM }, (_, idx) => `Tile Row ${idx}`),
+      colHeaders: Array.from({ length: numTilesN }, (_, idx) => `Tile Col ${idx}`),
+      cells,
+    };
+  };
+
+  const addStep = (
+    codeLine: number,
+    what: string,
+    why: string,
+    variables: Record<string, string | number | boolean>,
+    cellState: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive" = "default",
+    activeRow?: number,
+    activeCol?: number,
+    titleExt?: string,
+  ) => {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine,
+      explanation: { what, why },
+      primarySnapshot: getMatrixSnapshot(cellState, activeRow, activeCol, titleExt),
+      auxiliaryState: {
+        customState: {
+          matrixDimensions: `${M} x ${N} x ${K} (MxNxK)`,
+          tileSize: `${tileM} x ${tileN} x ${tileK} (tileM x tileN x tileK)`,
+          gridDimensions: `[${numTilesM}, ${numTilesN}] Threadblock Grid`,
+          kIterations: `${numTilesK} Reduction Steps`,
+          totalSramTilePasses: totalTileSteps,
+          flopCount: `${(flopCount / 1e6).toFixed(2)} MFLOPs`,
+          hbmReadKb: `${(hbmReadBytes / 1024).toFixed(1)} KB`,
+          arithmeticIntensity: `${intensity.toFixed(4)} FLOP/Byte`,
+        },
+      },
+      variables,
+    });
+  };
+
+  // Line 1: Function signature / setup
+  addStep(
+    1,
+    "Initialize SRAM GEMM Tiling Calculation",
+    `Target matrix dimensions M=${M}, N=${N}, K=${K} with SRAM tile size T_M=${tileM}, T_N=${tileN}, T_K=${tileK}.`,
+    { M, N, K, tile_m: tileM, tile_n: tileN, tile_k: tileK },
+    "default",
+    undefined,
+    undefined,
+    `Matrix ${M}x${N}x${K}, Tile ${tileM}x${tileN}x${tileK}`,
+  );
+
+  // Line 2: num_tiles_m
+  addStep(
+    2,
+    `Compute Tile Grid M-Dimension: num_tiles_m = ${numTilesM}`,
+    `num_tiles_m = (${M} + ${tileM} - 1) // ${tileM} = ${numTilesM}. Determines the number of threadblock tile rows.`,
+    { M, tile_m: tileM, num_tiles_m: numTilesM },
+    "compared",
+    undefined,
+    undefined,
+    `Grid Rows num_tiles_m = ${numTilesM}`,
+  );
+
+  // Line 3: num_tiles_n
+  addStep(
+    3,
+    `Compute Tile Grid N-Dimension: num_tiles_n = ${numTilesN}`,
+    `num_tiles_n = (${N} + ${tileN} - 1) // ${tileN} = ${numTilesN}. Determines the number of threadblock tile columns.`,
+    { N, tile_n: tileN, num_tiles_n: numTilesN },
+    "compared",
+    undefined,
+    undefined,
+    `Grid Cols num_tiles_n = ${numTilesN}`,
+  );
+
+  // Line 4: num_tiles_k
+  addStep(
+    4,
+    `Compute K Contraction Iterations: num_tiles_k = ${numTilesK}`,
+    `num_tiles_k = (${K} + ${tileK} - 1) // ${tileK} = ${numTilesK}. Number of sub-block reduction steps along K dimension.`,
+    { K, tile_k: tileK, num_tiles_k: numTilesK },
+    "active",
+    undefined,
+    undefined,
+    `K Reduction Steps num_tiles_k = ${numTilesK}`,
+  );
+
+  // Line 6: total_tile_steps
   addStep(
     6,
-    `Compute total_tile_steps = ${totalTileSteps}, flop_count = ${flopCount}`,
-    `total_tile_steps = ${numTilesM} × ${numTilesN} × ${numTilesK} = ${totalTileSteps} SRAM tile load iterations. flop_count = 2 × ${M} × ${N} × ${K} = ${flopCount} FLOPs.`,
-    { totalTileSteps, flopCount },
-    elements.map((el) => ({ ...el, state: "sorted" })),
-    { totalTileSteps, flopCount: `${(flopCount / 1e6).toFixed(2)} MFLOPs` },
+    `Compute Total SRAM Tile Loading Steps: total_tile_steps = ${totalTileSteps}`,
+    `total_tile_steps = ${numTilesM} * ${numTilesN} * ${numTilesK} = ${totalTileSteps} total sub-matrix SRAM loads.`,
+    {
+      num_tiles_m: numTilesM,
+      num_tiles_n: numTilesN,
+      num_tiles_k: numTilesK,
+      total_tile_steps: totalTileSteps,
+    },
+    "active",
+    undefined,
+    undefined,
+    `Total Tile Iterations = ${totalTileSteps}`,
   );
 
+  // Line 7: hbm_read_bytes
+  addStep(
+    7,
+    `Compute Off-Chip HBM Traffic: hbm_read_bytes = ${hbmReadBytes} bytes`,
+    `hbm_read_bytes = ${totalTileSteps} * (${tileM}*${tileK} + ${tileK}*${tileN}) * 2 bytes (FP16) = ${hbmReadBytes} bytes (${(hbmReadBytes / 1024).toFixed(1)} KB).`,
+    {
+      total_tile_steps: totalTileSteps,
+      tile_m: tileM,
+      tile_n: tileN,
+      tile_k: tileK,
+      hbm_read_bytes: hbmReadBytes,
+    },
+    "compared",
+    undefined,
+    undefined,
+    `HBM Accesses = ${(hbmReadBytes / 1024).toFixed(1)} KB`,
+  );
+
+  // Line 8: flop_count
   addStep(
     8,
-    `Compute hbm_read_bytes = ${hbmReadBytes} (${(hbmReadBytes / 1024).toFixed(1)} KB)`,
-    `hbm_read_bytes = ${totalTileSteps} iterations × (${tileM}×${tileK} + ${tileK}×${tileN}) × 2 bytes (FP16) = ${hbmReadBytes} bytes. This is memory loaded from HBM (off-chip) to SRAM per tile.`,
-    { totalTileSteps, hbmReadBytes },
-    elements.map((el) => ({ ...el, state: "sorted" })),
-    { hbmReadKb: (hbmReadBytes / 1024).toFixed(1) },
+    `Compute Total FLOP Volume: flop_count = ${flopCount}`,
+    `flop_count = 2 * ${M} * ${N} * ${K} = ${flopCount} FLOPs (${(flopCount / 1e6).toFixed(2)} MFLOPs). Matrix multiply requires 2 multiply-accumulate ops per element.`,
+    { M, N, K, flop_count: flopCount },
+    "compared",
+    undefined,
+    undefined,
+    `Compute Operations = ${(flopCount / 1e6).toFixed(2)} MFLOPs`,
   );
 
+  // Line 10: arithmetic_intensity
   addStep(
-    11,
-    `Compute arithmetic_intensity = ${intensity.toFixed(4)} FLOP/byte`,
-    `arithmetic_intensity = ${flopCount} FLOPs / ${hbmReadBytes} bytes = ${intensity.toFixed(4)} FLOP/byte. Higher intensity = better GPU utilization (roofline model).`,
-    { arithmetic_intensity: Number(intensity.toFixed(4)), total_tiles: totalTileSteps },
-    elements.map((el) => ({ ...el, state: "sorted", pointers: ["TILED GEMM DONE"] })),
-    { arithmetic_intensity: intensity.toFixed(4), total_tiles: totalTileSteps },
+    10,
+    `Compute Arithmetic Intensity: arithmetic_intensity = ${intensity.toFixed(4)} FLOP/byte`,
+    `arithmetic_intensity = flop_count / hbm_read_bytes = ${flopCount} / ${hbmReadBytes} = ${intensity.toFixed(4)} FLOP/byte. Roofline metric enabled by SRAM block reuse.`,
+    {
+      flop_count: flopCount,
+      hbm_read_bytes: hbmReadBytes,
+      arithmetic_intensity: Number(intensity.toFixed(4)),
+    },
+    "sorted",
+    undefined,
+    undefined,
+    `Roofline Intensity = ${intensity.toFixed(4)} FLOP/Byte`,
   );
 
+  // Line 12: return
   addStep(
-    13,
-    `return {grid_dim, k_iterations, total_tiles, flop_count, arithmetic_intensity}`,
-    `Returning complete GEMM tiling configuration: ${numTilesM}×${numTilesN} grid, ${numTilesK} K-iterations, ${intensity.toFixed(2)} FLOP/byte intensity.`,
-    { arithmetic_intensity: Number(intensity.toFixed(4)), total_tiles: totalTileSteps, numTilesM, numTilesN, numTilesK },
-    elements.map((el) => ({ ...el, state: "sorted", pointers: ["TILED GEMM DONE"] })),
-    { result: "complete" },
+    12,
+    `Return Complete SRAM GEMM Tiling Configuration`,
+    `Returning dict with grid_dim=[${numTilesM}, ${numTilesN}], k_iterations=${numTilesK}, total_tiles=${totalTileSteps}, flop_count=${flopCount}, and intensity=${intensity.toFixed(4)} FLOP/byte.`,
+    {
+      grid_dim: `[${numTilesM}, ${numTilesN}]`,
+      k_iterations: numTilesK,
+      total_tiles: totalTileSteps,
+      flop_count: flopCount,
+      arithmetic_intensity: Number(intensity.toFixed(4)),
+    },
+    "sorted",
+    undefined,
+    undefined,
+    `Tiling Scheduler Finished (${intensity.toFixed(4)} FLOP/B)`,
   );
 
   return steps;
 };
 
 const SRAM_GEMM_TILING_TRIVIA: TriviaMeta = {
-  skipLines: [1],
+  skipLines: [1, 5, 9, 11],
   distractors: [
     "total_tile_steps = M * N * K",
     "flop_count = M * N * K",
@@ -158,7 +270,7 @@ const SRAM_GEMM_TILING_TRIVIA: TriviaMeta = {
       hint: "Use ceiling division (M + tile_m - 1) // tile_m to determine threadblock grid counts along each dimension.",
     },
     {
-      line: 7,
+      line: 8,
       hint: "Matrix multiplication performs 2 * M * N * K floating point operations (multiply-accumulate FMA).",
     },
     {
@@ -168,19 +280,22 @@ const SRAM_GEMM_TILING_TRIVIA: TriviaMeta = {
   ],
   lineExplanations: {
     1: "Defines function for SRAM/Shared Memory GEMM block tile scheduling.",
-    2: "Calculates total Threadblock tiles along M, N, and inner K contraction dimension.",
-    7: "Determines total FLOP volume and total bytes fetched from High-Bandwidth Memory (HBM).",
+    2: "Calculates total Threadblock tiles along M dimension.",
+    3: "Calculates total Threadblock tiles along N dimension.",
+    4: "Calculates total K reduction steps along contraction dimension.",
+    6: "Calculates total SRAM block loading steps across grid and K steps.",
+    7: "Determines total bytes fetched from High-Bandwidth Memory (HBM).",
+    8: "Determines total FLOP volume (2 * M * N * K).",
     10: "Derives Operational Intensity (FLOP/byte) enabled by SRAM tile reuse.",
+    12: "Returns dictionary containing GEMM tiling parameters and Roofline metrics.",
   },
 };
 
 export const sramGemmTiling: AlgorithmDefinition<SramGemmTilingInput> = {
   id: "sram-gemm-tiling",
   title: "SRAM / On-Chip GEMM Block Tiling Scheduler",
-  category: "ml_gemm_roofline",
+  topicIds: ["ml_gemm_roofline"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   description:
     "Simulates matrix multiplication GEMM tiling (Cutlass / Triton style), loading sub-matrix blocks from HBM to high-speed SRAM (Shared Memory) to maximize memory reuse and arithmetic intensity.",
   constraints: ["M, N, K > 0", "tileM, tileN, tileK > 0"],

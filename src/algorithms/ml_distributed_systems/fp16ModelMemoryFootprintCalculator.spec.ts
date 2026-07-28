@@ -9,10 +9,11 @@ import {
 describe("fp16-model-memory-footprint-calculator (Mixed-Precision FP16 Model Memory Calculator)", () => {
   it("should have correct metadata", () => {
     expect(fp16ModelMemoryFootprintCalculator.id).toBe("fp16-model-memory-footprint-calculator");
-    expect(fp16ModelMemoryFootprintCalculator.isMlInfra).toBe(true);
-    expect(fp16ModelMemoryFootprintCalculator.mlInfraLevel).toBe(11);
-    expect(fp16ModelMemoryFootprintCalculator.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(fp16ModelMemoryFootprintCalculator.categories).toContain("ml_distributed_systems");
+    expect(
+      fp16ModelMemoryFootprintCalculator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(fp16ModelMemoryFootprintCalculator.topicIds).toContain("ml_distributed_systems");
+    expect(fp16ModelMemoryFootprintCalculator.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {
@@ -21,7 +22,9 @@ describe("fp16-model-memory-footprint-calculator (Mixed-Precision FP16 Model Mem
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Enter fp16_model_memory_footprint_calculator");
-    expect(steps[steps.length - 1].explanation.what).toBe("Return Static Memory Footprint Dictionary");
+    expect(steps[steps.length - 1].explanation.what).toBe(
+      "Return Static Memory Footprint Dictionary",
+    );
   });
 
   it("should have lineExplanations mapping every code line", () => {

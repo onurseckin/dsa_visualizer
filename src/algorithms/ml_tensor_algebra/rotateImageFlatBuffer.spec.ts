@@ -9,10 +9,9 @@ import {
 describe("rotate-image-flat-buffer (Rotate 2D Tensor 90 Degrees in Flat Memory)", () => {
   it("should have correct metadata and structure", () => {
     expect(rotateImageFlatBuffer.id).toBe("rotate-image-flat-buffer");
-    expect(rotateImageFlatBuffer.isMlInfra).toBe(true);
-    expect(rotateImageFlatBuffer.mlInfraLevel).toBe(1);
-    expect(rotateImageFlatBuffer.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(rotateImageFlatBuffer.categories).toContain("ml_tensor_algebra");
+    expect(rotateImageFlatBuffer.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(rotateImageFlatBuffer.topicIds).toContain("ml_tensor_algebra");
+    expect(rotateImageFlatBuffer.topicIds).toContain("ml_tensor_algebra");
     expect(rotateImageFlatBuffer.topicGuide?.sections.length).toBe(5);
   });
 

@@ -13,14 +13,9 @@ export interface chunkedPrefillTokenBudgetSchedulerInput {
 }
 
 export const CHUNKEDPREFILLTOKENBUDGETSCHEDULER_CODE = `def chunked_prefill_token_budget_scheduler(requests, max_token_budget=256, max_prefill_chunk=128):
-    """
-    Schedules an iteration budget under Chunked Prefill & Piggybacked Decoding constraints.
-    Prioritizes decode requests (1 token each), then chunks prefill prompts to fill remaining budget.
-    """
     scheduled_batch = []
     budget_remaining = max_token_budget
 
-    # Phase 1: Allocate 1 token to each active decode request
     decodes = [r for r in requests if r['type'] == 'decode' and r['remaining_tokens'] > 0]
     for req in decodes:
         if budget_remaining >= 1:
@@ -31,7 +26,6 @@ export const CHUNKEDPREFILLTOKENBUDGETSCHEDULER_CODE = `def chunked_prefill_toke
             })
             budget_remaining -= 1
 
-    # Phase 2: Chunk prefill prompts using remaining token budget
     prefills = [r for r in requests if r['type'] == 'prefill' and r['remaining_tokens'] > 0]
     for req in prefills:
         if budget_remaining <= 0:
@@ -119,8 +113,8 @@ export const generateChunkedPrefillTokenBudgetSchedulerSteps = (
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    activeId: string | null,
-    phase: string,
+    activeId: string | null = null,
+    phase: string = "Init",
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -154,40 +148,19 @@ export const generateChunkedPrefillTokenBudgetSchedulerSteps = (
     "Init",
   );
 
-    addStep(
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "Schedules an iteration budget under Chunked Prefill & Piggybacked Decoding ",
-    {},
-  );
-
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "Prioritizes decode requests (1 token each), then chunks prefill prompts to ",
-    {},
-  );
-
-addStep(
-    5,
     "Initialize scheduled_batch List",
-    "Creating container scheduled_batch to collect scheduled token allocations.",
+    "Creating empty container scheduled_batch to collect scheduled request allocations.",
     { budget_remaining: budgetRemaining },
     null,
     "Init",
   );
 
   addStep(
-    6,
+    3,
     `Initialize budget_remaining = ${budgetRemaining}`,
-    "Setting remaining token budget counter.",
+    "Setting remaining token budget counter for this GPU iteration step.",
     { budget_remaining: budgetRemaining },
     null,
     "Init",
@@ -197,19 +170,19 @@ addStep(
   const decodes = requests.filter((r) => r.type === "decode" && r.remaining_tokens > 0);
 
   addStep(
-    9,
+    5,
     `Phase 1 Filter: Found ${decodes.length} Active Decode Requests`,
-    "Decode requests receive highest priority (1 token per step) to maintain tight time-per-output-token (TTPT) SLAs.",
+    "Decode requests receive highest priority (1 token per step) to maintain low inter-token latency (TTPT).",
     { num_decodes: decodes.length, budget_remaining: budgetRemaining },
     null,
     "Phase 1: Decode",
   );
 
-  decodes.forEach((req) => {
+  for (const req of decodes) {
     addStep(
-      10,
+      6,
       `Evaluate Decode Request '${req.id}'`,
-      `Checking remaining budget (${budgetRemaining}) for decode request ${req.id}.`,
+      `Inspecting decode request '${req.id}'. Current remaining budget = ${budgetRemaining}.`,
       { req_id: req.id, budget_remaining: budgetRemaining },
       req.id,
       "Phase 1: Decode",
@@ -217,9 +190,9 @@ addStep(
 
     if (budgetRemaining >= 1) {
       addStep(
-        11,
+        7,
         `Budget Check Passed for Decode '${req.id}'`,
-        `Budget remaining (${budgetRemaining}) >= 1.`,
+        `Budget remaining (${budgetRemaining}) >= 1 token. Granting 1 token slot to '${req.id}'.`,
         { req_id: req.id, budget_remaining: budgetRemaining },
         req.id,
         "Phase 1: Decode",
@@ -229,23 +202,32 @@ addStep(
       budgetRemaining -= 1;
 
       addStep(
-        13,
+        8,
         `Allocate 1 Token to Decode Request '${req.id}'`,
-        `Assigned 1 token slot to ${req.id}. Budget decremented to ${budgetRemaining}.`,
+        `Assigned 1 token slot to '${req.id}'. Remaining budget decremented to ${budgetRemaining}.`,
         { req_id: req.id, allocated: 1, budget_remaining: budgetRemaining },
         req.id,
         "Phase 1: Decode",
       );
+    } else {
+      addStep(
+        7,
+        `Budget Check Failed for Decode '${req.id}'`,
+        `Insufficient budget (${budgetRemaining} < 1). Cannot schedule decode request '${req.id}'.`,
+        { req_id: req.id, budget_remaining: budgetRemaining },
+        req.id,
+        "Phase 1: Decode",
+      );
     }
-  });
+  }
 
   // Phase 2: Prefills
   const prefills = requests.filter((r) => r.type === "prefill" && r.remaining_tokens > 0);
 
   addStep(
-    20,
+    15,
     `Phase 2 Filter: Found ${prefills.length} Active Prefill Requests`,
-    `Allocating remaining budget (${budgetRemaining} tokens) to compute-heavy prefill prompts in chunks capped at ${max_prefill_chunk}.`,
+    `Allocating remaining budget (${budgetRemaining} tokens) to compute-heavy prefill prompts in chunks capped at max ${max_prefill_chunk} tokens.`,
     { num_prefills: prefills.length, budget_remaining: budgetRemaining },
     null,
     "Phase 2: Prefill",
@@ -253,9 +235,9 @@ addStep(
 
   for (const req of prefills) {
     addStep(
-      21,
+      16,
       `Evaluate Prefill Request '${req.id}' (${req.remaining_tokens} tokens remaining)`,
-      `Checking budget for prefill request ${req.id}. Budget remaining = ${budgetRemaining}.`,
+      `Checking remaining token budget for prefill request '${req.id}'. Budget remaining = ${budgetRemaining}.`,
       { req_id: req.id, remaining: req.remaining_tokens, budget_remaining: budgetRemaining },
       req.id,
       "Phase 2: Prefill",
@@ -263,9 +245,9 @@ addStep(
 
     if (budgetRemaining <= 0) {
       addStep(
-        22,
+        18,
         `Budget Exhausted (${budgetRemaining} <= 0)`,
-        `Token budget fully exhausted. Deferring remaining prefill request '${req.id}' to next iteration.`,
+        `Token budget fully exhausted. Deferring prefill request '${req.id}' and subsequent prefills to next iteration.`,
         { req_id: req.id, budget_remaining: budgetRemaining },
         req.id,
         "Phase 2: Prefill",
@@ -276,7 +258,7 @@ addStep(
     const chunk = Math.min(req.remaining_tokens, max_prefill_chunk, budgetRemaining);
 
     addStep(
-      24,
+      19,
       `Calculate Chunk Size for '${req.id}': ${chunk} Tokens`,
       `chunk = min(remaining=${req.remaining_tokens}, max_chunk=${max_prefill_chunk}, budget=${budgetRemaining}) = ${chunk}.`,
       { req_id: req.id, chunk, budget_remaining: budgetRemaining },
@@ -285,13 +267,22 @@ addStep(
     );
 
     if (chunk > 0) {
+      addStep(
+        20,
+        `Chunk Size Validation: ${chunk} > 0`,
+        `Chunk size ${chunk} is greater than 0. Allocating ${chunk} tokens to '${req.id}'.`,
+        { req_id: req.id, chunk, budget_remaining: budgetRemaining },
+        req.id,
+        "Phase 2: Prefill",
+      );
+
       allocations[req.id] = chunk;
       budgetRemaining -= chunk;
 
       addStep(
-        27,
+        21,
         `Allocate ${chunk} Tokens to Prefill Request '${req.id}'`,
-        `Assigned ${chunk} tokens to ${req.id}. Remaining budget is now ${budgetRemaining}.`,
+        `Assigned ${chunk} tokens to prefill request '${req.id}'. Remaining budget is now ${budgetRemaining}.`,
         { req_id: req.id, allocated: chunk, budget_remaining: budgetRemaining },
         req.id,
         "Phase 2: Prefill",
@@ -300,10 +291,14 @@ addStep(
   }
 
   addStep(
-    33,
+    28,
     "Execution Complete: Token Budget Scheduled",
-    `Successfully scheduled token allocations across active decodes and chunked prefills. Total unallocated budget: ${budgetRemaining}.`,
-    { complete: true, budget_remaining: budgetRemaining, scheduled_count: Object.keys(allocations).length },
+    `Successfully scheduled token allocations across active decodes and chunked prefills. Unallocated budget: ${budgetRemaining}.`,
+    {
+      complete: true,
+      budget_remaining: budgetRemaining,
+      scheduled_requests: Object.keys(allocations).length,
+    },
     null,
     "Final",
   );
@@ -312,53 +307,50 @@ addStep(
 };
 
 const CHUNKEDPREFILLTOKENBUDGETSCHEDULER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 7, 8, 18, 19, 32],
+  skipLines: [4, 9, 10, 11, 12, 14, 22, 23, 24, 25, 27],
   distractors: [
-    "chunk = req['remaining_tokens'] # allocating full prefill without budget limit",
+    "chunk = req['remaining_tokens']",
     "budget_remaining += req['allocated_tokens']",
     "decodes.sort(key=lambda r: r['remaining_tokens'], reverse=True)",
     "budget_remaining = 0",
   ],
   hints: [
-    { line: 9, hint: "Extract active decode requests taking strictly 1 token each." },
-    { line: 24, hint: "Calculate chunk = min(remaining_tokens, max_prefill_chunk, budget_remaining)." },
-    { line: 33, hint: "Return scheduled_batch list and remaining unallocated token budget." },
+    { line: 5, hint: "Extract active decode requests taking strictly 1 token each." },
+    {
+      line: 19,
+      hint: "Calculate chunk = min(remaining_tokens, max_prefill_chunk, budget_remaining).",
+    },
+    { line: 28, hint: "Return scheduled_batch list and remaining unallocated token budget." },
   ],
   lineExplanations: {
     1: "Function signature defining chunked_prefill_token_budget_scheduler with requests and budget constraints.",
-    2: "Docstring start describing Chunked Prefill & Piggybacked Decoding scheduling logic.",
-    3: "Explains priority scheduling for decode requests and budget chunking for prefill prompts.",
-    4: "Docstring end.",
-    5: "Initializes scheduled_batch list to hold assigned request allocations for current GPU iteration.",
-    6: "Initializes budget_remaining counter to total iteration token budget max_token_budget.",
-    7: "Blank line before Phase 1.",
-    8: "Comment indicating Phase 1: Allocate 1 token to each active decode request.",
-    9: "Filters requests list to extract active decode requests with remaining_tokens > 0.",
-    10: "Iterates through active decode requests in decodes list.",
-    11: "Checks if remaining token budget is at least 1 token.",
-    12: "Opens dictionary payload for scheduled decode request.",
-    13: "Assigns request identifier.",
-    14: "Sets request type to decode.",
-    15: "Allocates exactly 1 token slot for current iteration step.",
-    16: "Closes request dictionary payload.",
-    17: "Decrements budget_remaining by 1 allocated decode token.",
-    18: "Blank line before Phase 2.",
-    19: "Comment indicating Phase 2: Chunk prefill prompts using remaining token budget.",
-    20: "Filters requests list to extract active prefill prompts with remaining_tokens > 0.",
-    21: "Iterates through active prefill requests in prefills list.",
-    22: "Checks if remaining token budget budget_remaining is less than or equal to 0.",
-    23: "Breaks loop immediately if token budget is completely exhausted.",
-    24: "Calculates chunk size as min(remaining_tokens, max_prefill_chunk, budget_remaining).",
-    25: "Checks if calculated chunk size is greater than 0.",
-    26: "Opens dictionary payload for scheduled prefill request.",
-    27: "Assigns prefill request identifier.",
-    28: "Sets request type to prefill.",
-    29: "Assigns calculated chunk size to allocated_tokens.",
-    30: "Closes prefill request dictionary payload.",
-    31: "Decrements budget_remaining by allocated chunk size.",
-    32: "Blank line before final return.",
-    33: "Returns tuple of scheduled_batch allocations and budget_remaining count.",
-    34: "Returns tuple of scheduled_batch allocations and budget_remaining count.",
+    2: "Initializes scheduled_batch list to hold assigned request allocations for current GPU iteration.",
+    3: "Initializes budget_remaining counter to total iteration token budget max_token_budget.",
+    4: "Blank line separating initialization from Phase 1.",
+    5: "Filters requests list to extract active decode requests with remaining_tokens > 0.",
+    6: "Iterates through active decode requests in decodes list.",
+    7: "Checks if remaining token budget is at least 1 token.",
+    8: "Opens dictionary payload to append scheduled decode request.",
+    9: "Assigns request identifier.",
+    10: "Sets request type to decode.",
+    11: "Allocates exactly 1 token slot for current iteration step.",
+    12: "Closes request dictionary payload.",
+    13: "Decrements budget_remaining by 1 allocated decode token.",
+    14: "Blank line separating Phase 1 from Phase 2.",
+    15: "Filters requests list to extract active prefill prompts with remaining_tokens > 0.",
+    16: "Iterates through active prefill requests in prefills list.",
+    17: "Checks if remaining token budget budget_remaining is less than or equal to 0.",
+    18: "Breaks loop immediately if token budget is completely exhausted.",
+    19: "Calculates chunk size as min(remaining_tokens, max_prefill_chunk, budget_remaining).",
+    20: "Checks if calculated chunk size is greater than 0.",
+    21: "Opens dictionary payload to append scheduled prefill request.",
+    22: "Assigns prefill request identifier.",
+    23: "Sets request type to prefill.",
+    24: "Assigns calculated chunk size to allocated_tokens.",
+    25: "Closes prefill request dictionary payload.",
+    26: "Decrements budget_remaining by allocated chunk size.",
+    27: "Blank line separating allocation loop from return statement.",
+    28: "Returns tuple of scheduled_batch allocations and budget_remaining count.",
   },
 };
 
@@ -366,12 +358,8 @@ export const chunkedPrefillTokenBudgetScheduler: AlgorithmDefinition<chunkedPref
   {
     id: "chunked-prefill-token-budget-scheduler",
     title: "Chunked Prefill Token Budget Scheduler",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_attention_geometry"],
+    topicIds: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "Chunked Prefill (introduced in Sarathi, vLLM, and Orca) disaggregates and schedules long prompt prefills by splitting them into fixed token chunks across multiple serving iterations. Standard LLM serving suffers from severe prefill bubbles: prefill requests are compute-bound (FLOP intensive) while decode requests are memory-bandwidth bound (transferring large KV-cache tensors for a single token). Mixing un-chunked 4k+ token prefills with single-token decodes causes severe decode latency spikes and degrades tail response times (p99 latency).\n\nThe Chunked Prefill Token Budget Scheduler resolves this by enforcing a strict total token budget B_max per iteration. Decodes are granted top priority (1 token slot each to maintain low inter-token latency), and the remaining token budget B_rem = B_max - N_decode is allocated to prefill requests, capped at a maximum prefill chunk size B_chunk. This aligns GPU compute and memory bandwidth utilization across every iteration step.\n\nInput Format:\n- requests: Array of request objects containing request ID, type ('prefill' or 'decode'), and remaining tokens.\n- max_token_budget: Total integer token count budget allocated per GPU iteration step B_max.\n- max_prefill_chunk: Maximum integer token chunk allowed for any single prefill prompt B_chunk.\n\nOutput Format:\n- Returns a tuple of scheduled batch request objects with assigned allocated_tokens and the remaining unallocated token budget.\n\nEdge Cases & Constraints:\n- Zero budget remaining: If decode requests consume the entire token budget B_max, prefill requests are deferred to subsequent iterations.\n- Single token remaining: Prefill chunks naturally reduce to 1 token when nearing prompt completion.\n- Budget underflow protection: Ensures total allocated tokens strictly satisfy sum(allocated) <= B_max.",
     constraints: [

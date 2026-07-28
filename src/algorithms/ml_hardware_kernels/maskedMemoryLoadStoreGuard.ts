@@ -13,7 +13,6 @@ export interface maskedMemoryLoadStoreGuardInput {
 }
 
 export const MASKEDMEMORYLOADSTOREGUARD_CODE = `def triton_masked_load_store(global_ptr: list[float], block_start: int, block_size: int, valid_boundary: int, other_val: float = 0.0) -> tuple[list[float], list[bool], list[float]]:
-    """Simulates Triton tl.load(ptr, mask=mask, other=other_val) and tl.store(ptr, val, mask=mask)."""
     offsets = [block_start + i for i in range(block_size)]
 
     mask = [offset < valid_boundary for offset in offsets]
@@ -59,9 +58,7 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
   const loadedVals: number[] = new Array(blockSize).fill(otherVal);
   const storedOutput: number[] = [...globalPtr];
 
-  const getSnapshot = (
-    activeLaneIdx: number = -1,
-  ) => {
+  const getSnapshot = (activeLaneIdx: number = -1) => {
     const rows = blockSize + 1;
     const cols = 5;
     const cells: MatrixCellItem[] = [];
@@ -112,7 +109,7 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
       primarySnapshot: getSnapshot(activeLaneIdx),
       auxiliaryState: {
         customState: {
-          "Algorithm": "Triton SIMD Masked Load/Store Guard",
+          Algorithm: "Triton SIMD Masked Load/Store Guard",
           "Block Size (Lanes)": String(blockSize),
           "Valid Tensor Boundary": String(validBoundary),
           "Fallback Padding Other": String(otherVal),
@@ -131,37 +128,37 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     { blockStart, blockSize, validBoundary, otherVal },
   );
 
-  // Step 2: Compute offsets (3)
+  // Step 2: Compute offsets (2)
   addStep(
-    3,
+    2,
     `Calculate SIMD Lane Offset Vector: offsets = [${offsets.join(", ")}]`,
     `Evaluated linear memory address offsets for ${blockSize} SIMD lanes: [${offsets.join(", ")}].`,
     { offsets: JSON.stringify(offsets) },
   );
 
-  // Step 3: Compute mask (5)
+  // Step 3: Compute mask (4)
   addStep(
-    5,
+    4,
     `Calculate Predicate Vector Mask: offset < ${validBoundary}`,
     `Evaluated boolean mask vector: [${mask.map((m) => (m ? "TRUE" : "FALSE")).join(", ")}]. ${mask.filter(Boolean).length} valid lanes, ${mask.filter((m) => !m).length} masked out-of-bounds lanes.`,
     { validLanes: mask.filter(Boolean).length, invalidLanes: mask.filter((m) => !m).length },
   );
 
-  // Step 4: Init loaded_vals (7)
+  // Step 4: Init loaded_vals (6)
   addStep(
-    7,
+    6,
     "Allocate Loaded Values Register List loaded_vals []",
     "Allocated list to log values loaded into SIMD vector registers.",
     { loaded_count: 0 },
   );
 
-  // Loop over loads (8..12)
+  // Loop over loads (7..11)
   for (let i = 0; i < blockSize; i++) {
     const off = offsets[i];
     const isValid = mask[i];
 
     addStep(
-      8,
+      7,
       `Lane ${i} Load Guard: Check offset ${off} < boundary ${validBoundary}`,
       `Checking SIMD lane ${i} (offset ${off}): Mask is ${isValid ? "TRUE (In-Bounds)" : "FALSE (Out-of-Bounds)"}.`,
       { lane: i, offset: off, isValid },
@@ -169,9 +166,11 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     );
 
     addStep(
-      9,
+      8,
       `Lane ${i} Branch Condition: if is_valid (${isValid})`,
-      isValid ? `Branch TRUE: Offset ${off} is within valid boundary ${validBoundary}. Reading from global_ptr[${off}].` : `Branch FALSE: Offset ${off} >= boundary ${validBoundary}. Returning fallback other_val=${otherVal}.`,
+      isValid
+        ? `Branch TRUE: Offset ${off} is within valid boundary ${validBoundary}. Reading from global_ptr[${off}].`
+        : `Branch FALSE: Offset ${off} >= boundary ${validBoundary}. Returning fallback other_val=${otherVal}.`,
       { lane: i, isValid },
       i,
     );
@@ -179,7 +178,7 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     if (isValid) {
       loadedVals[i] = globalPtr[off];
       addStep(
-        10,
+        9,
         `Lane ${i} Valid Read: loaded_vals.append(global_ptr[${off}] = ${globalPtr[off].toFixed(1)})`,
         `Loaded valid value ${globalPtr[off].toFixed(1)} from HBM DRAM into SIMD register.`,
         { lane: i, val: globalPtr[off] },
@@ -188,7 +187,7 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     } else {
       loadedVals[i] = otherVal;
       addStep(
-        12,
+        11,
         `Lane ${i} Masked Fallback: loaded_vals.append(other_val = ${otherVal.toFixed(1)})`,
         `Safely loaded fallback value ${otherVal.toFixed(1)} into SIMD register without triggering HBM DRAM segfault!`,
         { lane: i, fallback: otherVal },
@@ -197,22 +196,22 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     }
   }
 
-  // Step 5: Init stored_output (14)
+  // Step 5: Init stored_output (13)
   addStep(
-    14,
+    13,
     "Copy Output Memory State stored_output = list(global_ptr)",
     "Copied global memory state prior to masked store execution.",
     { stored_output_len: storedOutput.length },
   );
 
-  // Loop over stores (15..17)
+  // Loop over stores (14..16)
   for (let i = 0; i < blockSize; i++) {
     const off = offsets[i];
     const val = loadedVals[i];
     const isValid = mask[i];
 
     addStep(
-      15,
+      14,
       `Lane ${i} Store Guard: Check offset ${off} < boundary ${validBoundary}`,
       `Checking SIMD lane ${i} store guard: Mask is ${isValid ? "TRUE (Execute Store)" : "FALSE (Skip Store)"}.`,
       { lane: i, offset: off, isValid },
@@ -220,9 +219,11 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     );
 
     addStep(
-      16,
+      15,
       `Lane ${i} Branch Condition: if is_valid (${isValid})`,
-      isValid ? `Branch TRUE: Executing masked store into stored_output[${off}] = ${val.toFixed(1)}.` : `Branch FALSE: Masked out! Skipping write to memory offset ${off} to preserve memory integrity.`,
+      isValid
+        ? `Branch TRUE: Executing masked store into stored_output[${off}] = ${val.toFixed(1)}.`
+        : `Branch FALSE: Masked out! Skipping write to memory offset ${off} to preserve memory integrity.`,
       { lane: i, isValid },
       i,
     );
@@ -230,7 +231,7 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     if (isValid) {
       storedOutput[off] = val;
       addStep(
-        17,
+        16,
         `Lane ${i} Masked Store Write: stored_output[${off}] = ${val.toFixed(1)}`,
         `Wrote SIMD register value ${val.toFixed(1)} into HBM DRAM memory offset ${off}.`,
         { lane: i, offset: off, val },
@@ -239,19 +240,23 @@ export const generateMASKEDMEMORYLOADSTOREGUARDSteps = (
     }
   }
 
-  // Return step (19)
+  // Return step (18)
   addStep(
-    19,
+    18,
     "Execution Complete: Return (loaded_vals, mask, stored_output)",
     `Completed Triton SIMD masked memory load/store guard. Successfully processed ${mask.filter(Boolean).length} valid entries and protected ${mask.filter((m) => !m).length} out-of-bounds accesses.`,
-    { validLanes: mask.filter(Boolean).length, invalidLanes: mask.filter((m) => !m).length, completed: true },
+    {
+      validLanes: mask.filter(Boolean).length,
+      invalidLanes: mask.filter((m) => !m).length,
+      completed: true,
+    },
   );
 
   return steps;
 };
 
 const MASKEDMEMORYLOADSTOREGUARD_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 6, 13, 18],
+  skipLines: [3, 5, 12, 17],
   distractors: [
     "mask = [offset > valid_boundary for offset in offsets]",
     "loaded_vals.append(global_ptr[other_val])",
@@ -259,41 +264,36 @@ const MASKEDMEMORYLOADSTOREGUARD_TRIVIA: TriviaMeta = {
     "return offsets, mask, loaded_vals",
   ],
   hints: [
-    { line: 5, hint: "Triton boolean predicate mask equation: offset < valid_boundary." },
-    { line: 12, hint: "Fallback value for masked out-of-bounds load: other_val." },
+    { line: 4, hint: "Triton boolean predicate mask equation: offset < valid_boundary." },
+    { line: 11, hint: "Fallback value for masked out-of-bounds load: other_val." },
   ],
   lineExplanations: {
     1: "Defines entry point for triton_masked_load_store function simulating Triton tl.load and tl.store.",
-    2: "Docstring describing Triton tl.load(ptr, mask=mask, other=other_val) and tl.store(ptr, val, mask=mask).",
-    3: "Calculates SIMD lane offset vector offsets = [block_start + i for i in range(block_size)].",
-    4: "Blank line before mask calculation.",
-    5: "Evaluates boolean predicate vector mask = [offset < valid_boundary for offset in offsets].",
-    6: "Blank line before load loop.",
-    7: "Initializes empty list loaded_vals to log SIMD register values.",
-    8: "Iterates over SIMD lane offset and boolean mask is_valid in zip(offsets, mask).",
-    9: "Checks if lane mask is_valid is TRUE.",
-    10: "Reads valid HBM DRAM memory value global_ptr[offset] into SIMD register.",
-    11: "Branch condition for out-of-bounds lane.",
-    12: "Returns fallback padding other_val for masked out-of-bounds lane.",
-    13: "Blank line before store loop.",
-    14: "Copies global_ptr to simulate output memory array stored_output.",
-    15: "Iterates over offset, value val, and mask is_valid for SIMD store.",
-    16: "Checks if lane mask is_valid is TRUE.",
-    17: "Writes register value val to memory stored_output[offset] for valid lane.",
-    18: "Blank line separating store loop from return statement.",
-    19: "Returns tuple of (loaded_vals, mask, stored_output).",
+    2: "Calculates SIMD lane offset vector offsets = [block_start + i for i in range(block_size)].",
+    3: "Blank line before mask calculation.",
+    4: "Evaluates boolean predicate vector mask = [offset < valid_boundary for offset in offsets].",
+    5: "Blank line before load loop.",
+    6: "Initializes empty list loaded_vals to log SIMD register values.",
+    7: "Iterates over SIMD lane offset and boolean mask is_valid in zip(offsets, mask).",
+    8: "Checks if lane mask is_valid is TRUE.",
+    9: "Reads valid HBM DRAM memory value global_ptr[offset] into SIMD register.",
+    10: "Branch condition for out-of-bounds lane.",
+    11: "Returns fallback padding other_val for masked out-of-bounds lane.",
+    12: "Blank line before store loop.",
+    13: "Copies global_ptr to simulate output memory array stored_output.",
+    14: "Iterates over offset, value val, and mask is_valid for SIMD store.",
+    15: "Checks if lane mask is_valid is TRUE.",
+    16: "Writes register value val to memory stored_output[offset] for valid lane.",
+    17: "Blank line separating store loop from return statement.",
+    18: "Returns tuple of (loaded_vals, mask, stored_output).",
   },
 };
 
 export const maskedMemoryLoadStoreGuard: AlgorithmDefinition<maskedMemoryLoadStoreGuardInput> = {
-  id: "maskedMemoryLoadStoreGuard",
+  id: "masked-memory-load-store-guard",
   title: "Triton SIMD Masked Load/Store Guard Engine",
-  category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+  topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_hardware_kernels",
   description:
     "The Triton SIMD Masked Load/Store Guard Engine simulates the boundary safety mechanism utilized in OpenAI Triton GPU kernels (`tl.load(ptr, mask=mask, other=0.0)` and `tl.store(ptr, val, mask=mask)`). In GPU parallel computing, matrix dimensions ($M, N, K$) are rarely exact multiples of SIMD block sizes (`BLOCK_M = 128`, `BLOCK_N = 64`). Without predicate masking, trailing SIMD lanes attempt to read or write past valid array boundaries, causing severe **CUDA Illegal Address Memory Segfaults** or data corruption.\n\n### Why It Exists\nStandard CUDA C++ kernels require complex boundary `if (index < N)` scalar checks that cause warp thread divergence. Triton compiles vectorized **SIMD Predicate Masks** down to PTX predicate instructions (`@p1 ld.global.nc.f32` and `@p1 st.global.f32`), enabling hardware-level masked vector loads and stores without warp branching stalls.\n\n### Mathematical Formulation\nFor SIMD block offset $i \\in \\{0, 1, \\dots, \\text{BLOCK}-1\\}$, global pointer base $P_{start}$, valid tensor boundary $N_{valid}$, and padding value $V_{other}$:\n\n$$1. \\quad \\text{offset}_i = P_{start} + i \\quad (\\text{SIMD Lane Byte Offset})$$\n\n$$2. \\quad m_i = (\\text{offset}_i < N_{valid}) \\in \\{\\text{TRUE}, \\text{FALSE}\\} \\quad (\\text{Boolean Predicate Mask})$$\n\n$$3. \\quad R_{loaded, i} = \\begin{cases} \\text{Memory}[P_{start} + i] & \\text{if } m_i = \\text{TRUE} \\\\ V_{other} & \\text{if } m_i = \\text{FALSE} \\end{cases} \\quad (\\text{Triton } \\text{tl.load})$$\n\n$$4. \\quad \\text{Memory}[P_{start} + i] \\xleftarrow{\\text{write}} R_{val, i} \\quad \\text{if } m_i = \\text{TRUE} \\quad (\\text{Triton } \\text{tl.store})$$\n\n### Step-by-Step Intuition\n1. **Offset Vector Generation**: Compute 1D or 2D SIMD lane offsets $\\text{offset}_i = P_{start} + i$.\n2. **Predicate Mask Evaluation**: Evaluate element-wise comparison $\\text{mask}_i = (\\text{offset}_i < N_{valid})$.\n3. **Masked Vector Load**: For valid lanes ($m_i = \\text{TRUE}$), read values from HBM DRAM; for invalid out-of-bounds lanes ($m_i = \\text{FALSE}$), return fallback `other_val` (e.g. `0.0` for GEMM, `-inf` for Softmax).\n4. **Masked Vector Store**: Write register outputs to HBM DRAM memory *only* for valid lanes ($m_i = \\text{TRUE}$), suppressing writes to out-of-bounds locations.\n\n### Key Trade-Offs & Hardware Execution\n- **Zero Warp Divergence**: PTX predicate registers (`p0...p7`) control vector memory pipelines directly, eliminating `if/else` control flow branch divergence.\n- **Padding Value Selection**: Selecting `other=0.0` for matrix multiplication ensures out-of-bounds elements add zero to dot-product sums without distorting GEMM output.",
   constraints: [
@@ -308,8 +308,10 @@ export const maskedMemoryLoadStoreGuard: AlgorithmDefinition<maskedMemoryLoadSto
       inputDisplay: "8 SIMD Lanes (start=0), 5 Valid Entries, other=0.0",
       outputDisplay: "Loaded: [10, 20, 30, 40, 50, 0, 0, 0], Mask: [T, T, T, T, T, F, F, F]",
       input: DEFAULT_MASKEDMEMORYLOADSTOREGUARD_INPUT,
-      output: "([10, 20, 30, 40, 50, 0, 0, 0], [True, True, True, True, True, False, False, False], stored_output)",
-      explanation: "Loads 5 valid values into SIMD registers, padding 3 out-of-bounds lanes with fallback 0.0 while guarding DRAM memory writes.",
+      output:
+        "([10, 20, 30, 40, 50, 0, 0, 0], [True, True, True, True, True, False, False, False], stored_output)",
+      explanation:
+        "Loads 5 valid values into SIMD registers, padding 3 out-of-bounds lanes with fallback 0.0 while guarding DRAM memory writes.",
     },
   ],
   code: MASKEDMEMORYLOADSTOREGUARD_CODE,
@@ -343,19 +345,23 @@ export const maskedMemoryLoadStoreGuard: AlgorithmDefinition<maskedMemoryLoadSto
     keyTerms: [
       {
         term: "Predicate Mask",
-        definition: "Vector of boolean flags controlling which SIMD vector lanes execute memory loads/stores.",
+        definition:
+          "Vector of boolean flags controlling which SIMD vector lanes execute memory loads/stores.",
       },
       {
         term: "Triton tl.load",
-        definition: "Vectorized GPU memory load instruction with built-in mask and fallback value parameters.",
+        definition:
+          "Vectorized GPU memory load instruction with built-in mask and fallback value parameters.",
       },
       {
         term: "Triton tl.store",
-        definition: "Vectorized GPU memory store instruction executing writes only on true predicate lanes.",
+        definition:
+          "Vectorized GPU memory store instruction executing writes only on true predicate lanes.",
       },
       {
         term: "Illegal Address Segfault",
-        definition: "Fatal CUDA runtime crash triggered when a thread reads/writes out-of-bounds GPU DRAM memory.",
+        definition:
+          "Fatal CUDA runtime crash triggered when a thread reads/writes out-of-bounds GPU DRAM memory.",
       },
     ],
   },

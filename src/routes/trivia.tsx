@@ -46,7 +46,7 @@ function TriviaPage() {
   return (
     <main
       aria-label="Code trivia drill"
-      className="w-[90%] py-8 mx-auto flex flex-col flex-1 gap-8 min-h-0 box-border"
+      className="w-[90%] py-8 mx-auto flex flex-col flex-1 gap-8 min-h-0 box-border overflow-y-auto"
     >
       {screen === "home" ? (
         <TriviaHomeView

@@ -10,7 +10,7 @@ import type { VectorVisualSnapshot } from "../../../types/dsa";
 describe("euclidGcd spec logic", () => {
   it("has category math_and_number_theory and valid metadata", () => {
     expect(euclidGcd.id).toBe("euclid-gcd");
-    expect(euclidGcd.category).toBe("math_and_number_theory");
+    expect(euclidGcd.topicIds).toContain("math_and_number_theory");
     expect(euclidGcd.defaultInput).toEqual(DEFAULT_EUCLID_GCD_INPUT);
     expect(euclidGcd.code).toBe(PYTHON_EUCLID_GCD_CODE);
   });

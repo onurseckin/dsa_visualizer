@@ -4,11 +4,12 @@ import {
   generateHamiltonianPathDpSteps,
   hamiltonianPathDp,
 } from "../hamiltonianPathDp";
+import { requireExampleInputs, requireLineExplanations } from "../../specs/assertions";
 
 describe("hamiltonianPathDp logic spec", () => {
   it("should have valid metadata", () => {
     expect(hamiltonianPathDp.id).toBe("hamiltonian-path-dp");
-    expect(hamiltonianPathDp.category).toBe("backtracking");
+    expect(hamiltonianPathDp.topicIds).toContain("backtracking");
     expect(hamiltonianPathDp.difficulty).toBe("Hard");
   });
 
@@ -22,9 +23,10 @@ describe("hamiltonianPathDp logic spec", () => {
 
   it("should map every line of python code in trivia lineExplanations", () => {
     const codeLines = hamiltonianPathDp.code.split("\n").length;
+    const explanations = requireLineExplanations(hamiltonianPathDp);
     expect(codeLines).toBe(23);
     for (let line = 1; line <= codeLines; line++) {
-      expect(hamiltonianPathDp.trivia?.lineExplanations[line]).toBeDefined();
+      expect(explanations[line]).toBeDefined();
     }
   });
 
@@ -32,7 +34,11 @@ describe("hamiltonianPathDp logic spec", () => {
     const totalLines = hamiltonianPathDp.code.split("\n").length;
     const inputsToTest = [
       hamiltonianPathDp.defaultInput,
-      ...(hamiltonianPathDp.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        hamiltonianPathDp,
+        (input): input is typeof hamiltonianPathDp.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const input of inputsToTest) {

@@ -9,9 +9,8 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("fusedSoftmaxLse algorithm spec", () => {
   it("should have correct ML Infra Level 3 metadata", () => {
     expect(fusedSoftmaxLse.id).toBe("fused-softmax-lse");
-    expect(fusedSoftmaxLse.isMlInfra).toBe(true);
-    expect(fusedSoftmaxLse.mlInfraLevel).toBe(3);
-    expect(fusedSoftmaxLse.category).toBe("ml_precision_quantization");
+    expect(fusedSoftmaxLse.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(fusedSoftmaxLse.topicIds).toContain("ml_precision_quantization");
     expect(fusedSoftmaxLse.defaultInput).toEqual(DEFAULT_FUSED_SOFTMAX_LSE_INPUT);
     expect(fusedSoftmaxLse.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 3" },
@@ -23,7 +22,7 @@ describe("fusedSoftmaxLse algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(16);
+    expect(lastStep.codeLine).toBe(12);
 
     const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snap.kind).toBe("array");
@@ -37,7 +36,7 @@ describe("fusedSoftmaxLse algorithm spec", () => {
     const steps = generateFusedSoftmaxLseSteps(extremeInput);
     const lastStep = steps[steps.length - 1];
 
-    expect(lastStep.codeLine).toBe(16);
+    expect(lastStep.codeLine).toBe(12);
     expect(lastStep.explanation.what).toContain("probabilities");
   });
 
@@ -45,7 +44,7 @@ describe("fusedSoftmaxLse algorithm spec", () => {
     const emptyInput = { logits: [] };
     const steps = generateFusedSoftmaxLseSteps(emptyInput);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(4);
+    expect(lastStep.codeLine).toBe(5);
     expect(lastStep.variables.lse).toBe(0.0);
   });
 });

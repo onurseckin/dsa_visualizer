@@ -81,7 +81,7 @@ export const generateMinMaxRangeClippingSteps = (
     `Preparing to clip ${arrayValues.length} FP32 activation values into dynamic range bounds [${minVal}, ${maxVal}].`,
     { n: arrayValues.length, minVal, maxVal },
     arrayValues[0],
-    0,
+    arrayValues[0],
   );
 
   // Step 2: Allocate clipped buffer
@@ -91,7 +91,7 @@ export const generateMinMaxRangeClippingSteps = (
     "Initializing empty list `clipped = []` to bank range-bounded float outputs.",
     { bufferSize: 0 },
     arrayValues[0],
-    0,
+    arrayValues[0],
   );
 
   // Multi-step loop per element
@@ -102,7 +102,7 @@ export const generateMinMaxRangeClippingSteps = (
       `Reading scalar activation x = ${val}. Evaluating range clipping limits [${minVal}, ${maxVal}].`,
       { idx, x: val, minVal, maxVal, phase: "INSPECT_VAL" },
       val,
-      0,
+      val,
     );
 
     const minClamped = Math.min(maxVal, val);
@@ -154,7 +154,7 @@ export const generateMinMaxRangeClippingSteps = (
   addStep(
     6,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully completed min-max range clipping for all values in the input tensor.",
     { completed: true, totalSteps: stepIndex },
     arrayValues[arrayValues.length - 1],
     clippedBuffer[clippedBuffer.length - 1] ?? 0,
@@ -172,9 +172,15 @@ const MINMAXRANGECLIPPING_TRIVIA: TriviaMeta = {
     "return [abs(x) for x in values]",
   ],
   hints: [
-    { line: 1, hint: "Defines function accepting values list and optional min_val/max_val parameters." },
+    {
+      line: 1,
+      hint: "Defines function accepting values list and optional min_val/max_val parameters.",
+    },
     { line: 3, hint: "Iterate through activation values in sequence." },
-    { line: 4, hint: "Apply max(min_val, min(max_val, x)) to clamp scalar value within range bounds." },
+    {
+      line: 4,
+      hint: "Apply max(min_val, min(max_val, x)) to clamp scalar value within range bounds.",
+    },
     { line: 5, hint: "Append range-clamped scalar value to output list." },
   ],
   lineExplanations: {
@@ -190,12 +196,8 @@ const MINMAXRANGECLIPPING_TRIVIA: TriviaMeta = {
 export const minMaxRangeClipping: AlgorithmDefinition<minMaxRangeClippingInput> = {
   id: "min-max-range-clipping",
   title: "Min Max Range Clipping",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Min-Max Range Clipping
 
 Min-Max Range Clipping bounds floating-point activation values strictly within a specified percentile range $[x_{\\text{min}}, x_{\\text{max}}]$ prior to quantization.
@@ -222,7 +224,8 @@ Outlier activation spikes in deep neural networks (e.g. LLM activation outliers 
       outputDisplay: "Clipped Values = [1.2, -2.0, 2.0]",
       input: { values: [1.2, -3.4, 5.5], minVal: -2.0, maxVal: 2.0 },
       output: "[1.2, -2.0, 2.0]",
-      explanation: "Clips -3.4 to min_val -2.0 and 5.5 to max_val 2.0, while 1.2 remains unchanged.",
+      explanation:
+        "Clips -3.4 to min_val -2.0 and 5.5 to max_val 2.0, while 1.2 remains unchanged.",
     },
     {
       kind: "complex",

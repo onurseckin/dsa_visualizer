@@ -188,14 +188,53 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
       variables: { iteration, currentMaxFlow: maxFlow },
     });
 
+    const visitedInBfs = new Set<string>([source]);
+
     while (queue.length > 0) {
       const curr = queue.shift()!;
       if (curr === sink) break;
+
+      steps.push({
+        stepIndex: stepIdx++,
+        codeLine: 12,
+        explanation: {
+          what: `BFS visiting node "${curr}". Inspecting outgoing edges for positive residual capacity.`,
+          why: "Exploring adjacent vertices in residual graph where capacity[u][v] - flow[u][v] > 0.",
+        },
+        primarySnapshot: {
+          kind: "graph",
+          nodes: nodes.map((n) => ({
+            ...n,
+            state:
+              n.id === curr
+                ? "active"
+                : queue.includes(n.id)
+                  ? "queued"
+                  : visitedInBfs.has(n.id)
+                    ? "visited"
+                    : n.id === sink
+                      ? "pivot"
+                      : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            isTraversed: e.from === curr,
+            weight: capacity[e.from][e.to],
+          })),
+        },
+        auxiliaryState: {
+          queue: [...queue],
+          visited: Array.from(visitedInBfs),
+          customState: { "Current Max Flow": maxFlow },
+        },
+        variables: { currentNode: curr, queueLength: queue.length },
+      });
 
       for (const nxt of nodeIds) {
         if (parent[nxt] === null && nxt !== source && capacity[curr][nxt] - flow[curr][nxt] > 0) {
           parent[nxt] = curr;
           queue.push(nxt);
+          visitedInBfs.add(nxt);
         }
       }
     }
@@ -337,8 +376,7 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = {
   id: "edmonds-karp-max-flow",
   title: "Edmonds-Karp Max Flow",
-  category: "graph_flows_and_cuts",
-  categories: ["graph_flows_and_cuts"],
+  topicIds: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
     "Edmonds-Karp computes the Maximum Flow in a flow network in O(V * E^2) time by implementing Ford-Fulkerson using Breadth-First Search (BFS) to find shortest augmenting paths in the residual graph.\n\nGiven a flow network represented by nodes and directed edges with non-negative capacity bounds, Edmonds-Karp repeatedly locates the shortest augmenting path (measured by the number of edges) from the source vertex to the sink vertex in the residual network.\n\n### Input Parameters\n- sourceId (string): The identifier of the flow source vertex S.\n- sinkId (string): The identifier of the flow sink vertex T.\n- nodes (list[GraphNodeItem]): Vertices comprising the network.\n- edges (list[GraphEdgeItem]): Directed edges with positive capacity weights.\n\n### Output\n- number: The maximum total flow pushed from source to sink.\n\n### Edge Cases & Constraints\n- Capacities must be non-negative (capacity[u][v] >= 0).\n- Reverse residual edges handle flow redirection when augmentations push back previously routed flow.\n- Disconnected sink returns 0 max flow.\n- Guaranteed polynomial termination in O(V * E^2) time regardless of capacity integrality.",
@@ -417,7 +455,8 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
     time: "Using BFS guarantees that each shortest path augmentation increases the distance to at least one edge's bottleneck. There are at most $\\mathcal{O}(V \\cdot E)$ total augmentations, each taking $\\mathcal{O}(E)$ time for BFS, yielding $\\mathcal{O}(V \\cdot E^2)$ total runtime.",
-    space: "Capacity/flow matrices and BFS queues consume $\\mathcal{O}(V^2)$ or $\\mathcal{O}(V + E)$ space.",
+    space:
+      "Capacity/flow matrices and BFS queues consume $\\mathcal{O}(V^2)$ or $\\mathcal{O}(V + E)$ space.",
   },
   topicGuide: {
     overview:

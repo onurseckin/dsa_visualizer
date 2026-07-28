@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { shannonEntropyCalculator } from "./shannonEntropyCalculator";
 
-describe("shannonEntropyCalculator", () => {
+describe("shannon-entropy-calculator", () => {
   it("should have valid metadata", () => {
     expect(shannonEntropyCalculator.id).toBeDefined();
     expect(shannonEntropyCalculator.title).toBeDefined();
@@ -12,9 +12,7 @@ describe("shannonEntropyCalculator", () => {
   });
 
   it("should generate at least 20 steps", () => {
-    const steps = shannonEntropyCalculator.generateSteps(
-      shannonEntropyCalculator.defaultInput,
-    );
+    const steps = shannonEntropyCalculator.generateSteps(shannonEntropyCalculator.defaultInput);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].primarySnapshot.kind).toBeDefined();
     expect(steps[steps.length - 1].primarySnapshot.kind).toBeDefined();

@@ -113,7 +113,7 @@ export type { DeckGroup } from "./organisms/DeckGroupCollapsible";
 export {
   KnowledgeGraph,
   TOPIC_FAMILIES,
-  TOPIC_ROADMAP_NODES,
+  DSA_TREE_PLACEMENTS,
   topicFamilyColor,
   topicFamilyLabel,
 } from "./organisms/KnowledgeGraph";

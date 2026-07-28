@@ -19,7 +19,6 @@ export interface warpShuffleButterflyReductionInput {
 }
 
 export const WARPSHUFFLEBUTTERFLYREDUCTION_CODE = `def warp_shuffle_butterfly_reduction(thread_values: list[float], warp_size: int = 8, op: str = "sum") -> tuple[list[float], list[list[tuple[int, int, float, float]]]]:
-    """Simulates CUDA Warp Butterfly Reduction Primitive (__shfl_xor_sync)."""
     registers = [float(v) for v in thread_values]
     n = len(registers)
     history = []
@@ -65,7 +64,8 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawVals = input.thread_values || input.data || DEFAULT_WARPSHUFFLEBUTTERFLYREDUCTION_INPUT.thread_values!;
+  const rawVals =
+    input.thread_values || input.data || DEFAULT_WARPSHUFFLEBUTTERFLYREDUCTION_INPUT.thread_values!;
   const warpSize = input.warp_size !== undefined ? input.warp_size : rawVals.length;
   const op = input.op || "sum";
 
@@ -73,10 +73,7 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
   const n = registers.length;
   const stageSnapshots: number[][] = [[...registers]];
 
-  const getSnapshot = (
-    activeThreadI: number = -1,
-    activeThreadP: number = -1,
-  ) => {
+  const getSnapshot = (activeThreadI: number = -1, activeThreadP: number = -1) => {
     const totalStages = stageSnapshots.length;
     const rows = totalStages;
     const cols = n;
@@ -125,7 +122,7 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
       primarySnapshot: getSnapshot(activeThreadI, activeThreadP),
       auxiliaryState: {
         customState: {
-          "Algorithm": "CUDA Warp Butterfly Reduction Primitive (__shfl_xor_sync)",
+          Algorithm: "CUDA Warp Butterfly Reduction Primitive (__shfl_xor_sync)",
           "Warp Threads Count": String(n),
           "Reduction Operator": op,
           "Register Exchange Speed": "Zero Shared Memory / DRAM Latency!",
@@ -144,25 +141,20 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
     { n, warpSize, op },
   );
 
-  // Step 2: Init registers (3)
+  // Step 2: Init registers (2)
   addStep(
-    3,
+    2,
     "Convert Input Thread Values to Register Floats: registers = [float(v)]",
     `Initialised ${n} SIMD thread registers: [${registers.map((r) => r.toFixed(2)).join(", ")}].`,
     { registers: JSON.stringify(registers.map((r) => r.toFixed(2))) },
   );
 
-  // Step 3: Measure n (4)
+  // Step 3: Measure n (3)
+  addStep(3, `Measure Warp Threads Count: n = ${n}`, `Warp thread register count n = ${n}.`, { n });
+
+  // Step 4: Init history (4)
   addStep(
     4,
-    `Measure Warp Threads Count: n = ${n}`,
-    `Warp thread register count n = ${n}.`,
-    { n },
-  );
-
-  // Step 4: Init history (5)
-  addStep(
-    5,
     "Allocate history [] List",
     "Allocated list to record exchange steps per reduction pass.",
     { history_len: 0 },
@@ -170,7 +162,7 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
 
   let delta = Math.floor(n / 2);
   addStep(
-    7,
+    6,
     `Calculate Initial XOR Offset Mask: delta = n // 2 = ${delta}`,
     `Evaluated initial butterfly offset delta = ${delta}. Butterfly reduction completes in log2(${n}) = ${Math.log2(n)} stages.`,
     { delta },
@@ -178,14 +170,14 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
 
   while (delta > 0) {
     addStep(
-      8,
+      7,
       `Outer Stage Loop: while delta > 0 (delta = ${delta})`,
       `Starting butterfly reduction pass with XOR mask delta = ${delta}.`,
       { delta },
     );
 
     addStep(
-      9,
+      8,
       "Allocate step_exchanges [] List for Current Stage",
       `Allocated list for stage delta=${delta} butterfly register exchanges.`,
       { delta },
@@ -193,7 +185,7 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
 
     const newRegisters = [...registers];
     addStep(
-      10,
+      9,
       "Copy Current Register Array: new_registers = list(registers)",
       "Copied thread registers to store updated stage values.",
       { delta },
@@ -341,9 +333,9 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
     );
   }
 
-  // Return step (32)
+  // Return step (31)
   addStep(
-    32,
+    31,
     "Execution Complete: Return (registers, history)",
     `Completed CUDA Warp Butterfly Reduction primitive in ${stageSnapshots.length - 1} steps (log2 ${n}). Final warp reduction result across all ${n} threads: ${registers[0].toFixed(2)}!`,
     { n, result: registers[0], completed: true },
@@ -353,7 +345,7 @@ export const generateWARPSHUFFLEBUTTERFLYREDUCTIONSteps = (
 };
 
 const WARPSHUFFLEBUTTERFLYREDUCTION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 6, 15, 18, 20, 22, 26, 30, 31],
+  skipLines: [5, 15, 18, 20, 22, 26, 30],
   distractors: [
     "partner = i + delta",
     "delta = n - 1",
@@ -366,50 +358,45 @@ const WARPSHUFFLEBUTTERFLYREDUCTION_TRIVIA: TriviaMeta = {
   ],
   lineExplanations: {
     1: "Defines entry point for warp_shuffle_butterfly_reduction function simulating CUDA __shfl_xor_sync.",
-    2: "Docstring describing CUDA Warp Butterfly Reduction Primitive (__shfl_xor_sync).",
-    3: "Converts input values to float register list registers = [float(v) for v in thread_values].",
-    4: "Measures warp threads count n = len(registers).",
-    5: "Initializes empty list history to record exchange steps per reduction pass.",
-    6: "Blank line before delta calculation.",
-    7: "Calculates initial butterfly XOR offset mask delta = n // 2.",
-    8: "Outer loop executing while butterfly mask delta > 0.",
-    9: "Initializes empty list step_exchanges for current reduction pass.",
-    10: "Copies thread registers to store updated stage values new_registers = list(registers).",
-    11: "Iterates over thread index i from 0 to n - 1.",
-    12: "Calculates XOR partner thread index partner = i ^ delta.",
-    13: "Checks unique pair condition if i < partner to prevent duplicate processing.",
-    14: "Reads register value val_i from Thread i.",
-    15: "Reads register value val_p from Thread partner.",
-    16: "Blank line before operation check.",
-    17: "Checks if reduction operator op == 'sum'.",
-    18: "Executes sum reduction res = val_i + val_p.",
-    19: "Checks if reduction operator op == 'max'.",
-    20: "Executes max reduction res = max(val_i, val_p).",
-    21: "Else branch for default sum reduction.",
-    22: "Executes fallback sum reduction res = val_i + val_p.",
-    23: "Blank line before updating registers.",
-    24: "Updates Thread i register value new_registers[i] = res.",
-    25: "Updates Thread partner register value new_registers[partner] = res.",
-    26: "Appends exchange tuple to step_exchanges list.",
-    27: "Blank line before updating stage registers.",
-    28: "Updates warp registers registers = new_registers after completing pass.",
-    29: "Appends step_exchanges to history list.",
-    30: "Halves butterfly XOR offset mask delta //= 2.",
-    31: "Blank line separating reduction loop from return statement.",
-    32: "Returns tuple of (registers, history).",
+    2: "Converts input values to float register list registers = [float(v) for v in thread_values].",
+    3: "Measures warp threads count n = len(registers).",
+    4: "Initializes empty list history to record exchange steps per reduction pass.",
+    5: "Blank line before delta calculation.",
+    6: "Calculates initial butterfly XOR offset mask delta = n // 2.",
+    7: "Outer loop executing while butterfly mask delta > 0.",
+    8: "Initializes empty list step_exchanges for current reduction pass.",
+    9: "Copies thread registers to store updated stage values new_registers = list(registers).",
+    10: "Iterates over thread index i from 0 to n - 1.",
+    11: "Calculates XOR partner thread index partner = i ^ delta.",
+    12: "Checks unique pair condition if i < partner to prevent duplicate processing.",
+    13: "Reads register value val_i from Thread i.",
+    14: "Reads register value val_p from Thread partner.",
+    15: "Blank line before operation check.",
+    16: "Checks if reduction operator op == 'sum'.",
+    17: "Executes sum reduction res = val_i + val_p.",
+    18: "Checks if reduction operator op == 'max'.",
+    19: "Executes max reduction res = max(val_i, val_p).",
+    20: "Else branch for default sum reduction.",
+    21: "Executes fallback sum reduction res = val_i + val_p.",
+    22: "Blank line before updating registers.",
+    23: "Updates Thread i register value new_registers[i] = res.",
+    24: "Updates Thread partner register value new_registers[partner] = res.",
+    25: "Appends exchange tuple to step_exchanges list.",
+    26: "Blank line before updating stage registers.",
+    27: "Updates warp registers registers = new_registers after completing pass.",
+    28: "Appends step_exchanges to history list.",
+    29: "Halves butterfly XOR offset mask delta //= 2.",
+    30: "Blank line separating reduction loop from return statement.",
+    31: "Returns tuple of (registers, history).",
   },
 };
 
 export const warpShuffleButterflyReduction: AlgorithmDefinition<warpShuffleButterflyReductionInput> =
   {
-    id: "warpShuffleButterflyReduction",
+    id: "warp-shuffle-butterfly-reduction",
     title: "CUDA Warp Butterfly Reduction Primitive (__shfl_xor_sync)",
-    category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_hardware_kernels",
     description:
       "The CUDA Warp Butterfly Reduction Primitive simulates NVIDIA CUDA's hardware-level warp shuffle instruction (`__shfl_xor_sync`). In GPU computing, a **warp** consists of 32 threads executing in lockstep SIMD. Standard parallel reduction requires writing intermediate thread outputs to GPU Shared Memory (SRAM) with `__syncthreads()` barriers. Butterfly reduction uses bitwise XOR register shuffles (`partner = thread_id ^ delta`) to exchange data directly between GPU SIMD register files in **$\\log_2(W)$ steps** with **zero shared memory or DRAM latency**.\n\n### Why It Exists\nSoftmax normalization, LayerNorm, and FlashAttention require computing parallel reductions (sum, max) across sequence keys or feature dimensions. Using shared memory for warp-level reductions incurs memory write/read stalls and barrier synchronization overhead. CUDA warp shuffle intrinsics (`__shfl_xor_sync`) perform register-to-register data exchanges in a single clock cycle.\n\n### Mathematical Formulation\nFor warp size $W = 32$ (or $W = 8$), thread rank $i \\in \\{0, \\dots, W-1\\}$, and reduction operator $\\oplus \\in \\{+, \\max\\}$:\n\n$$1. \\quad \\delta_{start} = \\frac{W}{2} \\quad (\\text{Initial Butterfly XOR Mask})$$\n\n$$2. \\quad \\text{partner}_i = i \\oplus \\delta \\quad (\\text{Hardware Register Exchange Partner})$$\n\n$$3. \\quad R_{i, \\text{step}+1} = R_{i, \\text{step}} \\oplus \\text{Shuffle}_{XOR}(R_{\\text{partner}, \\text{step}}, \\delta) \\quad (\\text{Register Update})$$\n\n$$4. \\quad \\delta \\leftarrow \\lfloor \\frac{\\delta}{2} \\rfloor \\quad (\\text{Halve Offset Mask over } \\log_2 W \\text{ Steps})$$\n\n### Step-by-Step Intuition\n1. **Initial Register Load**: Threads load scalar data into local SIMD registers $R_0, R_1, \\dots, R_{W-1}$.\n2. **Pass 1 ($\\delta = 4$)**: Thread $i$ exchanges register values with partner $i \\oplus 4$ (e.g. Thread 0 pairs with Thread 4). Compute $R_i + R_{i \\oplus 4}$.\n3. **Pass 2 ($\\delta = 2$)**: Thread $i$ exchanges register values with partner $i \\oplus 2$ (e.g. Thread 0 pairs with Thread 2). Compute $R_i + R_{i \\oplus 2}$.\n4. **Pass 3 ($\\delta = 1$)**: Thread $i$ exchanges register values with partner $i \\oplus 1$ (e.g. Thread 0 pairs with Thread 1). Compute $R_i + R_{i \\oplus 1}$.\n5. **All-Reduce Complete**: In just 3 steps ($\\log_2 8$), *every* thread in the warp holds the exact global sum across all 8 registers!\n\n### Key Trade-Offs & Hardware Execution\n- **Zero Shared Memory Latency**: Exchanges data directly across GPU register files via hardware crossbar switches in 1 clock cycle.\n- **All-Reduce Advantage**: Because butterfly reduction exchanges data symmetrically (`i` and `partner` both update), every thread in the warp receives the final reduced sum simultaneously without extra broadcast steps.",
     constraints: [
@@ -425,7 +412,8 @@ export const warpShuffleButterflyReduction: AlgorithmDefinition<warpShuffleButte
         outputDisplay: "Final Warp Registers: All 36.0 (Sum = 36.0 in 3 steps)",
         input: DEFAULT_WARPSHUFFLEBUTTERFLYREDUCTION_INPUT,
         output: "([36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 36.0, 36.0], history)",
-        explanation: "Executes 3 butterfly exchange steps (delta=4, 2, 1). Reduces 8 registers in log2(8)=3 steps to sum 36.0 with zero shared memory latency.",
+        explanation:
+          "Executes 3 butterfly exchange steps (delta=4, 2, 1). Reduces 8 registers in log2(8)=3 steps to sum 36.0 with zero shared memory latency.",
       },
     ],
     code: WARPSHUFFLEBUTTERFLYREDUCTION_CODE,
@@ -463,19 +451,23 @@ export const warpShuffleButterflyReduction: AlgorithmDefinition<warpShuffleButte
       keyTerms: [
         {
           term: "__shfl_xor_sync",
-          definition: "CUDA C++ hardware intrinsic instruction exchanging register data between SIMD threads using bitwise XOR rank mask.",
+          definition:
+            "CUDA C++ hardware intrinsic instruction exchanging register data between SIMD threads using bitwise XOR rank mask.",
         },
         {
           term: "Warp",
-          definition: "Group of 32 parallel GPU CUDA threads executing instructions in lockstep SIMD.",
+          definition:
+            "Group of 32 parallel GPU CUDA threads executing instructions in lockstep SIMD.",
         },
         {
           term: "Butterfly Reduction",
-          definition: "Symmetric register exchange pattern reducing N items in log2(N) steps across pairs (i ^ delta).",
+          definition:
+            "Symmetric register exchange pattern reducing N items in log2(N) steps across pairs (i ^ delta).",
         },
         {
           term: "All-Reduce",
-          definition: "Reduction operation where every participating thread or rank receives the final reduced output value.",
+          definition:
+            "Reduction operation where every participating thread or rank receives the final reduced output value.",
         },
       ],
     },

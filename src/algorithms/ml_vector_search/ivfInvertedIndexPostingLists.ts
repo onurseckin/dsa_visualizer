@@ -35,18 +35,11 @@ def l2_distance(v1: list[float], v2: list[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
 
 def ivf_inverted_index_search(query: list[float], centroids: list[list[float]], posting_lists: dict, nprobe: int) -> list[tuple[float, int]]:
-    """
-    Inverted File (IVF) vector index search.
-    Finds the 'nprobe' nearest centroids to query, then scans candidate vectors in their posting lists.
-    """
-    # Step 1: Compute distance from query to all coarse centroids
     centroid_dists = [(l2_distance(query, c), idx) for idx, c in enumerate(centroids)]
     centroid_dists.sort(key=lambda x: x[0])
 
-    # Select top nprobe coarse centroids
     probed_centroids = centroid_dists[:nprobe]
 
-    # Step 2: Scan posting lists of probed centroids
     candidate_results = []
     for c_dist, c_idx in probed_centroids:
         for item in posting_lists.get(c_idx, []):
@@ -66,12 +59,12 @@ export const generateIvfInvertedIndexSteps = (
   let stepIndex = 0;
 
   const l2Dist = (v1: number[], v2: number[]) =>
-    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
+    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - (v2[idx] ?? 0)) ** 2, 0));
 
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 6,
     explanation: {
       what: `Initialize Inverted File (IVF) Search Engine (nprobe = ${nprobe})`,
       why: `Query vector [${query.join(", ")}]. Voronoi partition space contains ${centroids.length} centroids. Probing nprobe = ${nprobe} nearest clusters.`,
@@ -96,19 +89,21 @@ export const generateIvfInvertedIndexSteps = (
     variables: { nprobe, numCentroids: centroids.length },
   });
 
-  // Step 1: Compute Centroid Distances
+  // Step 1: Compute Centroid Distances & select top nprobe
   const centroidDists = centroids
     .map((c, idx) => ({ idx, dist: l2Dist(query, c) }))
     .sort((a, b) => a.dist - b.dist);
 
+  const probedCentroids = centroidDists.slice(0, nprobe);
+
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 7,
     explanation: {
-      what: "Calculate Coarse Centroid Distances to Query",
+      what: `Calculate Coarse Centroid Distances to Query & Select Top ${nprobe} Centroids`,
       why: `Closest centroids: ${centroidDists
         .map((cd) => `Centroid ${cd.idx} (dist=${cd.dist.toFixed(3)})`)
-        .join(", ")}.`,
+        .join(", ")}. Selected top ${nprobe} Voronoi cells to search.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -122,17 +117,13 @@ export const generateIvfInvertedIndexSteps = (
     },
     auxiliaryState: {
       customState: {
-        probedCentroidIds: centroidDists
-          .slice(0, nprobe)
-          .map((cd) => `Centroid ${cd.idx}`)
-          .join(", "),
-        action: "Selected top nprobe Voronoi cells",
+        probedCentroidIds: probedCentroids.map((cd) => `Centroid ${cd.idx}`).join(", "),
+        action: `Selected top ${nprobe} Voronoi cells`,
       },
     },
-    variables: { probedCount: nprobe },
+    variables: { probedCount: nprobe, topCentroid: probedCentroids[0]?.idx },
   });
 
-  const probedCentroids = centroidDists.slice(0, nprobe);
   const candidates: { id: number; dist: number; centroidIdx: number }[] = [];
 
   // Step 2: Scan Posting Lists
@@ -142,27 +133,46 @@ export const generateIvfInvertedIndexSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 18,
+      codeLine: 13,
       explanation: {
         what: `Scan Inverted Posting List for Centroid ${cIdx} (${list.length} vectors)`,
-        why: `Fetching candidate vectors belonging to Voronoi partition ${cIdx}.`,
+        why: `Fetching candidate vectors belonging to Voronoi partition ${cIdx}. ${
+          list.length === 0
+            ? "Posting list is empty."
+            : `Contains ${list.length} candidate vector(s).`
+        }`,
       },
       primarySnapshot: {
         kind: "array",
-        elements: list.map((item) => ({
-          id: `vec-${item.id}`,
-          value: item.id,
-          label: `ID ${item.id} [${item.vector.join(",")}]`,
-          state: "highlighted" as ElementState,
-        })),
+        elements:
+          list.length > 0
+            ? list.map((item) => ({
+                id: `vec-${item.id}`,
+                value: item.id,
+                label: `ID ${item.id} [${item.vector.join(",")}]`,
+                state: "highlighted" as ElementState,
+              }))
+            : [
+                {
+                  id: `empty-${cIdx}`,
+                  value: 0,
+                  label: `Centroid ${cIdx}: Empty Posting List`,
+                  state: "inactive" as ElementState,
+                },
+              ],
       },
       auxiliaryState: {
         customState: {
           activeCentroid: `Centroid ${cIdx}`,
           vectorsInList: String(list.length),
+          centroidDistance: probed.dist.toFixed(3),
         },
       },
-      variables: { cIdx, listSize: list.length },
+      variables: {
+        cIdx,
+        listSize: list.length,
+        centroidDist: Math.round(probed.dist * 1000) / 1000,
+      },
     });
 
     for (const item of list) {
@@ -171,10 +181,12 @@ export const generateIvfInvertedIndexSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 22,
+        codeLine: 17,
         explanation: {
-          what: `Evaluate Distance to Candidate Vector ID ${item.id}`,
-          why: `Distance(query, V_${item.id}) = ${dist.toFixed(4)}. Added candidate to top-K evaluation heap.`,
+          what: `Evaluate Distance to Candidate Vector ID ${item.id} in Centroid ${cIdx}`,
+          why: `Distance(query, Vector ${item.id}) = ${dist.toFixed(
+            4,
+          )}. Added candidate to nearest neighbor evaluation pool.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -190,9 +202,10 @@ export const generateIvfInvertedIndexSteps = (
           customState: {
             activeVector: `ID ${item.id}`,
             distance: dist.toFixed(4),
+            belongingCentroid: `Centroid ${cIdx}`,
           },
         },
-        variables: { vectorId: item.id, dist: Math.round(dist * 100) / 100 },
+        variables: { vectorId: item.id, dist: Math.round(dist * 1000) / 1000 },
       });
     }
   }
@@ -202,32 +215,46 @@ export const generateIvfInvertedIndexSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 20,
     explanation: {
       what: "IVF Search Complete: Sorted Candidate Nearest Neighbors",
-      why: `Top match: Vector ID ${candidates[0]?.id} with distance ${candidates[0]?.dist.toFixed(
-        4,
-      )}. Scanned only ${candidates.length} vectors instead of full database.`,
+      why: `Scanned ${candidates.length} candidate vectors across ${nprobe} probed Voronoi cells. ${
+        candidates.length > 0
+          ? `Top match: Vector ID ${candidates[0].id} with distance ${candidates[0].dist.toFixed(
+              4,
+            )}.`
+          : "No candidate vectors evaluated."
+      }`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: candidates.map((cand, rank) => ({
-        id: `res-${cand.id}`,
-        value: cand.id,
-        label: `Rank ${rank + 1}: ID ${cand.id} (dist=${cand.dist.toFixed(3)})`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-        pointers: rank === 0 ? ["Top Match"] : [],
-      })),
+      elements:
+        candidates.length > 0
+          ? candidates.map((cand, rank) => ({
+              id: `res-${cand.id}`,
+              value: cand.id,
+              label: `Rank ${rank + 1}: ID ${cand.id} (dist=${cand.dist.toFixed(3)})`,
+              state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+              pointers: rank === 0 ? ["Top Match"] : [],
+            }))
+          : [
+              {
+                id: "res-empty",
+                value: 0,
+                label: "No candidates evaluated",
+                state: "inactive" as ElementState,
+              },
+            ],
     },
     auxiliaryState: {
       customState: {
-        topVectorId: String(candidates[0]?.id),
-        topDistance: candidates[0]?.dist.toFixed(4),
+        topVectorId: candidates.length > 0 ? String(candidates[0].id) : "None",
+        topDistance: candidates.length > 0 ? candidates[0].dist.toFixed(4) : "N/A",
         totalScannedVectors: String(candidates.length),
         status: "Completed",
       },
     },
-    variables: { topId: candidates[0]?.id, scanned: candidates.length, complete: true },
+    variables: { topId: candidates[0]?.id ?? null, scanned: candidates.length, complete: true },
   });
 
   return steps;
@@ -235,14 +262,10 @@ export const generateIvfInvertedIndexSteps = (
 
 export const ivfInvertedIndexPostingLists: AlgorithmDefinition<IvfInvertedIndexPostingListsInput> =
   {
-    id: "ivfInvertedIndexPostingLists",
+    id: "ivf-inverted-index-posting-lists",
     title: "Inverted File (IVF) Index & Posting Lists",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search"],
+    topicIds: ["ml_vector_search"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "Inverted File (IVF) indexing partitions vector database space into K Voronoi cells via K-Means clustering. During query execution, the system finds the `nprobe` nearest centroid cells to the query, scanning only the posting lists of those clusters. This reduces vector distance computations from O(N) to O(K + (nprobe / K) * N).\n\nInput Format:\n- query: D-dimensional query embedding vector.\n- centroids: K cluster center vectors.\n- postingLists: Dictionary mapping centroid index to vector items.\n- nprobe: Number of centroid Voronoi cells to inspect.\n\nOutput Format:\n- Returns sorted list of (distance, vectorId) candidates.\n\nEdge Cases & Constraints:\n- nprobe = 1: Fastest search speed, potential boundary recall loss.\n- nprobe = K: Equivalent to exact brute-force linear search.",
     constraints: [

@@ -20,35 +20,23 @@ export const DEFAULT_UNIGRAM_PRUNER_INPUT: UnigramEmVocabularyPrunerInput = {
 };
 
 export const UNIGRAM_EM_PRUNER_CODE = `def unigram_em_prune_vocabulary(initial_vocab: dict[str, float], prune_percent: float = 20.0, target_vocab_size: int = 4) -> dict[str, float]:
-    """
-    EM Vocabulary Pruner for Unigram LM tokenization (Kudo 2018).
-    In each EM pruning step, calculates candidate loss impact,
-    prunes the bottom 'prune_percent' % candidates with lowest loss impact,
-    and renormalizes remaining token probabilities until target_vocab_size is reached.
-    """
     vocab = {k: v for k, v in initial_vocab.items()}
-    # Single character tokens are protected from pruning
     protected_tokens = {k for k in vocab if len(k) == 1}
 
     while len(vocab) > target_vocab_size:
-        # Candidates eligible for pruning
-        prunably = [k for k in vocab if k not in protected_tokens]
-        if not prunably:
+        prunable = [k for k in vocab if k not in protected_tokens]
+        if not prunable:
             break
 
-        # Calculate number of tokens to prune in this step
-        num_to_prune = max(1, int(len(prunably) * (prune_percent / 100.0)))
+        num_to_prune = max(1, int(len(prunable) * (prune_percent / 100.0)))
         num_to_prune = min(num_to_prune, len(vocab) - target_vocab_size)
 
-        # Sort prunable candidates by ascending probability / loss impact
-        prunably.sort(key=lambda k: vocab[k])
-        pruned_candidates = prunably[:num_to_prune]
+        prunable.sort(key=lambda k: vocab[k])
+        pruned_candidates = prunable[:num_to_prune]
 
-        # Remove pruned candidates
         for k in pruned_candidates:
             del vocab[k]
 
-        # Renormalize remaining probabilities
         total_p = sum(vocab.values())
         vocab = {k: v / total_p for k, v in vocab.items()}
 
@@ -62,53 +50,256 @@ export const generateUnigramPrunerSteps = (
   let stepIndex = 0;
 
   let vocab = { ...initialVocab };
-  const protectedTokens = new Set(Object.keys(vocab).filter((k) => k.length === 1));
-
-  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
-      what: `Initialize Unigram EM Vocabulary Pruner (Target Size = ${targetVocabSize})`,
-      why: `Initial vocabulary size = ${Object.keys(vocab).length}. Protected 1-character tokens: [${Array.from(
-        protectedTokens,
-      ).join(", ")}]. Pruning bottom ${prunePercent}% candidates per EM pass.`,
+      what: `Initialize working vocabulary with ${Object.keys(vocab).length} candidate token(s).`,
+      why: `Copy initial vocabulary with target size ${targetVocabSize} and prune percentage ${prunePercent}%.`,
     },
     primarySnapshot: {
       kind: "array",
       elements: Object.entries(vocab).map(([tok, p], idx) => ({
         id: `v-${idx}`,
-        value: Math.round(p * 100),
-        label: `"${tok}" (P=${p.toFixed(2)})`,
+        value: Number(p.toFixed(3)),
+        label: `"${tok}" (${p.toFixed(3)})`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        vocabSize: String(Object.keys(vocab).length),
+        targetVocabSize: String(targetVocabSize),
+        prunePercent: `${prunePercent}%`,
+        status: "Initialized",
+      },
+    },
+    variables: { initialSize: Object.keys(vocab).length, targetVocabSize, prunePercent },
+  });
+
+  const protectedTokens = new Set(Object.keys(vocab).filter((k) => k.length === 1));
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: {
+      what: `Identify protected base character tokens: [${Array.from(protectedTokens)
+        .map((t) => `"${t}"`)
+        .join(", ")}].`,
+      why: "Single-character base tokens are protected from pruning to guarantee 100% text coverage without out-of-vocabulary errors.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Object.entries(vocab).map(([tok, p], idx) => ({
+        id: `v-${idx}`,
+        value: Number(p.toFixed(3)),
+        label: `"${tok}" (${p.toFixed(3)})`,
         state: protectedTokens.has(tok) ? ("sorted" as ElementState) : ("default" as ElementState),
         pointers: protectedTokens.has(tok) ? ["Protected"] : [],
       })),
     },
     auxiliaryState: {
       customState: {
-        initialVocabSize: String(Object.keys(vocab).length),
+        protectedCount: String(protectedTokens.size),
+        protectedTokens: Array.from(protectedTokens)
+          .map((t) => `"${t}"`)
+          .join(", "),
+        vocabSize: String(Object.keys(vocab).length),
         targetVocabSize: String(targetVocabSize),
-        prunePercent: `${prunePercent}%`,
-        status: "Initialized",
       },
     },
-    variables: { initialSize: Object.keys(vocab).length, targetVocabSize },
+    variables: { protectedCount: protectedTokens.size, targetVocabSize },
   });
 
   let pass = 1;
   while (Object.keys(vocab).length > targetVocabSize) {
+    const currentSize = Object.keys(vocab).length;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 5,
+      explanation: {
+        what: `EM Pass ${pass}: Check vocabulary size condition (${currentSize} > ${targetVocabSize}).`,
+        why: `Current vocabulary size (${currentSize}) exceeds target size (${targetVocabSize}), so pruning iteration proceeds.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Object.entries(vocab).map(([tok, p], idx) => ({
+          id: `v-${idx}`,
+          value: Number(p.toFixed(3)),
+          label: `"${tok}" (${p.toFixed(3)})`,
+          state: protectedTokens.has(tok)
+            ? ("sorted" as ElementState)
+            : ("default" as ElementState),
+          pointers: protectedTokens.has(tok) ? ["Protected"] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          emPass: String(pass),
+          currentVocabSize: String(currentSize),
+          targetVocabSize: String(targetVocabSize),
+          status: "Evaluating loop condition",
+        },
+      },
+      variables: { pass, currentSize, targetVocabSize },
+    });
+
     const prunable = Object.keys(vocab).filter((k) => !protectedTokens.has(k));
-    if (prunable.length === 0) break;
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 6,
+      explanation: {
+        what: `EM Pass ${pass}: Filter non-protected subwords eligible for pruning (${prunable.length} candidates).`,
+        why:
+          prunable.length > 0
+            ? `Candidates eligible for pruning: [${prunable.map((t) => `"${t}"`).join(", ")}].`
+            : "No non-protected candidate tokens remain.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Object.entries(vocab).map(([tok, p], idx) => ({
+          id: `v-${idx}`,
+          value: Number(p.toFixed(3)),
+          label: `"${tok}" (${p.toFixed(3)})`,
+          state: protectedTokens.has(tok) ? ("sorted" as ElementState) : ("active" as ElementState),
+          pointers: protectedTokens.has(tok) ? ["Protected"] : ["Prunable"],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          emPass: String(pass),
+          prunableCandidates: prunable.map((t) => `"${t}"`).join(", ") || "None",
+          prunableCount: String(prunable.length),
+        },
+      },
+      variables: { pass, prunableCount: prunable.length },
+    });
+
+    if (prunable.length === 0) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 8,
+        explanation: {
+          what: `EM Pass ${pass}: Break pruning loop as no prunable candidates remain.`,
+          why: "All remaining tokens in the vocabulary are protected 1-character base tokens.",
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: Object.entries(vocab).map(([tok, p], idx) => ({
+            id: `v-${idx}`,
+            value: Number(p.toFixed(3)),
+            label: `"${tok}" (${p.toFixed(3)})`,
+            state: "sorted" as ElementState,
+            pointers: ["Protected"],
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            status: "Terminated early - only protected tokens remain",
+          },
+        },
+        variables: { pass, breakEarly: true },
+      });
+      break;
+    }
 
     let numToPrune = Math.max(1, Math.floor(prunable.length * (prunePercent / 100.0)));
-    numToPrune = Math.min(numToPrune, Object.keys(vocab).length - targetVocabSize);
+    numToPrune = Math.min(numToPrune, currentSize - targetVocabSize);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 9,
+      explanation: {
+        what: `EM Pass ${pass}: Calculate prune count (${numToPrune} token(s)).`,
+        why: `Prune percentage ${prunePercent}% of ${prunable.length} candidate(s) yields ${numToPrune} token(s) to remove (bounded by current surplus ${currentSize - targetVocabSize}).`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Object.entries(vocab).map(([tok, p], idx) => ({
+          id: `v-${idx}`,
+          value: Number(p.toFixed(3)),
+          label: `"${tok}" (${p.toFixed(3)})`,
+          state: protectedTokens.has(tok) ? ("sorted" as ElementState) : ("active" as ElementState),
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          emPass: String(pass),
+          numToPrune: String(numToPrune),
+          surplusTokens: String(currentSize - targetVocabSize),
+        },
+      },
+      variables: { pass, numToPrune },
+    });
 
     prunable.sort((a, b) => vocab[a] - vocab[b]);
     const prunedCandidates = prunable.slice(0, numToPrune);
+    const prunedSet = new Set(prunedCandidates);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 11,
+      explanation: {
+        what: `EM Pass ${pass}: Sort prunable candidates by probability and pick candidate(s) to prune: [${prunedCandidates.map((c) => `"${c}"`).join(", ")}].`,
+        why: `Candidates sorted by probability ascending. Bottom candidate(s) have lowest probability / loss impact.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Object.entries(vocab).map(([tok, p], idx) => ({
+          id: `v-${idx}`,
+          value: Number(p.toFixed(3)),
+          label: `"${tok}" (${p.toFixed(3)})`,
+          state: prunedSet.has(tok)
+            ? ("declining" as ElementState)
+            : protectedTokens.has(tok)
+              ? ("sorted" as ElementState)
+              : ("default" as ElementState),
+          pointers: prunedSet.has(tok)
+            ? ["To Prune"]
+            : protectedTokens.has(tok)
+              ? ["Protected"]
+              : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          emPass: String(pass),
+          selectedForPruning: prunedCandidates.map((c) => `"${c}"`).join(", "),
+        },
+      },
+      variables: { pass, prunedCandidates },
+    });
 
     for (const k of prunedCandidates) {
       delete vocab[k];
     }
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 14,
+      explanation: {
+        what: `EM Pass ${pass}: Delete pruned candidate(s) [${prunedCandidates.map((c) => `"${c}"`).join(", ")}] from vocabulary.`,
+        why: `Vocabulary size reduced from ${currentSize} to ${Object.keys(vocab).length}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Object.entries(vocab).map(([tok, p], idx) => ({
+          id: `v-${idx}`,
+          value: Number(p.toFixed(3)),
+          label: `"${tok}" (${p.toFixed(3)})`,
+          state: protectedTokens.has(tok) ? ("sorted" as ElementState) : ("active" as ElementState),
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          emPass: String(pass),
+          prunedTokens: prunedCandidates.map((c) => `"${c}"`).join(", "),
+          vocabSizeAfterPrune: String(Object.keys(vocab).length),
+        },
+      },
+      variables: { pass, newVocabSize: Object.keys(vocab).length },
+    });
 
     const totalP = Object.values(vocab).reduce((sum, p) => sum + p, 0);
     const renormalized: Record<string, number> = {};
@@ -119,47 +310,40 @@ export const generateUnigramPrunerSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 24,
+      codeLine: 16,
       explanation: {
-        what: `EM Pruning Pass ${pass}: Pruned ${prunedCandidates.length} Tokens [${prunedCandidates
-          .map((c) => `"${c}"`)
-          .join(", ")}]`,
-        why: `Pruned candidates with lowest loss impact. Vocabulary size reduced to ${Object.keys(vocab).length}/${targetVocabSize}. Renormalized token probabilities.`,
+        what: `EM Pass ${pass}: Renormalize remaining token probabilities (unnormalized sum = ${totalP.toFixed(4)}).`,
+        why: `Rescale remaining token probabilities by dividing each by total sum (${totalP.toFixed(4)}) so probabilities sum to 1.0.`,
       },
       primarySnapshot: {
         kind: "array",
         elements: Object.entries(vocab).map(([tok, p], idx) => ({
           id: `v-${idx}`,
-          value: Math.round(p * 100),
-          label: `"${tok}" (P=${p.toFixed(2)})`,
+          value: Number(p.toFixed(3)),
+          label: `"${tok}" (${p.toFixed(3)})`,
           state: protectedTokens.has(tok) ? ("sorted" as ElementState) : ("active" as ElementState),
         })),
       },
       auxiliaryState: {
         customState: {
           emPass: String(pass),
-          prunedInThisPass: prunedCandidates.map((c) => `"${c}"`).join(", "),
-          currentVocabSize: String(Object.keys(vocab).length),
-          renormalizedSum: totalP.toFixed(4),
+          renormalizedTotalSum: "1.0000",
+          previousTotalSum: totalP.toFixed(4),
+          vocabSize: String(Object.keys(vocab).length),
         },
       },
-      variables: {
-        pass,
-        prunedCount: prunedCandidates.length,
-        currentSize: Object.keys(vocab).length,
-      },
+      variables: { pass, totalP, currentSize: Object.keys(vocab).length },
     });
 
     pass++;
   }
 
-  // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 28,
+    codeLine: 18,
     explanation: {
-      what: `Unigram EM Vocabulary Pruning Complete: Final Size ${Object.keys(vocab).length}`,
-      why: `Pruning complete. Retained optimal ${Object.keys(vocab).length} tokens: [${Object.keys(
+      what: `Unigram EM Vocabulary Pruning Complete: Retained ${Object.keys(vocab).length} tokens.`,
+      why: `Vocabulary pruning target size (${targetVocabSize}) reached. Final retained subwords: [${Object.keys(
         vocab,
       )
         .map((t) => `"${t}"`)
@@ -169,8 +353,8 @@ export const generateUnigramPrunerSteps = (
       kind: "array",
       elements: Object.entries(vocab).map(([tok, p], rank) => ({
         id: `res-${rank}`,
-        value: Math.round(p * 100),
-        label: `"${tok}" (P=${p.toFixed(3)})`,
+        value: Number(p.toFixed(3)),
+        label: `"${tok}" (${p.toFixed(3)})`,
         state: "sorted" as ElementState,
       })),
     },
@@ -190,14 +374,10 @@ export const generateUnigramPrunerSteps = (
 };
 
 export const unigramEmVocabularyPruner: AlgorithmDefinition<UnigramEmVocabularyPrunerInput> = {
-  id: "unigramEmVocabularyPruner",
+  id: "unigram-em-vocabulary-pruner",
   title: "Unigram EM Vocabulary Pruner",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization"],
+  topicIds: ["ml_tokenization"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Executes Expectation-Maximization (EM) vocabulary pruning for Unigram LM tokenization (Kudo, 2018). Starting from an over-complete seed vocabulary, each EM iteration estimates token marginal probabilities via EM, prunes the bottom `prunePercent` % candidates with lowest loss impact, and renormalizes probabilities until reaching `targetVocabSize`.\n\nInput Format:\n- initialVocab: Map of initial token candidates to probability P(t).\n- prunePercent: Percentage of prunable candidates discarded per EM pass.\n- targetVocabSize: Target final vocabulary size V.\n\nOutput Format:\n- Returns map of final pruned subword vocabulary tokens to probability P(t).\n\nEdge Cases & Constraints:\n- Protected 1-character tokens: Never pruned to guarantee 100% coverage.",
   constraints: ["targetVocabSize >= 1-character token count."],

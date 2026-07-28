@@ -9,7 +9,7 @@ describe("persistentSegmentTree algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(persistentSegmentTree.id).toBe("persistent-segment-tree");
     expect(persistentSegmentTree.title).toContain("Persistent Segment Tree");
-    expect(persistentSegmentTree.category).toBe("advanced_range_queries");
+    expect(persistentSegmentTree.topicIds).toContain("advanced_range_queries");
     expect(persistentSegmentTree.timeComplexity.average).toBe("O(log n)");
     expect(persistentSegmentTree.spaceComplexity).toBe("O(n + q log n)");
   });
@@ -24,7 +24,13 @@ describe("persistentSegmentTree algorithm spec", () => {
 
     const snapshot = firstStep.primarySnapshot as TreeVisualSnapshot;
     expect(snapshot.nodes).toBeDefined();
-    expect(snapshot.nodes.length).toBeGreaterThan(0);
+    expect(snapshot.nodes).toHaveLength(0);
+    expect(firstStep.explanation.what).toContain("Start build");
+    expect(
+      steps.some(
+        (step) => step.primarySnapshot.kind === "tree" && step.primarySnapshot.nodes.length > 0,
+      ),
+    ).toBe(true);
   });
 
   it("should map every code line in trivia.lineExplanations", () => {

@@ -11,7 +11,7 @@ const groupRow = (container: HTMLElement, label: string): HTMLElement => {
   return row;
 };
 
-const openCategory = (container: HTMLElement, label: string): HTMLElement => {
+const openTopic = (container: HTMLElement, label: string): HTMLElement => {
   const row = groupRow(container, label);
   const trigger =
     row.querySelector<HTMLElement>(".ui-collapsible__trigger") ||
@@ -36,7 +36,7 @@ describe("TriviaDeckBuilderFilter", () => {
     expect(titles).not.toContain("Graph Traversal");
     expect(screen.getByText(/1 shown|2 shown/)).toBeInTheDocument();
 
-    openCategory(container, "Arrays & Hashing");
+    openTopic(container, "Arrays & Hashing");
     expect(screen.getByRole("button", { name: /Two Sum/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Bubble Sort/i })).not.toBeInTheDocument();
 
@@ -44,7 +44,7 @@ describe("TriviaDeckBuilderFilter", () => {
     expect(input).toHaveValue("");
   });
 
-  it("matches a category by name as well as an algorithm title", () => {
+  it("matches a topic by name as well as an algorithm title", () => {
     const { container } = render(<TriviaDeckBuilder deck={[]} onChange={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText(/filter algorithms/i), {
@@ -54,11 +54,24 @@ describe("TriviaDeckBuilderFilter", () => {
     const titles = Array.from(container.querySelectorAll(".ui-collapsible__title")).map(
       (node) => node.textContent,
     );
-    expect(titles).toEqual([
-      "Geometry & Sweep Line",
-      "Vector Search & Spatial Geometry",
-      "Attention Geometry & RoPE",
-    ]);
+    expect(titles).toEqual(["Geometry & Sweep Line", "Attention Geometry & KV-Cache"]);
+  });
+
+  it("groups and searches algorithms through every related topic without duplicating the deck", () => {
+    const onChange = vi.fn();
+    const { container } = render(<TriviaDeckBuilder deck={[]} onChange={onChange} />);
+
+    fireEvent.change(screen.getByPlaceholderText(/filter algorithms/i), {
+      target: { value: "intervals" },
+    });
+
+    const intervals = openTopic(container, "Intervals");
+    expect(within(intervals).getByRole("button", { name: /Merge Intervals/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /add filtered/i }));
+    const updatedDeck = onChange.mock.calls.at(-1)?.[0] as string[];
+    expect(updatedDeck).toContain("merge-intervals");
+    expect(new Set(updatedDeck).size).toBe(updatedDeck.length);
   });
 
   it("tells the user when nothing matches", () => {
@@ -72,7 +85,7 @@ describe("TriviaDeckBuilderFilter", () => {
     expect(container.querySelectorAll(".ui-collapsible")).toHaveLength(0);
   });
 
-  it("adds only the rows the filter left visible when adding a category", () => {
+  it("adds only the rows the filter left visible when adding a topic", () => {
     const onChange = vi.fn();
     const { container } = render(<TriviaDeckBuilder deck={[]} onChange={onChange} />);
 

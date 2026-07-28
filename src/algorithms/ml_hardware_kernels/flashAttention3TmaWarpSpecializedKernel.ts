@@ -13,7 +13,6 @@ export interface flashAttention3TmaWarpSpecializedKernelInput {
 }
 
 export const FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_CODE = `def flash_attention_3_hopper_tma(Q: list[list[float]], K: list[list[float]], V: list[list[float]], Br: int = 2, Bc: int = 2, scale: float = 1.0) -> list[list[float]]:
-    """Simulates FlashAttention-3 NVIDIA Hopper TMA Warp-Specialized Attention Kernel."""
     N = len(Q)
     d = len(Q[0])
     O = [[0.0] * d for _ in range(N)]
@@ -53,30 +52,31 @@ export const FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_CODE = `def flash_attention
 
     return O`;
 
-export const DEFAULT_FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_INPUT: flashAttention3TmaWarpSpecializedKernelInput = {
-  Q: [
-    [1.0, 0.0],
-    [0.0, 1.0],
-    [1.0, 1.0],
-    [0.5, 0.5],
-  ],
-  K: [
-    [1.0, 0.0],
-    [0.0, 1.0],
-    [1.0, 1.0],
-    [0.5, 0.5],
-  ],
-  V: [
-    [10.0, 20.0],
-    [30.0, 40.0],
-    [50.0, 60.0],
-    [70.0, 80.0],
-  ],
-  Br: 2,
-  Bc: 2,
-  data: [1, 0, 0, 1],
-  target: 0,
-};
+export const DEFAULT_FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_INPUT: flashAttention3TmaWarpSpecializedKernelInput =
+  {
+    Q: [
+      [1.0, 0.0],
+      [0.0, 1.0],
+      [1.0, 1.0],
+      [0.5, 0.5],
+    ],
+    K: [
+      [1.0, 0.0],
+      [0.0, 1.0],
+      [1.0, 1.0],
+      [0.5, 0.5],
+    ],
+    V: [
+      [10.0, 20.0],
+      [30.0, 40.0],
+      [50.0, 60.0],
+      [70.0, 80.0],
+    ],
+    Br: 2,
+    Bc: 2,
+    data: [1, 0, 0, 1],
+    target: 0,
+  };
 
 export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
   input: flashAttention3TmaWarpSpecializedKernelInput,
@@ -145,7 +145,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
       primarySnapshot: getSnapshot(activeRow, activeTileI, activeTileJ),
       auxiliaryState: {
         customState: {
-          "Algorithm": "FlashAttention-3 Hopper TMA Kernel (Shah et al. 2024)",
+          Algorithm: "FlashAttention-3 Hopper TMA Kernel (Shah et al. 2024)",
           "Sequence Length N": String(N),
           "Head Dimension d": String(d),
           "SRAM Row Block Br": String(Br),
@@ -158,7 +158,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
     });
   };
 
-  // Step 1: Entry
+  // Line 1: Entry
   addStep(
     1,
     "FlashAttention-3 Hopper TMA Kernel Entry",
@@ -166,33 +166,29 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
     { N, d, Br, Bc },
   );
 
-  // Step 2: Measure N & d (3, 4)
+  // Line 2: Measure N
+  addStep(2, `Measure Sequence Length: N = len(Q) = ${N}`, `Sequence length N = ${N}.`, { N });
+
+  // Line 3: Measure d
   addStep(
     3,
-    `Measure Sequence Length: N = len(Q) = ${N}`,
-    `Sequence length N = ${N}.`,
-    { N },
-  );
-
-  addStep(
-    4,
     `Measure Head Dimension: d = len(Q[0]) = ${d}`,
     `Head dimension d = ${d}. Scale factor 1/sqrt(d) = ${scale.toFixed(4)}.`,
     { d, scale },
   );
 
-  // Step 3: Init O (5)
+  // Line 4: Init O
   addStep(
-    5,
+    4,
     `Allocate Output Matrix O (${N}x${d}) in HBM DRAM`,
     `Zero-initialized ${N}x${d} output matrix O in HBM DRAM.`,
     { N, d },
   );
 
-  // Outer loop over I (7..11)
+  // Outer loop over I (Line 6)
   for (let i = 0; i < N; i += Br) {
     addStep(
-      7,
+      6,
       `Outer Query Sequence Block Loop: Load Q_sram starting at i = ${i}`,
       `Triggered Producer Warp TMA 2D Descriptor Load for Q_sram [${i}:${i + Br}]. Zero CPU/warp overhead!`,
       { i, Br },
@@ -202,7 +198,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
     const QSram = Q.slice(i, i + Br);
     addStep(
-      8,
+      7,
       `TMA Async Copy: Q_sram [${i}:${i + Br}] loaded into SRAM via TMA Descriptor`,
       `Asynchronously transferred Q_sram into SRAM shared memory using Hopper TMA hardware engine.`,
       { i, QSramLength: QSram.length },
@@ -212,7 +208,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
     const mI: number[] = new Array(Br).fill(-Infinity);
     addStep(
-      9,
+      8,
       `Allocate Block Max Tracker m_i [] (${Br} Elements) in SRAM Registers`,
       `Zero-initialized local row max tracker m_i in SRAM registers.`,
       { Br },
@@ -222,7 +218,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
     const lI: number[] = new Array(Br).fill(0.0);
     addStep(
-      10,
+      9,
       `Allocate Block Normalizer l_i [] (${Br} Elements) in SRAM Registers`,
       `Zero-initialized local row normalizer l_i in SRAM registers.`,
       { Br },
@@ -232,7 +228,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
     const OAcc: number[][] = Array.from({ length: Br }, () => new Array(d).fill(0.0));
     addStep(
-      11,
+      10,
       `Allocate Accumulator O_acc [${Br}x${d}] in SRAM Register File`,
       `Allocated intermediate unscaled accumulator matrix O_acc in SRAM GPU registers.`,
       { Br, d },
@@ -240,10 +236,10 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
       i,
     );
 
-    // Inner loop over J (13..15)
+    // Inner loop over J (Line 12)
     for (let j = 0; j < N; j += Bc) {
       addStep(
-        13,
+        12,
         `Inner Key/Value Block Loop: Load K, V Blocks starting at j = ${j}`,
         `Triggered Producer Warp TMA Multicast load for K_sram [${j}:${j + Bc}] and V_sram [${j}:${j + Bc}].`,
         { j, Bc },
@@ -254,7 +250,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
       const KSram = K.slice(j, j + Bc);
       addStep(
-        14,
+        13,
         `TMA Async Multicast: K_sram [${j}:${j + Bc}] loaded into SRAM`,
         `Loaded K_sram into GPU SRAM shared memory via TMA Multicast.`,
         { j, KSramLength: KSram.length },
@@ -265,7 +261,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
       const VSram = V.slice(j, j + Bc);
       addStep(
-        15,
+        14,
         `TMA Async Multicast: V_sram [${j}:${j + Bc}] loaded into SRAM`,
         `Loaded V_sram into GPU SRAM shared memory via TMA Multicast.`,
         { j, VSramLength: VSram.length },
@@ -274,15 +270,15 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
         j,
       );
 
-      // Loop over rows in QSram (17..33)
+      // Loop over rows in QSram (Line 16)
       for (let r = 0; r < QSram.length; r++) {
         const rowIdx = i + r;
         const qVec = QSram[r];
 
         addStep(
-          17,
-          `Consumer Consumer Warp: Process Row r = ${r} (Global Sequence Index row_idx = ${rowIdx})`,
-          `Consumer Consumer Warps execute Hopper wgmma.mma_async instructions for Q_sram[${r}] against K_sram.`,
+          16,
+          `Consumer Warp: Process Row r = ${r} (Global Sequence Index row_idx = ${rowIdx})`,
+          `Consumer Warps execute Hopper wgmma.mma_async instructions for Q_sram[${r}] against K_sram.`,
           { r, rowIdx },
           rowIdx,
           i,
@@ -290,7 +286,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
         );
 
         addStep(
-          18,
+          17,
           `Read Local Query Vector q_vec = Q_sram[${r}]`,
           `Loaded local query vector q_vec from SRAM registers.`,
           { r },
@@ -305,7 +301,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
         });
 
         addStep(
-          19,
+          18,
           `Hopper WGMMA Matrix Multiply: S_row = Q_sram[${r}] * K_sram^T * scale`,
           `Evaluated Hopper Asynchronous Warp-Group GEMM score block: [${scores.map((s) => s.toFixed(4)).join(", ")}].`,
           { r, scores: JSON.stringify(scores.map((s) => s.toFixed(4))) },
@@ -316,7 +312,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
         const mCurr = Math.max(...scores);
         addStep(
-          21,
+          20,
           `Find Local Block Max Score: m_curr = ${mCurr.toFixed(4)}`,
           `Local block maximum score m_curr = ${mCurr.toFixed(4)}.`,
           { m_curr: mCurr },
@@ -328,7 +324,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
         const mPrev = mI[r];
         const mNew = Math.max(mPrev, mCurr);
         addStep(
-          22,
+          21,
           `Update Online Max Score: m_new = max(${mPrev === -Infinity ? "-inf" : mPrev.toFixed(4)}, ${mCurr.toFixed(4)}) = ${mNew.toFixed(4)}`,
           `Updated online max score m_new = ${mNew.toFixed(4)}.`,
           { m_prev: mPrev === -Infinity ? -999 : mPrev, m_curr: mCurr, m_new: mNew },
@@ -339,7 +335,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
         const scalePrev = mPrev === -Infinity ? 0.0 : Math.exp(mPrev - mNew);
         addStep(
-          23,
+          22,
           `Calculate Output Rescaling Multiplier: scale_prev = exp(m_prev - m_new) = ${scalePrev.toFixed(4)}`,
           `Evaluated output correction multiplier scale_prev = ${scalePrev.toFixed(4)}.`,
           { scale_prev: scalePrev },
@@ -350,7 +346,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
         const expScores = scores.map((s) => Math.exp(s - mNew));
         addStep(
-          25,
+          24,
           `Exponentiate Rescaled Scores: exp(S - m_new)`,
           `Evaluated exponentiated scores: [${expScores.map((e) => e.toFixed(4)).join(", ")}].`,
           { expScores: JSON.stringify(expScores.map((e) => e.toFixed(4))) },
@@ -361,7 +357,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
         const lNew = lI[r] * scalePrev + expScores.reduce((a, b) => a + b, 0);
         addStep(
-          26,
+          25,
           `Update Online Unnormalized Denominator: l_new = ${lNew.toFixed(4)}`,
           `Updated online denominator sum l_new = ${lNew.toFixed(4)} without dividing per step!`,
           { l_new: lNew },
@@ -371,11 +367,30 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
         );
 
         for (let col = 0; col < d; col++) {
-          const pvSum = expScores.reduce((acc, expS, kIdx) => acc + expS * VSram[kIdx][col], 0);
-          OAcc[r][col] = OAcc[r][col] * scalePrev + pvSum;
-
           addStep(
-            30,
+            27,
+            `Column Loop: col = ${col} for Head Dimension d=${d}`,
+            `Iterate across head dimension column ${col} for accumulation.`,
+            { r, col },
+            rowIdx,
+            i,
+            j,
+          );
+
+          const pvSum = expScores.reduce((acc, expS, kIdx) => acc + expS * VSram[kIdx][col], 0);
+          addStep(
+            28,
+            `Compute Product Vector Sum: pv_sum = ${pvSum.toFixed(4)}`,
+            `Summed exp_scores * V_sram for column ${col}: pv_sum = ${pvSum.toFixed(4)}.`,
+            { r, col, pvSum },
+            rowIdx,
+            i,
+            j,
+          );
+
+          OAcc[r][col] = OAcc[r][col] * scalePrev + pvSum;
+          addStep(
+            29,
             `Update Unscaled Accumulator O_acc[${r}][${col}] = ${OAcc[r][col].toFixed(4)}`,
             `Accumulated unscaled matrix product O_acc[${r}][${col}] = ${OAcc[r][col].toFixed(4)}.`,
             { r, col, o_acc: OAcc[r][col] },
@@ -387,7 +402,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
         mI[r] = mNew;
         addStep(
-          32,
+          31,
           `Persist Local Row Max Score: m_i[${r}] = ${mNew.toFixed(4)}`,
           `Updated local row max tracker m_i[${r}] = ${mNew.toFixed(4)}.`,
           { r, mNew },
@@ -398,7 +413,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 
         lI[r] = lNew;
         addStep(
-          33,
+          32,
           `Persist Local Row Normalizer: l_i[${r}] = ${lNew.toFixed(4)}`,
           `Updated local row normalizer l_i[${r}] = ${lNew.toFixed(4)}.`,
           { r, lNew },
@@ -409,10 +424,10 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
       }
     }
 
-    // Final division loop (35..38)
+    // Final division loop (Lines 34..37)
     addStep(
-      35,
-      `Final Softmax Division Step: Rescale O_acc by 1 / l_i for Q_sram [${i}:${i + Br}]`,
+      34,
+      `Final Softmax Division Loop: Rescale O_acc by 1 / l_i for Q_sram [${i}:${i + Br}]`,
       `Performing single final division by l_i across all d columns of Q_sram [${i}:${i + Br}].`,
       { i, Br },
       -1,
@@ -422,18 +437,27 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
     for (let r = 0; r < QSram.length; r++) {
       const rowIdx = i + r;
       addStep(
-        36,
-        `Final Division for Row ${rowIdx}: O[${rowIdx}] = O_acc[${r}] / ${lI[r].toFixed(4)}`,
-        `Divided unscaled accumulator O_acc[${r}] by final denominator l_i[${r}] = ${lI[r].toFixed(4)}.`,
+        35,
+        `Final Division Setup for Row ${rowIdx}: row_idx = i + r`,
+        `Selected global sequence row index ${rowIdx} with denominator l_i[${r}] = ${lI[r].toFixed(4)}.`,
         { rowIdx, l_i: lI[r] },
         rowIdx,
         i,
       );
 
       for (let col = 0; col < d; col++) {
+        addStep(
+          36,
+          `Column Division Loop: col = ${col}`,
+          `Computing final division for row ${rowIdx}, column ${col}.`,
+          { rowIdx, col },
+          rowIdx,
+          i,
+        );
+
         O[rowIdx][col] = OAcc[r][col] / lI[r];
         addStep(
-          38,
+          37,
           `Write Final Output Cell O[${rowIdx}][${col}] = ${O[rowIdx][col].toFixed(4)} to DRAM HBM via TMA`,
           `Wrote finalized attention output cell O[${rowIdx}][${col}] = ${O[rowIdx][col].toFixed(4)} into DRAM HBM via TMA 2D Store!`,
           { rowIdx, col, oFinal: O[rowIdx][col] },
@@ -444,9 +468,9 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
     }
   }
 
-  // Return step (40)
+  // Return step (Line 39)
   addStep(
-    40,
+    39,
     "Execution Complete: Return FlashAttention-3 Output Matrix O",
     `Completed FlashAttention-3 forward pass. Achieved 1.5x-2x speedup over FlashAttention-2 by exploiting NVIDIA Hopper TMA hardware engine, Warp-Specialization, and Asynchronous WGMMA Matrix Multiplication!`,
     { N, d, completed: true },
@@ -456,7 +480,7 @@ export const generateFLASHATTENTION3TMAWARPSPECIALIZEDKERNELSteps = (
 };
 
 const FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_TRIVIA: TriviaMeta = {
-  skipLines: [2, 6, 12, 16, 19, 23, 29, 33, 37, 40, 44, 47],
+  skipLines: [5, 11, 15, 19, 23, 26, 30, 33, 38],
   distractors: [
     "TMA loads require 32 threads per warp",
     "wgmma.mma_async operates on HBM DRAM",
@@ -464,70 +488,67 @@ const FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_TRIVIA: TriviaMeta = {
     "scale_prev = m_curr / m_new",
   ],
   hints: [
-    { line: 8, hint: "FlashAttention-3 uses TMA 2D descriptors to load Q_sram asynchronously into SRAM." },
-    { line: 19, hint: "Asynchronous Warp-Group GEMM math executed via wgmma.mma_async instructions." },
+    {
+      line: 7,
+      hint: "FlashAttention-3 uses TMA 2D descriptors to load Q_sram asynchronously into SRAM.",
+    },
+    {
+      line: 18,
+      hint: "Asynchronous Warp-Group GEMM math executed via wgmma.mma_async instructions.",
+    },
   ],
   lineExplanations: {
     1: "Defines entry point for flash_attention_3_hopper_tma function (Shah et al. 2024).",
-    2: "Docstring describing FlashAttention-3 NVIDIA Hopper TMA Warp-Specialized Attention Kernel.",
-    3: "Measures sequence length N = len(Q).",
-    4: "Measures head dimension d = len(Q[0]).",
-    5: "Allocates output matrix O (N x d) filled with zeros in DRAM HBM.",
-    6: "Blank line before outer query sequence block loop.",
-    7: "Iterates over query tile block index i from 0 to N in steps of Br (Outer Loop over Q).",
-    8: "Asynchronously loads Q_sram = Q[i : i + Br] into SRAM using NVIDIA Hopper TMA 2D descriptors.",
-    9: "Allocates local max score tracker list m_i of size Br initialized to negative infinity.",
-    10: "Allocates local normalizer list l_i of size Br initialized to zeros.",
-    11: "Allocates local unscaled output accumulator matrix O_acc (Br x d) in GPU registers.",
-    12: "Blank line before inner key/value block loop.",
-    13: "Iterates over key/value tile block index j from 0 to N in steps of Bc (Inner Loop over K, V).",
-    14: "Asynchronously loads K_sram = K[j : j + Bc] into SRAM using Hopper TMA Multicast.",
-    15: "Asynchronously loads V_sram = V[j : j + Bc] into SRAM using Hopper TMA Multicast.",
-    16: "Blank line before Q_sram row iteration.",
-    17: "Iterates over local row index r from 0 to Br - 1.",
-    18: "Loads local query vector q_vec = Q_sram[r].",
-    19: "Calculates scaled dot-product attention score block scores = Q_sram * K_sram^T * scale via Hopper wgmma.mma_async.",
-    20: "Blank line before local max calculation.",
-    21: "Calculates local block max score m_curr = max(scores).",
-    22: "Updates online row max score m_new = max(m_i[r], m_curr).",
-    23: "Calculates previous output rescaling factor scale_prev = exp(m_prev - m_new).",
-    24: "Blank line before exponentiation and accumulator updates.",
-    25: "Calculates rescaled exponentiated scores exp_scores = [exp(s - m_new) for s in scores].",
-    26: "Updates online unnormalized denominator l_new = l_i[r] * scale_prev + sum(exp_scores).",
-    27: "Blank line before accumulator update loop.",
-    28: "Iterates over head dimension column col from 0 to d - 1.",
-    29: "Computes matrix multiplication of exp_scores * V_sram for column col.",
-    30: "Rescales and updates unnormalized accumulator O_acc[r][col] = O_acc * scale_prev + pv_sum without division!",
-    31: "Blank line before updating local trackers.",
-    32: "Persists local row max score m_i[r] = m_new.",
-    33: "Persists local row normalizer l_i[r] = l_new.",
-    34: "Blank line separating inner K/V loop from final division loop.",
-    35: "Iterates over local row index r from 0 to Br - 1 for final division.",
-    36: "Calculates global sequence row index row_idx = i + r.",
-    37: "Iterates over head dimension column col from 0 to d - 1.",
-    38: "Performs single final division by l_i[r] and writes finalized attention output O[row_idx][col] to DRAM HBM via TMA 2D Store.",
-    39: "Blank line separating query loop from return statement.",
-    40: "Returns completed FlashAttention-3 output matrix O.",
+    2: "Measures sequence length N = len(Q).",
+    3: "Measures head dimension d = len(Q[0]).",
+    4: "Allocates output matrix O (N x d) filled with zeros in DRAM HBM.",
+    5: "Blank line before outer query sequence block loop.",
+    6: "Iterates over query tile block index i from 0 to N in steps of Br (Outer Loop over Q).",
+    7: "Asynchronously loads Q_sram = Q[i : i + Br] into SRAM using NVIDIA Hopper TMA 2D descriptors.",
+    8: "Allocates local max score tracker list m_i of size Br initialized to negative infinity.",
+    9: "Allocates local normalizer list l_i of size Br initialized to zeros.",
+    10: "Allocates local unscaled output accumulator matrix O_acc (Br x d) in GPU registers.",
+    11: "Blank line before inner key/value block loop.",
+    12: "Iterates over key/value tile block index j from 0 to N in steps of Bc (Inner Loop over K, V).",
+    13: "Asynchronously loads K_sram = K[j : j + Bc] into SRAM using Hopper TMA Multicast.",
+    14: "Asynchronously loads V_sram = V[j : j + Bc] into SRAM using Hopper TMA Multicast.",
+    15: "Blank line before Q_sram row iteration.",
+    16: "Iterates over local row index r from 0 to Br - 1.",
+    17: "Loads local query vector q_vec = Q_sram[r].",
+    18: "Calculates scaled dot-product attention score block scores = Q_sram * K_sram^T * scale via Hopper wgmma.mma_async.",
+    19: "Blank line before local max calculation.",
+    20: "Calculates local block max score m_curr = max(scores).",
+    21: "Updates online row max score m_new = max(m_i[r], m_curr).",
+    22: "Calculates previous output rescaling factor scale_prev = exp(m_prev - m_new).",
+    23: "Blank line before exponentiation and accumulator updates.",
+    24: "Calculates rescaled exponentiated scores exp_scores = [exp(s - m_new) for s in scores].",
+    25: "Updates online unnormalized denominator l_new = l_i[r] * scale_prev + sum(exp_scores).",
+    26: "Blank line before accumulator update loop.",
+    27: "Iterates over head dimension column col from 0 to d - 1.",
+    28: "Computes matrix multiplication sum of exp_scores * V_sram for column col.",
+    29: "Rescales and updates unnormalized accumulator O_acc[r][col] = O_acc * scale_prev + pv_sum without division!",
+    30: "Blank line before updating local trackers.",
+    31: "Persists local row max score m_i[r] = m_new.",
+    32: "Persists local row normalizer l_i[r] = l_new.",
+    33: "Blank line separating inner K/V loop from final division loop.",
+    34: "Iterates over local row index r from 0 to Br - 1 for final division.",
+    35: "Calculates global sequence row index row_idx = i + r.",
+    36: "Iterates over head dimension column col from 0 to d - 1.",
+    37: "Performs single final division by l_i[r] and writes finalized attention output O[row_idx][col] to DRAM HBM via TMA 2D Store.",
+    38: "Blank line separating query loop from return statement.",
+    39: "Returns completed FlashAttention-3 output matrix O.",
   },
 };
 
 export const flashAttention3TmaWarpSpecializedKernel: AlgorithmDefinition<flashAttention3TmaWarpSpecializedKernelInput> =
   {
-    id: "flashAttention3TmaWarpSpecializedKernel",
+    id: "flash-attention-3-tma-warp-specialized-kernel",
     title: "FlashAttention-3 Hopper TMA Warp-Specialized Kernel",
-    category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_hardware_kernels",
     description:
       "The FlashAttention-3 Hopper TMA Warp-Specialized Kernel implements the state-of-the-art attention kernel for **NVIDIA Hopper (H100, H200)** architecture published by **Jay Shah, Tri Dao et al. (2024)**. FlashAttention-3 exploits Hopper-native hardware primitives—specifically **TMA (Tensor Memory Accelerator)** for asynchronous 2D tensor transfers between HBM DRAM and SRAM shared memory without GPU warp thread intervention, and **Warp-Group GEMM (`wgmma.mma_async`)** for executing FP8/FP16 matrix multiplication while overlapping Producer memory loads with Consumer GEMM math.\n\n### Why It Exists\nOn NVIDIA H100 GPUs, standard CUDA warp instructions (`ldmatrix`, `mma.sync`) spend significant time waiting for shared memory barrier synchronization. FlashAttention-3 uses **Warp Specialization**: Producer Warps issue TMA asynchronous memory transfers while Consumer Warps execute `wgmma.mma_async` Tensor Core math continuously, achieving **1.5x to 2x speedups** over FlashAttention-2 (reaching up to **850 TFLOPS / 85% of H100 peak FLOPS**).\n\n### Mathematical Formulation\nFor Query block $Q_i$, Key block $K_j$, Value block $V_j$, Producer TMA transfer $\\text{TMA}_{async}$, and Hopper Warp-Group GEMM $\\text{WGMMA}_{async}$:\n\n$$1. \\quad \\text{SRAM}_{Q_i} \\xleftarrow{\\text{TMA}_{async}} \\text{HBM}(Q_i), \\quad \\text{SRAM}_{K_j} \\xleftarrow{\\text{TMA}_{multicast}} \\text{HBM}(K_j) \\quad (\\text{Zero-Warp Memory Transfer})$$\n\n$$2. \\quad S_{i,j} = \\text{WGMMA}_{async}(\\text{SRAM}_{Q_i}, \\text{SRAM}_{K_j}^T) \\cdot \\frac{1}{\\sqrt{d}} \\in \\mathbb{R}^{B_r \\times B_c}$$\n\n$$3. \\quad P_{i,j} = \\exp(S_{i,j} - m_i^{new}), \\quad \\tilde{O}_i^{new} = \\tilde{O}_i^{old} \\cdot e^{m_i^{old} - m_i^{new}} + \\text{WGMMA}_{async}(P_{i,j}, \\text{SRAM}_{V_j})$$\n\n$$4. \\quad O_i^{final} = \\frac{\\tilde{O}_i^{final}}{l_i^{final}} \\quad (\\text{Single Final Division} \\to \\text{TMA}_{store} \\text{ HBM})$$\n\n### Step-by-Step Intuition\n1. **Producer Warp TMA Issue**: Producer warps issue asynchronous 2D TMA descriptors to fetch $Q_i, K_j, V_j$ tiles directly from HBM DRAM into SRAM shared memory without warp stalling.\n2. **TMA Multicast Across Warps**: On multi-warp thread blocks, TMA multicasts $K_j, V_j$ tiles to multiple SRAM shared memory buffers simultaneously.\n3. **Consumer Warp WGMMA Math**: Consumer warp-groups execute `wgmma.mma_async` instructions, computing GEMM math in parallel while TMA loads the next tile.\n4. **Asynchronous Double-Buffering**: Ping-pong between two SRAM buffers (`buffer_0` and `buffer_1`), hiding 100% of memory latency.\n5. **FP8 Low-Precision Softmax**: Optionally computes attention scores in FP8 precision with FP32 online softmax rescaling.\n\n### Key Trade-Offs & Hardware Execution\n- **Hopper SM90 Specificity**: Requires NVIDIA Hopper (H100, H200, GH200) microarchitecture hardware support for TMA and `wgmma` assembly instructions.\n- **Overlapping Memory & Math**: Completely hides memory bandwidth latency, keeping Tensor Cores running at 85%+ theoretical peak TFLOPS.",
-    constraints: [
-      "1 <= N <= 32768",
-      "1 <= d <= 256",
-      "1 <= Br, Bc <= 256",
-    ],
+    constraints: ["1 <= N <= 32768", "1 <= d <= 256", "1 <= Br, Bc <= 256"],
     examples: [
       {
         kind: "basic",
@@ -536,7 +557,8 @@ export const flashAttention3TmaWarpSpecializedKernel: AlgorithmDefinition<flashA
         outputDisplay: "Output Matrix O (4x2 exact attention vectors, TMA Async Copy)",
         input: DEFAULT_FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_INPUT,
         output: "[[19.5, 29.5], [26.2, 36.2], [32.1, 42.1], [38.0, 48.0]]",
-        explanation: "Simulates NVIDIA Hopper TMA asynchronous memory transfers and WGMMA warp-group matrix math, achieving exact attention output O.",
+        explanation:
+          "Simulates NVIDIA Hopper TMA asynchronous memory transfers and WGMMA warp-group matrix math, achieving exact attention output O.",
       },
     ],
     code: FLASHATTENTION3TMAWARPSPECIALIZEDKERNEL_CODE,
@@ -574,19 +596,23 @@ export const flashAttention3TmaWarpSpecializedKernel: AlgorithmDefinition<flashA
       keyTerms: [
         {
           term: "FlashAttention-3",
-          definition: "Hopper-optimized attention kernel achieving 850 TFLOPS using TMA and Warp-Specialization (Shah & Dao 2024).",
+          definition:
+            "Hopper-optimized attention kernel achieving 850 TFLOPS using TMA and Warp-Specialization (Shah & Dao 2024).",
         },
         {
           term: "TMA (Tensor Memory Accelerator)",
-          definition: "Hopper hardware engine executing asynchronous 2D tensor transfers between HBM DRAM and SRAM shared memory.",
+          definition:
+            "Hopper hardware engine executing asynchronous 2D tensor transfers between HBM DRAM and SRAM shared memory.",
         },
         {
           term: "WGMMA (Warp-Group GEMM)",
-          definition: "Hopper assembly instruction executing 128-thread warp-group matrix multiplication asynchronously.",
+          definition:
+            "Hopper assembly instruction executing 128-thread warp-group matrix multiplication asynchronously.",
         },
         {
           term: "Warp Specialization",
-          definition: "Partitioning GPU warps into dedicated Producer (Memory) and Consumer (Math) roles to overlap execution.",
+          definition:
+            "Partitioning GPU warps into dedicated Producer (Memory) and Consumer (Math) roles to overlap execution.",
         },
       ],
     },

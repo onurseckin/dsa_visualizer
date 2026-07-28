@@ -10,7 +10,7 @@ describe("fordFulkerson algorithm logic spec", () => {
   it("should have correct algorithm definition metadata", () => {
     expect(fordFulkerson.id).toBe("ford-fulkerson");
     expect(fordFulkerson.title).toBe("Ford-Fulkerson Maximum Flow");
-    expect(fordFulkerson.category).toBe("graph_flows_and_cuts");
+    expect(fordFulkerson.topicIds).toContain("graph_flows_and_cuts");
     expect(fordFulkerson.difficulty).toBe("Hard");
     expect(fordFulkerson.defaultInput).toEqual(DEFAULT_FORD_FULKERSON_INPUT);
     expect(fordFulkerson.code).toContain("def ford_fulkerson");
@@ -31,11 +31,15 @@ describe("fordFulkerson algorithm logic spec", () => {
     }
     expect(codeLines.size).toBeGreaterThan(3);
 
-    for (const example of fordFulkerson.examples) {
-      const exSteps = generateFordFulkersonSteps(example.input);
-      for (const step of exSteps) {
-        expect(step.codeLine).toBeGreaterThanOrEqual(1);
-        expect(step.codeLine).toBeLessThanOrEqual(lineCount);
+    if (fordFulkerson.examples) {
+      for (const example of fordFulkerson.examples) {
+        if (typeof example.input !== "string") {
+          const exSteps = generateFordFulkersonSteps(example.input);
+          for (const step of exSteps) {
+            expect(step.codeLine).toBeGreaterThanOrEqual(1);
+            expect(step.codeLine).toBeLessThanOrEqual(lineCount);
+          }
+        }
       }
     }
   });

@@ -88,8 +88,7 @@ const CONVEX_HULL_TRIVIA: TriviaMeta = {
 export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   id: "convex-hull",
   title: "Convex Hull (Monotone Chain)",
-  category: "geometry_and_sweep_line",
-  categories: ["geometry_and_sweep_line"],
+  topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
     "Finds the minimal convex polygon enclosing a set of 2D points $S \\subset \\mathbb{R}^2$ using Andrew's Monotone Chain algorithm in $\\mathcal{O}(N \\log N)$ time.\n\n$$\\text{cross}(\\mathbf{o}, \\mathbf{a}, \\mathbf{b}) = (a_x - o_x)(b_y - o_y) - (a_y - o_y)(b_x - o_x)$$\n\n### Graph Snapshot Representation\nThe point set and active hull boundary are rendered on a 2D graph coordinate plane, with active hull edges highlighted.\n\n### Input Parameters\n- `points` (`Point2D[]`): Array of 2D points with $x, y$ coordinates.\n\n### Output\n- `Point2D[]`: Vertices of the convex hull in counter-clockwise boundary order.\n\n### Edge Cases & Constraints\n- Base Case: $N \\le 3 \\implies$ return points directly.\n- Collinear Points: Non-extremal points on edges are discarded by $\\text{cross} \\le 0$.",
@@ -160,7 +159,8 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   spaceComplexity: "O(N)",
   complexityAnalysis: {
     time: "Sorting points lexicographically takes $\\mathcal{O}(N \\log N)$ comparisons. Both sweeps take $\\mathcal{O}(N)$ amortized time, making total time $\\mathcal{O}(N \\log N)$.",
-    space: "Requires $\\mathcal{O}(N)$ auxiliary memory for the sorted array and lower/upper hull stacks.",
+    space:
+      "Requires $\\mathcal{O}(N)$ auxiliary memory for the sorted array and lower/upper hull stacks.",
   },
   topicGuide: CONVEX_HULL_TOPIC_GUIDE,
   trivia: CONVEX_HULL_TRIVIA,

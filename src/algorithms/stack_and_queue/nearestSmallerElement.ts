@@ -27,7 +27,9 @@ export const generateNearestSmallerElementSteps = (
   input: NearestSmallerElementInput,
 ): AlgorithmStep[] => {
   const nums =
-    input?.nums && input.nums.length > 0 ? [...input.nums] : DEFAULT_NEAREST_SMALLER_INPUT.nums;
+    input?.nums && Array.isArray(input.nums) && input.nums.length > 0
+      ? [...input.nums]
+      : DEFAULT_NEAREST_SMALLER_INPUT.nums;
   const n = nums.length;
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -35,13 +37,13 @@ export const generateNearestSmallerElementSteps = (
   const result = new Array<number>(n).fill(-1);
   const stack: number[] = [];
 
-  // Step 1: Entry into function (line 1)
+  // Step 1: Function entry (Line 1)
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Start Nearest Smaller Element search on array of length ${n}`,
-      why: `We want to compute the nearest leftward value smaller than nums[i] for every position i in $O(N)$ time.`,
+      what: `Start Nearest Smaller Element computation for array of length ${n}`,
+      why: `We use a monotonic stack to find the nearest leftward value smaller than nums[i] for every position i in $O(N)$ total time.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -49,23 +51,22 @@ export const generateNearestSmallerElementSteps = (
         id: `num-${idx}`,
         value: val,
         state: "default",
-        pointers: [`idx: ${idx}`],
       })),
     },
     auxiliaryState: {
       stack: [],
-      customState: { nums: nums.join(", "), n },
+      customState: { "Array Length": n, "Array Elements": nums.join(", ") },
     },
-    variables: { n },
+    variables: { n, nums: nums.join(", ") },
   });
 
-  // Step 2: Cache length n (line 2)
+  // Step 2: Cache length n (Line 2)
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 2,
     explanation: {
       what: `Get array length n = ${n}`,
-      why: "Cache the total number of elements to process in our single-pass monotonic scan.",
+      why: "Cache array length to bound single-pass loop iterations.",
     },
     primarySnapshot: {
       kind: "array",
@@ -73,22 +74,21 @@ export const generateNearestSmallerElementSteps = (
         id: `num-${idx}`,
         value: val,
         state: "default",
-        pointers: [`idx: ${idx}`],
       })),
     },
     auxiliaryState: {
       stack: [],
-      customState: { nums: nums.join(", "), n },
+      customState: { "Array Length": n, "Array Elements": nums.join(", ") },
     },
     variables: { n },
   });
 
-  // Step 3: Initialize result array (line 3)
+  // Step 3: Initialize result array (Line 3)
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: "Initialize Result Array with default -1s",
+      what: `Initialize result array of length ${n} with default -1 values`,
       why: "Default value -1 indicates no smaller element exists to the left.",
     },
     primarySnapshot: {
@@ -97,22 +97,21 @@ export const generateNearestSmallerElementSteps = (
         id: `num-${idx}`,
         value: val,
         state: "default",
-        pointers: [`res: ${result[idx]}`],
       })),
     },
     auxiliaryState: {
       stack: [],
-      customState: { nums: nums.join(", ") },
+      customState: { "Result Array": result.join(", ") },
     },
     variables: { n, result: result.join(", ") },
   });
 
-  // Step 4: Initialize stack (line 4)
+  // Step 4: Initialize stack (Line 4)
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 4,
     explanation: {
-      what: "Create empty Monotonic Stack",
+      what: "Initialize empty monotonic stack",
       why: "The stack will hold candidate values in strictly monotonically increasing order.",
     },
     primarySnapshot: {
@@ -121,14 +120,13 @@ export const generateNearestSmallerElementSteps = (
         id: `num-${idx}`,
         value: val,
         state: "default",
-        pointers: [`res: ${result[idx]}`],
       })),
     },
     auxiliaryState: {
       stack: [],
-      customState: { nums: nums.join(", ") },
+      customState: { Stack: "[]", "Result Array": result.join(", ") },
     },
-    variables: { n, result: result.join(", ") },
+    variables: { n, result: result.join(", "), stackSize: 0 },
   });
 
   for (let i = 0; i < n; i++) {
@@ -140,7 +138,7 @@ export const generateNearestSmallerElementSteps = (
       codeLine: 6,
       explanation: {
         what: `Inspect element nums[${i}] = ${current}`,
-        why: `Process index ${i} with value ${current}. We check the monotonic stack to find the nearest element to the left strictly smaller than ${current}.`,
+        why: `Process index ${i} with value ${current}. We check the monotonic stack to find the nearest preceding element strictly smaller than ${current}.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -148,14 +146,18 @@ export const generateNearestSmallerElementSteps = (
           id: `num-${idx}`,
           value: val,
           state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? [`i: ${current}`] : undefined,
+          pointers: idx === i ? ["i"] : undefined,
         })),
       },
       auxiliaryState: {
         stack: [...stack],
-        customState: { i, current },
+        customState: {
+          "Current Index": i,
+          "Current Value": current,
+          "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
+        },
       },
-      variables: { i, current },
+      variables: { i, current, stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY" },
     });
 
     // Line 7: while stack and stack[-1] >= nums[i]
@@ -163,14 +165,16 @@ export const generateNearestSmallerElementSteps = (
       stepIndex: stepIndex++,
       codeLine: 7,
       explanation: {
-        what: stack.length > 0
-          ? `Check if stack top ${stack[stack.length - 1]} >= nums[${i}] (${current})`
-          : `Stack is empty, skip popping loop`,
-        why: stack.length > 0 && stack[stack.length - 1] >= current
-          ? `Stack top ${stack[stack.length - 1]} is >= current element ${current}. It must be popped.`
-          : stack.length > 0
-          ? `Stack top ${stack[stack.length - 1]} < current element ${current}. Stop popping.`
-          : `No candidates to pop.`,
+        what:
+          stack.length > 0
+            ? `Check condition: stack top (${stack[stack.length - 1]}) >= nums[${i}] (${current})`
+            : `Stack is empty; skip popping loop`,
+        why:
+          stack.length > 0 && stack[stack.length - 1] >= current
+            ? `Stack top ${stack[stack.length - 1]} is >= current element ${current}. It cannot be a nearest smaller element and must be popped.`
+            : stack.length > 0
+              ? `Stack top ${stack[stack.length - 1]} < current element ${current}. Monotonic invariant holds; stop popping.`
+              : `No candidates to pop from empty stack.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -178,17 +182,21 @@ export const generateNearestSmallerElementSteps = (
           id: `num-${idx}`,
           value: val,
           state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? [`i: ${current}`] : undefined,
+          pointers: idx === i ? ["i"] : undefined,
         })),
       },
       auxiliaryState: {
         stack: [...stack],
-        customState: { i, current, stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY" },
+        customState: {
+          "Current Index": i,
+          "Current Value": current,
+          "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
+        },
       },
       variables: { i, current, stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY" },
     });
 
-    // Monotonic stack popping loop (line 8)
+    // Monotonic stack popping loop (Line 8)
     while (stack.length > 0 && stack[stack.length - 1] >= current) {
       const popped = stack.pop()!;
       steps.push({
@@ -196,20 +204,24 @@ export const generateNearestSmallerElementSteps = (
         codeLine: 8,
         explanation: {
           what: `Pop ${popped} from stack`,
-          why: `Stack top ${popped} >= current element ${current}. Because ${current} comes later and is smaller or equal, ${popped} can never be the nearest smaller element for ${current} or any future element (Domination Principle).`,
+          why: `Popped ${popped} because ${popped} >= ${current}. Since ${current} comes later and is smaller or equal, ${popped} can never be the nearest smaller element for ${current} or any future elements (Domination Principle).`,
         },
         primarySnapshot: {
           kind: "array",
           elements: nums.map((val, idx) => ({
             id: `num-${idx}`,
             value: val,
-            state: idx === i ? "active" : "default",
-            pointers: idx === i ? [`i: ${current}`] : undefined,
+            state: idx === i ? "active" : idx < i ? "visited" : "default",
+            pointers: idx === i ? ["i"] : undefined,
           })),
         },
         auxiliaryState: {
           stack: [...stack],
-          customState: { popped, current },
+          customState: {
+            "Popped Element": popped,
+            "Current Value": current,
+            "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
+          },
         },
         variables: { i, current, popped },
       });
@@ -220,11 +232,14 @@ export const generateNearestSmallerElementSteps = (
       stepIndex: stepIndex++,
       codeLine: 9,
       explanation: {
-        what: stack.length > 0 ? `Stack has candidate ${stack[stack.length - 1]}` : "Stack is empty",
+        what:
+          stack.length > 0
+            ? `Stack contains candidate ${stack[stack.length - 1]}`
+            : "Stack is empty",
         why:
           stack.length > 0
-            ? `After popping larger elements, stack top ${stack[stack.length - 1]} is the nearest element to the left strictly smaller than ${current}.`
-            : `All preceding elements were >= ${current}, so no element to the left is smaller than ${current}.`,
+            ? `After popping larger/equal elements, stack top ${stack[stack.length - 1]} is the nearest smaller element to the left of ${current}.`
+            : `All preceding elements were >= ${current}, so no smaller element exists to the left.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -232,12 +247,16 @@ export const generateNearestSmallerElementSteps = (
           id: `num-${idx}`,
           value: val,
           state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? [`i: ${current}`] : undefined,
+          pointers: idx === i ? ["i"] : undefined,
         })),
       },
       auxiliaryState: {
         stack: [...stack],
-        customState: { i, current, stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY" },
+        customState: {
+          "Current Index": i,
+          "Current Value": current,
+          "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
+        },
       },
       variables: { i, current, hasSmaller: stack.length > 0 },
     });
@@ -250,7 +269,7 @@ export const generateNearestSmallerElementSteps = (
         codeLine: 10,
         explanation: {
           what: `Set result[${i}] = ${result[i]}`,
-          why: `Record ${result[i]} as the nearest smaller element for index ${i}.`,
+          why: `Record ${result[i]} as the nearest smaller element to the left of index ${i} (nums[${i}] = ${current}).`,
         },
         primarySnapshot: {
           kind: "array",
@@ -258,12 +277,12 @@ export const generateNearestSmallerElementSteps = (
             id: `num-${idx}`,
             value: val,
             state: idx === i ? "active" : idx < i ? "visited" : "default",
-            pointers: [idx === i ? `i: ${current}` : `res: ${result[idx]}`],
+            pointers: idx === i ? ["i"] : undefined,
           })),
         },
         auxiliaryState: {
           stack: [...stack],
-          customState: { i, current, "result[i]": result[i] },
+          customState: { "Current Index": i, "Current Value": current, "result[i]": result[i] },
         },
         variables: { i, current, "result[i]": result[i] },
       });
@@ -277,7 +296,7 @@ export const generateNearestSmallerElementSteps = (
       codeLine: 11,
       explanation: {
         what: `Push ${current} onto stack`,
-        why: `Push ${current} onto the stack so it can serve as a potential smaller element candidate for future indices to the right. Stack is now [${stack.join(", ")}].`,
+        why: `Push ${current} onto the stack so it can serve as a candidate smaller element for future indices to the right. Stack is now [${stack.join(", ")}].`,
       },
       primarySnapshot: {
         kind: "array",
@@ -285,16 +304,16 @@ export const generateNearestSmallerElementSteps = (
           id: `num-${idx}`,
           value: val,
           state: idx === i ? "sorted" : idx < i ? "visited" : "default",
-          pointers: [idx === i ? `i: ${current}` : `res: ${result[idx]}`],
+          pointers: idx === i ? ["i"] : undefined,
         })),
       },
       auxiliaryState: {
         stack: [...stack],
         customState: {
-          i,
-          current,
-          nearestSmaller: result[i],
-          stackContents: stack.join(", "),
+          "Current Index": i,
+          "Current Value": current,
+          "Nearest Smaller": result[i],
+          "Stack Contents": stack.join(", "),
         },
       },
       variables: { i, current, "result[i]": result[i] },
@@ -306,8 +325,8 @@ export const generateNearestSmallerElementSteps = (
     stepIndex: stepIndex++,
     codeLine: 13,
     explanation: {
-      what: `Return nearest smaller element array: [${result.join(", ")}]`,
-      why: "Monotonic stack traversal complete. Every element was processed in linear O(N) total time.",
+      what: `Return nearest smaller element result array: [${result.join(", ")}]`,
+      why: "Monotonic stack traversal complete. Every element was pushed once and popped at most once in linear O(N) total time.",
     },
     primarySnapshot: {
       kind: "array",
@@ -315,40 +334,14 @@ export const generateNearestSmallerElementSteps = (
         id: `res-${idx}`,
         value: val,
         state: "sorted",
-        pointers: [`orig: ${nums[idx]}`],
       })),
     },
     auxiliaryState: {
       stack: [...stack],
-      customState: { result: result.join(", ") },
+      customState: { "Final Result": result.join(", ") },
     },
     variables: { result: result.join(", ") },
   });
-
-  while (steps.length < 20) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 13,
-      explanation: {
-        what: `Verification step ${steps.length}`,
-        why: "Verifying monotonic stack properties and result vector consistency.",
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: result.map((val, idx) => ({
-          id: `res-${idx}`,
-          value: val,
-          state: "sorted",
-          pointers: [`orig: ${nums[idx]}`],
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        customState: { result: result.join(", ") },
-      },
-      variables: { result: result.join(", ") },
-    });
-  }
 
   return steps;
 };
@@ -373,8 +366,7 @@ const NEAREST_SMALLER_TRIVIA: TriviaMeta = {
 export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInput> = {
   id: "nearest-smaller-element",
   title: "Nearest Smaller Element",
-  category: "stack_and_queue",
-  categories: ["stack_and_queue"],
+  topicIds: ["stack_and_queue"],
   difficulty: "Medium",
   description: `Given an array of integers \`nums\`, find the nearest smaller element to the left for each element in the array.
 
@@ -445,7 +437,8 @@ $$\\sum_{i=0}^{N-1} (\\text{push count} + \\text{pop count}) \\le 2N = O(N)$$
   spaceComplexity: "O(N)",
   complexityAnalysis: {
     time: "Each array element is pushed onto the stack exactly once and popped at most once. Therefore, across all $N$ iterations, the total number of stack pushes is $N$ and the total number of pops is at most $N$. The amortized time per element is $O(1)$, giving a total time complexity of $O(N)$.",
-    space: "In the worst case (a strictly increasing array), the stack stores up to $N$ elements. Thus the auxiliary space complexity is $O(N)$.",
+    space:
+      "In the worst case (a strictly increasing array), the stack stores up to $N$ elements. Thus the auxiliary space complexity is $O(N)$.",
   },
   topicGuide: {
     overview:

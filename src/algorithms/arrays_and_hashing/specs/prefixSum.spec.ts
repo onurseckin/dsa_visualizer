@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PREFIX_SUM_INPUT, generatePrefixSumSteps, prefixSum } from "../prefixSum";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("prefixSum algorithm spec", () => {
   it("should have valid metadata", () => {
     expect(prefixSum.id).toBe("prefix-sum");
     expect(prefixSum.title).toBe("Prefix Sum");
-    expect(prefixSum.category).toBe("arrays_and_hashing");
+    expect(prefixSum.topicIds).toContain("arrays_and_hashing");
     expect(prefixSum.difficulty).toBe("Easy");
     expect(prefixSum.defaultInput).toEqual(DEFAULT_PREFIX_SUM_INPUT);
   });
@@ -19,7 +20,9 @@ describe("prefixSum algorithm spec", () => {
     expect(firstStep.codeLine).toBe(1);
     expect(firstStep.explanation.what).toContain("Start building prefix sums");
 
-    const completeStep = steps.find((s) => s.explanation.what.includes("Complete prefix array build"));
+    const completeStep = steps.find((s) =>
+      s.explanation.what.includes("Complete prefix array build"),
+    );
     expect(completeStep).toBeDefined();
     expect(completeStep?.variables.result).toBe("0, 2, 6, 7, 10, 15, 17, 23, 27");
   });
@@ -28,7 +31,9 @@ describe("prefixSum algorithm spec", () => {
     const input = { nums: [7] };
     const steps = generatePrefixSumSteps(input);
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    const completeStep = steps.find((s) => s.explanation.what.includes("Complete prefix array build"));
+    const completeStep = steps.find((s) =>
+      s.explanation.what.includes("Complete prefix array build"),
+    );
     expect(completeStep?.variables.result).toBe("0, 7");
   });
 
@@ -36,7 +41,9 @@ describe("prefixSum algorithm spec", () => {
     const input = { nums: [3, -2, 5, -1] };
     const steps = generatePrefixSumSteps(input);
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    const completeStep = steps.find((s) => s.explanation.what.includes("Complete prefix array build"));
+    const completeStep = steps.find((s) =>
+      s.explanation.what.includes("Complete prefix array build"),
+    );
     expect(completeStep?.variables.result).toBe("0, 3, 1, 6, 5");
 
     const lastStep = steps[steps.length - 1];
@@ -47,7 +54,14 @@ describe("prefixSum algorithm spec", () => {
   it("ensures codeLine is 1-indexed (1..6) for defaultInput and all examples", () => {
     const totalLines = prefixSum.code.split("\n").length;
     expect(totalLines).toBe(6);
-    const inputs = [prefixSum.defaultInput, ...prefixSum.examples.map((e) => e.input)];
+    const inputs = [
+      prefixSum.defaultInput,
+      ...requireExampleInputs(
+        prefixSum,
+        (input): input is typeof prefixSum.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
+    ];
     for (const input of inputs) {
       const steps = generatePrefixSumSteps(input);
       expect(steps.length).toBeGreaterThan(0);
@@ -71,4 +85,3 @@ describe("prefixSum algorithm spec", () => {
     }
   });
 });
-

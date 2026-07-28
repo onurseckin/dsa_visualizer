@@ -31,6 +31,16 @@ def lower_bound(arr: list[int], target: int) -> int:
             left = mid + 1
         else:
             right = mid
+    return left
+
+def upper_bound(arr: list[int], target: int) -> int:
+    left, right = 0, len(arr)
+    while left < right:
+        mid = (left + right) // 2
+        if arr[mid] <= target:
+            left = mid + 1
+        else:
+            right = mid
     return left`;
 
 export const DEFAULT_BINARY_SEARCH_1D_INPUT: BinarySearch1dInput = {
@@ -112,42 +122,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
     });
   };
 
-  addStep(
-    1,
-    `Initialize 1D Binary Search (${mode} mode)`,
-    `Searching for target = ${target} in sorted array of length N = ${n}: [${arr.join(", ")}].`,
-    { n, target, mode },
-    0,
-    n - 1,
-  );
-
-  if (n === 0) {
-    addStep(15, "Array is empty", "Cannot search in an empty array.", { n: 0, target }, 0, -1);
-    return steps;
-  }
-
-  addStep(
-    2,
-    `Initialize left = 0 and right = ${n - 1}`,
-    `Search range covers indices [0..${n - 1}], total candidate size is ${n}.`,
-    { left: 0, right: n - 1, n },
-    0,
-    n - 1,
-  );
-
-  addStep(
-    3,
-    `Initialize found_idx = -1`,
-    `Default result is set to -1 until an exact match is confirmed.`,
-    { found_idx: -1 },
-    0,
-    n - 1,
-  );
-
   if (mode === "lower_bound") {
-    let left = 0;
-    let right = n;
-
     addStep(
       17,
       `Initialize Lower Bound Search`,
@@ -157,6 +132,18 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       n - 1,
     );
 
+    if (n === 0) {
+      addStep(
+        25,
+        "Array is empty",
+        "Lower bound on empty array returns index 0.",
+        { n: 0, target, result: 0 },
+        0,
+        -1,
+      );
+      return steps;
+    }
+
     addStep(
       18,
       `Initialize left = 0 and right = ${n}`,
@@ -165,6 +152,9 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       0,
       n - 1,
     );
+
+    let left = 0;
+    let right = n;
 
     while (left < right) {
       addStep(
@@ -190,7 +180,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       addStep(
         21,
         `Compare arr[${mid}] (${arr[mid]}) < target (${target})`,
-        `Checking if current mid element is strictly smaller than the target value.`,
+        `Checking if current mid element is strictly smaller than target.`,
         { midVal: arr[mid], target, isSmaller: arr[mid] < target },
         left,
         right - 1,
@@ -202,9 +192,9 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
         addStep(
           22,
           `arr[${mid}] < target: Set left = mid + 1 = ${left}`,
-          `Target ${target} is strictly greater than arr[${mid}] (${arr[mid]}). Search right half.`,
+          `Target ${target} is strictly greater than arr[${mid}] (${arr[mid]}). Search right sub-interval [${left}..${right}).`,
           { left, right, mid },
-          left,
+          left < n ? left : n - 1,
           right - 1,
         );
       } else {
@@ -212,10 +202,10 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
         addStep(
           24,
           `arr[${mid}] >= target: Set right = mid = ${right}`,
-          `Found element >= target. Keep mid in search range by narrowing right bound to ${right}.`,
+          `Found candidate element >= target. Preserve mid by narrowing right bound to ${right}.`,
           { left, right, mid },
           left,
-          right - 1,
+          right > 0 ? right - 1 : 0,
         );
       }
     }
@@ -225,13 +215,143 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       `Lower bound for target ${target} found at index ${left}`,
       `First index where arr[i] >= ${target} is index ${left}${left < n ? ` (value ${arr[left]})` : " (out of bounds)"}.`,
       { lowerBoundIndex: left },
-      left,
-      left,
+      left < n ? left : n - 1,
+      left < n ? left : n - 1,
+      undefined,
+      left < n ? left : undefined,
+    );
+  } else if (mode === "upper_bound") {
+    addStep(
+      27,
+      `Initialize Upper Bound Search`,
+      `Finding first index where arr[i] > ${target} in array of size N = ${n}.`,
+      { n, target, mode },
+      0,
+      n - 1,
+    );
+
+    if (n === 0) {
+      addStep(
+        35,
+        "Array is empty",
+        "Upper bound on empty array returns index 0.",
+        { n: 0, target, result: 0 },
+        0,
+        -1,
+      );
+      return steps;
+    }
+
+    addStep(
+      28,
+      `Initialize left = 0 and right = ${n}`,
+      `Search range set to half-open interval [0..${n}).`,
+      { left: 0, right: n, n },
+      0,
+      n - 1,
+    );
+
+    let left = 0;
+    let right = n;
+
+    while (left < right) {
+      addStep(
+        29,
+        `Evaluate upper bound loop condition (left ${left} < right ${right})`,
+        `Active search window spans half-open interval [${left}..${right}).`,
+        { left, right, windowSize: right - left },
+        left,
+        right - 1,
+      );
+
+      const mid = Math.floor((left + right) / 2);
+      addStep(
+        30,
+        `Compute mid = (${left} + ${right}) // 2 = ${mid}`,
+        `Mid element arr[${mid}] has value ${arr[mid]}.`,
+        { left, right, mid, midVal: arr[mid] },
+        left,
+        right - 1,
+        mid,
+      );
+
+      addStep(
+        31,
+        `Compare arr[${mid}] (${arr[mid]}) <= target (${target})`,
+        `Checking if current mid element is less than or equal to target.`,
+        { midVal: arr[mid], target, isLessOrEqual: arr[mid] <= target },
+        left,
+        right - 1,
+        mid,
+      );
+
+      if (arr[mid] <= target) {
+        left = mid + 1;
+        addStep(
+          32,
+          `arr[${mid}] <= target: Set left = mid + 1 = ${left}`,
+          `arr[${mid}] is <= target (${target}). Search right sub-interval [${left}..${right}).`,
+          { left, right, mid },
+          left < n ? left : n - 1,
+          right - 1,
+        );
+      } else {
+        right = mid;
+        addStep(
+          34,
+          `arr[${mid}] > target: Set right = mid = ${right}`,
+          `Found candidate element > target. Narrow right bound to mid = ${right}.`,
+          { left, right, mid },
+          left,
+          right > 0 ? right - 1 : 0,
+        );
+      }
+    }
+
+    addStep(
+      35,
+      `Upper bound for target ${target} found at index ${left}`,
+      `First index where arr[i] > ${target} is index ${left}${left < n ? ` (value ${arr[left]})` : " (out of bounds)"}.`,
+      { upperBoundIndex: left },
+      left < n ? left : n - 1,
+      left < n ? left : n - 1,
       undefined,
       left < n ? left : undefined,
     );
   } else {
     // Exact mode
+    addStep(
+      1,
+      `Initialize 1D Binary Search (exact mode)`,
+      `Searching for target = ${target} in sorted array of length N = ${n}: [${arr.join(", ")}].`,
+      { n, target, mode },
+      0,
+      n - 1,
+    );
+
+    if (n === 0) {
+      addStep(15, "Array is empty", "Cannot search in an empty array.", { n: 0, target }, 0, -1);
+      return steps;
+    }
+
+    addStep(
+      2,
+      `Initialize left = 0 and right = ${n - 1}`,
+      `Search range covers indices [0..${n - 1}], total candidate size is ${n}.`,
+      { left: 0, right: n - 1, n },
+      0,
+      n - 1,
+    );
+
+    addStep(
+      3,
+      `Initialize found_idx = -1`,
+      `Default result is set to -1 until an exact match is confirmed.`,
+      { found_idx: -1 },
+      0,
+      n - 1,
+    );
+
     let left = 0;
     let right = n - 1;
     let foundIdx = -1;
@@ -424,14 +544,23 @@ export const BINARY_SEARCH_1D_TRIVIA: TriviaMeta = {
     23: "Branch handling case when arr[mid] >= target.",
     24: "Sets right = mid if arr[mid] >= target to preserve first potential match.",
     25: "Returns left, the first index where arr[i] >= target.",
+    26: "Blank line separating functions.",
+    27: "Defines upper_bound: finds first index where arr[i] > target.",
+    28: "Initializes left to 0 and right to len(arr) (half-open range [0..N]).",
+    29: "Loops while left < right in half-open interval.",
+    30: "Computes mid index using integer floor division.",
+    31: "Checks if arr[mid] is less than or equal to target.",
+    32: "Sets left = mid + 1 if arr[mid] <= target.",
+    33: "Branch handling case when arr[mid] > target.",
+    34: "Sets right = mid if arr[mid] > target to preserve first potential match.",
+    35: "Returns left, the first index where arr[i] > target.",
   },
 };
 
 export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
   id: "binary-search-1d",
   title: "1D Binary Search & Lower/Upper Bound",
-  category: "binary_search",
-  categories: ["binary_search"],
+  topicIds: ["binary_search"],
   difficulty: "Easy",
   description: `Master 1D Binary Search: locate target values or boundary thresholds (\`lower_bound\` / \`upper_bound\`) in sorted 1D arrays in $O(\\log N)$ time.
 
@@ -471,7 +600,8 @@ When searching an unsorted list of $N$ items, finding an element requires a line
     {
       kind: "basic",
       title: "Basic Example",
-      inputDisplay: "arr = [2, 5, 8, 12, 16, 21, 25, 29, 34, 38, 42, 47, 56, 63, 72, 91], target = 63, mode = 'exact'",
+      inputDisplay:
+        "arr = [2, 5, 8, 12, 16, 21, 25, 29, 34, 38, 42, 47, 56, 63, 72, 91], target = 63, mode = 'exact'",
       outputDisplay: "Target 63 found at index 13",
       input: {
         array: [2, 5, 8, 12, 16, 21, 25, 29, 34, 38, 42, 47, 56, 63, 72, 91],
@@ -479,7 +609,8 @@ When searching an unsorted list of $N$ items, finding an element requires a line
         mode: "exact",
       },
       output: "Target 63 found at index 13",
-      explanation: "N=16 sorted elements; logarithmic halving probes mid indices to locate 63 at index 13.",
+      explanation:
+        "N=16 sorted elements; logarithmic halving probes mid indices to locate 63 at index 13.",
     },
     {
       kind: "complex",

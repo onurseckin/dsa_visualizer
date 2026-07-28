@@ -9,9 +9,10 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("viterbiSubwordSegmenter algorithm spec", () => {
   it("should have correct ML Infra Level 5 metadata", () => {
     expect(viterbiSubwordSegmenter.id).toBe("viterbi-subword-segmenter");
-    expect(viterbiSubwordSegmenter.isMlInfra).toBe(true);
-    expect(viterbiSubwordSegmenter.mlInfraLevel).toBe(5);
-    expect(viterbiSubwordSegmenter.category).toBe("ml_tokenization");
+    expect(viterbiSubwordSegmenter.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(viterbiSubwordSegmenter.topicIds).toContain("ml_tokenization");
     expect(viterbiSubwordSegmenter.defaultInput).toEqual(DEFAULT_VITERBI_SUBWORD_INPUT);
     expect(viterbiSubwordSegmenter.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 5" },

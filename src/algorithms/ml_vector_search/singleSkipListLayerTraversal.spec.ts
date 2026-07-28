@@ -1,13 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { singleSkipListLayerTraversal } from "./singleSkipListLayerTraversal";
 
-describe("singleSkipListLayerTraversal", () => {
+describe("single-skip-list-layer-traversal", () => {
   it("should be defined and have correctly populated fields", () => {
     expect(singleSkipListLayerTraversal).toBeDefined();
-    expect(singleSkipListLayerTraversal.id).toBe("singleSkipListLayerTraversal");
-    expect(singleSkipListLayerTraversal.isMlInfra).toBe(true);
-    expect(singleSkipListLayerTraversal.mlInfraLevel).toBe(5);
-    expect(singleSkipListLayerTraversal.categories).toContain("ml_vector_search");
+    expect(singleSkipListLayerTraversal.id).toBe("single-skip-list-layer-traversal");
+    expect(singleSkipListLayerTraversal.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(singleSkipListLayerTraversal.topicIds).toContain("ml_vector_search");
   });
 
   it("should generate steps successfully", () => {

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { PanelKey, PanelVisibility, ViewMode } from "../types/dsa";
+import type { PanelKey, PanelVisibility } from "../types/dsa";
 
 const STORAGE_PREFIX = "dsa_visualizer_";
 
@@ -35,8 +35,6 @@ function writeStored(key: string, value: boolean | string | number): void {
 
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
 const isString = (value: unknown): value is string => typeof value === "string";
-const isLegacyViewMode = (value: unknown): value is ViewMode | null =>
-  value === null || value === "split" || value === "visual" || value === "code";
 
 export const MIN_PLAYBACK_SPEED_MS = 50;
 export const MAX_PLAYBACK_SPEED_MS = 1000;
@@ -48,34 +46,14 @@ const isPlaybackSpeed = (value: unknown): value is number =>
   value >= MIN_PLAYBACK_SPEED_MS &&
   value <= MAX_PLAYBACK_SPEED_MS;
 
-const LEGACY_STAGE_PANELS: Record<ViewMode, { visualizer: boolean; code: boolean }> = {
-  split: { visualizer: true, code: true },
-  visual: { visualizer: true, code: false },
-  code: { visualizer: false, code: true },
-};
-
 export function readPanelVisibility(): PanelVisibility {
-  const legacyViewMode = readStored<ViewMode | null>("view_mode", null, isLegacyViewMode);
-  const legacyStage = legacyViewMode === null ? null : LEGACY_STAGE_PANELS[legacyViewMode];
   return {
     problem: readStored(PANEL_STORAGE_KEYS.problem, true, isBoolean),
     solution: readStored(PANEL_STORAGE_KEYS.solution, true, isBoolean),
-    visualizer: readStored(
-      PANEL_STORAGE_KEYS.visualizer,
-      legacyStage?.visualizer ?? true,
-      isBoolean,
-    ),
-    code: readStored(PANEL_STORAGE_KEYS.code, legacyStage?.code ?? true, isBoolean),
-    tutorial: readStored(
-      PANEL_STORAGE_KEYS.tutorial,
-      readStored("show_tutorial", true, isBoolean),
-      isBoolean,
-    ),
-    auxiliary: readStored(
-      PANEL_STORAGE_KEYS.auxiliary,
-      readStored("show_auxiliary", true, isBoolean),
-      isBoolean,
-    ),
+    visualizer: readStored(PANEL_STORAGE_KEYS.visualizer, true, isBoolean),
+    code: readStored(PANEL_STORAGE_KEYS.code, true, isBoolean),
+    tutorial: readStored(PANEL_STORAGE_KEYS.tutorial, true, isBoolean),
+    auxiliary: readStored(PANEL_STORAGE_KEYS.auxiliary, true, isBoolean),
     complexity: readStored(PANEL_STORAGE_KEYS.complexity, true, isBoolean),
     examples: readStored(PANEL_STORAGE_KEYS.examples, true, isBoolean),
   };

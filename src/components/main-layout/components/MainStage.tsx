@@ -3,7 +3,7 @@ import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../../ty
 import { AuxiliaryPanel, hasAuxiliaryContent } from "../../../ui";
 import { TutorialCard, hasTutorialContent } from "../../../ui";
 import { CodeBlockViewer } from "../../../ui";
-import { ComplexityCard } from "../../../ui";
+import { ComplexityCard } from "../../../ui/organisms/ComplexityCard";
 import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../../ui";
 import { MainLayoutState } from "../hooks/useMainLayoutState";

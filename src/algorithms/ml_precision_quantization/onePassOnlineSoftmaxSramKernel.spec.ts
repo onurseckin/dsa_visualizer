@@ -9,7 +9,7 @@ describe("One Pass Online Softmax Sram Kernel", () => {
   it("should have correct metadata", () => {
     expect(onePassOnlineSoftmaxSramKernel.id).toBe("one-pass-online-softmax-sram-kernel");
     expect(onePassOnlineSoftmaxSramKernel.title).toBe("One Pass Online Softmax Sram Kernel");
-    expect(onePassOnlineSoftmaxSramKernel.category).toBe("ml_precision_quantization");
+    expect(onePassOnlineSoftmaxSramKernel.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

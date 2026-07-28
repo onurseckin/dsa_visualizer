@@ -314,10 +314,10 @@ export const generateIntervalSchedulingSteps = (
     }
   }
 
-  // Line 10: Loop completion
+  // Line 11: Loop completion
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 10,
+    codeLine: 11,
     explanation: {
       what: "Finished inspecting all sorted intervals.",
       why: "All candidate intervals have been evaluated against the Earliest Finish Time criterion.",
@@ -397,7 +397,8 @@ export const INTERVAL_SCHEDULING_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Mutual Compatibility",
-      definition: "The property where no two chosen intervals share an overlapping interior time span.",
+      definition:
+        "The property where no two chosen intervals share an overlapping interior time span.",
     },
     {
       term: "Exchange Argument",
@@ -431,8 +432,7 @@ export const INTERVAL_SCHEDULING_TRIVIA: TriviaMeta = {
 export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = {
   id: "interval-scheduling",
   title: "Interval Scheduling",
-  category: "two_pointers",
-  categories: ["two_pointers", "greedy_algorithms"],
+  topicIds: ["greedy_algorithms", "two_pointers"],
   difficulty: "Medium",
   description:
     "Given a collection of intervals each defined by a start time and end time, find a maximum-cardinality subset of mutually compatible (non-overlapping) intervals.\n\n" +

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { singleFeatureThresholdSplit } from "./singleFeatureThresholdSplit";
 
-describe("singleFeatureThresholdSplit", () => {
+describe("single-feature-threshold-split", () => {
   it("should have valid metadata", () => {
     expect(singleFeatureThresholdSplit.id).toBeDefined();
     expect(singleFeatureThresholdSplit.title).toBeDefined();

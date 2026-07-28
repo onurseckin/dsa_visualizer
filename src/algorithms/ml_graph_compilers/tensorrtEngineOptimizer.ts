@@ -21,33 +21,21 @@ export interface TensorrtEngineOptimizerInput {
 }
 
 export const TENSORRT_ENGINE_OPTIMIZER_CODE = `def optimize_tensorrt_engine(layers: list[dict], target_precision: str, enable_horizontal_fusion: bool) -> dict:
-    """
-    Optimizes a neural network execution graph using TensorRT optimization passes:
-    1. Vertical Layer Fusion (Conv + BiasAdd + ReLU -> CBR Fused Layer)
-    2. Precision Quantization & Calibration (FP32 -> FP16 / INT8)
-    3. Horizontal Layer Coalescing (Merging parallel identical ops)
-    4. Tactic Selection (Profiling optimal CUDA kernel per layer)
-    Returns optimized layer execution plan and estimated speedup.
-    """
     optimized_layers = []
     i = 0
     n = len(layers)
     total_original_latency = sum(l["latencyMs"] for l in layers)
-    
-    # Pass 1 & 2: Vertical Fusion & Precision Scaling
+
     while i < n:
-        # Check vertical CBR fusion pattern: Conv -> BiasAdd -> ReLU
         if (i + 2 < n and 
             layers[i]["type"] == "Conv" and 
             layers[i+1]["type"] == "BiasAdd" and 
             layers[i+2]["type"] == "ReLU"):
-            
-            fused_latency = layers[i]["latencyMs"] * 0.7 # 30% reduction from fusion
+            fused_latency = layers[i]["latencyMs"] * 0.7
             if target_precision == "FP16":
-                fused_latency *= 0.5 # 2x speedup in FP16 Tensor Cores
+                fused_latency *= 0.5
             elif target_precision == "INT8":
-                fused_latency *= 0.25 # 4x speedup in INT8 Tensor Cores
-                
+                fused_latency *= 0.25
             optimized_layers.append({
                 "id": f"fused_{layers[i]['id']}_{layers[i+2]['id']}",
                 "name": f"fused_cbr_{layers[i]['name']}",
@@ -57,8 +45,7 @@ export const TENSORRT_ENGINE_OPTIMIZER_CODE = `def optimize_tensorrt_engine(laye
             })
             i += 3
             continue
-            
-        # Single layer precision scaling
+
         layer = dict(layers[i])
         scale_factor = 0.5 if target_precision == "FP16" else (0.25 if target_precision == "INT8" else 1.0)
         layer["precision"] = target_precision
@@ -66,7 +53,6 @@ export const TENSORRT_ENGINE_OPTIMIZER_CODE = `def optimize_tensorrt_engine(laye
         optimized_layers.append(layer)
         i += 1
 
-    # Pass 3: Horizontal Fusion (if enabled)
     if enable_horizontal_fusion and len(optimized_layers) >= 2:
         h_fused = []
         j = 0
@@ -206,7 +192,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    10,
+    2,
     "Initialize Container optimized_layers",
     "Creating empty container to hold transformed layer metadata.",
     { n, targetPrecision },
@@ -216,7 +202,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    11,
+    3,
     "Initialize Index Pointer i = 0",
     "Setting iteration pointer i = 0.",
     { i: 0, n },
@@ -226,7 +212,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    13,
+    5,
     `Calculate Total Baseline Latency = ${origLatency.toFixed(2)}ms`,
     "Summing individual layer baseline latencies in FP32 precision.",
     { total_original_latency: origLatency },
@@ -240,7 +226,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
   while (i < n) {
     addStep(
-      16,
+      7,
       `Pass 1 & 2 Loop at i = ${i}`,
       `Inspecting layer ${layers[i].name} (${layers[i].type}) for CBR vertical fusion and precision quantization.`,
       { i, n, layer_name: layers[i].name },
@@ -250,7 +236,7 @@ export const generateTensorrtEngineOptimizerSteps = (
     );
 
     addStep(
-      18,
+      8,
       `Check Vertical CBR Pattern at i = ${i}`,
       "Evaluating window [Conv, BiasAdd, ReLU] starting at index i.",
       { i, pattern: "CBR" },
@@ -268,10 +254,14 @@ export const generateTensorrtEngineOptimizerSteps = (
       let fusedLatency = layers[i].latencyMs * 0.7;
 
       addStep(
-        23,
+        12,
         `Compute Fused CBR Latency at i = ${i}`,
         `Baseline latency ${layers[i].latencyMs}ms × 0.7 (fusion reduction) = ${(layers[i].latencyMs * 0.7).toFixed(2)}ms.`,
-        { i, base_latency: layers[i].latencyMs, fused_latency: (layers[i].latencyMs * 0.7).toFixed(2) },
+        {
+          i,
+          base_latency: layers[i].latencyMs,
+          fused_latency: (layers[i].latencyMs * 0.7).toFixed(2),
+        },
         i,
         null,
         "Pass 1: Vertical & Quant",
@@ -281,7 +271,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       else if (targetPrecision === "INT8") fusedLatency *= 0.25;
 
       addStep(
-        26,
+        13,
         `Apply ${targetPrecision} Precision Scaling to Fused Layer`,
         `Scaled fused latency by ${targetPrecision === "FP16" ? "0.5 (FP16 2x speedup)" : targetPrecision === "INT8" ? "0.25 (INT8 4x speedup)" : "1.0 (FP32 no scaling)"} → ${fusedLatency.toFixed(2)}ms.`,
         { i, targetPrecision, fused_latency: fusedLatency.toFixed(2) },
@@ -301,7 +291,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       pass1Layers.push(fusedLayer);
 
       addStep(
-        29,
+        17,
         `Fuse Vertical CBR Pattern at i = ${i}..${i + 2}`,
         `Fused ${layers[i].name} + ${layers[i + 1].name} + ${layers[i + 2].name} into single ${targetPrecision} CBR kernel. Latency reduced to ${fusedLayer.latencyMs}ms.`,
         { i, fused_name: fusedLayer.name, latency: fusedLayer.latencyMs },
@@ -312,7 +302,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
       i += 3;
       addStep(
-        36,
+        24,
         `Advance Index i by 3 to ${i}`,
         "Skipping consumed vertical CBR layers.",
         { i },
@@ -323,7 +313,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       continue;
     } else {
       addStep(
-        18,
+        8,
         `Vertical CBR Pattern Rejected at i = ${i}`,
         "Window does not match Conv -> BiasAdd -> ReLU sequence.",
         { i, match: false },
@@ -343,7 +333,7 @@ export const generateTensorrtEngineOptimizerSteps = (
     pass1Layers.push(scaledLayer);
 
     addStep(
-      40,
+      28,
       `Compute ${targetPrecision} Scale Factor for Single Layer ${layers[i].name}`,
       `Scale = ${scale} for ${targetPrecision}. New latency: ${scaledLayer.latencyMs}ms.`,
       { i, layer_name: layers[i].name, scale, new_latency: scaledLayer.latencyMs },
@@ -354,7 +344,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
     i += 1;
     addStep(
-      45,
+      32,
       `Advance Index i to ${i}`,
       "Moving to next layer.",
       { i },
@@ -367,7 +357,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   let finalLayers = pass1Layers;
 
   addStep(
-    48,
+    34,
     "Evaluate Pass 3: Horizontal Layer Fusion",
     `Checking if enable_horizontal_fusion (${enableHorizontalFusion}) is true and optimized layers >= 2.`,
     { enableHorizontalFusion, layerCount: pass1Layers.length },
@@ -381,7 +371,7 @@ export const generateTensorrtEngineOptimizerSteps = (
     let j = 0;
 
     addStep(
-      49,
+      35,
       "Initialize Horizontal Fusion Container h_fused",
       "Creating container to store horizontally merged layer groups.",
       { j: 0 },
@@ -391,7 +381,7 @@ export const generateTensorrtEngineOptimizerSteps = (
     );
 
     addStep(
-      50,
+      36,
       "Initialize Horizontal Index j = 0",
       "Setting horizontal fusion pointer j = 0.",
       { j: 0, total: pass1Layers.length },
@@ -402,7 +392,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
     while (j < pass1Layers.length) {
       addStep(
-        51,
+        37,
         `Pass 3 Horizontal Loop at j = ${j}`,
         `Inspecting adjacent layers for parallel convolution coalescing.`,
         { j, total: pass1Layers.length },
@@ -429,7 +419,7 @@ export const generateTensorrtEngineOptimizerSteps = (
         hFused.push(mergedLayer);
 
         addStep(
-          55,
+          41,
           `Coalesce Parallel Convolutions '${pass1Layers[j].name}' and '${pass1Layers[j + 1].name}'`,
           `Merged parallel convolutions into grouped kernel '${mergedLayer.name}' with merged latency ${mergedLayer.latencyMs}ms.`,
           { j, merged_name: mergedLayer.name, latency: mergedLayer.latencyMs },
@@ -440,7 +430,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 
         j += 2;
         addStep(
-          62,
+          48,
           `Advance Horizontal Index j by 2 to ${j}`,
           "Skipping coalesced parallel layers.",
           { j },
@@ -451,7 +441,7 @@ export const generateTensorrtEngineOptimizerSteps = (
       } else {
         hFused.push(pass1Layers[j]);
         addStep(
-          64,
+          50,
           `Pass Through Single Layer '${pass1Layers[j].name}'`,
           "Layer cannot be horizontally fused; appending to execution plan.",
           { j, layer_name: pass1Layers[j].name },
@@ -460,6 +450,15 @@ export const generateTensorrtEngineOptimizerSteps = (
           "Pass 3: Horizontal Fusion",
         );
         j += 1;
+        addStep(
+          51,
+          `Advance Horizontal Index j by 1 to ${j}`,
+          "Moving to next horizontal layer.",
+          { j },
+          n,
+          null,
+          "Pass 3: Horizontal Fusion",
+        );
       }
     }
     finalLayers = hFused;
@@ -469,7 +468,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   const speedup = Number((origLatency / (finalLatency || 1)).toFixed(2));
 
   addStep(
-    68,
+    54,
     `Calculate Final Optimized Latency = ${finalLatency.toFixed(2)}ms`,
     `Summed latencies of all ${finalLayers.length} optimized engine layers.`,
     { total_optimized_latency: finalLatency },
@@ -479,7 +478,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    69,
+    55,
     `Compute Overall Acceleration Speedup = ${speedup}x`,
     `Speedup factor computed as ${origLatency.toFixed(2)}ms / ${finalLatency.toFixed(2)}ms.`,
     { speedup },
@@ -489,7 +488,7 @@ export const generateTensorrtEngineOptimizerSteps = (
   );
 
   addStep(
-    71,
+    57,
     "TensorRT Engine Compilation & Tactic Tuning Complete",
     `Successfully compiled optimized TensorRT execution engine with ${speedup}x total speedup. Ready for CUDA stream dispatch.`,
     { complete: true, origLatency, finalLatency, speedup },
@@ -502,7 +501,7 @@ export const generateTensorrtEngineOptimizerSteps = (
 };
 
 const TENSORRT_ENGINE_OPTIMIZER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 13, 14, 21, 27, 34, 37, 38, 45, 46, 62, 66, 69, 70, 75, 76],
+  skipLines: [6, 18, 19, 20, 21, 23, 26, 33, 42, 43, 44, 45, 47, 49, 53, 56, 58, 59, 60, 62],
   distractors: [
     "fused_latency = layers[i]['latencyMs'] * 3.0",
     "layer['precision'] = 'FP64'",
@@ -510,100 +509,82 @@ const TENSORRT_ENGINE_OPTIMIZER_TRIVIA: TriviaMeta = {
     "speedup = total_original_latency * total_optimized_latency",
   ],
   hints: [
-    { line: 17, hint: "Match vertical Conv + BiasAdd + ReLU layers for CBR fusion." },
-    { line: 22, hint: "Compute CBR fused latency applying 30% kernel fusion savings." },
-    { line: 51, hint: "Coalesce parallel identical convolution ops into a single grouped kernel." },
-    { line: 68, hint: "Calculate overall engine latency reduction and execution speedup factor." },
+    { line: 8, hint: "Match vertical Conv + BiasAdd + ReLU layers for CBR fusion." },
+    { line: 12, hint: "Compute CBR fused latency applying 30% kernel fusion savings." },
+    { line: 38, hint: "Coalesce parallel identical convolution ops into a single grouped kernel." },
+    { line: 55, hint: "Calculate overall engine latency reduction and execution speedup factor." },
   ],
   lineExplanations: {
-    1: "Function signature for optimize_tensorrt_engine receiving layers, target_precision, and enable_horizontal_fusion.",
-    2: "Docstring start describing TensorRT execution engine optimization passes.",
-    3: "Describes vertical CBR layer fusion pass.",
-    4: "Describes precision quantization and calibration (FP32 -> FP16/INT8).",
-    5: "Describes horizontal layer coalescing for parallel identical operations.",
-    6: "Describes kernel tactic selection auto-tuning.",
-    7: "Describes return value with speedup estimation.",
-    8: "Docstring close.",
-    9: "Initializes optimized_layers list for transformed layer plan.",
-    10: "Sets loop iteration pointer i to 0.",
-    11: "Computes total input layer count n = len(layers).",
-    12: "Calculates baseline unoptimized total latency across all input layers.",
-    13: "Blank line before Pass 1 & 2 loop.",
-    14: "Comment indicating Pass 1 & 2: Vertical Fusion & Precision Scaling.",
-    15: "Loop iterating while index i is less than layer count n.",
-    16: "Comment indicating vertical CBR fusion pattern check.",
-    17: "Checks if 3-layer window is available.",
-    18: "Verifies layer i is Conv type.",
-    19: "Verifies layer i+1 is BiasAdd type.",
-    20: "Verifies layer i+2 is ReLU type.",
-    21: "Blank line before fusion latency calculation.",
-    22: "Computes CBR fused kernel baseline latency with 30% overhead reduction factor (0.7).",
-    23: "Checks if target precision is FP16.",
-    24: "Applies 2x speedup factor (0.5) for FP16 Tensor Cores.",
-    25: "Checks if target precision is INT8.",
-    26: "Applies 4x speedup factor (0.25) for INT8 Tensor Cores.",
-    27: "Blank line before appending fused CBR layer dictionary.",
-    28: "Appends fused CBR kernel dictionary payload to optimized_layers.",
-    29: "Sets composite fused layer identifier.",
-    30: "Formats fused CBR layer name.",
-    31: "Sets type to CBR_Fused_Kernel.",
-    32: "Assigns target precision string to fused layer.",
-    33: "Rounds calculated fused latency to 3 decimal places.",
-    34: "Closes fused layer dictionary.",
-    35: "Advances loop index i by 3 to skip fused CBR layers.",
-    36: "Continues to next iteration of loop.",
-    37: "Blank line before single-layer fallback path.",
-    38: "Comment indicating single layer precision scaling.",
-    39: "Creates copy dictionary of layer at index i.",
-    40: "Computes precision scale factor (0.5 for FP16, 0.25 for INT8, 1.0 for FP32).",
-    41: "Assigns target precision to single layer.",
-    42: "Scales and rounds layer latency.",
-    43: "Appends precision-scaled layer to optimized_layers.",
-    44: "Advances loop index i by 1.",
-    45: "Blank line before Pass 3 section.",
-    46: "Comment indicating Pass 3: Horizontal Fusion.",
-    47: "Checks if horizontal fusion is enabled and at least 2 layers exist in optimized_layers.",
-    48: "Initializes h_fused list for horizontally merged layers.",
-    49: "Sets inner loop index j to 0.",
-    50: "Loop iterating while j is less than length of optimized_layers.",
-    51: "Checks if window of 2 adjacent Conv layers exists at j and j+1.",
-    52: "Verifies both layer j and j+1 have type Conv.",
-    53: "Computes merged horizontal grouped convolution latency with 15% grouping overhead.",
-    54: "Appends horizontal grouped conv layer payload to h_fused list.",
-    55: "Sets horizontal fused layer identifier.",
-    56: "Sets horizontal fused layer name.",
-    57: "Sets type to Horizontal_Grouped_Conv.",
-    58: "Assigns target precision string.",
-    59: "Rounds merged latency to 3 decimal places.",
-    60: "Closes horizontal fused layer payload.",
-    61: "Advances inner loop index j by 2.",
-    62: "Else branch when adjacent layers cannot be horizontally fused.",
-    63: "Appends single layer at index j to h_fused list.",
-    64: "Advances inner loop index j by 1.",
-    65: "Updates optimized_layers list with horizontally fused plan h_fused.",
-    66: "Blank line before final speedup calculation.",
-    67: "Sums latencies of all optimized layers to get total_optimized_latency.",
-    68: "Calculates engine latency speedup factor relative to total_original_latency.",
-    69: "Blank line before returning optimized engine plan.",
-    70: "Opens return dictionary payload.",
-    71: "Sets optimizedLayers to optimized_layers list.",
-    72: "Sets originalLatencyMs to total_original_latency.",
-    73: "Sets optimizedLatencyMs to total_optimized_latency.",
-    74: "Sets speedup factor.",
-    75: "Closes return dictionary payload.",
-    76: "Return statement end.",
+    1: "Function signature defining optimize_tensorrt_engine with layers list, target_precision, and enable_horizontal_fusion flag.",
+    2: "Initializes optimized_layers list to store transformed execution plan nodes.",
+    3: "Sets iteration pointer i to index 0 for the vertical graph traversal pass.",
+    4: "Stores initial layer count n = len(layers).",
+    5: "Calculates baseline total FP32 latency by summing individual unoptimized layer latencies.",
+    6: "Blank line separating initialization from vertical fusion and precision scaling loop.",
+    7: "Loop iterating through network layers while pointer i is less than count n.",
+    8: "Evaluates if a 3-layer window remains available starting at index i.",
+    9: "Checks if layer at index i is a Convolution operation.",
+    10: "Checks if subsequent layer at index i+1 is a BiasAdd operation.",
+    11: "Checks if final window layer at index i+2 is a ReLU activation.",
+    12: "Computes CBR fused kernel baseline latency applying a 30% reduction factor (0.7) from memory transfer overhead elimination.",
+    13: "Checks if target precision is FP16 half-precision floating point.",
+    14: "Applies 2x speedup factor (0.5) for FP16 Tensor Core execution.",
+    15: "Checks if target precision is INT8 quantized integer math.",
+    16: "Applies 4x speedup factor (0.25) for INT8 Tensor Core execution.",
+    17: "Appends composite fused CBR kernel configuration object to optimized_layers list.",
+    18: "Constructs composite unique node identifier for fused CBR block.",
+    19: "Formats human-readable fused kernel node name.",
+    20: "Sets layer operation type string to CBR_Fused_Kernel.",
+    21: "Sets node precision attribute to targetPrecision.",
+    22: "Stores calculated fused layer latency rounded to 3 decimal places.",
+    23: "Closes dictionary literal for fused CBR kernel node.",
+    24: "Advances loop pointer i by 3 to skip consumed Conv, BiasAdd, and ReLU layers.",
+    25: "Continues loop to next unvisited layer index.",
+    26: "Blank line separating fusion branch from un-fused single-layer fallback pass.",
+    27: "Copies single layer dictionary for non-fused precision transformation.",
+    28: "Computes single-layer precision scale factor (0.5 for FP16, 0.25 for INT8, 1.0 for FP32).",
+    29: "Updates layer precision attribute to target precision.",
+    30: "Applies precision scale factor and rounds single-layer latency to 3 decimal places.",
+    31: "Appends single precision-scaled layer to optimized_layers list.",
+    32: "Advances loop pointer i by 1 to process next sequential layer.",
+    33: "Blank line separating Pass 1 & 2 loop from Pass 3 horizontal layer fusion.",
+    34: "Evaluates if horizontal fusion pass is enabled and at least 2 layers exist in optimized_layers.",
+    35: "Initializes empty h_fused list to hold horizontally coalesced layer plan.",
+    36: "Initializes horizontal fusion iteration index pointer j to 0.",
+    37: "Loop iterating through optimized_layers while index pointer j is less than length.",
+    38: "Checks if 2 adjacent layers are available for horizontal grouped conv fusion.",
+    39: "Verifies both adjacent layers at j and j+1 are Convolution operations.",
+    40: "Computes merged grouped convolution latency as 115% of max latency across parallel layers.",
+    41: "Appends merged horizontal grouped convolution layer payload to h_fused list.",
+    42: "Sets composite horizontal fused layer identifier.",
+    43: "Formats composite horizontal fused layer name.",
+    44: "Sets layer type to Horizontal_Grouped_Conv.",
+    45: "Sets node precision attribute to target precision.",
+    46: "Stores calculated merged grouped convolution latency rounded to 3 decimal places.",
+    47: "Closes horizontal fused layer dictionary object.",
+    48: "Advances inner horizontal index j by 2 to skip merged parallel convolution pair.",
+    49: "Else branch executed when adjacent layers cannot be horizontally coalesced.",
+    50: "Appends single layer at index j directly to h_fused list.",
+    51: "Advances inner horizontal index j by 1.",
+    52: "Replaces optimized_layers list with horizontally fused execution plan h_fused.",
+    53: "Blank line before final total latency and speedup metric calculation.",
+    54: "Sums latencies of all final optimized engine layers to compute total_optimized_latency.",
+    55: "Calculates overall engine execution speedup factor as baseline divided by optimized latency.",
+    56: "Blank line before returning compilation result.",
+    57: "Opens return dictionary payload containing compiled TensorRT engine metrics.",
+    58: "Returns optimizedLayers list of transformed execution graph nodes.",
+    59: "Returns original unoptimized total baseline latency in milliseconds.",
+    60: "Returns optimized total engine latency in milliseconds.",
+    61: "Returns overall speedup factor.",
+    62: "Closes return dictionary object.",
   },
 };
 
 export const tensorrtEngineOptimizer: AlgorithmDefinition<TensorrtEngineOptimizerInput> = {
   id: "tensorrt-engine-optimizer",
   title: "TensorRT Execution Engine & Precision Quantization Optimizer",
-  category: "ml_graph_compilers",
-  categories: ["ml_graph_compilers"],
+  topicIds: ["ml_graph_compilers"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 7,
-  mlInfraCategory: "ml_graph_compilers",
   description:
     "NVIDIA TensorRT is an advanced deep learning inference optimizer and runtime framework engineered for high-throughput GPU execution. Models trained in PyTorch, TensorFlow, or ONNX often contain redundant layer boundaries and uncalibrated FP32 floating-point math. TensorRT processes computational graphs through a sequence of hardware-aware optimization passes to generate a serialized engine executable on NVIDIA Tensor Cores.\n\n### Mathematical Formulation & Quantization Math\n1. **Vertical Layer Fusion**: For a sequence $\\text{Conv} \\to \\text{BiasAdd} \\to \\text{ReLU}$, individual latencies $t_{\\text{conv}}, t_{\\text{bias}}, t_{\\text{relu}}$ are collapsed into a fused kernel latency $t_{\\text{fused}} = \\eta_{\\text{fusion}} \\cdot t_{\\text{conv}}$, where $\\eta_{\\text{fusion}} = 0.7$ accounts for intermediate DRAM transfer elimination.\n\n2. **Precision Scaling**: Down-casting FP32 parameters to low-precision FP16 or INT8 formats applies a hardware acceleration factor $\\alpha_{\\text{prec}}$:\n$$\\alpha_{\\text{prec}} = \\begin{cases} 0.5 & \\text{if FP16 (2x Tensor Core TFLOPS)} \\\\ 0.25 & \\text{if INT8 (4x Tensor Core TOPS)} \\\\ 1.0 & \\text{if FP32} \\end{cases}$$\nFinal fused layer latency is computed as:\n$$t_{\\text{final}} = t_{\\text{fused}} \\cdot \\alpha_{\\text{prec}}$$\n\n3. **Horizontal Layer Coalescing**: Parallel layers of identical type (e.g. $N_{\\text{parallel}}$ Conv branches) with latencies $t_1, t_2, \\dots, t_k$ are merged into a single grouped convolution launch with latency $t_{\\text{horizontal}} = \\max_j(t_j) \\cdot 1.15$, where $1.15$ accounts for grouping dispatch overhead.\n\nOverall execution speedup is given by:\n$$\\text{Speedup} = \\frac{\\sum_{i=1}^n t_{i,\\text{orig}}}{\\sum_{m=1}^M t_{m,\\text{opt}}}$$\n\nInput Format:\n- `layers`: List of network layer metadata objects containing `id`, `name`, `type`, `precision`, and baseline `latencyMs`.\n- `targetPrecision`: Target precision string (`'FP16'` or `'INT8'`).\n- `enableHorizontalFusion`: Boolean flag enabling horizontal parallel layer merging.\n\nOutput Format:\n- Returns dictionary containing `optimizedLayers`, `originalLatencyMs`, `optimizedLatencyMs`, and total calculated `speedup` factor.\n\nEdge Cases & Constraints:\n- Plugin custom layers: User-defined TensorRT plugins bypass standard graph rewrites and require custom tactic profiling.\n- Dynamic shape profiles: Optimization tactics must accommodate min/opt/max input dimensions specified in TensorRT optimization profiles.\n- Accuracy loss in INT8: Low-precision INT8 calibration requires KL-divergence histogram analysis ($D_{\\text{KL}}(P \\parallel Q) = \\sum P(x) \\log \\frac{P(x)}{Q(x)}$) to prevent severe quantization degradation.",
   constraints: [
@@ -722,4 +703,3 @@ export const tensorrtEngineOptimizer: AlgorithmDefinition<TensorrtEngineOptimize
   defaultInput: DEFAULT_TENSORRT_ENGINE_OPTIMIZER_INPUT,
   generateSteps: generateTensorrtEngineOptimizerSteps,
 };
-

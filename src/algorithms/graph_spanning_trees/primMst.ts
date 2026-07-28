@@ -93,7 +93,8 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
       const isCandidate =
         activeU !== undefined &&
         candidateV !== undefined &&
-        ((e.from === activeU && e.to === candidateV) || (e.from === candidateV && e.to === activeU));
+        ((e.from === activeU && e.to === candidateV) ||
+          (e.from === candidateV && e.to === activeU));
 
       return {
         from: `node-${e.from}`,
@@ -120,15 +121,28 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
     };
   };
 
+  const formatPq = (pqArray: Array<[number, number, number]>) => {
+    if (pqArray.length === 0) return "Empty";
+    const sorted = [...pqArray].sort((a, b) => a[0] - b[0]);
+    return sorted.map(([w, u]) => `(w:${w}, node:${u})`).join(", ");
+  };
+
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 4,
     explanation: {
       what: `Initialize Prim's algorithm for ${numNodes} nodes.`,
-      why: "Build adjacency list and prepare min-priority queue starting from Node 0.",
+      why: "Build adjacency list and prepare min-priority queue starting from seed Node 0.",
     },
     primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { startNode: 0, totalWeight: 0, nodesVisited: 0 } },
+    auxiliaryState: {
+      customState: {
+        "Priority Queue": "Empty",
+        "Total Weight": 0,
+        "Nodes Visited": `0 / ${numNodes}`,
+        "MST Edges": "None",
+      },
+    },
     variables: { numNodes, total_weight: 0, nodes_visited: 0 },
   });
 
@@ -145,8 +159,10 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
     primarySnapshot: createSnapshot(0),
     auxiliaryState: {
       customState: {
-        "Priority Queue": "[(w:0, node:0)]",
-        totalWeight: 0,
+        "Priority Queue": formatPq(pq),
+        "Total Weight": 0,
+        "Nodes Visited": `0 / ${numNodes}`,
+        "MST Edges": "None",
       },
     },
     variables: { startNode: 0, pqLength: 1 },
@@ -166,10 +182,11 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
       primarySnapshot: createSnapshot(u),
       auxiliaryState: {
         customState: {
-          poppedNode: u,
-          edgeWeight: w,
-          isAlreadyVisited: visited[u],
-          pqSize: pq.length,
+          "Popped Element": `Node ${u} (weight ${w})`,
+          "Priority Queue": formatPq(pq),
+          "Total Weight": totalWeight,
+          "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+          "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
         },
       },
       variables: { u, w, alreadyVisited: visited[u] },
@@ -186,8 +203,12 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
         primarySnapshot: createSnapshot(u),
         auxiliaryState: {
           customState: {
-            skippedNode: u,
-            reason: "Already visited (Cycle prevention)",
+            "Skipped Node": u,
+            Reason: "Already visited (Cycle prevention)",
+            "Priority Queue": formatPq(pq),
+            "Total Weight": totalWeight,
+            "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+            "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
           },
         },
         variables: { u, skipped: true },
@@ -213,11 +234,12 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
       primarySnapshot: createSnapshot(u),
       auxiliaryState: {
         customState: {
-          addedNode: u,
-          edgeWeight: w,
-          totalWeight,
-          nodesVisited,
+          "Added Node": u,
+          "Edge Weight": w,
+          "Total Weight": totalWeight,
+          "Nodes Visited": `${nodesVisited} / ${numNodes}`,
           "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
+          "Priority Queue": formatPq(pq),
         },
       },
       variables: { u, weight: w, total_weight: totalWeight, nodes_visited: nodesVisited },
@@ -242,9 +264,11 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
             primarySnapshot: createSnapshot(u, v),
             auxiliaryState: {
               customState: {
-                frontierEdge: `${u} -> ${v}`,
-                weight: edge.weight,
-                pqSize: pq.length,
+                "Frontier Edge": `${u} -> ${v} (w: ${edge.weight})`,
+                "Priority Queue": formatPq(pq),
+                "Total Weight": totalWeight,
+                "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+                "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
               },
             },
             variables: { u, v, weight: edge.weight },
@@ -267,7 +291,14 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
         : `Graph is disconnected. Visited only ${nodesVisited}/${numNodes} nodes. Return -1.`,
     },
     primarySnapshot: createSnapshot(),
-    auxiliaryState: { customState: { mstResult: result, totalWeight } },
+    auxiliaryState: {
+      customState: {
+        "MST Result": result,
+        "Total Weight": totalWeight,
+        "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+        "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
+      },
+    },
     variables: { result, isConnected, totalWeight },
   });
 
@@ -308,8 +339,7 @@ const PRIM_MST_TRIVIA: TriviaMeta = {
 export const primMst: AlgorithmDefinition<PrimMstInput> = {
   id: "prim-mst",
   title: "Prim's Minimum Spanning Tree Algorithm",
-  category: "graph_spanning_trees",
-  categories: ["graph_spanning_trees"],
+  topicIds: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
     "Prim's algorithm constructs a **Minimum Spanning Tree (MST)** for a connected, undirected weighted graph $G = (V, E)$ by growing a single tree component outward from an initial seed vertex. At each step, a **Min-Priority Queue** extracts the cheapest edge $(u, v, w)$ connecting a node inside the current tree $S$ to an unvisited node $v \\in V \\setminus S$. It operates in $\\mathcal{O}(E \\log V)$ time with a binary min-heap, prioritizing frontier edges crossing the cut boundary.",
@@ -327,7 +357,8 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
       title: "6-Node Graph",
       input: DEFAULT_PRIM_MST_INPUT,
       output: "13",
-      explanation: "MST includes edges (1-2:1), (0-1:2), (3-4:2), (2-4:3), (3-5:5) summing to weight 13.",
+      explanation:
+        "MST includes edges (1-2:1), (0-1:2), (3-4:2), (2-4:3), (3-5:5) summing to weight 13.",
     },
     {
       kind: "complex",

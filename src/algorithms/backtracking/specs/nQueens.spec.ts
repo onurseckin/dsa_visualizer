@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_NQUEENS_INPUT, generateNQueensSteps, nQueens } from "../nQueens";
 import type { GridVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("nQueens algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(nQueens.id).toBe("n-queens");
     expect(nQueens.title).toBe("N-Queens Backtracking");
-    expect(nQueens.category).toBe("backtracking");
+    expect(nQueens.topicIds).toContain("backtracking");
     expect(nQueens.difficulty).toBe("Hard");
     expect(nQueens.defaultInput).toEqual(DEFAULT_NQUEENS_INPUT);
   });
@@ -72,7 +73,11 @@ describe("nQueens algorithm spec", () => {
 
     const inputsToTest = [
       nQueens.defaultInput,
-      ...(nQueens.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        nQueens,
+        (input): input is typeof nQueens.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     const totalLines = nQueens.code.split("\n").length;

@@ -20,61 +20,41 @@ export const DEFAULT_MISSING_VALUE_SPLITTER_INPUT: MissingValueDefaultDirectionS
 };
 
 export const MISSING_VALUE_DEFAULT_DIRECTION_CODE = `def missing_value_default_direction_split(feature_values: list[float | None], gradients: list[float], hessians: list[float], lambda_reg: float = 1.0) -> tuple[str, float, float]:
-    """
-    XGBoost Sparsity-Aware Split Finding Algorithm (Algorithm 2 in Chen & Guestrin 2016).
-    Evaluates split gain when assigning ALL missing value samples to Left vs Right default directions.
-    Returns (defaultDirection, bestThreshold, maxGain).
-    """
     G_total = sum(gradients)
     H_total = sum(hessians)
-
-    # Separate non-missing valid samples from missing samples
     valid_samples = [(x, g, h) for x, g, h in zip(feature_values, gradients, hessians) if x is not None]
     valid_samples.sort(key=lambda item: item[0])
-
     best_gain = -float('inf')
     best_direction = "default_left"
     best_threshold = None
-
-    # Option 1: Default direction LEFT (missing samples added to Left child G_L, H_L)
     G_L_valid, H_L_valid = 0.0, 0.0
     G_missing = sum(g for x, g, h in zip(feature_values, gradients, hessians) if x is None)
     H_missing = sum(h for x, g, h in zip(feature_values, gradients, hessians) if x is None)
-
     for i in range(len(valid_samples) - 1):
         G_L_valid += valid_samples[i][1]
         H_L_valid += valid_samples[i][2]
-
-        # Left gets valid + missing
         G_L = G_L_valid + G_missing
         H_L = H_L_valid + H_missing
         G_R = G_total - G_L
         H_R = H_total - H_L
-
         gain_left = 0.5 * ((G_L ** 2) / (H_L + lambda_reg) + (G_R ** 2) / (H_R + lambda_reg) - (G_total ** 2) / (H_total + lambda_reg))
         if gain_left > best_gain:
             best_gain = gain_left
             best_direction = "default_left"
             best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0
-
-    # Option 2: Default direction RIGHT (missing samples added to Right child G_R, H_R)
     G_L_valid, H_L_valid = 0.0, 0.0
     for i in range(len(valid_samples) - 1):
         G_L_valid += valid_samples[i][1]
         H_L_valid += valid_samples[i][2]
-
-        # Right gets valid_R + missing
         G_L = G_L_valid
         H_L = H_L_valid
         G_R = G_total - G_L
         H_R = H_total - H_L
-
         gain_right = 0.5 * ((G_L ** 2) / (H_L + lambda_reg) + (G_R ** 2) / (H_R + lambda_reg) - (G_total ** 2) / (H_total + lambda_reg))
         if gain_right > best_gain:
             best_gain = gain_right
             best_direction = "default_right"
             best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0
-
     return best_direction, best_threshold, round(best_gain, 4)`;
 
 export const generateMissingValueSplitterSteps = (
@@ -104,16 +84,23 @@ export const generateMissingValueSplitterSteps = (
     .filter((s): s is { x: number; g: number; h: number; id: number } => s.x !== null)
     .sort((a, b) => a.x - b.x);
 
-  const getSnapshot = (
-    activeValidIdx: number = -1,
-  ) => {
+  let bestGain = -Infinity;
+  let bestDirection = "default_left";
+  let bestThreshold: number | null = null;
+
+  const getSnapshot = (activeValidIdx: number = -1) => {
     return {
       kind: "array" as const,
       elements: featureValues.map((x, i) => ({
         id: `s-${i}`,
-        value: x === null ? -99 : Math.round(x * 10),
+        value: x === null ? 0 : Math.round(x * 10) / 10,
         label: x === null ? `S${i}: NaN` : `S${i}: ${x}`,
-        state: x === null ? ("compare" as ElementState) : i === activeValidIdx ? ("active" as ElementState) : ("default" as ElementState),
+        state:
+          x === null
+            ? ("compare" as ElementState)
+            : i === activeValidIdx
+              ? ("active" as ElementState)
+              : ("default" as ElementState),
       })),
     };
   };
@@ -132,145 +119,112 @@ export const generateMissingValueSplitterSteps = (
       primarySnapshot: getSnapshot(activeValidIdx),
       auxiliaryState: {
         customState: {
-          "Algorithm": "XGBoost Sparsity-Aware Algorithm 2",
+          Algorithm: "XGBoost Sparsity-Aware Algorithm 2",
           "Total Samples N": String(featureValues.length),
           "Valid Samples Count": String(validSamples.length),
           "Missing Samples Count": String(featureValues.length - validSamples.length),
-          "G_missing": Gmissing.toFixed(4),
-          "H_missing": Hmissing.toFixed(4),
+          G_total: Gtotal.toFixed(4),
+          H_total: Htotal.toFixed(4),
+          G_missing: Gmissing.toFixed(4),
+          H_missing: Hmissing.toFixed(4),
+          "Best Direction": bestDirection,
+          "Best Gain": bestGain === -Infinity ? "-inf" : bestGain.toFixed(4),
+          "Best Threshold": bestThreshold === null ? "None" : bestThreshold.toFixed(2),
         },
       },
       variables,
     });
   };
 
-  // Step 1: Entry
+  // Step 1: Entry (line 1)
   addStep(
     1,
-    "XGBoost Sparsity-Aware Split Finding Entry",
-    `Started Sparsity-Aware Algorithm 2 on ${featureValues.length} samples (${validSamples.length} valid, ${featureValues.length - validSamples.length} missing).`,
+    "Algorithm Entry: missing_value_default_direction_split",
+    `Started Sparsity-Aware Split Finding on ${featureValues.length} total samples (${validSamples.length} valid non-missing, ${featureValues.length - validSamples.length} missing).`,
     { n: featureValues.length, validCount: validSamples.length },
   );
 
-  // Step 2: G_total (7)
-    addStep(
+  // Line 2: G_total = sum(gradients)
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
+    `Calculate Total Gradient G_total = ${Gtotal.toFixed(4)}`,
+    `Evaluated total gradient sum G_total across all dataset samples.`,
+    { Gtotal: Number(Gtotal.toFixed(4)) },
   );
 
+  // Line 3: H_total = sum(hessians)
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "XGBoost Sparsity-Aware Split Finding Algorithm (Algorithm 2 in Chen & Guest",
-    {},
+    `Calculate Total Hessian H_total = ${Htotal.toFixed(4)}`,
+    `Evaluated total hessian sum H_total across all dataset samples.`,
+    { Htotal: Number(Htotal.toFixed(4)) },
   );
 
+  // Line 4: valid_samples extraction
   addStep(
     4,
-    "Docstring body: algorithm description",
-    "Evaluates split gain when assigning ALL missing value samples to Left vs Ri",
-    {},
-  );
-
-  addStep(
-    5,
-    "Docstring body: algorithm description",
-    "Returns (defaultDirection, bestThreshold, maxGain).",
-    {},
-  );
-
-  addStep(
-    6,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    7,
-    `Calculate Total Gradient G_total = ${Gtotal.toFixed(4)}`,
-    `Evaluated total gradient sum G_total = ${Gtotal.toFixed(4)}.`,
-    { Gtotal },
-  );
-
-  // Step 3: H_total (8)
-  addStep(
-    8,
-    `Calculate Total Hessian H_total = ${Htotal.toFixed(4)}`,
-    `Evaluated total hessian sum H_total = ${Htotal.toFixed(4)}.`,
-    { Htotal },
-  );
-
-  // Step 4: Extract valid samples (11)
-  addStep(
-    11,
-    `Separate Non-Missing Valid Samples (${validSamples.length} samples)`,
-    `Filtered out missing (null) values. Retained ${validSamples.length} valid samples.`,
+    `Extract Valid Samples (${validSamples.length} valid non-missing samples)`,
+    `Filtered out missing (null/NaN) feature values. Retained ${validSamples.length} non-missing valid samples.`,
     { validCount: validSamples.length },
   );
 
-  // Step 5: Sort valid samples (12)
+  // Line 5: Sort valid samples
   addStep(
-    12,
-    `Sort Valid Samples by Feature Value x`,
-    `Sorted ${validSamples.length} valid samples: [${validSamples.map((s) => s.x).join(", ")}].`,
+    5,
+    "Sort Valid Samples by Feature Value x",
+    `Sorted ${validSamples.length} valid samples in ascending order of feature value: [${validSamples.map((s) => s.x).join(", ")}].`,
     { sorted: true },
   );
 
-  // Step 6: Init best_gain, best_direction, best_threshold (14..16)
-  let bestGain = -Infinity;
-  let bestDirection = "default_left";
-  let bestThreshold: number | null = null;
-
+  // Line 6: best_gain = -float('inf')
   addStep(
-    14,
+    6,
     "Initialize best_gain = -inf",
-    "Set best_gain accumulator to negative infinity.",
+    "Set max gain tracking accumulator to negative infinity.",
     { best_gain: "-inf" },
   );
 
+  // Line 7: best_direction = "default_left"
   addStep(
-    15,
+    7,
     'Initialize best_direction = "default_left"',
     'Set default direction fallback to "default_left".',
     { best_direction: "default_left" },
   );
 
+  // Line 8: best_threshold = None
+  addStep(8, "Initialize best_threshold = None", "Set decision threshold accumulator to None.", {
+    best_threshold: "None",
+  });
+
+  // Line 9: G_L_valid, H_L_valid = 0.0, 0.0
   addStep(
-    16,
-    "Initialize best_threshold = None",
-    "Set best_threshold to None.",
-    { best_threshold: "None" },
+    9,
+    "Initialize Valid Accumulators G_L_valid = 0.0, H_L_valid = 0.0",
+    "Reset valid left gradient and hessian accumulators to zero.",
+    { G_L_valid: 0.0, H_L_valid: 0.0 },
   );
 
-  // Option 1: Default LEFT (18..21)
+  // Line 10: G_missing = sum(...)
+  addStep(
+    10,
+    `Sum Missing Gradients G_missing = ${Gmissing.toFixed(4)}`,
+    `Evaluated total 1st-order gradient sum across missing value samples: G_missing = ${Gmissing.toFixed(4)}.`,
+    { Gmissing: Number(Gmissing.toFixed(4)) },
+  );
+
+  // Line 11: H_missing = sum(...)
+  addStep(
+    11,
+    `Sum Missing Hessians H_missing = ${Hmissing.toFixed(4)}`,
+    `Evaluated total 2nd-order hessian sum across missing value samples: H_missing = ${Hmissing.toFixed(4)}.`,
+    { Hmissing: Number(Hmissing.toFixed(4)) },
+  );
+
+  // Option 1 Loop (Lines 12..23)
   let GLValid = 0.0;
   let HLValid = 0.0;
 
-  addStep(
-    19,
-    "Option 1: Evaluate Default Direction LEFT (Missing -> Left Child)",
-    "Scanning valid sample boundaries with all missing value samples assigned to Left child node.",
-    { defaultDirection: "default_left" },
-  );
-
-  addStep(
-    20,
-    `Sum Missing Gradients G_missing = ${Gmissing.toFixed(4)}`,
-    `Evaluated total gradient of missing samples G_missing = ${Gmissing.toFixed(4)}.`,
-    { Gmissing },
-  );
-
-  addStep(
-    21,
-    `Sum Missing Hessians H_missing = ${Hmissing.toFixed(4)}`,
-    `Evaluated total hessian of missing samples H_missing = ${Hmissing.toFixed(4)}.`,
-    { Hmissing },
-  );
-
-  // Loop Option 1
   for (let i = 0; i < validSamples.length - 1; i++) {
     const s = validSamples[i];
     GLValid += s.g;
@@ -287,11 +241,19 @@ addStep(
     const gainLeft = 0.5 * (scoreL + scoreR - scoreP);
 
     addStep(
-      33,
-      `Option 1 (Default Left) Boundary i=${i}: x=${s.x} -> Gain = ${gainLeft.toFixed(4)}`,
+      15,
+      `Option 1 (Default Left) Boundary i=${i}: x=${s.x} (Assign missing to Left child)`,
+      `Assigned missing samples to Left child: G_L = G_L_valid (${GLValid.toFixed(4)}) + G_missing (${Gmissing.toFixed(4)}) = ${GL.toFixed(4)}.`,
+      { i, x: s.x, GL: Number(GL.toFixed(4)), HL: Number(HL.toFixed(4)) },
+      s.id,
+    );
+
+    addStep(
+      19,
+      `Option 1 Boundary i=${i}: Gain(Default Left) = ${gainLeft.toFixed(4)}`,
       `Evaluated split gain for default_left at boundary x=${s.x}: Gain = ${gainLeft.toFixed(4)}.`,
-      { i, x: s.x, gainLeft },
-      i,
+      { i, x: s.x, gainLeft: Number(gainLeft.toFixed(4)) },
+      s.id,
     );
 
     if (gainLeft > bestGain) {
@@ -300,26 +262,31 @@ addStep(
       bestThreshold = (validSamples[i].x + validSamples[i + 1].x) / 2.0;
 
       addStep(
-        35,
+        21,
         `New Best Split Found (Default Left)! Threshold t = ${bestThreshold.toFixed(2)}, Gain = ${bestGain.toFixed(4)}`,
-        `Updated best split: default_left, threshold t = ${bestThreshold.toFixed(2)}, Gain = ${bestGain.toFixed(4)}.`,
-        { bestGain, bestThreshold, bestDirection },
-        i,
+        `Updated overall best split: direction = default_left, threshold t = ${bestThreshold.toFixed(2)}, gain = ${bestGain.toFixed(4)}.`,
+        {
+          bestGain: Number(bestGain.toFixed(4)),
+          bestThreshold: Number(bestThreshold.toFixed(2)),
+          bestDirection,
+        },
+        s.id,
       );
     }
   }
 
-  // Option 2: Default RIGHT (40..42)
+  // Option 2 Reset (Line 24)
   GLValid = 0.0;
   HLValid = 0.0;
 
   addStep(
-    40,
-    "Option 2: Evaluate Default Direction RIGHT (Missing -> Right Child)",
-    "Scanning valid sample boundaries with all missing value samples assigned to Right child node.",
-    { defaultDirection: "default_right" },
+    24,
+    "Option 2: Reset Accumulators G_L_valid = 0.0, H_L_valid = 0.0",
+    "Reset valid accumulators to evaluate Option 2 (assigning missing samples to Right child node).",
+    { G_L_valid: 0.0, H_L_valid: 0.0 },
   );
 
+  // Option 2 Loop (Lines 25..36)
   for (let i = 0; i < validSamples.length - 1; i++) {
     const s = validSamples[i];
     GLValid += s.g;
@@ -336,11 +303,19 @@ addStep(
     const gainRight = 0.5 * (scoreL + scoreR - scoreP);
 
     addStep(
-      51,
-      `Option 2 (Default Right) Boundary i=${i}: x=${s.x} -> Gain = ${gainRight.toFixed(4)}`,
+      28,
+      `Option 2 (Default Right) Boundary i=${i}: x=${s.x} (Assign missing to Right child)`,
+      `Left child gets only valid samples: G_L = ${GL.toFixed(4)}. Right child receives G_missing: G_R = ${GR.toFixed(4)}.`,
+      { i, x: s.x, GL: Number(GL.toFixed(4)), GR: Number(GR.toFixed(4)) },
+      s.id,
+    );
+
+    addStep(
+      32,
+      `Option 2 Boundary i=${i}: Gain(Default Right) = ${gainRight.toFixed(4)}`,
       `Evaluated split gain for default_right at boundary x=${s.x}: Gain = ${gainRight.toFixed(4)}.`,
-      { i, x: s.x, gainRight },
-      i,
+      { i, x: s.x, gainRight: Number(gainRight.toFixed(4)) },
+      s.id,
     );
 
     if (gainRight > bestGain) {
@@ -349,19 +324,23 @@ addStep(
       bestThreshold = (validSamples[i].x + validSamples[i + 1].x) / 2.0;
 
       addStep(
-        53,
+        34,
         `New Best Split Found (Default Right)! Threshold t = ${bestThreshold.toFixed(2)}, Gain = ${bestGain.toFixed(4)}`,
-        `Updated best split: default_right, threshold t = ${bestThreshold.toFixed(2)}, Gain = ${bestGain.toFixed(4)}.`,
-        { bestGain, bestThreshold, bestDirection },
-        i,
+        `Updated overall best split: direction = default_right, threshold t = ${bestThreshold.toFixed(2)}, gain = ${bestGain.toFixed(4)}.`,
+        {
+          bestGain: Number(bestGain.toFixed(4)),
+          bestThreshold: Number(bestThreshold.toFixed(2)),
+          bestDirection,
+        },
+        s.id,
       );
     }
   }
 
-  // Final step (57)
+  // Line 37: Return statement
   const roundedGain = Math.round(bestGain * 10000) / 10000;
   addStep(
-    57,
+    37,
     `Execution Complete: Return (${bestDirection}, t=${bestThreshold?.toFixed(2)}, Gain=${roundedGain})`,
     `Optimal sparsity-aware split found: Direction = ${bestDirection}, Threshold t = ${bestThreshold?.toFixed(2)}, Max Gain = ${roundedGain}.`,
     { bestDirection, bestThreshold: bestThreshold ?? 0, maxGain: roundedGain, completed: true },
@@ -371,7 +350,7 @@ addStep(
 };
 
 const MISSING_VALUE_DEFAULT_DIRECTION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 9, 10, 13, 17, 18, 22, 23, 24, 25, 26, 27, 28, 29, 30, 36, 37, 38, 39, 44, 45, 46, 47, 48, 49, 55, 56],
+  skipLines: [1, 6, 7, 8, 9, 13, 14, 16, 17, 18, 21, 22, 24, 26, 27, 29, 30, 31, 34, 35],
   distractors: [
     "best_direction = 'drop_missing'",
     "G_L = G_L_valid - G_missing",
@@ -379,88 +358,60 @@ const MISSING_VALUE_DEFAULT_DIRECTION_TRIVIA: TriviaMeta = {
     "gain_right = gain_left * 2.0",
   ],
   hints: [
-    { line: 28, hint: "Filter out missing (None/null) values before sorting valid samples." },
-    { line: 45, hint: "Option 1 (Default Left): Add G_missing and H_missing to G_L and H_L." },
-    { line: 65, hint: "Option 2 (Default Right): Add G_missing and H_missing to G_R and H_R." },
+    { line: 4, hint: "Filter out missing (None/null) values before sorting valid samples." },
+    { line: 15, hint: "Option 1 (Default Left): Add G_missing and H_missing to G_L and H_L." },
+    { line: 30, hint: "Option 2 (Default Right): G_R includes G_missing automatically." },
   ],
   lineExplanations: {
     1: "Defines entry point for missing_value_default_direction_split function implementing XGBoost Algorithm 2.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes XGBoost Sparsity-Aware Split Finding Algorithm (Algorithm 2 in Chen & Guestrin 2016).",
-    4: "Docstring detailing evaluating split gain assigning ALL missing values to Left vs Right default directions.",
-    5: "Docstring return signature tuple detail.",
-    6: "Docstring closing delimiter tag.",
-    7: "Sums total gradient G_total across all samples (including missing).",
-    8: "Sums total hessian H_total across all samples (including missing).",
-    9: "Blank line before valid sample extraction.",
-    10: "Comment for separating non-missing valid samples from missing samples.",
-    11: "Extracts valid non-missing samples (x is not None) as (x, g, h) tuples.",
-    12: "Sorts valid samples in ascending order by feature value x.",
-    13: "Blank line before accumulators initialization.",
-    14: "Initializes best_gain to negative infinity.",
-    15: "Initializes best_direction to 'default_left'.",
-    16: "Initializes best_threshold to None.",
-    17: "Blank line before Option 1 section.",
-    18: "Comment for Option 1: Default direction LEFT (missing samples added to Left child G_L, H_L).",
-    19: "Initializes valid left gradient G_L_valid = 0.0 and valid left hessian H_L_valid = 0.0.",
-    20: "Sums gradient G_missing across all missing (None/null) samples.",
-    21: "Sums hessian H_missing across all missing (None/null) samples.",
-    22: "Blank line before Option 1 boundary search loop.",
-    23: "Iterates over valid sample boundary index i from 0 to len(valid_samples) - 2.",
-    24: "Accumulates sample gradient valid_samples[i][1] into G_L_valid.",
-    25: "Accumulates sample hessian valid_samples[i][2] into H_L_valid.",
-    26: "Blank line before Option 1 total sums assignment.",
-    27: "Comment for Left getting valid + missing samples.",
-    28: "Computes total left gradient G_L = G_L_valid + G_missing.",
-    29: "Computes total left hessian H_L = H_L_valid + H_missing.",
-    30: "Computes total right gradient G_R = G_total - G_L.",
-    31: "Computes total right hessian H_R = H_total - H_L.",
-    32: "Blank line before Option 1 gain calculation.",
-    33: "Evaluates XGBoost split gain for Option 1 (Default Left).",
-    34: "Checks if gain_left exceeds current best_gain.",
-    35: "Updates best_gain to gain_left.",
-    36: "Updates best_direction to 'default_left'.",
-    37: "Calculates midpoint decision threshold best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0.",
-    38: "Blank line before Option 2 section.",
-    39: "Comment for Option 2: Default direction RIGHT (missing samples added to Right child G_R, H_R).",
-    40: "Resets valid left accumulators G_L_valid = 0.0 and H_L_valid = 0.0.",
-    41: "Iterates over valid sample boundary index i from 0 to len(valid_samples) - 2.",
-    42: "Accumulates sample gradient valid_samples[i][1] into G_L_valid.",
-    43: "Accumulates sample hessian valid_samples[i][2] into H_L_valid.",
-    44: "Blank line before Option 2 total sums assignment.",
-    45: "Comment for Right getting valid_R + missing samples.",
-    46: "Sets left gradient G_L = G_L_valid.",
-    47: "Sets left hessian H_L = H_L_valid.",
-    48: "Computes total right gradient G_R = G_total - G_L (which includes G_missing).",
-    49: "Computes total right hessian H_R = H_total - H_L (which includes H_missing).",
-    50: "Blank line before Option 2 gain calculation.",
-    51: "Evaluates XGBoost split gain for Option 2 (Default Right).",
-    52: "Checks if gain_right exceeds current best_gain.",
-    53: "Updates best_gain to gain_right.",
-    54: "Updates best_direction to 'default_right'.",
-    55: "Calculates midpoint decision threshold best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0.",
-    56: "Blank line separating Option 2 loop from return statement.",
-    57: "Returns tuple of (best_direction, best_threshold, rounded best_gain).",
+    2: "Calculates total gradient sum G_total across all dataset samples (including missing values).",
+    3: "Calculates total hessian sum H_total across all dataset samples (including missing values).",
+    4: "Filters feature_values to separate non-missing valid samples (x is not None) as (x, g, h) tuples.",
+    5: "Sorts valid non-missing samples in ascending order by feature value x.",
+    6: "Initializes best_gain accumulator to negative infinity.",
+    7: "Initializes default direction best_direction to 'default_left'.",
+    8: "Initializes optimal decision threshold best_threshold to None.",
+    9: "Initializes accumulators G_L_valid = 0.0 and H_L_valid = 0.0 for non-missing left child samples.",
+    10: "Calculates sum of 1st-order gradients G_missing across all missing (None/NaN) samples.",
+    11: "Calculates sum of 2nd-order hessians H_missing across all missing (None/NaN) samples.",
+    12: "Option 1 (Default Left): Iterates through valid sample split boundary indices from i = 0 to len(valid_samples) - 2.",
+    13: "Accumulates sample gradient valid_samples[i][1] into valid left sum G_L_valid.",
+    14: "Accumulates sample hessian valid_samples[i][2] into valid left sum H_L_valid.",
+    15: "Assigns missing samples to Left child: G_L = G_L_valid + G_missing.",
+    16: "Assigns missing samples to Left child: H_L = H_L_valid + H_missing.",
+    17: "Calculates Right child gradient sum G_R = G_total - G_L.",
+    18: "Calculates Right child hessian sum H_R = H_total - H_L.",
+    19: "Computes XGBoost split gain for Option 1 (Default Left) with L2 regularization lambda_reg.",
+    20: "Checks if gain_left is strictly greater than current best_gain.",
+    21: "Updates best_gain to gain_left.",
+    22: "Updates best_direction to 'default_left'.",
+    23: "Calculates midpoint decision threshold best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0.",
+    24: "Option 2 (Default Right): Resets valid left accumulators G_L_valid = 0.0 and H_L_valid = 0.0.",
+    25: "Option 2 (Default Right): Iterates through valid sample split boundary indices from i = 0 to len(valid_samples) - 2.",
+    26: "Accumulates sample gradient valid_samples[i][1] into valid left sum G_L_valid.",
+    27: "Accumulates sample hessian valid_samples[i][2] into valid left sum H_L_valid.",
+    28: "Leaves missing samples for Right child: G_L = G_L_valid.",
+    29: "Leaves missing samples for Right child: H_L = H_L_valid.",
+    30: "Calculates Right child gradient sum G_R = G_total - G_L (which includes G_missing).",
+    31: "Calculates Right child hessian sum H_R = H_total - H_L (which includes H_missing).",
+    32: "Computes XGBoost split gain for Option 2 (Default Right) with L2 regularization lambda_reg.",
+    33: "Checks if gain_right is strictly greater than current best_gain.",
+    34: "Updates best_gain to gain_right.",
+    35: "Updates best_direction to 'default_right'.",
+    36: "Calculates midpoint decision threshold best_threshold = (valid_samples[i][0] + valid_samples[i+1][0]) / 2.0.",
+    37: "Returns optimal default direction, threshold, and rounded maximum split gain.",
   },
 };
 
 export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingValueDefaultDirectionSplitterInput> =
   {
-    id: "missingValueDefaultDirectionSplitter",
+    id: "missing-value-default-direction-splitter",
     title: "Sparsity-Aware Missing Value Splitter",
-    category: "ml_tree_ensembles",
-    categories: ["ml_tree_ensembles", "advanced_range_queries"],
+    topicIds: ["ml_tree_ensembles", "advanced_range_queries"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_tree_ensembles",
     description:
       "The Sparsity-Aware Missing Value Splitter implements **XGBoost Algorithm 2** (Chen & Guestrin 2016) for handling missing data, zero-entries, and sparse matrices during decision tree split search. Instead of imputing missing values (mean/median imputation), Algorithm 2 automatically learns an optimal **default branch direction** (Default Left or Default Right) for every internal decision node by evaluating split gains under both assignments.\n\n### Why It Exists\nReal-world tabular data frequently contains missing values (NaNs, unrecorded fields, one-hot zero entries). Standard decision trees require complete data. XGBoost's sparsity-aware algorithm handles sparse inputs natively, achieving 10x-50x speedups on sparse matrices while learning optimal default routing for unseen missing data at inference time.\n\n### Mathematical Formulation\nGiven non-missing valid sample set $I_{valid}$ and missing sample set $I_{missing}$ with total sums $G_{total}, H_{total}$ and missing sums $G_{missing} = \\sum_{i \\in I_{missing}} g_i, H_{missing} = \\sum_{i \\in I_{missing}} h_i$:\n\n$$\\mathbf{\\text{Option 1 (Default Left)}}: \\quad G_L = G_{L, valid} + G_{missing}, \\quad H_L = H_{L, valid} + H_{missing}$$\n\n$$\\mathbf{\\text{Option 2 (Default Right)}}: \\quad G_L = G_{L, valid}, \\quad H_L = H_{L, valid}, \\quad G_R = G_{total} - G_L$$\n\n$$\\text{Gain} = \\frac{1}{2} \\left[ \\frac{G_L^2}{H_L + \\lambda} + \\frac{G_R^2}{H_R + \\lambda} - \\frac{G_{total}^2}{H_{total} + \\lambda} \\right] - \\gamma$$\n\n$$\\text{Optimal Split} = \\arg\\max_{\\text{direction} \\in \\{\\text{left}, \\text{right}\\}, \\, t} \\text{Gain}(\\text{direction}, t)$$\n\n### Step-by-Step Intuition\n1. **Valid/Missing Separation**: Separate non-missing samples $I_{valid}$ from missing samples $I_{missing}$. Sort valid samples by feature value.\n2. **Missing Sum Accumulation**: Pre-calculate total missing gradients $G_{missing}$ and hessians $H_{missing}$.\n3. **Pass 1 (Default Left)**: Scan valid sample boundaries with all missing samples added to $G_L, H_L$. Record max gain $\\text{Gain}_{left}$.\n4. **Pass 2 (Default Right)**: Scan valid sample boundaries with all missing samples added to $G_R, H_R$. Record max gain $\\text{Gain}_{right}$.\n5. **Optimal Direction Selection**: Pick the overall maximum gain split and store its `default_direction` at the node.\n\n### Key Trade-Offs & Hardware Execution\n- **Inference Zero-Overhead**: During tree inference, if a sample contains a missing value $X[j] = \\text{NaN}$, it follows the node's stored `default_direction` in $O(1)$ time without imputation math.\n- **Sparse Matrix Linear Pass**: Scanning only non-missing entries reduces computational complexity from $O(N \\log N)$ to $O(N_{valid} \\log N_{valid})$.",
-    constraints: [
-      "1 <= N <= 1000000",
-      "lambdaReg >= 0.0",
-      "featureValues can contain null/NaN",
-    ],
+    constraints: ["1 <= N <= 1000000", "lambdaReg >= 0.0", "featureValues can contain null/NaN"],
     examples: [
       {
         kind: "basic",
@@ -469,7 +420,8 @@ export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingVa
         outputDisplay: "Default Direction: default_right, Threshold t = 6.85, Gain = 0.8241",
         input: DEFAULT_MISSING_VALUE_SPLITTER_INPUT,
         output: "('default_right', 6.85, 0.8241)",
-        explanation: "Evaluates split gain under both default_left and default_right missing assignments; default_right yields higher Gain.",
+        explanation:
+          "Evaluates split gain under both default_left and default_right missing assignments; default_right yields higher Gain.",
       },
     ],
     code: MISSING_VALUE_DEFAULT_DIRECTION_CODE,
@@ -507,11 +459,13 @@ export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingVa
       keyTerms: [
         {
           term: "Sparsity-Aware Split Finding",
-          definition: "XGBoost Algorithm 2 finding optimal splits over non-missing samples while learning default branch directions.",
+          definition:
+            "XGBoost Algorithm 2 finding optimal splits over non-missing samples while learning default branch directions.",
         },
         {
           term: "Default Branch Direction",
-          definition: "Stored node direction (default_left or default_right) followed when a feature value is missing or NaN.",
+          definition:
+            "Stored node direction (default_left or default_right) followed when a feature value is missing or NaN.",
         },
         {
           term: "Missing Gradient Sum (G_missing)",
@@ -519,7 +473,8 @@ export const missingValueDefaultDirectionSplitter: AlgorithmDefinition<MissingVa
         },
         {
           term: "Imputation-Free Inference",
-          definition: "Routing missing samples at inference time via default direction without computing mean/median imputation.",
+          definition:
+            "Routing missing samples at inference time via default direction without computing mean/median imputation.",
         },
       ],
     },

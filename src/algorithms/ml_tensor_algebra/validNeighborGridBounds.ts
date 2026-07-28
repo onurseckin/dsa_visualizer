@@ -9,9 +9,6 @@ export interface validNeighborGridBoundsInput {
 }
 
 export const VALIDNEIGHBORGRIDBOUNDS_CODE = `def valid_neighbor_grid_bounds(rows, cols, r, c):
-    """
-    Extracts valid 4-directional adjacent neighbor coordinates within grid bounds.
-    """
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     valid_neighbors = []
 
@@ -126,38 +123,17 @@ export const generateValidNeighborGridBoundsSteps = (
     { rows, cols, r, c },
   );
 
+  // Line 2: directions
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Extracts valid 4-directional adjacent neighbor coordinates within grid bounds.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: directions
-  addStep(
-    5,
     "directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]",
     "Loaded 4 orthogonal movement direction offset vectors: Up (-1, 0), Down (1, 0), Left (0, -1), Right (0, 1).",
     { directions: "[(-1,0), (1,0), (0,-1), (0,1)]" },
   );
 
-  // Line 6: valid_neighbors = []
+  // Line 3: valid_neighbors = []
   addStep(
-    6,
+    3,
     "valid_neighbors = []",
     "Initialized empty result list for accumulating valid neighbor coordinate tuples.",
     { valid_count: 0 },
@@ -167,19 +143,19 @@ export const generateValidNeighborGridBoundsSteps = (
   directions.forEach((dirObj, dirIdx) => {
     const { dr, dc, label } = dirObj;
 
-    // Line 8: Loop header
+    // Line 5: Loop header
     addStep(
-      8,
+      5,
       `Loop iteration ${dirIdx + 1}/4: dr=${dr}, dc=${dc} (${label})`,
       `Testing direction '${label}' offset (${dr}, ${dc}) from focal cell (${r}, ${c}).`,
       { dirIdx, dr, dc, label },
     );
 
-    // Line 9: Calculate nr, nc
+    // Line 6: Calculate nr, nc
     const nr = r + dr;
     const nc = c + dc;
     addStep(
-      9,
+      6,
       `nr, nc = r + dr, c + dc -> (${r} + ${dr}, ${c} + ${dc}) = (${nr}, ${nc})`,
       `Computed candidate neighbor coordinates (${nr}, ${nc}).`,
       { nr, nc, r, c, dr, dc },
@@ -190,7 +166,7 @@ export const generateValidNeighborGridBoundsSteps = (
     // Micro-step: Row boundary evaluation
     const rowInBounds = 0 <= nr && nr < rows;
     addStep(
-      10,
+      7,
       `Evaluate row bound: 0 <= nr < rows -> 0 <= ${nr} < ${rows} -> ${rowInBounds}`,
       rowInBounds
         ? `Row coordinate ${nr} lies within grid row bounds [0, ${rows - 1}].`
@@ -203,7 +179,7 @@ export const generateValidNeighborGridBoundsSteps = (
     // Micro-step: Col boundary evaluation
     const colInBounds = 0 <= nc && nc < cols;
     addStep(
-      10,
+      7,
       `Evaluate col bound: 0 <= nc < cols -> 0 <= ${nc} < ${cols} -> ${colInBounds}`,
       colInBounds
         ? `Column coordinate ${nc} lies within grid column bounds [0, ${cols - 1}].`
@@ -213,10 +189,10 @@ export const generateValidNeighborGridBoundsSteps = (
       colInBounds,
     );
 
-    // Line 10: Overall IF evaluation
+    // Line 7: Overall IF evaluation
     const isValid = rowInBounds && colInBounds;
     addStep(
-      10,
+      7,
       `Check if 0 <= nr < rows and 0 <= nc < cols -> ${isValid}`,
       isValid
         ? `Candidate neighbor (${nr}, ${nc}) is VALID within grid boundaries.`
@@ -228,9 +204,9 @@ export const generateValidNeighborGridBoundsSteps = (
 
     if (isValid) {
       validNeighbors.push([nr, nc]);
-      // Line 11: Append
+      // Line 8: Append
       addStep(
-        11,
+        8,
         `valid_neighbors.append((${nr}, ${nc}))`,
         `Appended valid neighbor (${nr}, ${nc}) to results list.`,
         { nr, nc, total_valid: validNeighbors.length },
@@ -240,9 +216,9 @@ export const generateValidNeighborGridBoundsSteps = (
     }
   });
 
-  // Line 13: Return
+  // Line 10: Return
   addStep(
-    13,
+    10,
     `Return valid_neighbors -> [${validNeighbors.map(([vr, vc]) => `(${vr},${vc})`).join(", ")}]`,
     `Completed neighbor bounds verification. Found ${validNeighbors.length} valid adjacent neighbors.`,
     { total_valid: validNeighbors.length, completed: true },
@@ -258,7 +234,12 @@ const VALIDNEIGHBORGRIDBOUNDS_TRIVIA: TriviaMeta = {
     "valid_neighbors.append(dr + dc)",
     "if 0 <= nr <= rows and 0 <= nc <= cols:",
   ],
-  hints: [{ line: 10, hint: "Check strict upper inequality nr < rows and nc < cols for zero-indexed grids." }],
+  hints: [
+    {
+      line: 10,
+      hint: "Check strict upper inequality nr < rows and nc < cols for zero-indexed grids.",
+    },
+  ],
   lineExplanations: {
     1: "Defines entry point for valid 2D grid neighbor bounds check.",
     2: "Docstring opening tag.",
@@ -279,12 +260,8 @@ const VALIDNEIGHBORGRIDBOUNDS_TRIVIA: TriviaMeta = {
 export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBoundsInput> = {
   id: "valid-neighbor-grid-bounds",
   title: "Valid 2D Grid Neighbor Bounds Check",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In 2D grid traversal algorithms (Graph BFS/DFS, Flood Fill, Pathfinding like $A^*$/Dijkstra) and ML spatial kernel operations (Convolution padding boundaries, Pooling window stencils, Vision Transformer patch neighbor queries), candidate adjacent cells must be checked against valid grid coordinate bounds:\n$$0 \\le n_r < R \\quad \\text{and} \\quad 0 \\le n_c < C$$\n\nWithout bounds validation, accessing cell $(n_r, n_c)$ risks out-of-bounds array index exceptions or illegal DRAM read accesses in low-level C++/CUDA kernels.\n\nThis algorithm iterates across the 4 orthogonal cardinal direction vectors (Up, Down, Left, Right), computes offset candidate coordinates, evaluates range constraints, and filters valid adjacent neighbor cells.",
   constraints: ["1 <= rows, cols <= 100", "0 <= r < rows", "0 <= c < cols"],
@@ -296,7 +273,8 @@ export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBound
       outputDisplay: "[(1,2), (3,2), (2,1), (2,3)]",
       input: { rows: 5, cols: 5, r: 2, c: 2 },
       output: "[(1,2), (3,2), (2,1), (2,3)]",
-      explanation: "Focal cell (2,2) is in interior; all 4 orthogonal directions yield valid coordinates.",
+      explanation:
+        "Focal cell (2,2) is in interior; all 4 orthogonal directions yield valid coordinates.",
     },
     {
       kind: "complex",
@@ -305,7 +283,8 @@ export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBound
       outputDisplay: "[(1,0), (0,1)]",
       input: { rows: 5, cols: 5, r: 0, c: 0 },
       output: "[(1,0), (0,1)]",
-      explanation: "Up (-1,0) and Left (0,-1) violate 0 <= index bounds; Down and Right return valid.",
+      explanation:
+        "Up (-1,0) and Left (0,-1) violate 0 <= index bounds; Down and Right return valid.",
     },
     {
       kind: "negative",
@@ -330,7 +309,7 @@ export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBound
     sections: [
       {
         heading: "Why It Exists & Theoretical Foundations",
-        body: "Grids model 2D Cartesian spatial structures where adjacency is defined by displacement vectors. 4-directional connectivity uses directional offsets $\{(-1,0), (1,0), (0,-1), (0,1)\}$. For a point $(r, c)$ on a bounded grid $[0, R-1] \\times [0, C-1]$, valid neighbor topology requires the strict conjunction:\n$$0 \\le r + \\Delta r < R \\quad \\text{and} \\quad 0 \\le c + \\Delta c < C$$",
+        body: "Grids model 2D Cartesian spatial structures where adjacency is defined by displacement vectors. 4-directional connectivity uses directional offsets ${(-1,0), (1,0), (0,-1), (0,1)}$. For a point $(r, c)$ on a bounded grid $[0, R-1] \\times [0, C-1]$, valid neighbor topology requires the strict conjunction:\n$$0 \\le r + \\Delta r < R \\quad \\text{and} \\quad 0 \\le c + \\Delta c < C$$",
       },
       {
         heading: "What It Solves & Real-World Applications",
@@ -352,19 +331,23 @@ export const validNeighborGridBounds: AlgorithmDefinition<validNeighborGridBound
     keyTerms: [
       {
         term: "4-Connectivity",
-        definition: "Adjacent neighbor topology considering only the 4 cardinal orthogonal directions (Up, Down, Left, Right).",
+        definition:
+          "Adjacent neighbor topology considering only the 4 cardinal orthogonal directions (Up, Down, Left, Right).",
       },
       {
         term: "Boundary Guard",
-        definition: "Conditional logic ensuring array indices satisfy 0 <= index < size before accessing memory.",
+        definition:
+          "Conditional logic ensuring array indices satisfy 0 <= index < size before accessing memory.",
       },
       {
         term: "Halo Region",
-        definition: "Outer boundary padding layers surrounding matrix grids to absorb out-of-bounds spatial stencil reads.",
+        definition:
+          "Outer boundary padding layers surrounding matrix grids to absorb out-of-bounds spatial stencil reads.",
       },
       {
         term: "Warp Divergence",
-        definition: "GPU performance penalty occurring when threads within a 32-thread warp execute differing conditional branch paths.",
+        definition:
+          "GPU performance penalty occurring when threads within a 32-thread warp execute differing conditional branch paths.",
       },
     ],
   },

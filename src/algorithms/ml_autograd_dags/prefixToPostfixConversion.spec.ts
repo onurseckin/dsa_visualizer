@@ -8,17 +8,23 @@ import {
 describe("prefix-to-postfix-conversion (Prefix to Postfix Expression Converter)", () => {
   it("should have correct metadata", () => {
     expect(prefixToPostfixConversion.id).toBe("prefix-to-postfix-conversion");
-    expect(prefixToPostfixConversion.isMlInfra).toBe(true);
-    expect(prefixToPostfixConversion.mlInfraLevel).toBe(3);
-    expect(prefixToPostfixConversion.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(prefixToPostfixConversion.categories).toContain("ml_autograd_dags");
+    expect(prefixToPostfixConversion.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(prefixToPostfixConversion.topicIds).toContain("ml_autograd_dags");
+    expect(prefixToPostfixConversion.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {
     const steps = generatePrefixToPostfixConversionSteps(DEFAULT_PREFIXTOPOSTFIXCONVERSION_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Prefix to Postfix Expression Converter Engine");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[steps.length - 1].explanation.what).toContain(
+      "Return Final Converted Postfix Expression",
+    );
+    expect(steps[steps.length - 1].codeLine).toBe(
+      prefixToPostfixConversion.code.trim().split("\n").length,
+    );
   });
 
   it("should have complete lineExplanations for every code line", () => {

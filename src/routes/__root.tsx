@@ -1,7 +1,7 @@
 import { createRootRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AppView } from "../types/dsa";
 import { Navbar } from "../ui";
-import { CATEGORIES } from "../app/categories";
+import { TOPICS } from "../app/topics";
 import { SettingsProvider, useSettings } from "../app/SettingsContext";
 
 export const Route = createRootRoute({
@@ -55,7 +55,7 @@ function RootShell(): React.ReactElement {
       <Navbar
         appView={appView}
         onSetAppView={handleSetAppView}
-        categories={CATEGORIES}
+        topics={TOPICS}
         activeAlgorithmId={lastAlgorithmId}
         onGlobalSelectAlgorithm={handleGlobalSelectAlgorithm}
         panels={panels}

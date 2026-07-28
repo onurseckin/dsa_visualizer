@@ -4,7 +4,7 @@ import { ProblemDescriptionCard, ProblemDescriptionCardProps } from "../../../ui
 
 const baseProps: ProblemDescriptionCardProps = {
   title: "Two Sum",
-  category: "arrays_and_hashing",
+  topicIds: ["arrays_and_hashing", "two_pointers"],
   difficulty: "Easy",
   description: "Return the indices of the two numbers that add up to the target.",
   constraints: ["2 <= nums.length <= 10^4"],
@@ -73,13 +73,14 @@ describe("ProblemDescriptionCard", () => {
     expect(screen.getByText("Problem")).toBeInTheDocument();
   });
 
-  it("keeps title, difficulty badge, and category tag visible when collapsed (expanded=false)", () => {
+  it("keeps title, difficulty badge, and all topic tags visible when collapsed", () => {
     renderCard({ expanded: false });
 
     // Header elements remain visible
     expect(screen.getByText("Two Sum")).toBeInTheDocument();
     expect(screen.getByText("Easy")).toBeInTheDocument();
-    expect(screen.getByText("Arrays and hashing")).toBeInTheDocument();
+    expect(screen.getByText("Arrays & Hashing")).toBeInTheDocument();
+    expect(screen.getByText("Two Pointers")).toBeInTheDocument();
 
     // Details content is collapsed/hidden
     expect(screen.queryByTestId("problem-description-details")).toBeNull();

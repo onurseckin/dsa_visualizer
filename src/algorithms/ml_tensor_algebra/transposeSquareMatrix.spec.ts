@@ -9,10 +9,9 @@ import {
 describe("transpose-square-matrix (In-Place Square Matrix Transpose)", () => {
   it("should have correct metadata", () => {
     expect(transposeSquareMatrix.id).toBe("transpose-square-matrix");
-    expect(transposeSquareMatrix.isMlInfra).toBe(true);
-    expect(transposeSquareMatrix.mlInfraLevel).toBe(1);
-    expect(transposeSquareMatrix.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(transposeSquareMatrix.categories).toContain("ml_tensor_algebra");
+    expect(transposeSquareMatrix.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(transposeSquareMatrix.topicIds).toContain("ml_tensor_algebra");
+    expect(transposeSquareMatrix.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 steps with matrix primarySnapshot for default input", () => {
@@ -26,7 +25,7 @@ describe("transpose-square-matrix (In-Place Square Matrix Transpose)", () => {
   it("should map every line of code in lineExplanations", () => {
     const codeLines = TRANSPOSESQUAREMATRIX_CODE.trim().split("\n");
     const totalLines = codeLines.length;
-    expect(totalLines).toBe(11);
+    expect(totalLines).toBe(8);
 
     const lineExplanations = transposeSquareMatrix.trivia?.lineExplanations || {};
     for (let lineNum = 1; lineNum <= totalLines; lineNum++) {

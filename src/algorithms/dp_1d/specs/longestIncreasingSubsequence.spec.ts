@@ -9,7 +9,7 @@ import {
 describe("longestIncreasingSubsequence algorithm logic spec", () => {
   it("has categories ['dp_1d'] and valid metadata", () => {
     expect(longestIncreasingSubsequence.id).toBe("longest-increasing-subsequence");
-    expect(longestIncreasingSubsequence.categories).toEqual(["dp_1d"]);
+    expect(longestIncreasingSubsequence.topicIds).toEqual(["dp_1d"]);
     expect(longestIncreasingSubsequence.difficulty).toBe("Medium");
     expect(longestIncreasingSubsequence.code).toContain("def length_of_lis");
   });

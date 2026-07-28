@@ -27,13 +27,17 @@ describe("TwoPointers React Component Spec", () => {
     );
 
     expect(screen.getByText("Two Pointers (Subarray Sum)")).toBeInTheDocument();
-    expect(screen.getAllByText(/contiguous subarray that sums to a target value/i)[0]).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/contiguous subarray that sums to a target value/i)[0],
+    ).toBeInTheDocument();
     expect(screen.getAllByText(/variable-size sliding window/i)[0]).toBeInTheDocument();
   });
 
   it("renders step visualizer with target sum found status", () => {
     const steps = generateTwoPointersSteps(twoPointers.defaultInput);
-    const returnStep = steps.find((s) => s.explanation.what.includes("Return window bounds")) ?? steps[steps.length - 1];
+    const returnStep =
+      steps.find((s) => s.explanation.what.includes("Return window bounds")) ??
+      steps[steps.length - 1];
     const noop = vi.fn();
 
     render(

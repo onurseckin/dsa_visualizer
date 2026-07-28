@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorItem,
+  VectorVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface strided1dDotProductInput {
@@ -10,9 +15,6 @@ export interface strided1dDotProductInput {
 }
 
 export const STRIDED1DDOTPRODUCT_CODE = `def strided_1d_dot_product(vec_a, vec_b, stride_a=1, stride_b=1):
-    """
-    Computes dot product of two vectors with arbitrary strided memory layouts.
-    """
     n = min(len(vec_a) // stride_a, len(vec_b) // stride_b)
     dot_sum = 0
 
@@ -42,96 +44,61 @@ export const generateStrided1dDotProductSteps = (
   const strideA = input.strideA ?? 2;
   const strideB = input.strideB ?? 2;
 
-  const n = Math.min(
-    Math.floor(vecA.length / strideA),
-    Math.floor(vecB.length / strideB),
-  );
+  const n = Math.min(Math.floor(vecA.length / strideA), Math.floor(vecB.length / strideB));
 
-  const cols = Math.max(vecA.length, vecB.length);
   let runningSum = 0;
 
-  const makeMatrixSnapshot = (
+  const makeVectorSnapshot = (
     currentI: number | null,
     stepIdxA: number | null,
     stepIdxB: number | null,
     titleText?: string,
-  ) => {
-    const cells: MatrixCellItem[] = [];
+  ): VectorVisualSnapshot => {
+    const vectors: VectorItem[] = [];
 
-    // Row 0: Vector A
-    vecA.forEach((val, idx) => {
-      let state: MatrixCellItem["state"] = "default";
-      const isStrided = idx % strideA === 0 && idx / strideA < n;
+    for (let i = 0; i < n; i++) {
+      const idxA = i * strideA;
+      const idxB = i * strideB;
+      const valA = vecA[idxA] ?? 0;
+      const valB = vecB[idxB] ?? 0;
+      const prod = valA * valB;
 
-      if (!isStrided) {
-        state = "inactive";
-      } else if (currentI !== null) {
-        const itemI = idx / strideA;
-        if (idx === stepIdxA) state = "active";
-        else if (itemI < currentI) state = "sorted";
+      let state: VectorItem["state"] = "default";
+      let color = "#64748b";
+      let subText = `Pair ${i}: A[${idxA}]=${valA}, B[${idxB}]=${valB}`;
+
+      if (currentI !== null) {
+        if (i === currentI) {
+          state = "active";
+          color = "#f59e0b";
+          if (stepIdxA !== null && stepIdxB !== null) {
+            subText = `Active Pair ${i}: ${valA} * ${valB} = ${prod}`;
+          } else if (stepIdxA !== null) {
+            subText = `Active A[${idxA}] = ${valA}`;
+          }
+        } else if (i < currentI) {
+          state = "result";
+          color = "#10b981";
+          subText = `Done Pair ${i}: ${valA} * ${valB} = ${prod}`;
+        }
       }
 
-      cells.push({
-        row: 0,
-        col: idx,
-        value: val,
-        label: `A[${idx}]`,
+      vectors.push({
+        id: `pair-${i}`,
+        label: `v_${i} (${valA}, ${valB})`,
+        x: valA,
+        y: valB,
         state,
-      });
-    });
-
-    // Fill remaining columns if vecA is shorter than max length
-    for (let idx = vecA.length; idx < cols; idx++) {
-      cells.push({
-        row: 0,
-        col: idx,
-        value: "-",
-        label: `A[${idx}]`,
-        state: "inactive",
-      });
-    }
-
-    // Row 1: Vector B
-    vecB.forEach((val, idx) => {
-      let state: MatrixCellItem["state"] = "default";
-      const isStrided = idx % strideB === 0 && idx / strideB < n;
-
-      if (!isStrided) {
-        state = "inactive";
-      } else if (currentI !== null) {
-        const itemI = idx / strideB;
-        if (idx === stepIdxB) state = "active";
-        else if (itemI < currentI) state = "sorted";
-      }
-
-      cells.push({
-        row: 1,
-        col: idx,
-        value: val,
-        label: `B[${idx}]`,
-        state,
-      });
-    });
-
-    // Fill remaining columns if vecB is shorter than max length
-    for (let idx = vecB.length; idx < cols; idx++) {
-      cells.push({
-        row: 1,
-        col: idx,
-        value: "-",
-        label: `B[${idx}]`,
-        state: "inactive",
+        color,
+        subText,
       });
     }
 
     return {
-      kind: "matrix" as const,
-      rows: 2,
-      cols,
-      rowHeaders: [`Vec A (stride=${strideA})`, `Vec B (stride=${strideB})`],
-      colHeaders: Array.from({ length: cols }, (_, i) => `Idx ${i}`),
-      title: titleText ?? `Strided Dot Product (Accumulated Sum: ${runningSum})`,
-      cells,
+      kind: "vector",
+      vectors,
+      planeTitle: titleText ?? `Strided Dot Product Vector Space (Accumulated Sum: ${runningSum})`,
+      dimensions: "2d",
     };
   };
 
@@ -149,12 +116,7 @@ export const generateStrided1dDotProductSteps = (
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: makeMatrixSnapshot(
-        currentI,
-        stepIdxA,
-        stepIdxB,
-        titleText,
-      ),
+      primarySnapshot: makeVectorSnapshot(currentI, stepIdxA, stepIdxB, titleText),
       auxiliaryState: {
         customState: {
           strideA: String(strideA),
@@ -179,45 +141,9 @@ export const generateStrided1dDotProductSteps = (
     "Function Entry",
   );
 
-  // Line 2: Docstring start
+  // Line 2: Read n
   addStep(
     2,
-    "Parse Function Docstring & BLAS Overview",
-    "Computes strided vector inner product sum(vecA[i * strideA] * vecB[i * strideB]) for non-contiguous vector slices.",
-    { operation: "Strided FMA / Dot Product" },
-    null,
-    null,
-    null,
-    "Docstring",
-  );
-
-  // Line 3: Docstring body
-  addStep(
-    3,
-    "Review Memory Layout & Non-Unit Strides",
-    "Non-unit memory strides occur when extracting column vectors from row-major matrices or sub-tensor slices without copies.",
-    { strideA, strideB },
-    null,
-    null,
-    null,
-    "Docstring",
-  );
-
-  // Line 4: Docstring end
-  addStep(
-    4,
-    "Finalize Metadata Setup",
-    "Preparing step counter n and dot product sum accumulator.",
-    { strideA, strideB },
-    null,
-    null,
-    null,
-    "Docstring End",
-  );
-
-  // Line 5: Read n
-  addStep(
-    5,
     `Calculate Step Count n = min(${vecA.length} // ${strideA}, ${vecB.length} // ${strideB}) = ${n}`,
     `Determining max valid dot product step count n = ${n}.`,
     { n, lenA: vecA.length, lenB: vecB.length, strideA, strideB },
@@ -227,9 +153,9 @@ export const generateStrided1dDotProductSteps = (
     "Compute n",
   );
 
-  // Line 6: Init dot_sum = 0
+  // Line 3: Init dot_sum = 0
   addStep(
-    6,
+    3,
     "Initialize Accumulator dot_sum = 0",
     "Setting scalar dot product accumulator dot_sum to 0.",
     { dot_sum: 0 },
@@ -239,9 +165,9 @@ export const generateStrided1dDotProductSteps = (
     "Init Accumulator",
   );
 
-  // Line 7: Blank line
+  // Line 4: Blank line before loop
   addStep(
-    7,
+    4,
     "Begin Strided Reduction Loop",
     `Starting loop for step index i from 0 to ${n - 1}.`,
     { n },
@@ -253,9 +179,9 @@ export const generateStrided1dDotProductSteps = (
 
   // Iteration loop
   for (let i = 0; i < n; i++) {
-    // Line 8: Loop header
+    // Line 5: Loop header
     addStep(
-      8,
+      5,
       `Loop Iteration i = ${i} of ${n}`,
       `Evaluating element step ${i}.`,
       { i, n },
@@ -265,10 +191,10 @@ export const generateStrided1dDotProductSteps = (
       `Iter ${i} - Loop Header`,
     );
 
-    // Line 9: idx_a = i * stride_a
+    // Line 6: idx_a = i * stride_a
     const idxA = i * strideA;
     addStep(
-      9,
+      6,
       `Compute Physical Index idx_a = ${i} * ${strideA} = ${idxA}`,
       `Resolving physical element pointer in vector A: idx_a = ${idxA} (value = ${vecA[idxA]}).`,
       { i, stride_a: strideA, idx_a: idxA, valA: vecA[idxA] },
@@ -278,10 +204,10 @@ export const generateStrided1dDotProductSteps = (
       `Iter ${i} - Index A (${idxA})`,
     );
 
-    // Line 10: idx_b = i * stride_b
+    // Line 7: idx_b = i * stride_b
     const idxB = i * strideB;
     addStep(
-      10,
+      7,
       `Compute Physical Index idx_b = ${i} * ${strideB} = ${idxB}`,
       `Resolving physical element pointer in vector B: idx_b = ${idxB} (value = ${vecB[idxB]}).`,
       { i, stride_b: strideB, idx_b: idxB, valB: vecB[idxB] },
@@ -291,12 +217,12 @@ export const generateStrided1dDotProductSteps = (
       `Iter ${i} - Index B (${idxB})`,
     );
 
-    // Line 11: product = vec_a[idx_a] * vec_b[idx_b]
+    // Line 8: product = vec_a[idx_a] * vec_b[idx_b]
     const valA = vecA[idxA];
     const valB = vecB[idxB];
     const product = valA * valB;
     addStep(
-      11,
+      8,
       `Compute Multiply: ${valA} * ${valB} = ${product}`,
       `Multiplying scalar elements vecA[${idxA}] (${valA}) * vecB[${idxB}] (${valB}) yielding product ${product}.`,
       { i, idx_a: idxA, idx_b: idxB, valA, valB, product },
@@ -306,10 +232,10 @@ export const generateStrided1dDotProductSteps = (
       `Iter ${i} - Product = ${product}`,
     );
 
-    // Line 12: dot_sum += product
+    // Line 9: dot_sum += product
     runningSum += product;
     addStep(
-      12,
+      9,
       `Accumulate Sum: ${runningSum - product} + ${product} = ${runningSum}`,
       `Adding product ${product} to accumulator dot_sum yielding updated total ${runningSum}.`,
       { i, product, dot_sum: runningSum },
@@ -320,9 +246,9 @@ export const generateStrided1dDotProductSteps = (
     );
   }
 
-  // Line 13: Blank line
+  // Line 10: Blank line
   addStep(
-    13,
+    10,
     "Strided Reduction Loop Finished",
     "All n strided element pairs multiplied and accumulated. Preparing return value.",
     { dot_sum: runningSum },
@@ -332,9 +258,9 @@ export const generateStrided1dDotProductSteps = (
     "Loop Complete",
   );
 
-  // Line 14: Return dot_sum
+  // Line 11: Return dot_sum
   addStep(
-    14,
+    11,
     `Return Final Dot Product dot_sum = ${runningSum}`,
     `Successfully computed strided 1D vector dot product: ${runningSum}.`,
     { dot_sum: runningSum },
@@ -354,34 +280,29 @@ const STRIDED1DDOTPRODUCT_TRIVIA: TriviaMeta = {
     "n = len(vec_a) + len(vec_b)",
     "idx_a = i + stride_a",
   ],
-  hints: [{ line: 9, hint: "Calculate physical indices idx_a = i * stride_a and idx_b = i * stride_b." }],
+  hints: [
+    { line: 6, hint: "Calculate physical indices idx_a = i * stride_a and idx_b = i * stride_b." },
+  ],
   lineExplanations: {
     1: "Function declaration taking vectors vec_a, vec_b and optional strides stride_a, stride_b.",
-    2: "Opening docstring for strided 1D dot product calculation.",
-    3: "Documentation describing BLAS inner product over non-contiguous strided memory buffers.",
-    4: "Closing docstring for strided 1D dot product calculation.",
-    5: "Calculates max valid dot product iteration count n based on vector lengths and strides.",
-    6: "Initializes dot product sum accumulator dot_sum to 0.",
-    7: "Empty line separating initialization from element accumulation loop.",
-    8: "Loop iterating through element step index i from 0 to n - 1.",
-    9: "Computes physical element index in vector A: idx_a = i * stride_a.",
-    10: "Computes physical element index in vector B: idx_b = i * stride_b.",
-    11: "Multiplies scalar vector elements: product = vec_a[idx_a] * vec_b[idx_b].",
-    12: "Accumulates product into total sum: dot_sum += product.",
-    13: "Empty line separating loop body from return statement.",
-    14: "Returns accumulated scalar dot product sum dot_sum.",
+    2: "Calculates max valid dot product iteration count n based on vector lengths and strides.",
+    3: "Initializes dot product sum accumulator dot_sum to 0.",
+    4: "Empty line separating initialization from element accumulation loop.",
+    5: "Loop iterating through element step index i from 0 to n - 1.",
+    6: "Computes physical element index in vector A: idx_a = i * stride_a.",
+    7: "Computes physical element index in vector B: idx_b = i * stride_b.",
+    8: "Multiplies scalar vector elements: product = vec_a[idx_a] * vec_b[idx_b].",
+    9: "Accumulates product into total sum: dot_sum += product.",
+    10: "Empty line separating loop body from return statement.",
+    11: "Returns accumulated scalar dot product sum dot_sum.",
   },
 };
 
 export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> = {
   id: "strided-1d-dot-product",
   title: "Strided 1D Vector Dot Product",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In basic linear algebra subprograms (BLAS level-1, e.g. `sdot`/`ddot` in cuBLAS, PyTorch `torch.dot`, Apple Accelerate), vector dot products frequently operate on non-contiguous slices of memory.\n\nFor instance, when computing the dot product between a row vector and a column vector extracted from a 2D matrix, elements are read with non-unit strides $s_a$ and $s_b$ instead of consecutive indices:\n$$\\text{DotProduct} = \\sum_{i=0}^{K-1} \\text{vec}_a[i \\times s_a] \\times \\text{vec}_b[i \\times s_b]$$\n\nThis algorithm implements the strided 1D vector dot product primitive step-by-step, illustrating how physical element addresses are resolved.",
   constraints: [
@@ -402,7 +323,8 @@ export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> 
     {
       kind: "complex",
       title: "Strided Vector Extraction",
-      inputDisplay: "vecA = [1, 2, 3, 4, 5, 6], vecB = [2, 1, 4, 3, 6, 5], strideA = 2, strideB = 2",
+      inputDisplay:
+        "vecA = [1, 2, 3, 4, 5, 6], vecB = [2, 1, 4, 3, 6, 5], strideA = 2, strideB = 2",
       outputDisplay: "44",
       input: { vecA: [1, 2, 3, 4, 5, 6], vecB: [2, 1, 4, 3, 6, 5], strideA: 2, strideB: 2 },
       output: "44",
@@ -415,7 +337,8 @@ export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> 
       outputDisplay: "160",
       input: { vecA: [10, 20, 30], vecB: [1, 0, 2, 0, 3], strideA: 1, strideB: 2 },
       output: "160",
-      explanation: "Pairs unit stride vecA with stride-2 vecB: 10*1 + 20*2 + 30*3 = 10 + 40 + 90 = 140.",
+      explanation:
+        "Pairs unit stride vecA with stride-2 vecB: 10*1 + 20*2 + 30*3 = 10 + 40 + 90 = 140.",
     },
   ],
   code: STRIDED1DDOTPRODUCT_CODE,
@@ -457,15 +380,18 @@ export const strided1dDotProduct: AlgorithmDefinition<strided1dDotProductInput> 
       },
       {
         term: "Stride (incX/incY)",
-        definition: "The pointer increment distance between consecutive logical vector elements in flat memory.",
+        definition:
+          "The pointer increment distance between consecutive logical vector elements in flat memory.",
       },
       {
         term: "Fused Multiply-Add (FMA)",
-        definition: "Hardware instruction evaluating a * b + c in a single clock cycle with full precision.",
+        definition:
+          "Hardware instruction evaluating a * b + c in a single clock cycle with full precision.",
       },
       {
         term: "Memory Coalescing",
-        definition: "Combining adjacent memory accesses into single DRAM transactions, maximized when stride = 1.",
+        definition:
+          "Combining adjacent memory accesses into single DRAM transactions, maximized when stride = 1.",
       },
     ],
   },
