@@ -27,6 +27,8 @@ Open `http://localhost:5173`.
 Docker Compose is the supported local runtime for the API and Python playground.
 It starts an Nginx web server, a Bun API with persistent SQLite state, and an
 internal-only CPython 3.12 runner with pinned NumPy and CPU PyTorch.
+Base images are pinned by immutable digest; the Python wheels are version-pinned
+for compatible local CPU architectures.
 
 ```bash
 docker compose up --build --wait
