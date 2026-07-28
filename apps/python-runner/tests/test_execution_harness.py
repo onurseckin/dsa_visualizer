@@ -284,6 +284,22 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertLessEqual(len(result["stdout"].encode("utf-8")), 96)
         self.assertLessEqual(len(result["stderr"].encode("utf-8")), 96)
 
+    def test_rejects_expected_stdout_that_cannot_fit_the_aggregate_output_budget(self):
+        result = execute_request(
+            request_for(
+                "def solve(value):\n    print('x' * value)",
+                [
+                    case("one", 40, "x" * 40 + "\n", "stdout"),
+                    case("two", 40, "x" * 40 + "\n", "stdout"),
+                ],
+                limits={"maxOutputBytes": 64},
+            )
+        )
+
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["cases"], [])
+        self.assertIn("expected stdout", result["stderr"])
+
     def test_applies_the_result_byte_budget_across_all_selected_cases(self):
         result = execute_request(
             request_for(
@@ -339,6 +355,30 @@ class ExecutionHarnessTests(unittest.TestCase):
                 "    return value"
             ),
             [case("raw", 3, 3)],
+        )
+        completed = subprocess.run(
+            [sys.executable, "-I", str(RUNNER_DIRECTORY / "execution_harness.py")],
+            input=json.dumps(request),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 0)
+        self.assertEqual(json.loads(completed.stdout)["status"], "passed")
+        self.assertEqual(completed.stderr, "")
+
+    def test_command_line_protocol_is_not_exposed_on_common_file_descriptors(self):
+        request = request_for(
+            (
+                "import os\n"
+                "def solve(value):\n"
+                "    for fd in range(3, 32):\n"
+                "        try: os.write(fd, b'protocol-corruption')\n"
+                "        except OSError: pass\n"
+                "    return value"
+            ),
+            [case("raw-common-fds", 3, 3)],
         )
         completed = subprocess.run(
             [sys.executable, "-I", str(RUNNER_DIRECTORY / "execution_harness.py")],
