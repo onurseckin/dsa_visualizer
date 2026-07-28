@@ -15,6 +15,10 @@ const SPEC: PythonExecutionSpec = {
     arguments: [{ from: "input", path: [] }],
   },
   packages: [],
+  limits: {
+    maxOutputBytes: 16,
+    maxResultBytes: 16,
+  },
   cases: [
     {
       id: "public",
@@ -90,6 +94,63 @@ describe("browser-to-server runner client", () => {
       vi.fn(async () => Response.json({ ...RESULT, runId: "stale" })),
       "Python runner returned an invalid response.",
     ],
+    [
+      "an unknown case",
+      vi.fn(async () =>
+        Response.json({
+          ...RESULT,
+          cases: [{ ...RESULT.cases[0], id: "hidden" }],
+        }),
+      ),
+      "Python runner returned an invalid response.",
+    ],
+    [
+      "duplicate cases",
+      vi.fn(async () =>
+        Response.json({
+          ...RESULT,
+          cases: [RESULT.cases[0], RESULT.cases[0]],
+        }),
+      ),
+      "Python runner returned an invalid response.",
+    ],
+    [
+      "non-aggregate output",
+      vi.fn(async () => Response.json({ ...RESULT, stdout: "not-the-case-stream" })),
+      "Python runner returned an invalid response.",
+    ],
+    [
+      "an inconsistent status",
+      vi.fn(async () => Response.json({ ...RESULT, status: "failed" })),
+      "Python runner returned an invalid response.",
+    ],
+    [
+      "oversized output",
+      vi.fn(async () => {
+        const output = "x".repeat(17);
+        return Response.json({
+          ...RESULT,
+          stdout: output,
+          cases: [{ ...RESULT.cases[0], stdout: output }],
+        });
+      }),
+      "Python runner returned an invalid response.",
+    ],
+    [
+      "an oversized actual result",
+      vi.fn(async () =>
+        Response.json({
+          ...RESULT,
+          cases: [{ ...RESULT.cases[0], actual: "x".repeat(15) }],
+        }),
+      ),
+      "Python runner returned an invalid response.",
+    ],
+    [
+      "an unknown response property",
+      vi.fn(async () => Response.json({ ...RESULT, internal: "leak" })),
+      "Python runner returned an invalid response.",
+    ],
   ])("normalizes %s", async (_label, fetch, stderr) => {
     const client = createServerPythonRunnerClient({ fetch });
 
@@ -99,6 +160,60 @@ describe("browser-to-server runner client", () => {
       runtime: "server",
       stderr,
     });
+  });
+
+  it("rejects an invalid cloned request before starting network work", async () => {
+    const fetch = vi.fn(async () => Response.json(RESULT));
+    const client = createServerPythonRunnerClient({ fetch });
+    const invalidRequest = {
+      ...REQUEST,
+      spec: {
+        ...REQUEST.spec,
+        limits: {
+          ...REQUEST.spec.limits,
+          maxSourceBytes: 4,
+        },
+      },
+    };
+
+    await expect(client.run(invalidRequest)).resolves.toMatchObject({
+      runId: REQUEST.runId,
+      status: "error",
+      runtime: "server",
+      stderr: "Python execution request is invalid.",
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [400, "Python runner returned an invalid response."],
+    [503, "Python runner is unavailable."],
+  ])("normalizes an HTTP %i response", async (status, stderr) => {
+    const client = createServerPythonRunnerClient({
+      fetch: vi.fn(async () => new Response("failure", { status })),
+    });
+
+    await expect(client.run(REQUEST)).resolves.toMatchObject({
+      status: "error",
+      stderr,
+    });
+  });
+
+  it("honors a signal that was already aborted before the run starts", async () => {
+    const fetch = vi.fn(async () => Response.json(RESULT));
+    const controller = new AbortController();
+    controller.abort();
+    const client = createServerPythonRunnerClient({ fetch });
+
+    await expect(client.run(REQUEST, { signal: controller.signal })).resolves.toMatchObject({
+      status: "error",
+      stderr: "Python execution was cancelled.",
+    });
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/python/cancel",
+      expect.objectContaining({ body: JSON.stringify({ runId: REQUEST.runId }) }),
+    );
   });
 
   it("aborts timed-out work and recreates request state for the next run", async () => {
@@ -194,5 +309,54 @@ describe("browser-to-server runner client", () => {
         body: JSON.stringify({ runId: "another-run" }),
       }),
     );
+  });
+
+  it("supports explicit cancellation and disposal of active work", async () => {
+    const fetch = vi.fn(
+      (url: string, init?: RequestInit) =>
+        new Promise<Response>((resolve, reject) => {
+          if (url === "/api/python/cancel") {
+            resolve(new Response(null));
+            return;
+          }
+          init?.signal?.addEventListener("abort", () =>
+            reject(new DOMException("aborted", "AbortError")),
+          );
+        }),
+    );
+    const client = createServerPythonRunnerClient({ fetch });
+
+    const cancelled = client.run(REQUEST);
+    await client.cancel(REQUEST.runId);
+    await expect(cancelled).resolves.toMatchObject({
+      status: "error",
+      stderr: "Python execution was cancelled.",
+    });
+
+    const disposed = client.run({ ...REQUEST, runId: "run-disposed" });
+    client.dispose();
+    await expect(disposed).resolves.toMatchObject({
+      runId: "run-disposed",
+      status: "error",
+      stderr: "Python execution was cancelled.",
+    });
+    client.dispose();
+  });
+
+  it("contains failures from best-effort cancellation requests", async () => {
+    const fetch = vi.fn((url: string) =>
+      url === "/api/python/cancel"
+        ? Promise.reject(new TypeError("runner stopped"))
+        : new Promise<Response>(() => undefined),
+    );
+    const client = createServerPythonRunnerClient({ fetch });
+
+    const pending = client.run(REQUEST);
+    await client.cancel(REQUEST.runId);
+
+    await expect(pending).resolves.toMatchObject({
+      status: "error",
+      stderr: "Python execution was cancelled.",
+    });
   });
 });

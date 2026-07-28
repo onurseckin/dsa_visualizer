@@ -44,6 +44,13 @@ function request(executionSpec = spec()): PythonRunRequest {
   };
 }
 
+function requestWithId(runId: string, executionSpec = spec()): PythonRunRequest {
+  return {
+    ...request(executionSpec),
+    runId,
+  };
+}
+
 function result(
   runtime: PythonRunResult["runtime"],
   overrides: Partial<PythonRunResult> = {},
@@ -58,6 +65,14 @@ function result(
     runtime,
     ...overrides,
   };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+  return { promise, resolve };
 }
 
 function runner(run: PythonRunner["run"]): PythonRunner {
@@ -96,7 +111,7 @@ describe("runner selection", () => {
 });
 
 describe("hybrid Python runner", () => {
-  it("falls back from an unavailable server to the browser only for a compatible spec", async () => {
+  it("does not fall back from an explicitly selected server", async () => {
     const authoredSpec = spec(["numpy"]);
     const server = runner(
       vi.fn(async (value) =>
@@ -111,18 +126,16 @@ describe("hybrid Python runner", () => {
     const hybrid = createHybridPythonRunner({ browser, server });
 
     await expect(hybrid.run(request(authoredSpec), { runtime: "server" })).resolves.toMatchObject({
-      status: "passed",
-      runtime: "browser",
+      status: "error",
+      runtime: "server",
+      stderr: "Python runner is unavailable.",
     });
 
     expect(server.run).toHaveBeenCalledWith(
       expect.objectContaining({ spec: expect.objectContaining({ runtime: "server" }) }),
       expect.any(Object),
     );
-    expect(browser.run).toHaveBeenCalledWith(
-      expect.objectContaining({ spec: expect.objectContaining({ runtime: "browser" }) }),
-      expect.any(Object),
-    );
+    expect(browser.run).not.toHaveBeenCalled();
     expect(authoredSpec.runtime).toBe("browser");
   });
 
@@ -149,6 +162,61 @@ describe("hybrid Python runner", () => {
       expect.any(Object),
     );
     expect(authoredSpec.runtime).toBe("browser");
+  });
+
+  it("cancels a prior server child and suppresses its late completion when the next same-ID run uses the browser", async () => {
+    const serverCompletion = deferred<PythonRunResult>();
+    const browserCompletion = deferred<PythonRunResult>();
+    const server = runner(vi.fn(() => serverCompletion.promise));
+    const browser = runner(vi.fn(() => browserCompletion.promise));
+    const hybrid = createHybridPythonRunner({ browser, server });
+
+    const firstRun = hybrid.run(requestWithId("shared-run"), { runtime: "server" });
+    const secondRun = hybrid.run(requestWithId("shared-run"));
+
+    expect(server.cancel).toHaveBeenCalledWith("shared-run");
+    browserCompletion.resolve(result("browser", { runId: "shared-run" }));
+    await expect(secondRun).resolves.toMatchObject({
+      status: "passed",
+      runtime: "browser",
+    });
+
+    serverCompletion.resolve(result("server", { runId: "shared-run" }));
+    await expect(firstRun).resolves.toMatchObject({
+      runId: "shared-run",
+      status: "error",
+      runtime: "server",
+      stderr: "Python execution was superseded by a newer run.",
+      cases: [],
+    });
+  });
+
+  it("cancels a prior browser child and suppresses its late completion when the next different-ID run uses the server", async () => {
+    const browserCompletion = deferred<PythonRunResult>();
+    const serverCompletion = deferred<PythonRunResult>();
+    const browser = runner(vi.fn(() => browserCompletion.promise));
+    const server = runner(vi.fn(() => serverCompletion.promise));
+    const hybrid = createHybridPythonRunner({ browser, server });
+
+    const firstRun = hybrid.run(requestWithId("browser-run"));
+    const secondRun = hybrid.run(requestWithId("server-run"), { runtime: "server" });
+
+    expect(browser.cancel).toHaveBeenCalledWith("browser-run");
+    serverCompletion.resolve(result("server", { runId: "server-run" }));
+    await expect(secondRun).resolves.toMatchObject({
+      runId: "server-run",
+      status: "passed",
+      runtime: "server",
+    });
+
+    browserCompletion.resolve(result("browser", { runId: "browser-run" }));
+    await expect(firstRun).resolves.toMatchObject({
+      runId: "browser-run",
+      status: "error",
+      runtime: "browser",
+      stderr: "Python execution was superseded by a newer run.",
+      cases: [],
+    });
   });
 
   it("does not hide learner failures behind runtime fallback", async () => {

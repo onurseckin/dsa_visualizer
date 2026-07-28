@@ -1,11 +1,20 @@
 import {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
+  validatePythonRunRequest,
   type PythonRunRequest,
   type PythonRunResult,
 } from "@dsa-visualizer/execution-contracts";
 
 import { isBrowserCompatible } from "./runnerSelector";
-import { executionErrorResult, type PythonRunner, type PythonRunnerRunOptions } from "./types";
+import {
+  executionErrorResult,
+  type PythonRunner,
+  type PythonRunnerRunOptions,
+  validatePythonRunResult,
+} from "./types";
+
+export const DEFAULT_PYODIDE_INITIALIZATION_TIMEOUT_MS = 60_000;
+export const PYODIDE_INITIALIZATION_TIMEOUT_CAP_MS = 120_000;
 
 export interface PyodideWorkerLike {
   addEventListener(type: "error" | "message", listener: EventListenerOrEventListenerObject): void;
@@ -15,26 +24,32 @@ export interface PyodideWorkerLike {
 
 export interface PyodideRunnerClientOptions {
   readonly createWorker?: () => PyodideWorkerLike;
+  readonly initializationTimeoutMs?: number;
 }
 
 interface ActiveBrowserRun {
   readonly request: PythonRunRequest;
   readonly resolve: (result: PythonRunResult) => void;
   readonly startedAt: number;
-  readonly timeout: ReturnType<typeof setTimeout>;
+  readonly token: string;
+  readonly worker: PyodideWorkerLike;
   readonly signal?: AbortSignal;
   readonly abortListener?: () => void;
+  phase: "initializing" | "running";
   settled: boolean;
+  timeout: ReturnType<typeof setTimeout>;
 }
 
 export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = {}): PythonRunner {
   const createWorker = options.createWorker ?? createModuleWorker;
+  const initializationTimeoutMs = normalizedInitializationTimeout(options.initializationTimeoutMs);
   let worker: PyodideWorkerLike | undefined;
   let active: ActiveBrowserRun | undefined;
+  let generation = 0;
 
-  const terminateWorker = () => {
-    worker?.terminate();
-    worker = undefined;
+  const terminateWorker = (target = worker) => {
+    target?.terminate();
+    if (worker === target) worker = undefined;
   };
 
   const settle = (record: ActiveBrowserRun, result: PythonRunResult, terminate = false) => {
@@ -45,7 +60,7 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
       record.signal?.removeEventListener("abort", record.abortListener);
     }
     if (active === record) active = undefined;
-    if (terminate) terminateWorker();
+    if (terminate) terminateWorker(record.worker);
     record.resolve(result);
   };
 
@@ -70,10 +85,43 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
     const created = createWorker();
     created.addEventListener("message", (event) => {
       const message = (event as MessageEvent<unknown>).data;
-      if (!active || !isWorkerResult(message, active.request.runId)) return;
-      settle(active, message.result);
+      const record = active;
+      if (!record || record.worker !== created || !isCurrentEnvelope(message, record)) return;
+      if (isWorkerReady(message)) {
+        if (record.phase !== "initializing") return;
+        clearTimeout(record.timeout);
+        record.phase = "running";
+        const wallTimeMs =
+          record.request.spec.limits?.wallTimeMs ?? DEFAULT_PYTHON_EXECUTION_LIMITS.wallTimeMs;
+        record.timeout = setTimeout(() => {
+          if (active !== record) return;
+          interruptActive(
+            `Browser Python execution exceeded the ${wallTimeMs} ms timeout.`,
+            "timeout",
+          );
+        }, wallTimeMs);
+        return;
+      }
+      if (!isWorkerResult(message)) return;
+      const validation = validatePythonRunResult(record.request, message.result, "browser");
+      if (!validation.ok) {
+        settle(
+          record,
+          executionErrorResult(
+            record.request.runId,
+            "browser",
+            "Browser Python runtime returned an invalid response.",
+            "error",
+            Date.now() - record.startedAt,
+          ),
+          true,
+        );
+        return;
+      }
+      settle(record, validation.value);
     });
     created.addEventListener("error", () => {
+      if (!active || active.worker !== created) return;
       interruptActive("Browser Python runtime is unavailable.");
     });
     worker = created;
@@ -85,7 +133,17 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
       if (active) {
         interruptActive("Python execution was superseded by a newer run.");
       }
-      if (!isBrowserCompatible(request.spec)) {
+      const browserRequest: PythonRunRequest = {
+        ...request,
+        spec: { ...request.spec, runtime: "browser" },
+      };
+      const validation = validatePythonRunRequest(browserRequest);
+      if (!validation.ok) {
+        return Promise.resolve(
+          executionErrorResult(request.runId, "browser", "Python execution request is invalid."),
+        );
+      }
+      if (!isBrowserCompatible(validation.value.spec)) {
         return Promise.resolve(
           executionErrorResult(
             request.runId,
@@ -94,22 +152,31 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
           ),
         );
       }
+      let selectedWorker: PyodideWorkerLike;
+      try {
+        selectedWorker = ensureWorker();
+      } catch {
+        return Promise.resolve(
+          executionErrorResult(request.runId, "browser", "Browser Python runtime is unavailable."),
+        );
+      }
 
       return new Promise<PythonRunResult>((resolve) => {
         const startedAt = Date.now();
-        const wallTimeMs =
-          request.spec.limits?.wallTimeMs ?? DEFAULT_PYTHON_EXECUTION_LIMITS.wallTimeMs;
+        const token = `browser-run-${++generation}`;
         const record: ActiveBrowserRun = {
-          request,
+          request: validation.value,
           resolve,
           startedAt,
+          token,
+          worker: selectedWorker,
+          phase: "initializing",
           timeout: setTimeout(() => {
             if (active !== record) return;
             interruptActive(
-              `Browser Python execution exceeded the ${wallTimeMs} ms timeout.`,
-              "timeout",
+              `Browser Python runtime initialization exceeded the ${initializationTimeoutMs} ms timeout.`,
             );
-          }, wallTimeMs),
+          }, initializationTimeoutMs),
           signal: runOptions.signal,
           settled: false,
         };
@@ -127,8 +194,13 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
         runOptions.signal?.addEventListener("abort", abortListener, { once: true });
 
         try {
-          // oxlint-disable-next-line unicorn/require-post-message-target-origin -- Web Worker postMessage has no targetOrigin parameter.
-          ensureWorker().postMessage({ type: "run", request });
+          // oxlint-disable unicorn/require-post-message-target-origin -- Web Worker postMessage has no targetOrigin parameter.
+          selectedWorker.postMessage({
+            type: "run",
+            request: validation.value,
+            token,
+          });
+          // oxlint-enable unicorn/require-post-message-target-origin
         } catch {
           interruptActive("Browser Python runtime is unavailable.");
         }
@@ -152,23 +224,31 @@ function createModuleWorker(): PyodideWorkerLike {
   });
 }
 
-function isWorkerResult(
+function normalizedInitializationTimeout(value: number | undefined): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return DEFAULT_PYODIDE_INITIALIZATION_TIMEOUT_MS;
+  }
+  return Math.min(Math.round(value), PYODIDE_INITIALIZATION_TIMEOUT_CAP_MS);
+}
+
+function isCurrentEnvelope(
   value: unknown,
-  runId: string,
-): value is {
-  readonly type: "result";
-  readonly runId: string;
-  readonly result: PythonRunResult;
-} {
+  record: ActiveBrowserRun,
+): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) return false;
   const message = value as Record<string, unknown>;
-  const result = message.result;
-  return (
-    message.type === "result" &&
-    message.runId === runId &&
-    typeof result === "object" &&
-    result !== null &&
-    (result as Record<string, unknown>).runId === runId &&
-    (result as Record<string, unknown>).runtime === "browser"
-  );
+  return message.runId === record.request.runId && message.token === record.token;
+}
+
+function isWorkerReady(value: Record<string, unknown>): boolean {
+  return value.type === "ready";
+}
+
+function isWorkerResult(value: Record<string, unknown>): value is {
+  readonly type: "result";
+  readonly runId: string;
+  readonly token: string;
+  readonly result: PythonRunResult;
+} {
+  return value.type === "result" && Object.hasOwn(value, "result");
 }

@@ -21,7 +21,7 @@ function viteStaticCopyPyodide() {
     targets: [
       {
         src: [join(pyodideDirectory, "*").replace(/\\/g, "/")].concat(PYODIDE_COPY_EXCLUDES),
-        dest: "assets/pyodide",
+        dest: "assets/pyodide/314.0.3",
       },
     ],
   });
@@ -29,6 +29,7 @@ function viteStaticCopyPyodide() {
 
 export default defineConfig({
   optimizeDeps: { exclude: ["pyodide"] },
+  worker: { format: "es" },
   plugins: [
     ...viteStaticCopyPyodide(),
     // Owns the same Fetch API handler used by apps/api in Docker production.
