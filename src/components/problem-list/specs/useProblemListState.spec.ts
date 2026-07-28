@@ -161,4 +161,15 @@ describe("useProblemListState hook", () => {
     act(() => result.current.toggleSort("difficulty"));
     expect(result.current.filteredAlgorithms).toHaveLength(3);
   });
+
+  it("does not return empty results when category is specified but stored source filter is incompatible", () => {
+    // Simulate stored selectedSource = "ml_infra" from previous page navigation
+    window.localStorage.setItem("dsa_visualizer_problem_list_source", '"ml_infra"');
+
+    const { result } = renderHook(() => useProblemListState({ category: "backtracking" }));
+
+    expect(result.current.selectedCategory).toBe("backtracking");
+    expect(result.current.filteredAlgorithms.length).toBeGreaterThan(0);
+    expect(result.current.filteredAlgorithms.every((a) => a.category === "backtracking")).toBe(true);
+  });
 });

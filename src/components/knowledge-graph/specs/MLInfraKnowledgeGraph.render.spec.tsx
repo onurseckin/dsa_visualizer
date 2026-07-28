@@ -189,4 +189,14 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
 
     expect(onSelectCategoryFolder).toHaveBeenLastCalledWith("ml_tensor_algebra");
   });
+
+  it("displays exact problem count without double counting for Graph Compilers node", () => {
+    render(<MLInfraKnowledgeGraph />);
+
+    const compilersNode = screen.getByRole("button", {
+      name: /Graph Compilers & IR Lowering/i,
+    });
+    expect(compilersNode).toBeInTheDocument();
+    expect(compilersNode).toHaveTextContent("4 Problems • Hard");
+  });
 });

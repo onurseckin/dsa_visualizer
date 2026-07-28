@@ -149,7 +149,11 @@ export function getAlgorithmCategories(alg: {
   return ["arrays_and_hashing"];
 }
 
-const CATEGORY_ID_SET = new Set<string>(CATEGORIES.map((category) => category.id));
+const CATEGORY_ID_SET = new Set<string>([
+  ...CATEGORIES.map((category) => category.id),
+  "ml_infra",
+  "ml_infrastructure",
+]);
 
 /* Narrowing guard for URL search params: only the canonical category ids above
    count — the legacy CategoryType aliases are not valid routeable filters. */

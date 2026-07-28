@@ -128,7 +128,28 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
   );
 
   if (n === 0 || input.queries.length === 0) {
+        addStep(
+      4,
+      "Function docstring — describes algorithm contract",
+      "Opening delimiter of the Python docstring.",
+      {},
+    );
+
     addStep(
+      5,
+      "Docstring body: algorithm description",
+      "Offline range query processing using Mo's Algorithm with Hilbert/Block sort",
+      {},
+    );
+
+    addStep(
+      6,
+      "End of docstring",
+      "Docstring complete. Entering the function body.",
+      {},
+    );
+
+addStep(
       9,
       "Input is empty",
       "No queries to process or array is empty.",
