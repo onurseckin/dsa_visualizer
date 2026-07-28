@@ -1,6 +1,6 @@
 import React from "react";
 import { boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
-import { MatrixVisualSnapshot } from "../../types/dsa";
+import { elementStateToken, MatrixVisualSnapshot } from "../../types/dsa";
 
 export interface MatrixVisualizerProps {
   rows: number;
@@ -35,27 +35,27 @@ export const MatrixVisualizer: React.FC<MatrixVisualizerProps> = ({
   const cellMap = new Map<string, MatrixVisualSnapshot["cells"][0]>();
   cells.forEach((c) => cellMap.set(`${c.row}-${c.col}`, c));
 
-  const getCellFill = (state?: string) => {
-    switch (state) {
+  const getCellFill = (state: MatrixVisualSnapshot["cells"][number]["state"]) => {
+    const token = state ? elementStateToken(state) : "default";
+    switch (token) {
       case "active":
         return "rgba(59, 130, 246, 0.25)";
-      case "compared":
+      case "compare":
         return "rgba(245, 158, 11, 0.25)";
       case "sorted":
       case "pivot":
         return "rgba(16, 185, 129, 0.25)";
-      case "inactive":
-        return "rgba(255, 255, 255, 0.02)";
       default:
         return "var(--bg-surface)";
     }
   };
 
-  const getCellStroke = (state?: string) => {
-    switch (state) {
+  const getCellStroke = (state: MatrixVisualSnapshot["cells"][number]["state"]) => {
+    const token = state ? elementStateToken(state) : "default";
+    switch (token) {
       case "active":
         return "var(--accent)";
-      case "compared":
+      case "compare":
         return "#f59e0b";
       case "sorted":
       case "pivot":

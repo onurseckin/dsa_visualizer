@@ -8,10 +8,11 @@ import {
 describe("ring-allreduce-data-volume-estimator (Ring-AllReduce Total Data Volume Estimator)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(ringAllreduceDataVolumeEstimator.id).toBe("ring-allreduce-data-volume-estimator");
-    expect(ringAllreduceDataVolumeEstimator.isMlInfra).toBe(true);
-    expect(ringAllreduceDataVolumeEstimator.mlInfraLevel).toBe(11);
-    expect(ringAllreduceDataVolumeEstimator.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(ringAllreduceDataVolumeEstimator.categories).toContain("ml_distributed_systems");
+    expect(
+      ringAllreduceDataVolumeEstimator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(ringAllreduceDataVolumeEstimator.topicIds).toContain("ml_distributed_systems");
+    expect(ringAllreduceDataVolumeEstimator.topicIds).toContain("ml_distributed_systems");
     expect(ringAllreduceDataVolumeEstimator.defaultInput).toEqual(
       DEFAULT_RINGALLREDUCEDATAVOLUMEESTIMATOR_INPUT,
     );
@@ -26,12 +27,14 @@ describe("ring-allreduce-data-volume-estimator (Ring-AllReduce Total Data Volume
     }
   });
 
-  it("should generate >= 20 algorithm steps", () => {
+  it("should teach each closed-form Ring-AllReduce calculation phase", () => {
     const steps = generateRingAllreduceDataVolumeEstimatorSteps(
       DEFAULT_RINGALLREDUCEDATAVOLUMEESTIMATOR_INPUT,
     );
-    expect(steps.length).toBeGreaterThanOrEqual(20);
+    expect(steps).toHaveLength(9);
     expect(steps[0].explanation.what).toContain("Initialize");
+    expect(steps.some((step) => step.explanation.what.includes("Scatter-Reduce"))).toBe(true);
+    expect(steps.some((step) => step.explanation.what.includes("All-Gather"))).toBe(true);
     expect(steps[steps.length - 1].explanation.what).toContain("Return");
   });
 });

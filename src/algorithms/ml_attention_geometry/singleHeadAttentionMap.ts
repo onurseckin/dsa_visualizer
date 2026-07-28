@@ -9,27 +9,21 @@ export interface SingleHeadAttentionInput {
 }
 
 export const SINGLEHEADATTENTIONMAP_CODE = `def single_head_attention(
-    q: list[list[float]],  # Shape [seq_len, d_k]
-    k: list[list[float]],  # Shape [seq_len, d_k]
-    v: list[list[float]],  # Shape [seq_len, d_v]
+    q: list[list[float]],
+    k: list[list[float]],
+    v: list[list[float]],
     scale: float
 ) -> tuple[list[list[float]], list[list[float]]]:
-    """
-    Computes Scaled Dot-Product Attention: Output = Softmax(Q @ K.T * scale) @ V.
-    Returns (attention_weights, output_matrix).
-    """
     import math
 
     seq_len = len(q)
     d_v = len(v[0])
 
-    # Step 1: Compute scaled dot-product logits S = Q @ K.T * scale
     scores = []
     for i in range(seq_len):
         row_scores = [sum(qi * ki for qi, ki in zip(q[i], k[j])) * scale for j in range(seq_len)]
         scores.append(row_scores)
 
-    # Step 2: Row-wise Softmax normalization (online max subtraction for stability)
     weights = []
     for row in scores:
         max_val = max(row)
@@ -37,7 +31,6 @@ export const SINGLEHEADATTENTIONMAP_CODE = `def single_head_attention(
         sum_exp = sum(exp_vals)
         weights.append([e / sum_exp for e in exp_vals])
 
-    # Step 3: Weighted sum of values O = Softmax(S) @ V
     output = []
     for i in range(seq_len):
         out_row = [sum(weights[i][t] * v[t][j] for t in range(seq_len)) for j in range(d_v)]
@@ -148,28 +141,28 @@ export const generateSingleHeadAttentionMapSteps = (
   );
 
   addStep(
-    11,
+    7,
     "Import Math Module",
     "Loading exponential primitives for Softmax probability calculation.",
     { import: "math" },
   );
 
   addStep(
-    13,
+    9,
     `Get Sequence Length: seq_len = len(q) -> ${seqLen}`,
     `Input sequence token count N is ${seqLen}.`,
     { seqLen },
   );
 
   addStep(
-    14,
+    10,
     `Get Value Dimension: d_v = len(v[0]) -> ${dV}`,
     `Value projection dimension d_v is ${dV}.`,
     { dV },
   );
 
   addStep(
-    17,
+    12,
     "Initialize Scores Matrix Container",
     "Allocated top-level list to store raw attention score logits S = Q @ K.T * scale.",
     { scores: "[]" },
@@ -179,7 +172,7 @@ export const generateSingleHeadAttentionMapSteps = (
 
   for (let i = 0; i < seqLen; i++) {
     addStep(
-      18,
+      13,
       `Begin Score Computation for Query Token i=${i}`,
       `Computing row ${i} scaled inner products against all key tokens j=0..${seqLen - 1}.`,
       { i },
@@ -199,7 +192,7 @@ export const generateSingleHeadAttentionMapSteps = (
       matrixStates[i][j] = "compared";
 
       addStep(
-        19,
+        14,
         `Compute Score for Q[${i}] @ K[${j}].T * scale = ${sc}`,
         `Dot product ${rawDot.toFixed(2)} scaled by 1/sqrt(${dK}) = ${scale.toFixed(4)} yields logit ${sc}.`,
         { i, j, rawDot: +rawDot.toFixed(2), sc },
@@ -211,7 +204,7 @@ export const generateSingleHeadAttentionMapSteps = (
     scores.push(rowScores);
 
     addStep(
-      20,
+      15,
       `Append Logit Row ${i} to Scores Matrix`,
       `Stored completed score logits for query token ${i}: [${rowScores.join(", ")}].`,
       { i },
@@ -220,7 +213,7 @@ export const generateSingleHeadAttentionMapSteps = (
   }
 
   addStep(
-    23,
+    17,
     "Initialize Weights Matrix Container",
     "Allocated top-level list to store Softmax-normalized attention weight probability distributions.",
     { weights: "[]" },
@@ -232,7 +225,7 @@ export const generateSingleHeadAttentionMapSteps = (
     const row = scores[rIdx];
 
     addStep(
-      24,
+      18,
       `Begin Softmax Normalization for Query Row ${rIdx}`,
       `Applying numerically stable online Softmax over row logits: [${row.join(", ")}].`,
       { rIdx },
@@ -242,7 +235,7 @@ export const generateSingleHeadAttentionMapSteps = (
     const maxVal = Math.max(...row);
 
     addStep(
-      25,
+      19,
       `Compute Row Max Logit: max_val = max(row) -> ${maxVal}`,
       `Subtracted max logit ${maxVal} for numerical float stability.`,
       { rIdx, maxVal },
@@ -252,7 +245,7 @@ export const generateSingleHeadAttentionMapSteps = (
     const expVals = row.map((sc) => Math.exp(sc - maxVal));
 
     addStep(
-      26,
+      20,
       `Compute Exponentiated Centered Logits: exp_vals = [exp(sc - max_val)]`,
       `Calculated unnormalized exponentials: [${expVals.map((e) => e.toFixed(3)).join(", ")}].`,
       { rIdx },
@@ -262,7 +255,7 @@ export const generateSingleHeadAttentionMapSteps = (
     const sumExp = expVals.reduce((a, b) => a + b, 0);
 
     addStep(
-      27,
+      21,
       `Compute Softmax Partition Sum: sum_exp = sum(exp_vals) -> ${sumExp.toFixed(3)}`,
       `Calculated normalization constant sum_exp = ${sumExp.toFixed(3)}.`,
       { rIdx, sumExp: +sumExp.toFixed(3) },
@@ -278,7 +271,7 @@ export const generateSingleHeadAttentionMapSteps = (
     }
 
     addStep(
-      28,
+      22,
       `Append Softmax Normalized Weights Row ${rIdx}`,
       `Normalized probability distribution for query ${rIdx}: [${normalizedRow.join(", ")}].`,
       { rIdx },
@@ -287,7 +280,7 @@ export const generateSingleHeadAttentionMapSteps = (
   }
 
   addStep(
-    31,
+    24,
     "Initialize Output Matrix Container",
     "Allocated top-level list to store final contextualized Value output vectors O = Softmax(S) @ V.",
     { output: "[]" },
@@ -297,7 +290,7 @@ export const generateSingleHeadAttentionMapSteps = (
 
   for (let i = 0; i < seqLen; i++) {
     addStep(
-      32,
+      25,
       `Begin Weighted Value Aggregation for Output Token i=${i}`,
       `Computing weighted sum of Value vectors V using Softmax probabilities of query ${i}.`,
       { i },
@@ -314,7 +307,7 @@ export const generateSingleHeadAttentionMapSteps = (
       outRow.push(roundedVal);
 
       addStep(
-        33,
+        26,
         `Compute Value Output Feature O[${i}][${j}] = ${roundedVal}`,
         `Aggregated feature ${j} across sequence context: sum(weights[${i}][t] * V[t][${j}]) = ${roundedVal}.`,
         { i, j, roundedVal },
@@ -325,7 +318,7 @@ export const generateSingleHeadAttentionMapSteps = (
     output.push(outRow);
 
     addStep(
-      34,
+      27,
       `Append Output Vector Row ${i} to Results Matrix`,
       `Stored contextualized representation vector for token ${i}: [${outRow.join(", ")}].`,
       { i },
@@ -333,19 +326,8 @@ export const generateSingleHeadAttentionMapSteps = (
     );
   }
 
-  while (steps.length < 19) {
-    addStep(
-      34,
-      "Finalize Single-Head Attention Map Padding",
-      `Step ${steps.length + 1}: Finalizing attention map computation.`,
-      { completed: false },
-      seqLen - 1,
-      seqLen - 1,
-    );
-  }
-
   addStep(
-    36,
+    29,
     "Execution Complete",
     `Successfully computed Scaled Dot-Product Single-Head Attention weights and contextualized output tensor across ${seqLen} sequence tokens!`,
     { completed: true, seqLen, dK, dV },
@@ -355,16 +337,16 @@ export const generateSingleHeadAttentionMapSteps = (
 };
 
 const SINGLEHEADATTENTIONMAP_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 16, 21, 22, 29, 30, 35],
+  skipLines: [2, 3, 4, 5, 6, 8, 11, 16, 23, 28],
   distractors: [
     "row_scores = [sum(qi * ki for qi, ki in zip(q[i], k[j])) for j in range(seq_len)]",
     "exp_vals = [math.exp(sc) for sc in row]",
     "sum_exp = max(exp_vals)",
   ],
   hints: [
-    { line: 19, hint: "Compute scaled dot products qi * ki * scale across query and key vectors." },
-    { line: 25, hint: "Subtract max_val = max(row) for numerical float exponent stability." },
-    { line: 33, hint: "Compute weighted sum sum(weights[i][t] * v[t][j]) across value dimension." },
+    { line: 14, hint: "Compute scaled dot products qi * ki * scale across query and key vectors." },
+    { line: 19, hint: "Subtract max_val = max(row) for numerical float exponent stability." },
+    { line: 26, hint: "Compute weighted sum sum(weights[i][t] * v[t][j]) across value dimension." },
   ],
   lineExplanations: {
     1: "Defines entry point for single_head_attention function.",
@@ -373,48 +355,37 @@ const SINGLEHEADATTENTIONMAP_TRIVIA: TriviaMeta = {
     4: "Specifies type annotation for Value input matrix V of shape [seq_len, d_v].",
     5: "Specifies type annotation for dot product scaling factor scale.",
     6: "Specifies return tuple type for attention weights and output matrix.",
-    7: "Docstring opening delimiter tag.",
-    8: "Describes computing Scaled Dot-Product Attention: Output = Softmax(Q @ K.T * scale) @ V.",
-    9: "Explains returning tuple of attention weights and output matrix.",
-    10: "Docstring closing tag.",
-    11: "Imports math library for exponent calculations.",
-    12: "Empty whitespace separator line.",
-    13: "Reads sequence token length seq_len from Query matrix q.",
-    14: "Reads Value feature vector dimension d_v from matrix v.",
-    15: "Empty whitespace separator line.",
-    16: "Comment: Step 1: Compute scaled dot-product logits S = Q @ K.T * scale.",
-    17: "Initializes list container for collecting raw attention logit rows.",
-    18: "Iterates over query token index i from 0 to seq_len - 1.",
-    19: "Computes scaled query-key dot product logits across all key tokens j.",
-    20: "Appends computed logit row to scores matrix.",
-    21: "Empty whitespace separator line.",
-    22: "Comment: Step 2: Row-wise Softmax normalization (online max subtraction for stability).",
-    23: "Initializes list container for collecting Softmax attention weight rows.",
-    24: "Iterates over each logit row in scores matrix.",
-    25: "Finds maximum logit value max_val in current row for numerical stability.",
-    26: "Computes exponentiated centered logits exp(sc - max_val) for row elements.",
-    27: "Computes partition sum sum_exp of exponentiated logits across row.",
-    28: "Divides exponentiated logits by sum_exp to produce normalized attention weights.",
-    29: "Empty whitespace separator line.",
-    30: "Comment: Step 3: Weighted sum of values O = Softmax(S) @ V.",
-    31: "Initializes list container for collecting contextualized output vector rows.",
-    32: "Iterates over output token index i from 0 to seq_len - 1.",
-    33: "Computes weighted sum of Value vectors sum(weights[i][t] * v[t][j]) across d_v features.",
-    34: "Appends completed output vector row to output matrix.",
-    35: "Empty whitespace separator line.",
-    36: "Returns tuple of attention weights matrix and contextualized output tensor.",
+    7: "Imports math library for exponent calculations.",
+    8: "Empty whitespace separator line.",
+    9: "Reads sequence token length seq_len from Query matrix q.",
+    10: "Reads Value feature vector dimension d_v from matrix v.",
+    11: "Empty whitespace separator line.",
+    12: "Initializes list container for collecting raw attention logit rows.",
+    13: "Iterates over query token index i from 0 to seq_len - 1.",
+    14: "Computes scaled query-key dot product logits across all key tokens j.",
+    15: "Appends computed logit row to scores matrix.",
+    16: "Empty whitespace separator line.",
+    17: "Initializes list container for collecting Softmax attention weight rows.",
+    18: "Iterates over each logit row in scores matrix.",
+    19: "Finds maximum logit value max_val in current row for numerical stability.",
+    20: "Computes exponentiated centered logits exp(sc - max_val) for row elements.",
+    21: "Computes partition sum sum_exp of exponentiated logits across row.",
+    22: "Divides exponentiated logits by sum_exp to produce normalized attention weights.",
+    23: "Empty whitespace separator line.",
+    24: "Initializes list container for collecting contextualized output vector rows.",
+    25: "Iterates over output token index i from 0 to seq_len - 1.",
+    26: "Computes weighted sum of Value vectors sum(weights[i][t] * v[t][j]) across d_v features.",
+    27: "Appends completed output vector row to output matrix.",
+    28: "Empty whitespace separator line.",
+    29: "Returns tuple of attention weights matrix and contextualized output tensor.",
   },
 };
 
 export const singleHeadAttentionMap: AlgorithmDefinition<SingleHeadAttentionInput> = {
   id: "single-head-attention-map",
   title: "Single-Head Attention Map Generator",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "math_and_number_theory"],
+  topicIds: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 7,
-  mlInfraCategory: "ml_attention_geometry",
   description:
     "Scaled Dot-Product Attention (Vaswani et al., 2017) is the core operational building block of Transformer neural networks. Given Query matrix $Q \\in \\mathbb{R}^{N \\times d_k}$, Key matrix $K \\in \\mathbb{R}^{N \\times d_k}$, and Value matrix $V \\in \\mathbb{R}^{N \\times d_v}$, single-head attention maps input sequences into contextual representations:\n\n$$\\text{Attention}(Q, K, V) = \\text{Softmax}\\left(\\frac{Q K^T}{\\sqrt{d_k}}\\right) V$$\n\nThe scaling factor $1/\\sqrt{d_k}$ compensates for dot-product variance growth under large feature dimensions $d_k$, preventing the Softmax gradient from vanishing in regions of extreme values.\n\n### Step-by-Step Intuition\n1. **Query-Key Projection**: Compute $S = Q K^T / \\sqrt{d_k}$ to measure token pair affinity.\n2. **Softmax Normalization**: Subtract max logit for float stability and apply row-wise Softmax to form probability weights $P$.\n3. **Value Aggregation**: Multiply weights $P$ by Value matrix $V$ to compute contextualized output embeddings $O = P V$.\n\n### Complexity & Performance\n- **Time**: $\\mathcal{O}(N^2 \\cdot d_k + N^2 \\cdot d_v)$ to compute raw logits $Q K^T$ and value weighted sum $P V$.\n- **Space**: $\\mathcal{O}(N^2 + N \\cdot d_v)$ to store $N \\times N$ attention weight matrix and output tensor.",
   constraints: ["1 <= seq_len <= 100", "1 <= d_k, d_v <= 64"],
@@ -463,8 +434,7 @@ export const singleHeadAttentionMap: AlgorithmDefinition<SingleHeadAttentionInpu
     keyTerms: [
       {
         term: "Scaled Dot-Product Attention",
-        definition:
-          "The fundamental attention mechanism computing Softmax(QK^T / sqrt(d_k)) V.",
+        definition: "The fundamental attention mechanism computing Softmax(QK^T / sqrt(d_k)) V.",
       },
       {
         term: "Temperature Scaling Factor",

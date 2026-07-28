@@ -10,8 +10,7 @@ export { TRIE_PREFIX_TREE_CODE, DEFAULT_TRIE_INPUT, generateTriePrefixTreeSteps 
 export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   id: "trie-prefix-tree",
   title: "Trie (Prefix Tree)",
-  category: "tries_and_strings",
-  categories: ["tries_and_strings"],
+  topicIds: ["tries_and_strings"],
   difficulty: "Medium",
   description:
     "Implement a Trie (Prefix Tree) with `insert`, `search`, and `startsWith` methods.\n\n### Problem Statement\nA Trie (pronounced as 'try') or prefix tree is a tree data structure used to efficiently store and retrieve keys in a dataset of strings. Common prefixes are shared across paths in the tree, allowing for rapid prefix search and autocomplete operations.\n\nImplement the `Trie` class:\n- `Trie()` Initializes the trie object.\n- `void insert(String word)` Inserts the string `word` into the trie in $O(L)$ time.\n- `boolean search(String word)` Returns `true` if the string `word` is in the trie (i.e., was inserted before), and `false` otherwise.\n- `boolean startsWith(String prefix)` Returns `true` if there is a previously inserted string `word` that has the prefix `prefix`, and `false` otherwise.\n\n### Input Parameters\n- `wordsToInsert`: Array of strings to be inserted into the Trie.\n- `searchWord`: Target string for `search()` operation.\n- `prefixToSearch`: Target string for `startsWith()` operation.\n\n### Output\n- Boolean results for `search(searchWord)` and `startsWith(prefixToSearch)`.\n\n### Constraints & Edge Cases\n- `1 <= word.length, prefix.length <= 2000`.\n- `words` consist only of lowercase English letters (`'a'` to `'z'`).\n- At most $3 \\cdot 10^4$ calls in total will be made to `insert`, `search`, and `startsWith`.",

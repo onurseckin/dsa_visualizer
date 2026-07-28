@@ -6,9 +6,6 @@ export interface transposeSquareMatrixInput {
 }
 
 export const TRANSPOSESQUAREMATRIX_CODE = `def transpose_square_matrix(matrix):
-    """
-    Transposes a square matrix in-place by swapping symmetric upper/lower entries.
-    """
     n = len(matrix)
 
     for r in range(n):
@@ -114,56 +111,35 @@ export const generateTransposeSquareMatrixSteps = (
     { n },
   );
 
+  // Line 2: n = len(matrix)
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Transposes a square matrix in-place by swapping symmetric upper/lower entries.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: n = len(matrix)
-  addStep(
-    5,
     `n = len(matrix) -> ${n}`,
-    `Determined matrix dimension N = ${n}. Total off-diagonal swap pairs = ${n * (n - 1) / 2}.`,
+    `Determined matrix dimension N = ${n}. Total off-diagonal swap pairs = ${(n * (n - 1)) / 2}.`,
     { n },
   );
 
   // Loop through rows
   for (let r = 0; r < n; r++) {
-    // Line 7: Row loop header
+    // Line 4: Row loop header
     addStep(
-      7,
+      4,
       `Outer loop: r = ${r} of ${n}`,
       `Inspecting row ${r}. Off-diagonal elements start at column c = ${r + 1}.`,
       { r, n },
     );
 
     for (let c = r + 1; c < n; c++) {
-      // Line 8: Column loop header
+      // Line 5: Column loop header
       addStep(
-        8,
+        5,
         `Inner loop: c = ${c} (inspecting pair matrix[${r}][${c}] and matrix[${c}][${r}])`,
         `Identified symmetric element pair at (${r}, ${c}) = ${matrix[r][c]} and (${c}, ${r}) = ${matrix[c][r]}.`,
         { r, c, val_rc: matrix[r][c], val_cr: matrix[c][r] },
         [r, c],
       );
 
-      // Line 9: Swap execution
+      // Line 6: Swap execution
       const valRC = matrix[r][c];
       const valCR = matrix[c][r];
       matrix[r][c] = valCR;
@@ -173,7 +149,7 @@ export const generateTransposeSquareMatrixSteps = (
       swappedPairs.add(`${c},${r}`);
 
       addStep(
-        9,
+        6,
         `matrix[${r}][${c}], matrix[${c}][${r}] = matrix[${c}][${r}], matrix[${r}][${c}]`,
         `Swapped symmetric entries! Position (${r}, ${c}) is now ${matrix[r][c]} and (${c}, ${r}) is now ${matrix[c][r]}.`,
         { r, c, new_val_rc: matrix[r][c], new_val_cr: matrix[c][r] },
@@ -182,9 +158,9 @@ export const generateTransposeSquareMatrixSteps = (
     }
   }
 
-  // Line 11: Return matrix
+  // Line 8: Return matrix
   addStep(
-    11,
+    8,
     `Return transposed matrix [${n}x${n}]`,
     `Completed in-place transposition. All symmetric element pairs swapped cleanly around main diagonal.`,
     { n, completed: true },
@@ -200,31 +176,29 @@ const TRANSPOSESQUAREMATRIX_TRIVIA: TriviaMeta = {
     "matrix[r][c] = matrix[c][r]",
     "return matrix.T",
   ],
-  hints: [{ line: 8, hint: "Start column iteration at r + 1 to avoid double-swapping symmetric elements." }],
+  hints: [
+    {
+      line: 5,
+      hint: "Start column iteration at r + 1 to avoid double-swapping symmetric elements.",
+    },
+  ],
   lineExplanations: {
     1: "Defines entry point for in-place square matrix transposition.",
-    2: "Docstring opening tag.",
-    3: "Describes in-place symmetric upper/lower triangle element swapping.",
-    4: "Docstring closing tag.",
-    5: "Gets dimension size N of square matrix (rows == columns == N).",
-    6: "Blank line preceding outer row iteration loop.",
-    7: "Iterates through row index r from 0 to N-1.",
-    8: "Iterates through upper-triangle column index c from r + 1 to N-1.",
-    9: "Swaps upper-triangle element matrix[r][c] with symmetric lower-triangle element matrix[c][r].",
-    10: "Blank line preceding matrix return statement.",
-    11: "Returns in-place transposed matrix.",
+    2: "Gets dimension size N of square matrix (rows == columns == N).",
+    3: "Blank line preceding outer row iteration loop.",
+    4: "Iterates through row index r from 0 to N-1.",
+    5: "Iterates through upper-triangle column index c from r + 1 to N-1.",
+    6: "Swaps upper-triangle element matrix[r][c] with symmetric lower-triangle element matrix[c][r].",
+    7: "Blank line preceding matrix return statement.",
+    8: "Returns in-place transposed matrix.",
   },
 };
 
 export const transposeSquareMatrix: AlgorithmDefinition<transposeSquareMatrixInput> = {
   id: "transpose-square-matrix",
   title: "In-Place Square Matrix Transpose",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "Matrix transposition ($M^T$) flips a matrix over its main diagonal, switching row and column indices: $M^T[r][c] = M[c][r]$. Transposition is a crucial primitive in linear algebra, deep learning backpropagation (computing gradients with respect to weights: $\\frac{\\partial L}{\\partial X} = \\frac{\\partial L}{\\partial Y} W^T$), and self-attention mechanisms (computing Query-Key affinity matrices $Q K^T$).\n\nFor a square $N \\times N$ matrix stored as a 2D memory grid, in-place transposition swaps off-diagonal symmetric elements $(r, c)$ and $(c, r)$ in-place without allocating auxiliary matrix buffers, achieving optimal $\\mathcal{O}(1)$ extra space.\n\nTo avoid undoing swaps by double-processing elements, column loop index $c$ starts strictly above the main diagonal ($c = r + 1$), restricting traversal strictly to the upper triangle of the matrix.",
   constraints: ["1 <= N <= 64", "matrix.length == matrix[i].length"],
@@ -244,7 +218,8 @@ export const transposeSquareMatrix: AlgorithmDefinition<transposeSquareMatrixInp
         ],
       },
       output: "Transposed matrix",
-      explanation: "Swapped upper triangle elements with symmetric lower triangle entries in-place.",
+      explanation:
+        "Swapped upper triangle elements with symmetric lower triangle entries in-place.",
     },
     {
       kind: "complex",
@@ -306,7 +281,8 @@ export const transposeSquareMatrix: AlgorithmDefinition<transposeSquareMatrixInp
     keyTerms: [
       {
         term: "Main Diagonal",
-        definition: "The set of matrix entries M[i][i] running from top-left to bottom-right where row index equals column index.",
+        definition:
+          "The set of matrix entries M[i][i] running from top-left to bottom-right where row index equals column index.",
       },
       {
         term: "Upper Triangle",
@@ -314,11 +290,13 @@ export const transposeSquareMatrix: AlgorithmDefinition<transposeSquareMatrixInp
       },
       {
         term: "In-Place Algorithm",
-        definition: "An algorithm that transforms input data structures using O(1) extra auxiliary memory.",
+        definition:
+          "An algorithm that transforms input data structures using O(1) extra auxiliary memory.",
       },
       {
         term: "Shared Memory Tiling",
-        definition: "CUDA kernel optimization caching matrix blocks in fast GPU SRAM to transpose non-coalesced memory reads into coalesced writes.",
+        definition:
+          "CUDA kernel optimization caching matrix blocks in fast GPU SRAM to transpose non-coalesced memory reads into coalesced writes.",
       },
     ],
   },

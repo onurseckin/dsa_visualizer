@@ -8,10 +8,9 @@ import {
 describe("anti-diagonal-extraction (Anti-Diagonal Matrix Traversal)", () => {
   it("should have correct metadata", () => {
     expect(antiDiagonalExtraction.id).toBe("anti-diagonal-extraction");
-    expect(antiDiagonalExtraction.isMlInfra).toBe(true);
-    expect(antiDiagonalExtraction.mlInfraLevel).toBe(1);
-    expect(antiDiagonalExtraction.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(antiDiagonalExtraction.categories).toContain("ml_tensor_algebra");
+    expect(antiDiagonalExtraction.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(antiDiagonalExtraction.topicIds).toContain("ml_tensor_algebra");
+    expect(antiDiagonalExtraction.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {

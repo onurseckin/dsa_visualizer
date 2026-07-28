@@ -9,7 +9,7 @@ describe("Zero Point Alignment Shift", () => {
   it("should have correct metadata", () => {
     expect(zeroPointAlignmentShift.id).toBe("zero-point-alignment-shift");
     expect(zeroPointAlignmentShift.title).toBe("Zero Point Alignment Shift");
-    expect(zeroPointAlignmentShift.category).toBe("ml_precision_quantization");
+    expect(zeroPointAlignmentShift.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

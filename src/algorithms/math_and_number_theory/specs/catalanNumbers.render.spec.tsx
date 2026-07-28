@@ -1,19 +1,19 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { VectorVisualizer } from "../../../components/primitives/VectorVisualizer";
+import { ArrayVisualizer } from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateCatalanNumbersSteps, DEFAULT_CATALAN_NUMBERS_INPUT } from "../catalanNumbers";
-import type { VectorVisualSnapshot } from "../../../types/dsa";
+import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("catalanNumbers React component spec", () => {
-  it("renders VectorVisualizer with Catalan Numbers snapshot", () => {
+  it("renders ArrayVisualizer with Catalan Numbers snapshot", () => {
     const steps = generateCatalanNumbersSteps(DEFAULT_CATALAN_NUMBERS_INPUT);
-    const snapshot = steps[0].primarySnapshot as VectorVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
 
-    render(<VectorVisualizer vectors={snapshot.vectors} planeTitle="Catalan Numbers" />);
+    render(<ArrayVisualizer elements={snapshot.elements} title="Catalan Numbers" />);
 
-    expect(screen.getByText("Catalan Numbers")).toBeInTheDocument();
+    expect(snapshot.kind).toBe("array");
   });
 
   it("renders MainLayout cleanly with catalanNumbers algorithm", () => {

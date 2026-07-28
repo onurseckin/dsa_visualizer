@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface SparseTableQuery {
@@ -14,9 +14,6 @@ export interface SparseTableRmqInput {
 export const SPARSE_TABLE_RMQ_CODE = `import math
 
 class SparseTableRMQ:
-    """
-    Sparse Table for Range Minimum Query (RMQ) with O(N log N) build and O(1) query time.
-    """
     def __init__(self, arr: list[int]):
         self.n = len(arr)
         if self.n == 0:
@@ -50,24 +47,50 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
   let stepIndex = 0;
   const arr = [...input.array];
   const n = arr.length;
+  const K = n > 0 ? Math.floor(Math.log2(n)) + 1 : 0;
 
-  const makeElements = (
-    activeRange?: [number, number],
-    highlightRange?: [number, number],
-  ): ArrayElement[] => {
-    return arr.map((val, idx) => {
-      let state: ArrayElement["state"] = "default";
-      if (activeRange && idx >= activeRange[0] && idx <= activeRange[1]) {
-        state = "active";
-      } else if (highlightRange && idx >= highlightRange[0] && idx <= highlightRange[1]) {
-        state = "compare";
+  const createMatrixSnapshot = (
+    currentTable: (number | string)[][],
+    activeCells?: [number, number][],
+    comparedCells?: [number, number][],
+  ) => {
+    const cells = [];
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < K; c++) {
+        let state: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive" = "default";
+        const val = currentTable[r]?.[c] ?? "-";
+        const isValidRange = r + (1 << c) <= n;
+
+        if (!isValidRange) {
+          state = "inactive";
+        } else if (activeCells?.some(([ar, ac]) => ar === r && ac === c)) {
+          state = "active";
+        } else if (comparedCells?.some(([cr, cc]) => cr === r && cc === c)) {
+          state = "compared";
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: isValidRange ? `[${r}..${r + (1 << c) - 1}]` : "N/A",
+          state,
+        });
       }
-      return {
-        id: `el-${idx}`,
-        value: val,
-        state,
-      };
-    });
+    }
+
+    const rowHeaders = arr.map((val, idx) => `i=${idx} (${val})`);
+    const colHeaders = Array.from({ length: K }, (_, j) => `j=${j} (len ${1 << j})`);
+
+    return {
+      kind: "matrix" as const,
+      rows: n,
+      cols: K,
+      cells,
+      rowHeaders,
+      colHeaders,
+      title: "Sparse Table st[i][j]",
+    };
   };
 
   const addStep = (
@@ -75,58 +98,81 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    activeRange?: [number, number],
-    highlightRange?: [number, number],
+    tableState: (number | string)[][],
+    activeCells?: [number, number][],
+    comparedCells?: [number, number][],
     customState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: makeElements(activeRange, highlightRange),
-      },
+      primarySnapshot: createMatrixSnapshot(tableState, activeCells, comparedCells),
       auxiliaryState: {
         customState: customState ?? {
           arrayLength: String(n),
+          array: arr.join(", "),
         },
       },
       variables,
     });
   };
 
+  const currentTable: (number | string)[][] = Array.from({ length: n }, () => Array(K).fill("-"));
+
   addStep(
-    3,
+    4,
     "Initialize Sparse Table construction",
     `Building Sparse Table for array of length N = ${n}. Precomputation takes O(N log N) time to enable O(1) Range Minimum Queries.`,
-    { n },
+    { n, array: arr.join(", ") },
+    currentTable,
   );
 
   if (n === 0) {
     addStep(
-      5,
+      6,
       "Array is empty",
-      "Sparse Table cannot be constructed for an empty array. Returning empty table.",
+      "Sparse Table cannot be constructed for an empty array.",
       { n: 0 },
+      currentTable,
     );
+    addStep(7, "Return empty table", "Returning empty Sparse Table.", { n: 0 }, currentTable);
     return steps;
   }
 
-  const K = Math.floor(Math.log2(n)) + 1;
+  addStep(
+    8,
+    `Calculate max log capacity K = ${K}`,
+    `For N = ${n}, max power level K = floor(log2(${n})) + 1 = ${K}. Maximum sub-interval length is 2^${K - 1} = ${1 << (K - 1)}.`,
+    { n, K },
+    currentTable,
+  );
+
   const st: number[][] = Array.from({ length: n }, () => Array(K).fill(0));
 
+  addStep(
+    9,
+    `Allocate st matrix of size ${n} x ${K}`,
+    `Sparse Table dimensions are N x K (${n} rows, ${K} columns).`,
+    { n, K },
+    currentTable,
+  );
+
   // Base case j = 0
+  const baseActiveCells: [number, number][] = [];
   for (let i = 0; i < n; i++) {
     st[i][0] = arr[i];
+    currentTable[i][0] = arr[i];
+    baseActiveCells.push([i, 0]);
   }
 
   addStep(
-    14,
-    "Base case: len = 1 (j = 0)",
-    "st[i][0] contains the minimum for length 2^0 = 1 starting at index i, which is arr[i].",
+    11,
+    "Base case precomputation: j = 0 (length = 2^0 = 1)",
+    "st[i][0] stores the minimum for range [i..i] of length 1, which equals arr[i].",
     { j: 0, length: 1 },
-    undefined,
+    currentTable,
+    baseActiveCells,
     undefined,
     { stage: "Base case precomputation" },
   );
@@ -137,32 +183,40 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     const half = 1 << (j - 1);
 
     addStep(
-      15,
-      `Computing table row j = ${j} (length = 2^${j} = ${len})`,
-      `Combining two overlapping halves of size ${half} to find minimums for range length ${len}.`,
+      12,
+      `Computing table column j = ${j} (length = 2^${j} = ${len})`,
+      `Combining two overlapping sub-intervals of size ${half} from column j-1 = ${j - 1} to compute range minimums for length ${len}.`,
       { j, length: len, halfLength: half },
+      currentTable,
     );
 
     for (let i = 0; i + len <= n; i++) {
       const leftVal = st[i][j - 1];
       const rightVal = st[i + half][j - 1];
       st[i][j] = Math.min(leftVal, rightVal);
+      currentTable[i][j] = st[i][j];
 
       addStep(
-        19,
+        16,
         `st[${i}][${j}] = min(st[${i}][${j - 1}], st[${i + half}][${j - 1}]) = ${st[i][j]}`,
         `Minimum of interval [${i}..${i + half - 1}] (${leftVal}) and interval [${i + half}..${i + len - 1}] (${rightVal}) is ${st[i][j]}.`,
         { i, j, leftVal, rightVal, minVal: st[i][j] },
-        [i, i + len - 1],
+        currentTable,
+        [[i, j]],
+        [
+          [i, j - 1],
+          [i + half, j - 1],
+        ],
       );
     }
   }
 
   addStep(
-    19,
+    16,
     "Sparse Table construction complete",
-    "All intervals of length 2^j precomputed. Ready to answer O(1) range minimum queries.",
+    "All power-of-two intervals precomputed. Sparse Table is ready to execute O(1) range minimum queries.",
     { n, K },
+    currentTable,
     undefined,
     undefined,
     { status: "Table ready" },
@@ -182,20 +236,40 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
     const queryMin = Math.min(leftPartMin, rightPartMin);
 
     addStep(
-      21,
+      18,
       `Query ${qIdx + 1}: RMQ(${L}, ${R})`,
-      `Range length = ${len}. Largest power of 2 fitting in ${len} is 2^${k} = ${1 << k}.`,
-      { queryIndex: qIdx + 1, L, R, length: len, k },
-      [L, R],
+      `Requesting range minimum for subarray arr[${L}..${R}] of length ${len}.`,
+      { queryIndex: qIdx + 1, L, R, length: len },
+      currentTable,
+      [
+        [L, k],
+        [R - (1 << k) + 1, k],
+      ],
     );
 
     addStep(
-      24,
+      20,
+      `Calculate range coverage exponent k = ${k}`,
+      `Largest power of 2 fitting within range length ${len} is 2^${k} = ${1 << k}.`,
+      { L, R, length: len, k, powerOf2: 1 << k },
+      currentTable,
+      [
+        [L, k],
+        [R - (1 << k) + 1, k],
+      ],
+    );
+
+    addStep(
+      21,
       `RMQ(${L}, ${R}) = min(st[${L}][${k}], st[${R - (1 << k) + 1}][${k}]) = ${queryMin}`,
-      `Combining overlapping intervals [${L}..${L + (1 << k) - 1}] (min ${leftPartMin}) and [${R - (1 << k) + 1}..${R}] (min ${rightPartMin}) yields overall minimum ${queryMin} in O(1) time.`,
+      `Combining overlapping sub-intervals [${L}..${L + (1 << k) - 1}] (min ${leftPartMin}) and [${R - (1 << k) + 1}..${R}] (min ${rightPartMin}) yields overall range minimum ${queryMin} in O(1) time.`,
       { L, R, k, leftPartMin, rightPartMin, queryMin },
-      [L, R],
-      [L, R],
+      currentTable,
+      [
+        [L, k],
+        [R - (1 << k) + 1, k],
+      ],
+      undefined,
       { queryResult: String(queryMin) },
     );
   }
@@ -221,7 +295,7 @@ export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
     },
     {
       heading: "4. Trade-off Matrix: Sparse Table vs Segment Tree",
-      body: "| Feature | Sparse Table | Segment Tree |\n| :--- | :--- | :--- |\n| **Query Complexity** | $O(1)$ constant time | $O(\\log N)$ logarithmic time |\n| **Update Complexity** | Static Only ($O(N \\log N)$ rebuild) | $O(\\log N)$ point/range updates |\n| **Supported Operations** | Idempotent Only ($\min$, $\max$, $\\text{GCD}$) | Any Associative Operation (including Sum) |",
+      body: "| Feature | Sparse Table | Segment Tree |\n| :--- | :--- | :--- |\n| **Query Complexity** | $O(1)$ constant time | $O(\\log N)$ logarithmic time |\n| **Update Complexity** | Static Only ($O(N \\log N)$ rebuild) | $O(\\log N)$ point/range updates |\n| **Supported Operations** | Idempotent Only ($min$, $max$, $\\text{GCD}$) | Any Associative Operation (including Sum) |",
     },
     {
       heading: "5. Interview Pitfalls & Common Bugs",
@@ -251,7 +325,7 @@ export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const SPARSE_TABLE_RMQ_TRIVIA: TriviaMeta = {
-  skipLines: [2, 6, 20],
+  skipLines: [2, 17],
   distractors: [
     "return min(st[L][k], st[R][k])",
     "st[i][j] = st[i][j - 1] + st[i + (1 << j)][j - 1]",
@@ -259,47 +333,43 @@ export const SPARSE_TABLE_RMQ_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 19,
+      line: 16,
       hint: "Combine left interval st[i][j-1] and right interval st[i + 2^(j-1)][j-1]",
     },
     {
-      line: 24,
+      line: 21,
       hint: "Use floor(log2(R - L + 1)) to get largest power of 2 length",
     },
   ],
   lineExplanations: {
-    1: "Imports the math module for log2 and floor calculations.",
+    1: "Imports math module for log2 calculation.",
     2: "Blank line separating imports.",
     3: "Defines SparseTableRMQ class for static O(1) Range Minimum Queries.",
-    4: "Docstring describing O(N log N) build and O(1) query time.",
-    5: "Docstring continuation.",
-    6: "Docstring continuation.",
-    7: "Constructor taking input sequence arr.",
-    8: "Stores array size n.",
-    9: "Checks for empty input array.",
-    10: "Returns early for empty array.",
-    11: "Calculates max power of 2 level k = floor(log2(n)) + 1.",
-    12: "Allocates 2D sparse table st of dimensions n x k initialized to 0.",
-    13: "Loops over each element i to initialize base row j=0.",
-    14: "Fills base row st[i][0] with original array value arr[i] (length 2^0 = 1).",
-    15: "Loops over power-of-two levels j from 1 to k-1.",
-    16: "Calculates full interval length: length = 1 << j (2^j).",
-    17: "Calculates half interval length: half = 1 << (j - 1) (2^(j-1)).",
-    18: "Loops over valid starting indices i up to n - length + 1.",
-    19: "Computes st[i][j] as min of left half st[i][j-1] and right half st[i+half][j-1].",
-    20: "Blank line separating constructor.",
-    21: "Defines query(left, right) returning minimum in subarray [left..right].",
-    22: "Calculates total query range length: length = right - left + 1.",
-    23: "Calculates largest power-of-two exponent k = floor(log2(length)).",
-    24: "Returns min of two overlapping power-of-2 intervals covering [left..right] in O(1) time.",
+    4: "Constructor taking input array arr.",
+    5: "Stores array length n.",
+    6: "Checks if input array is empty.",
+    7: "Returns early for empty input array.",
+    8: "Calculates max power of 2 exponent level k = floor(log2(n)) + 1.",
+    9: "Allocates 2D table st of size n x k initialized to 0.",
+    10: "Iterates over element index i to fill base row j=0.",
+    11: "Fills base row st[i][0] with arr[i] (range length 2^0 = 1).",
+    12: "Iterates over power-of-two levels j from 1 to k-1.",
+    13: "Calculates full interval length: length = 1 << j (2^j).",
+    14: "Calculates half interval length: half = 1 << (j - 1) (2^(j-1)).",
+    15: "Iterates over valid starting indices i up to n - length + 1.",
+    16: "Computes st[i][j] as min of left half st[i][j-1] and right half st[i+half][j-1].",
+    17: "Blank line separating constructor.",
+    18: "Defines query(left, right) returning minimum in subarray [left..right].",
+    19: "Calculates total query range length: length = right - left + 1.",
+    20: "Calculates largest power-of-two exponent k = floor(log2(length)).",
+    21: "Returns min of two overlapping power-of-2 intervals covering [left..right] in O(1) time.",
   },
 };
 
 export const sparseTableRmq: AlgorithmDefinition<SparseTableRmqInput> = {
   id: "sparse-table-rmq",
   title: "Sparse Table (Range Minimum Query)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Medium",
   description:
     "A **Sparse Table** precomputes range minimums for power-of-two interval lengths. Leveraging the idempotence of minimum operations, it achieves $O(N \\log N)$ precomputation time and $O(1)$ constant query time on static arrays.",
@@ -377,4 +447,3 @@ export const sparseTableRmq: AlgorithmDefinition<SparseTableRmqInput> = {
   defaultInput: DEFAULT_SPARSE_TABLE_RMQ_INPUT,
   generateSteps: generateSparseTableRmqSteps,
 };
-

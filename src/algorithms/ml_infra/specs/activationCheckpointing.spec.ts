@@ -8,9 +8,10 @@ import {
 describe("activationCheckpointing algorithm definition", () => {
   it("has valid metadata and ML Infra markers", () => {
     expect(activationCheckpointing.id).toBe("activation-checkpointing");
-    expect(activationCheckpointing.category).toBe("ml_autograd_dags");
-    expect(activationCheckpointing.isMlInfra).toBe(true);
-    expect(activationCheckpointing.mlInfraLevel).toBe(2);
+    expect(activationCheckpointing.topicIds).toContain("ml_autograd_dags");
+    expect(activationCheckpointing.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
     expect(activationCheckpointing.sources?.[0].type).toBe("ml_infra");
   });
 

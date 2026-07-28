@@ -8,10 +8,11 @@ import {
 describe("draft-model-lookahead-token-sampler (Speculative Decoding Draft Token Sampler)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(draftModelLookaheadTokenSampler.id).toBe("draft-model-lookahead-token-sampler");
-    expect(draftModelLookaheadTokenSampler.isMlInfra).toBe(true);
-    expect(draftModelLookaheadTokenSampler.mlInfraLevel).toBe(12);
-    expect(draftModelLookaheadTokenSampler.mlInfraCategory).toBe("ml_llm_serving");
-    expect(draftModelLookaheadTokenSampler.categories).toContain("ml_llm_serving");
+    expect(
+      draftModelLookaheadTokenSampler.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(draftModelLookaheadTokenSampler.topicIds).toContain("ml_llm_serving");
+    expect(draftModelLookaheadTokenSampler.topicIds).toContain("ml_llm_serving");
     expect(draftModelLookaheadTokenSampler.defaultInput).toEqual(
       DEFAULT_DRAFTMODELLOOKAHEADTOKENSAMPLER_INPUT,
     );
@@ -32,6 +33,6 @@ describe("draft-model-lookahead-token-sampler (Speculative Decoding Draft Token 
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(3);
-    expect(steps[steps.length - 1].codeLine).toBe(30);
+    expect(steps[steps.length - 1].codeLine).toBe(22);
   });
 });

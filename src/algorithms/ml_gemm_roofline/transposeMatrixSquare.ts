@@ -6,9 +6,6 @@ export interface transposeMatrixSquareInput {
 }
 
 export const TRANSPOSEMATRIXSQUARE_CODE = `def transpose_matrix_square(matrix):
-    """
-    Transposes N x N matrix in-place by swapping symmetric upper/lower entries.
-    """
     n = len(matrix)
     for r in range(n):
         for c in range(r + 1, n):
@@ -116,7 +113,7 @@ export const generateTransposeMatrixSquareSteps = (
     });
   };
 
-  // Line 1: Setup
+  // Line 1: def transpose_matrix_square(matrix):
   addStep(
     1,
     "Initialize In-Place Square Matrix Transpose Operator",
@@ -124,30 +121,9 @@ export const generateTransposeMatrixSquareSteps = (
     { n },
   );
 
+  // Line 2: n = len(matrix)
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Transposes N x N matrix in-place by swapping symmetric upper/lower entries.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: n = len(matrix)
-  addStep(
-    5,
     `Get Matrix Dimension: n = ${n}`,
     `Extract dimension N = ${n} from matrix row length.`,
     { n },
@@ -155,8 +131,9 @@ export const generateTransposeMatrixSquareSteps = (
 
   // Loops for transposition
   for (let r = 0; r < n; r++) {
+    // Line 3: for r in range(n):
     addStep(
-      6,
+      3,
       `Outer Loop Row r = ${r}`,
       `Iterate outer loop for row index r = ${r}. Main diagonal entry is matrix[${r}][${r}] = ${matrix[r][r]}.`,
       { r, n },
@@ -165,8 +142,9 @@ export const generateTransposeMatrixSquareSteps = (
     );
 
     for (let c = r + 1; c < n; c++) {
+      // Line 4: for c in range(r + 1, n):
       addStep(
-        7,
+        4,
         `Inner Loop Column c = ${c} (r = ${r})`,
         `Select upper-triangle entry matrix[${r}][${c}] and symmetric lower-triangle entry matrix[${c}][${r}].`,
         { r, c, n },
@@ -177,8 +155,9 @@ export const generateTransposeMatrixSquareSteps = (
       const valUpper = matrix[r][c];
       const valLower = matrix[c][r];
 
+      // Line 5: matrix[r][c], matrix[c][r] = matrix[c][r], matrix[r][c]
       addStep(
-        8,
+        5,
         `Inspect Symmetric Pair: matrix[${r}][${c}] (${valUpper}) <-> matrix[${c}][${r}] (${valLower})`,
         `Prepare to swap upper-triangle entry matrix[${r}][${c}] with lower-triangle entry matrix[${c}][${r}].`,
         { r, c, valUpper, valLower },
@@ -193,7 +172,7 @@ export const generateTransposeMatrixSquareSteps = (
       swappedPairs.add(`${c},${r}`);
 
       addStep(
-        8,
+        5,
         `Execute In-Place Swap: matrix[${r}][${c}] becomes ${valLower}, matrix[${c}][${r}] becomes ${valUpper}`,
         `Symmetric pair successfully exchanged across the main diagonal.`,
         { r, c, "new_matrix[r][c]": valLower, "new_matrix[c][r]": valUpper },
@@ -203,9 +182,9 @@ export const generateTransposeMatrixSquareSteps = (
     }
   }
 
-  // Line 9: Return matrix
+  // Line 6: return matrix
   addStep(
-    9,
+    6,
     "In-Place Matrix Transpose Complete",
     `Successfully transposed ${n}x${n} matrix in-place with O(1) auxiliary space.`,
     { completed: true, n },
@@ -226,33 +205,29 @@ export const TRANSPOSEMATRIXSQUARE_TRIVIA: TriviaMeta = {
     "return matrix[::-1]",
   ],
   hints: [
-    { line: 5, hint: "Matrix dimension n is len(matrix)." },
-    { line: 6, hint: "Outer loop iterates rows r from 0 to n-1." },
-    { line: 7, hint: "Inner loop must start at c = r + 1 to stay in upper triangle and avoid double swaps." },
-    { line: 8, hint: "Swap symmetric entries matrix[r][c] and matrix[c][r] in-place." },
+    { line: 2, hint: "Matrix dimension n is len(matrix)." },
+    { line: 3, hint: "Outer loop iterates rows r from 0 to n-1." },
+    {
+      line: 4,
+      hint: "Inner loop must start at c = r + 1 to stay in upper triangle and avoid double swaps.",
+    },
+    { line: 5, hint: "Swap symmetric entries matrix[r][c] and matrix[c][r] in-place." },
   ],
   lineExplanations: {
     1: "Defines square matrix in-place transpose function.",
-    2: "Starts docstring explaining in-place symmetric upper/lower matrix swapping.",
-    3: "Describes mathematical contract: transpose N x N square matrix in-place.",
-    4: "Ends function docstring.",
-    5: "Gets square matrix dimension N = len(matrix).",
-    6: "Iterates outer row loop r from 0 up to n - 1.",
-    7: "Iterates inner column loop c strictly in upper triangle (c from r + 1 to n - 1).",
-    8: "Swaps upper-triangle entry matrix[r][c] with symmetric lower-triangle entry matrix[c][r].",
-    9: "Returns in-place transposed square matrix.",
+    2: "Gets square matrix dimension N = len(matrix).",
+    3: "Iterates outer row loop r from 0 up to n - 1.",
+    4: "Iterates inner column loop c strictly in upper triangle (c from r + 1 to n - 1).",
+    5: "Swaps upper-triangle entry matrix[r][c] with symmetric lower-triangle entry matrix[c][r].",
+    6: "Returns in-place transposed square matrix.",
   },
 };
 
 export const transposeMatrixSquare: AlgorithmDefinition<transposeMatrixSquareInput> = {
   id: "transpose-matrix-square",
   title: "Square Matrix Transpose Operator",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "Aligning matrix layout representations for GEMM kernels (e.g. converting a row-major matrix $B$ into column-major format for BLAS GEMM or GPU Tensor Core inputs) requires matrix transpose operations $A^T$. For an $N \\times N$ square matrix, performing in-place symmetric element swaps $M[r][c] \\leftrightarrow M[c][r]$ across the main diagonal executes in $\\mathcal{O}(1)$ auxiliary space:\n$$A^T_{ij} = A_{ji}$$\nIn GPU memory hierarchies (CUDA / Triton), performing naive global memory transposes causes non-coalesced DRAM writes. Optimized kernels load $32 \\times 32$ tiles into SRAM shared memory, perform tile transposition inside SRAM registers, and write back coalesced DRAM memory lines.",
   constraints: [

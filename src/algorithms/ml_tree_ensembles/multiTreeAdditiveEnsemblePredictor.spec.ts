@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { multiTreeAdditiveEnsemblePredictor } from "./multiTreeAdditiveEnsemblePredictor";
 
-describe("multiTreeAdditiveEnsemblePredictor", () => {
+describe("multi-tree-additive-ensemble-predictor", () => {
   it("should have valid metadata", () => {
     expect(multiTreeAdditiveEnsemblePredictor.id).toBeDefined();
     expect(multiTreeAdditiveEnsemblePredictor.title).toBeDefined();

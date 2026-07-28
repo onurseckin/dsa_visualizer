@@ -9,7 +9,7 @@ describe("Fake Quantized W8a8 Matmul", () => {
   it("should have correct metadata", () => {
     expect(fakeQuantizedW8a8Matmul.id).toBe("fake-quantized-w8a8-matmul");
     expect(fakeQuantizedW8a8Matmul.title).toBe("Fake Quantized W8a8 Matmul");
-    expect(fakeQuantizedW8a8Matmul.category).toBe("ml_precision_quantization");
+    expect(fakeQuantizedW8a8Matmul.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

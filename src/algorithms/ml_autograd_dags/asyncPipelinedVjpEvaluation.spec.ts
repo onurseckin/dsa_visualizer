@@ -8,10 +8,11 @@ import {
 describe("async-pipelined-vjp-evaluation (Async Pipelined Multi-GPU VJP Evaluator)", () => {
   it("should have correct metadata", () => {
     expect(asyncPipelinedVjpEvaluation.id).toBe("async-pipelined-vjp-evaluation");
-    expect(asyncPipelinedVjpEvaluation.isMlInfra).toBe(true);
-    expect(asyncPipelinedVjpEvaluation.mlInfraLevel).toBe(3);
-    expect(asyncPipelinedVjpEvaluation.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(asyncPipelinedVjpEvaluation.categories).toContain("ml_autograd_dags");
+    expect(asyncPipelinedVjpEvaluation.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(asyncPipelinedVjpEvaluation.topicIds).toContain("ml_autograd_dags");
+    expect(asyncPipelinedVjpEvaluation.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {
@@ -43,5 +44,12 @@ describe("async-pipelined-vjp-evaluation (Async Pipelined Multi-GPU VJP Evaluato
       expect(step.codeLine).toBeGreaterThanOrEqual(1);
       expect(step.codeLine).toBeLessThanOrEqual(totalLines);
     });
+  });
+
+  it("should use graph visual snapshot kind", () => {
+    const steps = generateAsyncPipelinedVjpEvaluationSteps(
+      DEFAULT_ASYNCPIPELINEDVJPEVALUATION_INPUT,
+    );
+    expect(steps[0].primarySnapshot.kind).toBe("graph");
   });
 });

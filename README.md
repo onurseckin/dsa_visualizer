@@ -1,99 +1,65 @@
-# Interactive DSA Knowledge Graph & Visualizer
+# DSA Visualizer
 
-A high-performance, dark-themed **Data Structures and Algorithms (DSA) Knowledge Graph & Interactive Visualizer** built with **React**, **TypeScript**, **Vite**, and **Vanilla CSS**.
+An interactive learning workspace for data structures, algorithms, and ML-infrastructure
+concepts. It combines step-by-step visualizations, executable-style Python listings,
+curriculum roadmaps, a searchable problem directory, and a code-occlusion trivia drill.
 
-The project visualizes **40+ algorithms** mapped across **21 granular topological prerequisite modules** covering core technical interview problems and advanced competitive programming topics (_Competitive Programmer's Handbook_).
+## Stack
 
----
+- React 19 + TypeScript 7
+- Vite 5 + TanStack Router file routes
+- Tailwind 4 and token-based CSS
+- Bun scripts, Vitest + jsdom, Oxlint, and Oxfmt
+- Local SQLite-backed persistence through a Vite plugin, with a safe fallback when
+  `bun:sqlite` is unavailable
 
-## Key Features
-
-- 🕸️ **Topological Prerequisite Knowledge Graph**: Interactive SVG prerequisite roadmap mapping foundational data structures to advanced graph flows, range queries, and computational geometry.
-- 🐍 **Python Algorithm Code Representation**: Clean, idiomatic Python algorithm listings with real-time active line highlights (`code-line-active`) and live variable watch tables.
-- 🎨 **Multi-Kind Primary Visualizers**:
-  - **Array Visualizer**: Glowing bars/boxes with pointer markers, comparisons, swaps, and sorted states.
-  - **Grid Visualizer**: 2D matrix layout for pathfinding (start, end, walls, visited, path).
-  - **Graph Visualizer**: Interactive SVG node-and-edge layout with weight labels and traversal paths.
-  - **Tree Visualizer**: SVG binary tree node-and-link renderer.
-- 💡 **Step Tutorial Cards**: Dynamic "WHAT IS HAPPENING" and "WHY THIS STEP" pedagogical explanation panels.
-- 🔍 **Auxiliary State Inspection**: Real-time side panel inspecting Call Stack, Queue, Visited Set, Hash Map, and Distance Table states.
-- 🔊 **Web Audio Sound Engine**: Interactive audio feedback for comparisons, swaps, stack pushes/pops, and algorithm completion.
-- 🧪 **Comprehensive Vitest Spec Suite**: Over 250 passing unit and React component tests across 90+ `.spec.ts` and `.spec.tsx` files inside dedicated `specs/` directories.
-
----
-
-## Topological Module Architecture
-
-```
-1. Arrays & Hashing (arrays_and_hashing/)
-   ├── 2. Two Pointers (two_pointers/) ──> 5. Sliding Window (sliding_window/)
-   │                                   └── 6. Linked List (linked_list/) ──> 7. Tree Fundamentals (tree_fundamentals/)
-   ├── 3. Stack & Queue (stack_and_queue/)                                      ├── 8. Tries & String Algs (tries_and_strings/)
-   └── 4. Binary Search (binary_search/) ───────────────────────────────────────┼── 9. Heap / Priority Queue (heap_and_priority_queue/)
-                                                                               └── 10. Backtracking (backtracking/)
-                                                                                        │
-   ┌────────────────────────────────────────────────────────────────────────────────────┘
-   ▼
-11. Graph Traversal (graph_traversal/)
-   ├── 12. Graph Shortest Paths (graph_shortest_paths/) ──> 15. Network Flows & Cuts (graph_flows_and_cuts/)
-   ├── 13. Spanning Trees & DSU (graph_spanning_trees/)
-   └── 14. Directed & SCC Graphs (graph_directed_and_scc/)
-
-16. 1-D Dynamic Programming (dp_1d/) ──> 17. 2-D Dynamic Programming (dp_2d/) ──> 18. Advanced Range Queries (advanced_range_queries/)
-19. Bit Manipulation (bit_manipulation/)
-20. Math & Number Theory (math_and_number_theory/) ──> 21. Geometry & Sweep Line (geometry_and_sweep_line/)
-```
-
----
-
-## Quick Start & Installation
-
-### Prerequisites
-
-- [Bun](https://bun.sh/) (Recommended) or [Node.js](https://nodejs.org/) (v18+)
-
-### 1. Clone the Repository
-
-```bash
-git clone git@github.com-personal:onurseckin/dsa_visualizer.git
-cd dsa_visualizer
-```
-
-### 2. Install Dependencies
+## Start here
 
 ```bash
 bun install
-# or
-npm install
-```
-
-### 3. Run Development Server
-
-```bash
 bun run dev
-# or
-npm run dev
 ```
 
-Open `http://localhost:5173` in your browser to view the app.
+Open `http://localhost:5173`.
 
----
+## Common commands
 
-## Scripts & Quality Control Gate
+| Command | Purpose |
+| --- | --- |
+| `bun run typecheck` | TypeScript check |
+| `bun run format:check` | Formatting check |
+| `bun run lint` | Lint with zero warnings |
+| `bunx vitest run <path>` | Focused test run |
+| `bun run test` | Full test suite |
+| `bun run test:coverage` | Full suite with enforced coverage floors |
+| `bun run build` | Production build |
+| `bun run check` | Typecheck, format, lint, Intent, coverage, and build |
 
-This repository enforces strict TypeScript and ESLint standards with **0 `any` or `unknown` casts** and **0 ESLint warnings/errors**.
+Use Bun for every command in this repository. Do not add npm, pnpm, or yarn lockfiles.
 
-| Command             | Action                                                                |
-| ------------------- | --------------------------------------------------------------------- |
-| `bun run dev`       | Starts Vite local development server                                  |
-| `bun run typecheck` | Runs TypeScript compiler verification (`tsc --noEmit`)                |
-| `bun run lint`      | Runs ESLint (`eslint . --ext ts,tsx --max-warnings 0`)                |
-| `bun run test`      | Runs complete Vitest test suite                                       |
-| `bun run build`     | Builds production bundle into `dist/`                                 |
-| **`bun run check`** | **Master Quality Gate**: Runs `typecheck` → `lint` → `test` → `build` |
+## The catalog and curriculum
 
----
+Every problem has one canonical kebab-case ID and one `AlgorithmDefinition` with a
+non-empty `topicIds` tuple. `src/curriculum/topics.ts` owns `TOPIC_CATALOG`; algorithm
+membership, filters, counts, search, roadmap drawers, and trivia all derive from those
+definitions. There are no aliases, legacy category fields, manual roadmap counts, or
+static problem lists in curriculum data. Every topic binding is equal—there is no
+primary-topic convention hidden in tuple order.
+
+Curriculum placements are authored teaching and layout data: prerequisites, family,
+copy, difficulty framing, and coordinates. They reference topics, but never duplicate
+algorithm facts. See [docs/catalog.md](docs/catalog.md) for the contribution workflow
+and [docs/architecture.md](docs/architecture.md) for the runtime data flow.
+
+The coverage gate includes every executable `src/**/*.ts(x)` file and currently
+enforces 98% statements/lines, 89% branches, and 97% functions, plus a per-file rule
+that every applicable metric receives behavioral coverage.
+
+## Contributing
+
+Read [AGENTS.md](AGENTS.md) before editing. It contains the short project contract,
+source map, required checks, visualizer rules, and collaboration guidance.
 
 ## License
 
-MIT License.
+MIT

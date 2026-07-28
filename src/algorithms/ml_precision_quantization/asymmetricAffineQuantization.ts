@@ -58,7 +58,7 @@ export const generateAsymmetricAffineQuantizationSteps = (
       explanation: { what, why },
       primarySnapshot: {
         kind: "quantization",
-        originalValue: currValue ?? arrayValues[0],
+        originalValue: currValue ?? arrayValues[0] ?? 0,
         quantizedValue: currQuantized ?? 0,
         scale,
         zeroPoint,
@@ -155,7 +155,7 @@ export const generateAsymmetricAffineQuantizationSteps = (
   addStep(
     7,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully quantized all input floating-point values into signed INT8 space.",
     { completed: true, totalSteps: stepIndex },
     arrayValues[arrayValues.length - 1],
     quantizedBuffer[quantizedBuffer.length - 1] ?? 0,
@@ -193,12 +193,8 @@ export const asymmetricAffineQuantization: AlgorithmDefinition<asymmetricAffineQ
   {
     id: "asymmetric-affine-quantization",
     title: "Asymmetric Affine Quantization",
-    category: "ml_precision_quantization",
-    categories: ["ml_precision_quantization", "bit_manipulation"],
+    topicIds: ["ml_precision_quantization", "bit_manipulation"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 4,
-    mlInfraCategory: "ml_precision_quantization",
     description: `### Asymmetric Affine Quantization
 
 Asymmetric Affine Quantization maps 32-bit floating point numbers (FP32) into 8-bit integer range (INT8 $[-128, 127]$ or UINT8 $[0, 255]$) using a floating point scale factor $S$ and integer zero-point offset $Z$.

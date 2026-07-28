@@ -10,9 +10,6 @@ export interface tritonTensorCoreMmaSwizzleInput {
 }
 
 export const TRITONTENSORCOREMMASWIZZLE_CODE = `def triton_tensor_core_mma_swizzle(pid_1d, num_pid_m, num_pid_n, group_size=8):
-    """
-    Swizzles 1D Triton CTA program ID into 2D tile coordinates (pid_m, pid_n) for L2 cache locality.
-    """
     num_pids_in_group = group_size * num_pid_n
     group_id = pid_1d // num_pids_in_group
     first_pid_m = group_id * group_size
@@ -129,27 +126,6 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     { num_pid_m, num_pid_n, group_size },
   );
 
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Swizzles 1D Triton CTA program ID into 2D tile coordinates (pid_m, pid_n) for L2",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
   // First perform detailed step trace for the primary target pid_1d
   {
     const pid_1d = targetPid1d;
@@ -168,35 +144,35 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     );
 
     addStep(
-      5,
+      2,
       `Calculate Group Size: num_pids_in_group = group_size * num_pid_n (${group_size} * ${num_pid_n} = ${num_pids_in_group})`,
       "Calculate total program IDs assigned to one macro-tile group.",
       { pid_1d, num_pids_in_group },
     );
 
     addStep(
-      6,
+      3,
       `Calculate Group ID: group_id = pid_1d // num_pids_in_group (${pid_1d} // ${num_pids_in_group} = ${group_id})`,
       `Identify macro-tile group containing program ID ${pid_1d}.`,
       { pid_1d, group_id, num_pids_in_group },
     );
 
     addStep(
-      7,
+      4,
       `Calculate First M Tile: first_pid_m = group_id * group_size (${group_id} * ${group_size} = ${first_pid_m})`,
       "Determine starting M row block index for current macro-tile group.",
       { group_id, first_pid_m },
     );
 
     addStep(
-      8,
+      5,
       `Calculate Effective Group Height: group_size_m = min(${num_pid_m} - ${first_pid_m}, ${group_size}) (${group_size_m})`,
       "Clamp group size for boundary tail groups near edge of M dimension.",
       { num_pid_m, first_pid_m, group_size_m },
     );
 
     addStep(
-      10,
+      7,
       `Calculate Swizzled Row Tile: pid_m = first_pid_m + (pid_1d % group_size_m) (${first_pid_m} + (${pid_1d} % ${group_size_m}) = ${pid_m})`,
       `Compute swizzled 2D M row coordinate: pid_m = ${pid_m}.`,
       { pid_1d, first_pid_m, group_size_m, pid_m },
@@ -206,7 +182,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     );
 
     addStep(
-      11,
+      8,
       `Calculate Swizzled Col Tile: pid_n = (pid_1d % num_pids_in_group) // group_size_m (${pid_n})`,
       `Compute swizzled 2D N column coordinate: pid_n = ${pid_n}.`,
       { pid_1d, num_pids_in_group, group_size_m, pid_n },
@@ -218,7 +194,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     mappedGrid.set(`${pid_m},${pid_n}`, pid_1d);
 
     addStep(
-      13,
+      10,
       `Return Swizzled Coordinates: (pid_m, pid_n) = (${pid_m}, ${pid_n}) for pid_1d = ${pid_1d}`,
       `Successfully mapped 1D program ID ${pid_1d} to 2D CTA tile (${pid_m}, ${pid_n}).`,
       { pid_1d, pid_m, pid_n },
@@ -247,7 +223,7 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     mappedGrid.set(`${pid_m},${pid_n}`, pid_1d);
 
     addStep(
-      10,
+      7,
       `Swizzle pid_1d = ${pid_1d} -> (pid_m = ${pid_m}, pid_n = ${pid_n})`,
       `Macro-tile group ${group_id} maps 1D ID ${pid_1d} to tile [${pid_m}, ${pid_n}].`,
       { pid_1d, group_id, pid_m, pid_n },
@@ -257,9 +233,9 @@ export const generateTritonTensorCoreMmaSwizzleSteps = (
     );
   }
 
-  // Line 13: Final complete step
+  // Final complete step
   addStep(
-    13,
+    10,
     "Triton Tensor Core MMA Layout Swizzle Complete",
     "All CTA program IDs mapped into 2D L2-cache friendly macro-tile layout.",
     { completed: true },
@@ -281,37 +257,30 @@ export const TRITONTENSORCOREMMASWIZZLE_TRIVIA: TriviaMeta = {
     "num_pids_in_group = group_size * num_pid_m",
   ],
   hints: [
-    { line: 5, hint: "Total PIDs in a group is group_size * num_pid_n." },
-    { line: 6, hint: "Macro-tile group ID is pid_1d // num_pids_in_group." },
-    { line: 8, hint: "group_size_m accounts for boundary tail groups using min()." },
-    { line: 10, hint: "Swizzled row pid_m is first_pid_m + (pid_1d % group_size_m)." },
+    { line: 2, hint: "Total PIDs in a group is group_size * num_pid_n." },
+    { line: 3, hint: "Macro-tile group ID is pid_1d // num_pids_in_group." },
+    { line: 5, hint: "group_size_m accounts for boundary tail groups using min()." },
+    { line: 7, hint: "Swizzled row pid_m is first_pid_m + (pid_1d % group_size_m)." },
   ],
   lineExplanations: {
-    1: "Defines Triton tensor core MMA program ID swizzle function.",
-    2: "Starts docstring explaining 1D CTA to 2D L2 cache layout swizzling.",
-    3: "Describes mathematical contract: map 1D pid_1d to (pid_m, pid_n) tile coordinates.",
-    4: "Ends function docstring.",
-    5: "Calculates total program IDs in a macro-tile group num_pids_in_group = group_size * num_pid_n.",
-    6: "Calculates macro-tile group ID = pid_1d // num_pids_in_group.",
-    7: "Calculates starting row tile index first_pid_m = group_id * group_size.",
-    8: "Calculates effective group height group_size_m handling tail boundary conditions.",
-    9: "Blank line separating group sizing from coordinate calculation.",
-    10: "Calculates swizzled row CTA coordinate pid_m = first_pid_m + (pid_1d % group_size_m).",
-    11: "Calculates swizzled column CTA coordinate pid_n = (pid_1d % num_pids_in_group) // group_size_m.",
-    12: "Blank line separating coordinate calculation from return statement.",
-    13: "Returns swizzled 2D CTA tile coordinate tuple (pid_m, pid_n).",
+    1: "Defines Triton tensor core MMA program ID swizzle function signature.",
+    2: "Calculates total program IDs in a macro-tile group num_pids_in_group = group_size * num_pid_n.",
+    3: "Calculates macro-tile group ID = pid_1d // num_pids_in_group.",
+    4: "Calculates starting row tile index first_pid_m = group_id * group_size.",
+    5: "Calculates effective group height group_size_m handling tail boundary conditions.",
+    6: "Blank line separating group calculation from coordinate swizzling.",
+    7: "Calculates swizzled row CTA coordinate pid_m = first_pid_m + (pid_1d % group_size_m).",
+    8: "Calculates swizzled column CTA coordinate pid_n = (pid_1d % num_pids_in_group) // group_size_m.",
+    9: "Blank line separating coordinate calculation from return statement.",
+    10: "Returns swizzled 2D CTA tile coordinate tuple (pid_m, pid_n).",
   },
 };
 
 export const tritonTensorCoreMmaSwizzle: AlgorithmDefinition<tritonTensorCoreMmaSwizzleInput> = {
   id: "triton-tensor-core-mma-swizzle",
   title: "Triton Tensor Core MMA Layout Swizzler",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "When launching thread blocks (CTAs) for matrix multiplication on GPUs (e.g. OpenAI Triton GEMM kernels on NVIDIA Tensor Cores), mapping 1D CTA program IDs (`pid_1d`) sequentially row-by-row causes adjacent thread blocks executing in parallel to request different columns of Matrix $B$. This leads to heavy L2 cache line thrashing and low hit rates ($\\approx 20\\%$).\n\nSwizzling program IDs maps sequential 1D CTA program IDs into 2D macro-tile groups (e.g., $G$ CTAs tall by $N_{\\text{tiles}}$ CTAs wide):\n$$\\text{group\\_id} = \\lfloor \\frac{\\text{pid}_{1\\text{d}}}{G \\times N_{\\text{tiles}}} \\rfloor$$\n$$\\text{pid}_m = \\text{first\\_pid}_m + (\\text{pid}_{1\\text{d}} \\bmod G_{\\text{m}}), \\quad \\text{pid}_n = \\lfloor \\frac{\\text{pid}_{1\\text{d}} \\bmod (G \\times N_{\\text{tiles}})}{G_{\\text{m}}} \\rfloor$$\nThread blocks inside the same macro-tile group run simultaneously and share loaded Matrix $B$ tiles directly from GPU L2 cache, boosting L2 hit rates up to $>85\\%$ and significantly increasing GEMM FLOPS.",
   constraints: [

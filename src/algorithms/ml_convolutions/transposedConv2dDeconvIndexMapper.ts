@@ -12,13 +12,6 @@ export interface transposedConv2dDeconvIndexMapperInput {
 }
 
 export const TRANSPOSEDCONV2DDECONVINDEXMAPPER_CODE = `def transposed_conv2d(input_map, kernel, stride=1, padding=0, output_padding=0):
-    """
-    Transposed 2D Convolution (Deconvolution) Engine via Direct Index Mapping.
-    Computes output spatial shape:
-      H_out = (H_in - 1) * stride - 2 * padding + K_h + output_padding
-      W_out = (W_in - 1) * stride - 2 * padding + K_w + output_padding
-    Maps input activations to output grid locations without creating sparse zero-filled tensors.
-    """
     h_in, w_in = len(input_map), len(input_map[0])
     k_h, k_w = len(kernel), len(kernel[0])
 
@@ -82,10 +75,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   const outputMap: number[][] = Array.from({ length: hOut }, () => Array(wOut).fill(0));
 
-  const createGrid = (
-    activeROut: number = -1,
-    activeCOut: number = -1,
-  ): GridCellNode[][] => {
+  const createGrid = (activeROut: number = -1, activeCOut: number = -1): GridCellNode[][] => {
     return outputMap.map((row, r) =>
       row.map((val, c) => {
         let state: "default" | "active" | "compare" | "visited" = "default";
@@ -143,7 +133,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   // Step 2: Input dimensions
   addStep(
-    9,
+    2,
     "Measure Input Spatial Dimensions",
     `Input activation map spatial dimensions: h_in = ${hIn}, w_in = ${wIn}.`,
     { hIn, wIn },
@@ -151,7 +141,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   // Step 3: Kernel dimensions
   addStep(
-    10,
+    3,
     "Measure Kernel Dimensions",
     `Deconvolution kernel filter spatial dimensions: k_h = ${kH}, k_w = ${kW}.`,
     { kH, kW },
@@ -159,7 +149,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   // Step 4: Calculate h_out
   addStep(
-    12,
+    5,
     "Calculate Output Height Dimension",
     `Computed spatial output height h_out = (${hIn} - 1) * ${stride} - 2 * ${padding} + ${kH} + ${outputPadding} = ${hOut}.`,
     { hOut, hIn, stride, padding, kH, outputPadding },
@@ -167,7 +157,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   // Step 5: Calculate w_out
   addStep(
-    13,
+    6,
     "Calculate Output Width Dimension",
     `Computed spatial output width w_out = (${wIn} - 1) * ${stride} - 2 * ${padding} + ${kW} + ${outputPadding} = ${wOut}.`,
     { wOut, wIn, stride, padding, kW, outputPadding },
@@ -175,7 +165,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   // Step 6: Allocate output buffer
   addStep(
-    15,
+    8,
     "Initialize Output Matrix Buffer",
     `Allocated ${hOut}x${wOut} output map initialized with 0.0 floats.`,
     { hOut, wOut },
@@ -184,7 +174,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
   // Scatter loop over input map
   for (let rIn = 0; rIn < hIn; rIn++) {
     addStep(
-      17,
+      10,
       `Outer Row Loop: r_in = ${rIn}`,
       `Iterating over input row r_in = ${rIn} of ${hIn - 1}.`,
       { rIn, hIn },
@@ -192,7 +182,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
     for (let cIn = 0; cIn < wIn; cIn++) {
       addStep(
-        18,
+        11,
         `Inner Column Loop: c_in = ${cIn}`,
         `Accessing input coordinate (${rIn}, ${cIn}).`,
         { rIn, cIn },
@@ -200,7 +190,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
       const val = inputMap[rIn][cIn];
       addStep(
-        19,
+        12,
         `Read Input Activation: val = ${val}`,
         `Loaded scalar activation val = ${val} at input position (${rIn}, ${cIn}).`,
         { rIn, cIn, val },
@@ -208,7 +198,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
       for (let kr = 0; kr < kH; kr++) {
         addStep(
-          20,
+          13,
           `Kernel Row Loop: kr = ${kr}`,
           `Scanning deconvolution kernel row kr = ${kr} of ${kH - 1}.`,
           { rIn, cIn, val, kr },
@@ -216,7 +206,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
         for (let kc = 0; kc < kW; kc++) {
           addStep(
-            21,
+            14,
             `Kernel Col Loop: kc = ${kc}`,
             `Scanning deconvolution kernel column kc = ${kc} of ${kW - 1}.`,
             { rIn, cIn, val, kr, kc },
@@ -224,7 +214,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
           const rOut = rIn * stride + kr - padding;
           addStep(
-            22,
+            15,
             `Map Output Row Index: r_out = ${rOut}`,
             `Evaluated r_out = ${rIn} * ${stride} + ${kr} - ${padding} = ${rOut}.`,
             { rIn, stride, kr, padding, rOut },
@@ -232,7 +222,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
           const cOut = cIn * stride + kc - padding;
           addStep(
-            23,
+            16,
             `Map Output Column Index: c_out = ${cOut}`,
             `Evaluated c_out = ${cIn} * ${stride} + ${kc} - ${padding} = ${cOut}.`,
             { cIn, stride, kc, padding, cOut },
@@ -240,7 +230,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
           const inside = rOut >= 0 && rOut < hOut && cOut >= 0 && cOut < wOut;
           addStep(
-            24,
+            17,
             `Check Output Boundary: (${rOut}, ${cOut}) inside grid? ${inside}`,
             `Verified spatial bounds: 0 <= ${rOut} < ${hOut} and 0 <= ${cOut} < ${wOut} -> ${inside}.`,
             { rOut, cOut, hOut, wOut, inside },
@@ -254,7 +244,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
             outputMap[rOut][cOut] += prod;
 
             addStep(
-              25,
+              18,
               `Scatter Accumulate: output[${rOut}][${cOut}] += ${val} * ${kerWeight} = ${prod}`,
               `Accumulated product ${prod.toFixed(1)} into output coordinate (${rOut}, ${cOut}). New value: ${outputMap[rOut][cOut].toFixed(1)}.`,
               { rOut, cOut, val, kerWeight, prod, newOutput: outputMap[rOut][cOut] },
@@ -269,7 +259,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 
   // Step final
   addStep(
-    27,
+    20,
     "Execution Complete",
     `Finished transposed 2D convolution index mapping. Output spatial shape ${hOut}x${wOut}.`,
     { completed: true, hOut, wOut },
@@ -279,7 +269,7 @@ export const generateTransposedConv2dDeconvIndexMapperSteps = (
 };
 
 const TRANSPOSEDCONV2DDECONVINDEXMAPPER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 11, 14, 16, 26],
+  skipLines: [4, 7, 9, 19],
   distractors: [
     "output_map[r_out][c_out] = val * kernel[kr][kc]",
     "h_out = h_in * stride",
@@ -288,55 +278,44 @@ const TRANSPOSEDCONV2DDECONVINDEXMAPPER_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 12,
+      line: 5,
       hint: "Spatial output height formula: H_out = (H_in - 1) * stride - 2 * padding + K_h + output_padding.",
     },
     {
-      line: 22,
+      line: 15,
       hint: "Direct scatter index equation: r_out = r_in * stride + kr - padding.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for transposed 2D convolution index mapper function.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes transposed 2D convolution (deconvolution) via direct index mapping.",
-    4: "Docstring formula explanation section header.",
-    5: "Docstring formula line for spatial output height H_out.",
-    6: "Docstring formula line for spatial output width W_out.",
-    7: "Docstring note explaining zero-copy index mapping advantage.",
-    8: "Docstring closing delimiter tag.",
-    9: "Measures height h_in and width w_in of input activation map.",
-    10: "Measures height k_h and width k_w of deconvolution filter kernel.",
-    11: "Blank line before output dimension calculation.",
-    12: "Calculates spatial output height h_out using upsampling dimension formula.",
-    13: "Calculates spatial output width w_out using upsampling dimension formula.",
-    14: "Blank line before output matrix allocation.",
-    15: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
-    16: "Blank line separating allocation from scatter loops.",
-    17: "Iterates over input activation map row index r_in from 0 to h_in - 1.",
-    18: "Iterates over input activation map column index c_in from 0 to w_in - 1.",
-    19: "Loads scalar activation value val from input_map[r_in][c_in].",
-    20: "Iterates over deconvolution kernel row index kr from 0 to k_h - 1.",
-    21: "Iterates over deconvolution kernel column index kc from 0 to k_w - 1.",
-    22: "Calculates scatter destination row index r_out = r_in * stride + kr - padding.",
-    23: "Calculates scatter destination column index c_out = c_in * stride + kc - padding.",
-    24: "Checks if destination coordinate (r_out, c_out) lies inside valid output map bounds.",
-    25: "Accumulates scaled filter product val * kernel[kr][kc] into output_map[r_out][c_out].",
-    26: "Blank line separating scatter loops from return statement.",
-    27: "Returns final upsampled 2D feature map matrix output_map.",
+    2: "Measures height h_in and width w_in of input activation map.",
+    3: "Measures height k_h and width k_w of deconvolution filter kernel.",
+    4: "Blank line before output dimension calculation.",
+    5: "Calculates spatial output height h_out using upsampling dimension formula.",
+    6: "Calculates spatial output width w_out using upsampling dimension formula.",
+    7: "Blank line before output matrix allocation.",
+    8: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
+    9: "Blank line separating allocation from scatter loops.",
+    10: "Iterates over input activation map row index r_in from 0 to h_in - 1.",
+    11: "Iterates over input activation map column index c_in from 0 to w_in - 1.",
+    12: "Loads scalar activation value val from input_map[r_in][c_in].",
+    13: "Iterates over deconvolution kernel row index kr from 0 to k_h - 1.",
+    14: "Iterates over deconvolution kernel column index kc from 0 to k_w - 1.",
+    15: "Calculates scatter destination row index r_out = r_in * stride + kr - padding.",
+    16: "Calculates scatter destination column index c_out = c_in * stride + kc - padding.",
+    17: "Checks if destination coordinate (r_out, c_out) lies inside valid output map bounds.",
+    18: "Accumulates scaled filter product val * kernel[kr][kc] into output_map[r_out][c_out].",
+    19: "Blank line separating scatter loops from return statement.",
+    20: "Returns final upsampled 2D feature map matrix output_map.",
   },
 };
 
 export const transposedConv2dDeconvIndexMapper: AlgorithmDefinition<transposedConv2dDeconvIndexMapperInput> =
   {
-    id: "transposedConv2dDeconvIndexMapper",
+    id: "transposed-conv2d-deconv-index-mapper",
     title: "Transposed 2D Convolution (Deconvolution) Engine",
-    category: "ml_convolutions",
-    categories: ["ml_convolutions", "ml_hardware_kernels"],
+    topicIds: ["ml_convolutions", "ml_hardware_kernels"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_convolutions",
     description:
       "Transposed 2D Convolution (also known as Deconvolution or Fractionally Strided Convolution) is used to upsample spatial feature map resolutions in deep generative models (GANs, Autoencoders, Stable Diffusion) and semantic segmentation networks (U-Net, FCN). Mathematically, transposed convolution acts as the backward pass of a standard convolution. Instead of inserting zeroes between input pixels to build an explicit sparse grid, high-performance engines map input indices directly into output spatial locations using index mapping equations $r_{out} = r_{in} \\cdot S + kr - P$, scattering input pixel values scaled by the filter kernel into overlapping output regions.\n\n### Why It Exists\nStandard convolution downsamples spatial resolution. Transposed convolution reverses this spatial gradient, mapping lower-resolution bottleneck representations back into high-resolution pixel space during decoder execution.\n\n### Mathematical Formulation\nGiven spatial input dimensions $(H_{in}, W_{in})$, kernel size $(K_h, K_w)$, stride $S$, padding $P$, and output padding $OP$, spatial output dimensions $(H_{out}, W_{out})$ and scatter indices $(r_{out}, c_{out})$ are defined as:\n\n$$H_{out} = (H_{in} - 1) \\cdot S - 2P + K_h + OP$$\n\n$$W_{out} = (W_{in} - 1) \\cdot S - 2P + K_w + OP$$\n\n$$r_{out} = r_{in} \\cdot S + kr - P, \\quad c_{out} = c_{in} \\cdot S + kc - P$$\n\n$$Y[r_{out}, c_{out}] += X[r_{in}, c_{in}] \\cdot W[kr, kc]$$\n\n### Step-by-Step Intuition\n1. **Dimension Evaluation**: Compute spatial target grid dimensions $(H_{out}, W_{out})$.\n2. **Anchor Projection**: Project input coordinate $(r_{in}, c_{in})$ to top-left output anchor $(r_{in} \\cdot S - P, c_{in} \\cdot S - P)$.\n3. **Kernel Scatter**: For each filter cell $(kr, kc)$, multiply scalar input activation $X[r_{in}, c_{in}]$ by filter weight $W[kr, kc]$.\n4. **Overlapping Accumulation**: Add product terms into output position $(r_{out}, c_{out})$, handling overlapping patches when $S < K$.\n\n### Key Trade-Offs & Hardware Execution\n- **Zero-Copy Direct Scatter**: Naive implementations insert $(S - 1)$ zeroes between input elements, incurring $O(S^2)$ wasted memory bandwidth. Direct index mapping computes destination addresses on-the-fly inside GPU warp registers.\n- **Checkerboard Artifacts**: When kernel size $K$ is not divisible by stride $S$, overlapping scatter patterns produce unequal accumulation frequencies, creating visible grid artifacts. Bilinear upsampling followed by standard convolution is an alternative pattern.",
     constraints: [
@@ -366,7 +345,8 @@ export const transposedConv2dDeconvIndexMapper: AlgorithmDefinition<transposedCo
     spaceComplexity: "O(H_{out} \\cdot W_{out})",
     complexityAnalysis: {
       time: "Linear in total number of kernel scatter accumulation steps $O(H_{in} \\cdot W_{in} \\cdot K_h \\cdot K_w)$.",
-      space: "Allocates memory for the output upsampled feature map tensor of size $O(H_{out} \\cdot W_{out})$.",
+      space:
+        "Allocates memory for the output upsampled feature map tensor of size $O(H_{out} \\cdot W_{out})$.",
     },
     topicGuide: {
       overview:

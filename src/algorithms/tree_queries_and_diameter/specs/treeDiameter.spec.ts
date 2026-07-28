@@ -10,7 +10,7 @@ describe("treeDiameter algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(treeDiameter.id).toBe("tree-diameter");
     expect(treeDiameter.title).toBe("Tree Diameter (2-DFS Algorithm)");
-    expect(treeDiameter.category).toBe("tree_queries_and_diameter");
+    expect(treeDiameter.topicIds).toContain("tree_queries_and_diameter");
     expect(treeDiameter.difficulty).toBe("Medium");
     expect(treeDiameter.defaultInput).toEqual(DEFAULT_TREE_DIAMETER_INPUT);
   });

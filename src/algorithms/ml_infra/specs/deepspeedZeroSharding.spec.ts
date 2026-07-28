@@ -10,9 +10,8 @@ import {
 describe("deepspeedZeroSharding (Level 9 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(deepspeedZeroSharding.id).toBe("deepspeed-zero-sharding");
-    expect(deepspeedZeroSharding.isMlInfra).toBe(true);
-    expect(deepspeedZeroSharding.mlInfraLevel).toBe(9);
-    expect(deepspeedZeroSharding.category).toBe("ml_distributed_systems");
+    expect(deepspeedZeroSharding.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(deepspeedZeroSharding.topicIds).toContain("ml_distributed_systems");
     expect(deepspeedZeroSharding.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 9" },
     ]);
@@ -32,7 +31,7 @@ describe("deepspeedZeroSharding (Level 9 ML Infra)", () => {
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+      expect(steps[i].primarySnapshot.kind).toBe("matrix");
     }
   });
 

@@ -11,7 +11,6 @@ import { ProblemSection } from "../../components/main-layout/components/ProblemS
 import { SolutionSection } from "../../components/main-layout/components/SolutionSection";
 import { MainStage } from "../../components/main-layout/components/MainStage";
 import { ProblemHeader } from "../../components/primitives/ProblemHeader";
-import { getAlgorithmPrimaryCategory } from "../../app/categories";
 
 export interface MainLayoutProps {
   algorithm: AlgorithmDefinition;
@@ -94,7 +93,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       >
         <ProblemHeader
           title={algorithm.title}
-          category={getAlgorithmPrimaryCategory(algorithm)}
+          topicIds={algorithm.topicIds}
           difficulty={algorithm.difficulty}
         />
       </div>

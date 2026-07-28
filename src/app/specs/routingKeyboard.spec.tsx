@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
 
@@ -13,12 +13,9 @@ function buildRouter(initialEntries: string[]): ReturnType<typeof createRouter> 
 describe("Workspace keyboard playback spec", () => {
   const spareFields: HTMLElement[] = [];
 
-  beforeAll(() => {
-    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-  });
-
   beforeEach(() => {
     window.localStorage.clear();
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   });
 
   afterEach(() => {

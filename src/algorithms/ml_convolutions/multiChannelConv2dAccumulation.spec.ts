@@ -5,14 +5,15 @@ import {
   generateMultiChannelConv2dAccumulationSteps,
 } from "./multiChannelConv2dAccumulation";
 
-describe("multiChannelConv2dAccumulation", () => {
+describe("multi-channel-conv2d-accumulation", () => {
   it("should have correct metadata", () => {
-    expect(multiChannelConv2dAccumulation.id).toBe("multiChannelConv2dAccumulation");
-    expect(multiChannelConv2dAccumulation.isMlInfra).toBe(true);
-    expect(multiChannelConv2dAccumulation.mlInfraLevel).toBe(8);
-    expect(multiChannelConv2dAccumulation.mlInfraCategory).toBe("ml_convolutions");
-    expect(multiChannelConv2dAccumulation.categories).toContain("ml_convolutions");
-    expect(multiChannelConv2dAccumulation.categories).toContain("ml_hardware_kernels");
+    expect(multiChannelConv2dAccumulation.id).toBe("multi-channel-conv2d-accumulation");
+    expect(
+      multiChannelConv2dAccumulation.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(multiChannelConv2dAccumulation.topicIds).toContain("ml_convolutions");
+    expect(multiChannelConv2dAccumulation.topicIds).toContain("ml_convolutions");
+    expect(multiChannelConv2dAccumulation.topicIds).toContain("ml_hardware_kernels");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

@@ -5,14 +5,13 @@ import {
   distanceMetricsKnn,
   generateDistanceMetricsKnnSteps,
 } from "../distanceMetricsKnn";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { VectorVisualSnapshot } from "../../../types/dsa";
 
 describe("distanceMetricsKnn algorithm spec", () => {
   it("should have correct ML Infra Level 4 metadata", () => {
     expect(distanceMetricsKnn.id).toBe("distance-metrics-knn");
-    expect(distanceMetricsKnn.isMlInfra).toBe(true);
-    expect(distanceMetricsKnn.mlInfraLevel).toBe(4);
-    expect(distanceMetricsKnn.category).toBe("ml_vector_search");
+    expect(distanceMetricsKnn.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(distanceMetricsKnn.topicIds).toContain("ml_vector_search");
     expect(distanceMetricsKnn.defaultInput).toEqual(DEFAULT_DISTANCE_METRICS_KNN_INPUT);
     expect(distanceMetricsKnn.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },
@@ -25,10 +24,10 @@ describe("distanceMetricsKnn algorithm spec", () => {
     const lastStep = steps[steps.length - 1];
     expect(lastStep.variables.complete).toBe(true);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    const sortedCount = snap.elements.filter((el) => el.state === "sorted").length;
-    expect(sortedCount).toBe(2);
+    const snap = lastStep.primarySnapshot as VectorVisualSnapshot;
+    expect(snap.kind).toBe("vector");
+    const resultCount = snap.vectors.filter((v) => v.state === "result").length;
+    expect(resultCount).toBe(2);
   });
 
   it("should support Manhattan and Cosine metrics", () => {

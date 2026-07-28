@@ -17,10 +17,8 @@ export const TOPOLOGICAL_SORT_DAG_CODE = `def topological_sort_dag(num_nodes: in
     for u, v in edges:
         adj[u].append(v)
         in_degree[v] += 1
-        
     queue = [i for i in range(num_nodes) if in_degree[i] == 0]
     topo_order = []
-    
     while queue:
         u = queue.pop(0)
         topo_order.append(u)
@@ -28,9 +26,8 @@ export const TOPOLOGICAL_SORT_DAG_CODE = `def topological_sort_dag(num_nodes: in
             in_degree[v] -= 1
             if in_degree[v] == 0:
                 queue.append(v)
-                
     if len(topo_order) != num_nodes:
-        return []  # Cycle detected
+        return []
     return topo_order`;
 
 export const DEFAULT_TOPOLOGICAL_SORT_DAG_INPUT: TopologicalSortDagInput = {
@@ -65,29 +62,36 @@ export const generateTopologicalSortDagSteps = (
 
   const buildGraphSnapshot = (
     activeNode: number | null,
+    activeNeighbor: number | null,
     inQueue: Set<number>,
     processed: Set<number>,
+    currentInDegrees: number[],
   ): { nodes: GraphNodeItem[]; edges: GraphEdgeItem[] } => {
     const nodes: GraphNodeItem[] = Array.from({ length: numNodes }, (_, i) => {
       let state: GraphNodeItem["state"] = "default";
       if (i === activeNode) state = "active";
+      else if (i === activeNeighbor) state = "compare";
       else if (inQueue.has(i)) state = "queued";
       else if (processed.has(i)) state = "sorted";
 
       return {
         id: `node-${i}`,
         label: `N${i}`,
-        val: inDegree[i],
+        val: currentInDegrees[i],
         state,
       };
     });
 
-    const edgeItems: GraphEdgeItem[] = edges.map(([u, v]) => ({
-      from: `node-${u}`,
-      to: `node-${v}`,
-      isTraversed: processed.has(u),
-      isPath: u === activeNode,
-    }));
+    const edgeItems: GraphEdgeItem[] = edges.map(([u, v]) => {
+      const isCurrentEdge = u === activeNode && v === activeNeighbor;
+      const isSourceProcessed = processed.has(u);
+      return {
+        from: `node-${u}`,
+        to: `node-${v}`,
+        isTraversed: isSourceProcessed,
+        isPath: isCurrentEdge || u === activeNode,
+      };
+    });
 
     return { nodes, edges: edgeItems };
   };
@@ -97,13 +101,20 @@ export const generateTopologicalSortDagSteps = (
     what: string,
     why: string,
     activeNode: number | null,
+    activeNeighbor: number | null,
     inQueueSet: Set<number>,
     processedSet: Set<number>,
     topoOrder: number[],
     currentInDegrees: number[],
     queueArr: number[],
   ) => {
-    const { nodes, edges: graphEdges } = buildGraphSnapshot(activeNode, inQueueSet, processedSet);
+    const { nodes, edges: graphEdges } = buildGraphSnapshot(
+      activeNode,
+      activeNeighbor,
+      inQueueSet,
+      processedSet,
+      currentInDegrees,
+    );
 
     steps.push({
       stepIndex: stepIndex++,
@@ -119,11 +130,12 @@ export const generateTopologicalSortDagSteps = (
         visited: topoOrder.map((n) => `N${n}`),
         customState: {
           inDegrees: currentInDegrees.map((deg, i) => `N${i}:${deg}`).join(", "),
-          topoOrder: `[${topoOrder.join(", ")}]`,
+          topoOrder: `[${topoOrder.map((n) => `N${n}`).join(", ")}]`,
         },
       },
       variables: {
         activeNode: activeNode !== null ? activeNode : -1,
+        activeNeighbor: activeNeighbor !== null ? activeNeighbor : -1,
         queueSize: queueArr.length,
         processedCount: topoOrder.length,
       },
@@ -136,6 +148,19 @@ export const generateTopologicalSortDagSteps = (
   const processedSet = new Set<number>();
   const topoOrder: number[] = [];
 
+  addStep(
+    3,
+    `Compute graph in-degrees and build adjacency list`,
+    `Calculated initial in-degrees for all ${numNodes} nodes based on graph edges. Nodes with in-degree 0 have no incoming dependencies.`,
+    null,
+    null,
+    inQueueSet,
+    processedSet,
+    topoOrder,
+    [...currentInDegree],
+    [...queue],
+  );
+
   for (let i = 0; i < numNodes; i++) {
     if (currentInDegree[i] === 0) {
       queue.push(i);
@@ -145,10 +170,9 @@ export const generateTopologicalSortDagSteps = (
 
   addStep(
     7,
-    `Initialize Kahn's Topological Sort (In-degrees calculated)`,
-    `Initial zero in-degree nodes added to execution queue: [${queue
-      .map((n) => `N${n}`)
-      .join(", ")}].`,
+    `Initialize execution queue with zero in-degree nodes`,
+    `Found initial root nodes with 0 in-degree: [${queue.map((n) => `N${n}`).join(", ")}]. These nodes are ready to execute.`,
+    null,
     null,
     inQueueSet,
     processedSet,
@@ -165,9 +189,10 @@ export const generateTopologicalSortDagSteps = (
 
     addStep(
       11,
-      `Pop node N${u} from queue -> Add to topological order`,
-      `Node N${u} has zero dependencies remaining. Scheduled for execution at step ${topoOrder.length}.`,
+      `Pop node N${u} from queue and append to topological order`,
+      `Node N${u} has zero remaining prerequisites. Added to topological order at index ${topoOrder.length - 1}.`,
       u,
+      null,
       inQueueSet,
       processedSet,
       [...topoOrder],
@@ -181,8 +206,9 @@ export const generateTopologicalSortDagSteps = (
       addStep(
         13,
         `Decrement in-degree of child node N${v} (new in-degree = ${currentInDegree[v]})`,
-        `Dependency N${u} -> N${v} satisfied. Decrementing remaining dependency count of N${v}.`,
+        `Dependency N${u} -> N${v} satisfied. Decremented remaining dependency count of N${v}.`,
         u,
+        v,
         inQueueSet,
         processedSet,
         [...topoOrder],
@@ -196,8 +222,9 @@ export const generateTopologicalSortDagSteps = (
 
         addStep(
           15,
-          `Enqueue N${v} (In-degree reached 0)`,
-          `All parent dependencies for N${v} satisfied. Node N${v} is now ready for execution.`,
+          `Enqueue N${v} into execution queue (In-degree reached 0)`,
+          `All parent dependencies for N${v} are satisfied. Node N${v} is now unblocked and ready for scheduling.`,
+          u,
           v,
           inQueueSet,
           processedSet,
@@ -211,9 +238,10 @@ export const generateTopologicalSortDagSteps = (
 
   if (topoOrder.length !== numNodes) {
     addStep(
-      18,
+      17,
       "Cycle detected in computational graph!",
-      `Processed ${topoOrder.length}/${numNodes} nodes. Graph contains cyclic dependency, preventing topological execution.`,
+      `Processed ${topoOrder.length}/${numNodes} nodes. Directed cyclic dependency prevents valid topological ordering; returning empty list [].`,
+      null,
       null,
       inQueueSet,
       processedSet,
@@ -223,9 +251,10 @@ export const generateTopologicalSortDagSteps = (
     );
   } else {
     addStep(
-      19,
+      18,
       "Topological Sort Complete",
-      `Valid execution order computed: [${topoOrder.join(", ")}].`,
+      `Valid execution order computed: [${topoOrder.map((n) => `N${n}`).join(", ")}].`,
+      null,
       null,
       inQueueSet,
       processedSet,
@@ -251,10 +280,8 @@ export const TOPOLOGICAL_SORT_DAG_TRIVIA: TriviaMeta = {
 export const topologicalSortDag: AlgorithmDefinition<TopologicalSortDagInput> = {
   id: "topological-sort-dag",
   title: "Topological Sort DAG (Kahn's / DFS)",
-  category: "ml_autograd_dags",
+  topicIds: ["ml_autograd_dags"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 2,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Order nodes in a Directed Acyclic Graph (DAG) using Kahn's algorithm (in-degree BFS), essential for autograd compute graph execution.",

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface BinomialCoefficientsInput {
@@ -6,11 +11,7 @@ export interface BinomialCoefficientsInput {
   k: number;
 }
 
-export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `
-def binomial_coefficient(n: int, k: int) -> int:
-    """
-    Computes C(n, k) using Pascal's Triangle DP table.
-    """
+export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `def binomial_coefficient(n: int, k: int) -> int:
     dp = [[0] * (k + 1) for _ in range(n + 1)]
     for i in range(n + 1):
         for j in range(min(i, k) + 1):
@@ -32,8 +33,11 @@ export const generateBinomialCoefficientsPascalSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nVal = Math.min(10, Math.max(0, Math.floor(input.n)));
-  const kVal = Math.min(nVal, Math.max(0, Math.floor(input.k)));
+  const safeN = Number.isFinite(input?.n) ? Math.floor(input.n) : 6;
+  const safeK = Number.isFinite(input?.k) ? Math.floor(input.k) : 3;
+
+  const nVal = Math.min(10, Math.max(0, safeN));
+  const kVal = Math.min(nVal, Math.max(0, safeK));
 
   const dp: number[][] = Array.from({ length: nVal + 1 }, () => new Array(kVal + 1).fill(0));
 
@@ -82,7 +86,7 @@ export const generateBinomialCoefficientsPascalSteps = (
     };
   };
 
-  // Step 0: Entry
+  // Step 0: Entry / Matrix Initialization
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 2,
@@ -116,18 +120,20 @@ export const generateBinomialCoefficientsPascalSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 10,
+          codeLine: 6,
           explanation: {
             what: `Base case C[${i}][${j}] = 1 (${j === 0 ? "j == 0" : "j == i"}).`,
-            why: j === 0
-              ? "Choosing 0 items from a set of size i can be done in exactly 1 way."
-              : "Choosing all i items from a set of size i can be done in exactly 1 way.",
+            why:
+              j === 0
+                ? "Choosing 0 items from a set of size i can be done in exactly 1 way."
+                : "Choosing all i items from a set of size i can be done in exactly 1 way.",
           },
           primarySnapshot: createMatrixSnapshot(i, j),
           auxiliaryState: {
             hashMap: {
               "Cell Value": `C[${i}][${j}] = 1`,
-              Reason: j === 0 ? "j == 0 (Empty subset selection)" : "j == i (Full subset selection)",
+              Reason:
+                j === 0 ? "j == 0 (Empty subset selection)" : "j == i (Full subset selection)",
             },
             customState: {
               i,
@@ -148,7 +154,7 @@ export const generateBinomialCoefficientsPascalSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 12,
+          codeLine: 8,
           explanation: {
             what: `C[${i}][${j}] = C[${i - 1}][${j - 1}] + C[${i - 1}][${j}] = ${val1} + ${val2} = ${dp[i][j]}.`,
             why: "Pascal's identity: either include the i-th element (requires picking j-1 from i-1) or exclude it (requires picking j from i-1).",
@@ -180,7 +186,7 @@ export const generateBinomialCoefficientsPascalSteps = (
   const ans = dp[nVal][kVal];
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 9,
     explanation: {
       what: `Completed Pascal's triangle table! C(${nVal}, ${kVal}) = ${ans}.`,
       why: "Target DP matrix cell evaluated successfully.",
@@ -231,8 +237,7 @@ export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Combination $\\binom{n}{k}$",
-      definition:
-        "The number of unordered $k$-element subsets chosen from an $n$-element set.",
+      definition: "The number of unordered $k$-element subsets chosen from an $n$-element set.",
     },
     {
       term: "Symmetric Property",
@@ -244,28 +249,22 @@ export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Empty leading line for code formatting.",
-    2: "Defines binomial_coefficient(n, k) -> int using Pascal's triangle DP table.",
-    3: "Opening docstring tag.",
-    4: "Docstring explaining Pascal's triangle dynamic programming table.",
-    5: "Closing docstring tag.",
-    6: "Initializes 2D DP matrix C of size (n + 1) × (k + 1) filled with 0s.",
-    7: "Outer loop iterates through row index i from 0 to n.",
-    8: "Inner loop iterates through column index j from 0 to min(i, k).",
-    9: "Checks base cases: j == 0 (choose 0 elements) or j == i (choose all i elements).",
-    10: "Sets base case value dp[i][j] = 1.",
-    11: "Else branch for interior cells of Pascal's triangle.",
-    12: "Pascal's identity: dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j].",
-    13: "Returns dp[n][k] containing the binomial coefficient C(n, k).",
-    14: "Empty trailing line for code formatting.",
+    1: "Defines binomial_coefficient(n, k) -> int using Pascal's triangle DP table.",
+    2: "Initializes 2D DP matrix C of size (n + 1) × (k + 1) filled with 0s.",
+    3: "Outer loop iterates through row index i from 0 to n.",
+    4: "Inner loop iterates through column index j from 0 to min(i, k).",
+    5: "Checks base cases: j == 0 (choose 0 elements) or j == i (choose all i elements).",
+    6: "Sets base case value dp[i][j] = 1.",
+    7: "Else branch for interior cells of Pascal's triangle.",
+    8: "Pascal's identity: dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j].",
+    9: "Returns dp[n][k] containing the binomial coefficient C(n, k).",
   },
 };
 
 export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficientsInput> = {
   id: "binomial-coefficients-pascal",
   title: "Binomial Coefficients (Pascal's Triangle)",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
     "Given non-negative integers $n$ and $k$, compute the binomial coefficient $\\binom{n}{k}$ representing the number of ways to choose $k$ items from $n$ distinct items without regard to order:\n\n$$\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$$\n\n### State Matrix Representation\nThe DP dynamic state is represented as a matrix $\\mathbf{C} \\in \\mathbb{Z}^{(n+1) \\times (k+1)}$ where cell $\\mathbf{C}[i][j]$ stores $\\binom{i}{j}$.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{\\ge 0}$): Total number of items in the set.\n- `k` ($k \\in \\mathbb{Z}_{\\ge 0}$): Number of items to select from the set.\n\n### Output\n- `int`: Binomial coefficient $\\binom{n}{k}$.\n\n### Edge Cases & Constraints\n- Base Cases: $\\binom{n}{0} = 1$ and $\\binom{n}{n} = 1$.\n- Out of Bounds: $\\binom{n}{k} = 0$ for $k > n$.",
@@ -324,4 +323,3 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   defaultInput: DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT,
   generateSteps: generateBinomialCoefficientsPascalSteps,
 };
-

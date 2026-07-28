@@ -9,7 +9,7 @@ describe("Bitwise Sign Extraction", () => {
   it("should have correct metadata", () => {
     expect(bitwiseSignExtraction.id).toBe("bitwise-sign-extraction");
     expect(bitwiseSignExtraction.title).toBe("Bitwise Sign Extraction");
-    expect(bitwiseSignExtraction.category).toBe("ml_precision_quantization");
+    expect(bitwiseSignExtraction.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

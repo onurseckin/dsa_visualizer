@@ -1,6 +1,9 @@
 import type { TriviaMeta } from "./trivia";
+import { isMlInfraTopic, type TopicId } from "../curriculum/topics";
 
-export type ElementState =
+export type { TopicId } from "../curriculum/topics";
+
+export type VisualStateToken =
   | "default"
   | "compare"
   | "swap"
@@ -11,6 +14,47 @@ export type ElementState =
   | "queued"
   | "in-stack"
   | "path";
+
+export type ElementState =
+  | VisualStateToken
+  | "compared"
+  | "decode"
+  | "finished"
+  | "found"
+  | "highlighted"
+  | "inactive"
+  | "prefill"
+  | "result"
+  | "waiting";
+
+export function elementStateToken(state: ElementState): VisualStateToken {
+  switch (state) {
+    case "compared":
+      return "compare";
+    case "decode":
+    case "highlighted":
+    case "prefill":
+      return "active";
+    case "finished":
+    case "found":
+    case "result":
+      return "sorted";
+    case "inactive":
+    case "waiting":
+      return "default";
+    default:
+      return state;
+  }
+}
+
+export type DisplayValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | readonly DisplayValue[]
+  | { readonly [key: string]: DisplayValue };
 
 export interface ArrayElement {
   id: string;
@@ -66,12 +110,12 @@ export interface TreeNodeItem {
 }
 
 export interface AuxiliaryState {
-  stack?: Array<string | number>;
-  queue?: Array<string | number>;
-  visited?: Array<string | number>;
-  hashMap?: Record<string, string | number>;
+  stack?: DisplayValue[];
+  queue?: DisplayValue[];
+  visited?: DisplayValue[];
+  hashMap?: Record<string, DisplayValue>;
   distanceTable?: Record<string, number>;
-  customState?: Record<string, string | number>;
+  customState?: Record<string, DisplayValue>;
 }
 
 export interface StepExplanation {
@@ -117,7 +161,7 @@ export interface VectorItem {
   y: number;
   z?: number;
   color?: string;
-  state?: "default" | "active" | "compared" | "result" | "inactive";
+  state?: ElementState;
   subText?: string;
 }
 
@@ -134,7 +178,7 @@ export interface MatrixCellItem {
   col: number;
   value: string | number;
   label?: string;
-  state?: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive";
+  state?: ElementState;
   color?: string;
 }
 
@@ -181,12 +225,8 @@ export interface AlgorithmStep {
   explanation: StepExplanation;
   primarySnapshot: PrimaryVisualSnapshot;
   auxiliaryState: AuxiliaryState;
-  variables: Record<string, string | number | boolean>;
+  variables: Record<string, DisplayValue>;
 }
-
-/* Retained for compatibility with older persisted settings; the workspace now
-   models panel visibility as independent toggles (see PanelVisibility). */
-export type ViewMode = "split" | "visual" | "code";
 
 /* Each workspace panel is shown or hidden by its own navbar toggle — there is
    no mutually exclusive "view mode" anymore. */
@@ -203,70 +243,6 @@ export interface PanelVisibility {
 
 export type PanelKey = keyof PanelVisibility;
 export type DifficultyLevel = "Easy" | "Medium" | "Hard";
-
-export const ALL_CATEGORY_IDS = [
-  "arrays_and_hashing",
-  "two_pointers",
-  "sliding_window",
-  "stack_and_queue",
-  "binary_search",
-  "linked_list",
-  "tree_fundamentals",
-  "tree_queries_and_diameter",
-  "tries_and_strings",
-  "heap_and_priority_queue",
-  "backtracking",
-  "graph_traversal",
-  "graph_shortest_paths",
-  "graph_spanning_trees",
-  "graph_directed_and_scc",
-  "graph_flows_and_cuts",
-  "dp_1d",
-  "dp_2d",
-  "intervals",
-  "greedy_algorithms",
-  "bit_manipulation",
-  "math_and_number_theory",
-  "game_theory",
-  "advanced_range_queries",
-  "geometry_and_sweep_line",
-  "ml_infrastructure",
-  "ml_infra",
-  "ml_tensor_algebra",
-  "ml_gemm_roofline",
-  "ml_autograd_dags",
-  "ml_precision_quantization",
-  "ml_vector_search",
-  "ml_tokenization",
-  "ml_tree_ensembles",
-  "ml_convolutions",
-  "ml_recurrent_gates",
-  "ml_attention_geometry",
-  "ml_hardware_kernels",
-  "ml_graph_compilers",
-  "ml_distributed_systems",
-  "ml_llm_serving",
-  "stack",
-  "trees",
-  "tries",
-  "heap",
-  "graphs",
-  "greedy",
-  "advanced_graphs",
-  "math_and_geometry",
-  "advanced_range_and_cp",
-  "sorting",
-  "leetcode",
-  "fundamentals",
-  "data-structures",
-  "dynamic-programming",
-  "graph",
-  "tree",
-  "advanced",
-  "math-games",
-] as const;
-
-export type CategoryType = (typeof ALL_CATEGORY_IDS)[number];
 
 export interface TimeComplexity {
   best: string;
@@ -365,7 +341,7 @@ export function getSourceKind(source: ProblemSource): SourceKind {
 export function getAlgorithmSources(alg: {
   sources?: ProblemSource[];
   leetcode?: LeetCodeMeta | { id: number; url: string };
-  isMlInfra?: boolean;
+  topicIds: readonly TopicId[];
 }): ProblemSource[] {
   let result: ProblemSource[] = [];
   if (alg.sources && alg.sources.length > 0) {
@@ -384,7 +360,10 @@ export function getAlgorithmSources(alg: {
     result = [{ type: "standard", kind: "standard", label: "Standard" }];
   }
 
-  if (alg.isMlInfra && !result.some((s) => getSourceKind(s) === "ml_infra")) {
+  if (
+    alg.topicIds.some(isMlInfraTopic) &&
+    !result.some((source) => getSourceKind(source) === "ml_infra")
+  ) {
     result.push({ type: "ml_infra", kind: "ml_infra", label: "ML Infra" });
   }
   return result;
@@ -393,13 +372,9 @@ export function getAlgorithmSources(alg: {
 export interface AlgorithmDefinition<TInput = unknown> {
   id: string;
   title: string;
-  category?: CategoryType;
-  categories?: CategoryType[];
+  topicIds: readonly [TopicId, ...TopicId[]];
   difficulty?: DifficultyLevel;
   description: string;
-  isMlInfra?: boolean;
-  mlInfraLevel?: number;
-  mlInfraCategory?: string;
   constraints?: string[];
   examples?: ProblemExample<TInput>[];
   code: string;
@@ -412,7 +387,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   trivia?: TriviaMeta;
   leetcode?: LeetCodeMeta;
   sources?: ProblemSource[];
-  generateSteps: (input: TInput) => AlgorithmStep[];
+  generateSteps(input: TInput): AlgorithmStep[];
   defaultInput: TInput;
 }
 

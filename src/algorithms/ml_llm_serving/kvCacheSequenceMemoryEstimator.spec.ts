@@ -8,10 +8,11 @@ import {
 describe("kv-cache-sequence-memory-estimator (KV-Cache Sequence Memory Footprint Calculator)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(kvCacheSequenceMemoryEstimator.id).toBe("kv-cache-sequence-memory-estimator");
-    expect(kvCacheSequenceMemoryEstimator.isMlInfra).toBe(true);
-    expect(kvCacheSequenceMemoryEstimator.mlInfraLevel).toBe(12);
-    expect(kvCacheSequenceMemoryEstimator.mlInfraCategory).toBe("ml_llm_serving");
-    expect(kvCacheSequenceMemoryEstimator.categories).toContain("ml_llm_serving");
+    expect(
+      kvCacheSequenceMemoryEstimator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(kvCacheSequenceMemoryEstimator.topicIds).toContain("ml_llm_serving");
+    expect(kvCacheSequenceMemoryEstimator.topicIds).toContain("ml_llm_serving");
     expect(kvCacheSequenceMemoryEstimator.defaultInput).toEqual(
       DEFAULT_KVCACHESEQUENCEMEMORYESTIMATOR_INPUT,
     );

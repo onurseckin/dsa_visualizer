@@ -11,9 +11,10 @@ import type { MatrixVisualSnapshot } from "../../../types/dsa";
 describe("continuousBatchingScheduler (Level 10 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(continuousBatchingScheduler.id).toBe("continuous-batching-scheduler");
-    expect(continuousBatchingScheduler.isMlInfra).toBe(true);
-    expect(continuousBatchingScheduler.mlInfraLevel).toBe(10);
-    expect(continuousBatchingScheduler.category).toBe("ml_llm_serving");
+    expect(continuousBatchingScheduler.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(continuousBatchingScheduler.topicIds).toContain("ml_llm_serving");
     expect(continuousBatchingScheduler.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 10" },
     ]);

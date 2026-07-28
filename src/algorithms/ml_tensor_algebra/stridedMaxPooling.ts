@@ -9,9 +9,6 @@ export interface stridedMaxPoolingInput {
 }
 
 export const STRIDEDMAXPOOLING_CODE = `def strided_max_pooling(matrix, pool_size=2, stride=2):
-    """
-    Applies 2D max-pooling operation over sliding window with given stride.
-    """
     rows = len(matrix)
     cols = len(matrix[0]) if rows > 0 else 0
     out_rows = (rows - pool_size) // stride + 1
@@ -43,26 +40,35 @@ export const DEFAULT_STRIDEDMAXPOOLING_INPUT: stridedMaxPoolingInput = {
   stride: 2,
 };
 
-export const generateStridedMaxPoolingSteps = (
-  input: stridedMaxPoolingInput,
-): AlgorithmStep[] => {
+export const generateStridedMaxPoolingSteps = (input: stridedMaxPoolingInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const matrix = input.matrix ?? [
-    [1, 3, 2, 4],
-    [5, 6, 1, 8],
-    [9, 2, 7, 3],
-    [4, 8, 5, 6],
-  ];
+  let matrix = input.matrix;
+  if (!matrix && input.data && input.data.length > 0) {
+    const side = Math.floor(Math.sqrt(input.data.length));
+    matrix = [];
+    for (let i = 0; i < side; i++) {
+      matrix.push(input.data.slice(i * side, (i + 1) * side));
+    }
+  }
+  if (!matrix || matrix.length === 0) {
+    matrix = [
+      [1, 3, 2, 4],
+      [5, 6, 1, 8],
+      [9, 2, 7, 3],
+      [4, 8, 5, 6],
+    ];
+  }
+
   const poolSize = input.poolSize ?? 2;
   const stride = input.stride ?? 2;
 
   const rows = matrix.length;
   const cols = rows > 0 ? matrix[0].length : 0;
 
-  const outRows = Math.floor((rows - poolSize) / stride) + 1;
-  const outCols = Math.floor((cols - poolSize) / stride) + 1;
+  const outRows = rows >= poolSize ? Math.floor((rows - poolSize) / stride) + 1 : 0;
+  const outCols = cols >= poolSize ? Math.floor((cols - poolSize) / stride) + 1 : 0;
 
   const pooled: number[][] = [];
   const completedWindows = new Set<string>();
@@ -173,51 +179,9 @@ export const generateStridedMaxPoolingSteps = (
     "Function Entry",
   );
 
-  // Line 2: Docstring start
+  // Line 2: Read rows
   addStep(
     2,
-    "Parse Function Docstring & CNN Overview",
-    "Max-pooling downsamples spatial feature maps in CNNs by extracting local maximum activations within sliding receptive windows.",
-    { poolSize, stride },
-    null,
-    null,
-    null,
-    null,
-    -Infinity,
-    "Docstring",
-  );
-
-  // Line 3: Docstring body
-  addStep(
-    3,
-    "Review Output Spatial Dimension Formula",
-    "Spatial dimension formula: out_dim = (in_dim - pool_size) // stride + 1.",
-    { formula: "out_dim = (in_dim - pool_size) // stride + 1" },
-    null,
-    null,
-    null,
-    null,
-    -Infinity,
-    "Docstring",
-  );
-
-  // Line 4: Docstring end
-  addStep(
-    4,
-    "Finalize Operator Initialization",
-    "Preparing variables for spatial window iteration and max-value reductions.",
-    { poolSize, stride },
-    null,
-    null,
-    null,
-    null,
-    -Infinity,
-    "Docstring End",
-  );
-
-  // Line 5: Read rows
-  addStep(
-    5,
     `Get Matrix Rows: rows = ${rows}`,
     `Extracting row count ${rows} from input feature map matrix.`,
     { rows },
@@ -229,9 +193,9 @@ export const generateStridedMaxPoolingSteps = (
     "Get Rows",
   );
 
-  // Line 6: Read cols
+  // Line 3: Read cols
   addStep(
-    6,
+    3,
     `Get Matrix Columns: cols = ${cols}`,
     `Extracting column count ${cols} from input feature map matrix.`,
     { rows, cols },
@@ -243,9 +207,9 @@ export const generateStridedMaxPoolingSteps = (
     "Get Cols",
   );
 
-  // Line 7: out_rows
+  // Line 4: out_rows
   addStep(
-    7,
+    4,
     `Compute Output Rows: out_rows = (${rows} - ${poolSize}) // ${stride} + 1 = ${outRows}`,
     `Calculating pooled output row count out_rows = ${outRows}.`,
     { out_rows: outRows, rows, pool_size: poolSize, stride },
@@ -257,9 +221,9 @@ export const generateStridedMaxPoolingSteps = (
     "Compute Out Rows",
   );
 
-  // Line 8: out_cols
+  // Line 5: out_cols
   addStep(
-    8,
+    5,
     `Compute Output Cols: out_cols = (${cols} - ${poolSize}) // ${stride} + 1 = ${outCols}`,
     `Calculating pooled output column count out_cols = ${outCols}.`,
     { out_cols: outCols, cols, pool_size: poolSize, stride },
@@ -271,9 +235,9 @@ export const generateStridedMaxPoolingSteps = (
     "Compute Out Cols",
   );
 
-  // Line 9: pooled = []
+  // Line 6: pooled = []
   addStep(
-    9,
+    6,
     "Initialize Pooled Feature Map Array pooled = []",
     "Allocating list pooled to collect downsampled 2D feature map rows.",
     { pooled: "[]" },
@@ -285,25 +249,11 @@ export const generateStridedMaxPoolingSteps = (
     "Init Output List",
   );
 
-  // Line 10: Blank line
-  addStep(
-    10,
-    "Begin Spatial Max Pooling Loops",
-    `Starting nested loops over spatial output grid of size ${outRows}x${outCols}.`,
-    { outRows, outCols },
-    null,
-    null,
-    null,
-    null,
-    -Infinity,
-    "Start Loops",
-  );
-
   // Spatial loop
   for (let r = 0; r < outRows; r++) {
-    // Line 11: Loop r
+    // Line 8: Loop r
     addStep(
-      11,
+      8,
       `Outer Output Row Loop r = ${r}`,
       `Processing output spatial row ${r}.`,
       { r, outRows },
@@ -316,9 +266,9 @@ export const generateStridedMaxPoolingSteps = (
     );
 
     const rowOut: number[] = [];
-    // Line 12: row_out = []
+    // Line 9: row_out = []
     addStep(
-      12,
+      9,
       `Initialize Output Row Array row_out = [] for Row ${r}`,
       `Allocating row_out list to store pooled activations for output row ${r}.`,
       { r, row_out: "[]" },
@@ -331,9 +281,9 @@ export const generateStridedMaxPoolingSteps = (
     );
 
     for (let c = 0; c < outCols; c++) {
-      // Line 13: Loop c
+      // Line 10: Loop c
       addStep(
-        13,
+        10,
         `Middle Output Column Loop c = ${c}`,
         `Processing output spatial cell (${r}, ${c}).`,
         { r, c, outCols },
@@ -346,9 +296,9 @@ export const generateStridedMaxPoolingSteps = (
       );
 
       let maxVal = -Infinity;
-      // Line 14: max_val = float('-inf')
+      // Line 11: max_val = float('-inf')
       addStep(
-        14,
+        11,
         "Initialize Receptive Window Max: max_val = -inf",
         `Setting local maximum tracker max_val to -infinity for output cell (${r}, ${c}).`,
         { r, c, max_val: "-inf" },
@@ -361,9 +311,9 @@ export const generateStridedMaxPoolingSteps = (
       );
 
       for (let pr = 0; pr < poolSize; pr++) {
-        // Line 15: Loop pr
+        // Line 12: Loop pr
         addStep(
-          15,
+          12,
           `Window Relative Row Loop pr = ${pr}`,
           `Scanning window relative row offset pr = ${pr} within poolSize ${poolSize}.`,
           { r, c, pr, poolSize },
@@ -376,9 +326,9 @@ export const generateStridedMaxPoolingSteps = (
         );
 
         for (let pc = 0; pc < poolSize; pc++) {
-          // Line 16: Loop pc
+          // Line 13: Loop pc
           addStep(
-            16,
+            13,
             `Window Relative Column Loop pc = ${pc}`,
             `Scanning window relative column offset pc = ${pc} within poolSize ${poolSize}.`,
             { r, c, pr, pc, poolSize },
@@ -394,9 +344,9 @@ export const generateStridedMaxPoolingSteps = (
           const inC = c * stride + pc;
           const val = matrix[inR][inC];
 
-          // Line 17: val = matrix[...]
+          // Line 14: val = matrix[...]
           addStep(
-            17,
+            14,
             `Read Feature Map Cell matrix[${inR}][${inC}] = ${val}`,
             `Reading activation val = ${val} at input spatial position (${inR}, ${inC}) = (${r}*${stride}+${pr}, ${c}*${stride}+${pc}).`,
             { r, c, pr, pc, inR, inC, val },
@@ -408,12 +358,12 @@ export const generateStridedMaxPoolingSteps = (
             `Read matrix[${inR}][${inC}] = ${val}`,
           );
 
-          // Line 18 & 19: if val > max_val: max_val = val
+          // Line 15 & 16: if val > max_val: max_val = val
           const isNewMax = val > maxVal;
           if (isNewMax) {
             maxVal = val;
             addStep(
-              19,
+              16,
               `Update Window Max: max_val = ${val} (New Max)`,
               `Activation ${val} exceeds previous max. Updating max_val to ${val}.`,
               { r, c, pr, pc, inR, inC, val, max_val: maxVal, isNewMax: true },
@@ -426,7 +376,7 @@ export const generateStridedMaxPoolingSteps = (
             );
           } else {
             addStep(
-              18,
+              15,
               `Compare val (${val}) <= max_val (${maxVal})`,
               `Activation ${val} does not exceed current max ${maxVal}. Keeping max_val unchanged.`,
               { r, c, pr, pc, inR, inC, val, max_val: maxVal, isNewMax: false },
@@ -448,10 +398,10 @@ export const generateStridedMaxPoolingSteps = (
         }
       }
 
-      // Line 20: row_out.append(max_val)
+      // Line 17: row_out.append(max_val)
       rowOut.push(maxVal);
       addStep(
-        20,
+        17,
         `Append Window Max ${maxVal} to row_out for Cell (${r}, ${c})`,
         `Storing spatial max ${maxVal} into row_out list for output column ${c}.`,
         { r, c, max_val: maxVal, row_out: `[${rowOut.join(", ")}]` },
@@ -464,10 +414,10 @@ export const generateStridedMaxPoolingSteps = (
       );
     }
 
-    // Line 21: pooled.append(row_out)
+    // Line 18: pooled.append(row_out)
     pooled.push(rowOut);
     addStep(
-      21,
+      18,
       `Append Completed Row ${r} to pooled Matrix`,
       `Storing completed row array [${rowOut.join(", ")}] into output feature map matrix pooled.`,
       { r, row_out: `[${rowOut.join(", ")}]`, pooled: JSON.stringify(pooled) },
@@ -480,23 +430,9 @@ export const generateStridedMaxPoolingSteps = (
     );
   }
 
-  // Line 22: Blank line
+  // Line 20: Return pooled
   addStep(
-    22,
-    "Spatial Max Pooling Operator Completed",
-    "All spatial receptive windows scanned and reduced. Preparing downsampled feature map return value.",
-    { complete: true },
-    null,
-    null,
-    null,
-    null,
-    -Infinity,
-    "Pooling Done",
-  );
-
-  // Line 23: Return pooled
-  addStep(
-    23,
+    20,
     "Return Downsampled Pooled Feature Map Matrix",
     "Returning downsampled 2D pooled matrix.",
     { pooled: JSON.stringify(pooled) },
@@ -513,48 +449,42 @@ export const generateStridedMaxPoolingSteps = (
 
 const STRIDEDMAXPOOLING_TRIVIA: TriviaMeta = {
   skipLines: [],
-  distractors: [
-    "val = matrix[r + pr][c + pc]",
-    "out_rows = rows // stride",
-    "max_val = 0",
+  distractors: ["val = matrix[r + pr][c + pc]", "out_rows = rows // stride", "max_val = 0"],
+  hints: [
+    {
+      line: 14,
+      hint: "Fetch input feature map cell using spatial stride equation: matrix[r * stride + pr][c * stride + pc].",
+    },
   ],
-  hints: [{ line: 17, hint: "Fetch input feature map cell using spatial stride equation: matrix[r * stride + pr][c * stride + pc]." }],
   lineExplanations: {
     1: "Function declaration taking input matrix grid, pool_size window, and stride.",
-    2: "Opening docstring for 2D strided max-pooling operation.",
-    3: "Documentation describing spatial feature map downsampling via sliding window max reduction.",
-    4: "Closing docstring for 2D strided max-pooling operation.",
-    5: "Retrieves input matrix row count.",
-    6: "Retrieves input matrix column count.",
-    7: "Computes output spatial row count: out_rows = (rows - pool_size) // stride + 1.",
-    8: "Computes output spatial column count: out_cols = (cols - pool_size) // stride + 1.",
-    9: "Initializes list pooled to store downsampled 2D output feature map.",
-    10: "Empty line separating initialization from spatial pooling loops.",
-    11: "Outer loop iterating over output row indices r from 0 to out_rows - 1.",
-    12: "Allocates list row_out to collect pooled scalar values for current output row.",
-    13: "Middle loop iterating over output column indices c from 0 to out_cols - 1.",
-    14: "Initializes local receptive window maximum accumulator max_val to negative infinity.",
-    15: "Window loop iterating over relative row offset pr within pool_size window.",
-    16: "Window loop iterating over relative column offset pc within pool_size window.",
-    17: "Fetches input grid element at spatial coordinate matrix[r*stride + pr][c*stride + pc].",
-    18: "Checks if current feature activation val is strictly greater than max_val.",
-    19: "Updates local window max tracker max_val with new maximum activation val.",
-    20: "Appends local receptive window maximum max_val to row_out row array.",
-    21: "Appends completed row array row_out to downsampled output matrix pooled.",
-    22: "Empty line separating spatial pooling loops from return statement.",
-    23: "Returns downsampled 2D pooled feature map matrix pooled.",
+    2: "Retrieves input matrix row count.",
+    3: "Retrieves input matrix column count.",
+    4: "Computes output spatial row count: out_rows = (rows - pool_size) // stride + 1.",
+    5: "Computes output spatial column count: out_cols = (cols - pool_size) // stride + 1.",
+    6: "Initializes list pooled to store downsampled 2D output feature map.",
+    7: "Blank line separating output allocation from the pooling loops.",
+    8: "Outer loop iterating over output row indices r from 0 to out_rows - 1.",
+    9: "Allocates list row_out to collect pooled scalar values for current output row.",
+    10: "Middle loop iterating over output column indices c from 0 to out_cols - 1.",
+    11: "Initializes local receptive window maximum accumulator max_val to negative infinity.",
+    12: "Window loop iterating over relative row offset pr within pool_size window.",
+    13: "Window loop iterating over relative column offset pc within pool_size window.",
+    14: "Fetches input grid element at spatial coordinate matrix[r*stride + pr][c*stride + pc].",
+    15: "Checks if current feature activation val is strictly greater than max_val.",
+    16: "Updates local window max tracker max_val with new maximum activation val.",
+    17: "Appends local receptive window maximum max_val to row_out row array.",
+    18: "Appends completed row array row_out to downsampled output matrix pooled.",
+    19: "Blank line separating the pooling loops from the return statement.",
+    20: "Returns downsampled 2D pooled feature map matrix pooled.",
   },
 };
 
 export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
   id: "strided-max-pooling",
   title: "2D Strided Max Pooling Operator",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In convolutional neural networks (CNNs, e.g. ResNet, VGG, UNet, YOLOv8), 2D max-pooling layers downsample spatial feature map dimensions while introducing local translation invariance.\n\nA sliding receptive window of size $K \\times K$ (`pool_size`) shifts across the input feature map with spatial step size $S$ (`stride`), extracting the maximum activation value within each window:\n$$P[r][c] = \\max_{0 \\le pr < K, 0 \\le pc < K} M[r \\times S + pr][c \\times S + pc]$$\n\nThis algorithm implements the 2D strided max-pooling primitive used in PyTorch `torch.nn.MaxPool2d` and cuDNN pooling kernels, demonstrating step-by-step how output spatial dimensions $(H_{\\text{out}}, W_{\\text{out}})$ are computed and local max reductions are evaluated.",
   constraints: [
@@ -610,7 +540,11 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
     },
   ],
   code: STRIDEDMAXPOOLING_CODE,
-  timeComplexity: { best: "O(H_out * W_out * poolSize^2)", average: "O(H_out * W_out * poolSize^2)", worst: "O(H_out * W_out * poolSize^2)" },
+  timeComplexity: {
+    best: "O(H_out * W_out * poolSize^2)",
+    average: "O(H_out * W_out * poolSize^2)",
+    worst: "O(H_out * W_out * poolSize^2)",
+  },
   spaceComplexity: "O(H_out * W_out)",
   complexityAnalysis: {
     time: "O(H_out * W_out * poolSize^2) time to evaluate every scalar cell in all sliding receptive windows.",
@@ -644,11 +578,13 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
     keyTerms: [
       {
         term: "Max Pooling",
-        definition: "Downsampling reduction that selects the maximum activation value in a local spatial window.",
+        definition:
+          "Downsampling reduction that selects the maximum activation value in a local spatial window.",
       },
       {
         term: "Receptive Window",
-        definition: "The local spatial grid of size pool_size x pool_size evaluated in each reduction step.",
+        definition:
+          "The local spatial grid of size pool_size x pool_size evaluated in each reduction step.",
       },
       {
         term: "Spatial Stride",
@@ -656,7 +592,8 @@ export const stridedMaxPooling: AlgorithmDefinition<stridedMaxPoolingInput> = {
       },
       {
         term: "Argmax Mask",
-        definition: "Index memory mask recorded during forward pass to direct backward backpropagation gradients.",
+        definition:
+          "Index memory mask recorded during forward pass to direct backward backpropagation gradients.",
       },
     ],
   },

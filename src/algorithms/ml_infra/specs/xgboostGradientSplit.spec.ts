@@ -9,9 +9,8 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("xgboostGradientSplit algorithm spec", () => {
   it("should have correct ML Infra Level 5 metadata", () => {
     expect(xgboostGradientSplit.id).toBe("xgboost-gradient-split");
-    expect(xgboostGradientSplit.isMlInfra).toBe(true);
-    expect(xgboostGradientSplit.mlInfraLevel).toBe(5);
-    expect(xgboostGradientSplit.category).toBe("ml_tree_ensembles");
+    expect(xgboostGradientSplit.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(xgboostGradientSplit.topicIds).toContain("ml_tree_ensembles");
     expect(xgboostGradientSplit.defaultInput).toEqual(DEFAULT_XGBOOST_GRADIENT_SPLIT_INPUT);
     expect(xgboostGradientSplit.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 5" },
@@ -23,7 +22,7 @@ describe("xgboostGradientSplit algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(25);
+    expect(lastStep.codeLine).toBe(26);
 
     const distTable = lastStep.auxiliaryState.distanceTable;
     expect(distTable).toBeDefined();

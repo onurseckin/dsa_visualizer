@@ -12,7 +12,7 @@ export const ROOFLINE_CLASSIFIER_CODE = `def classify_roofline_kernel(flops: flo
     if bytes_transferred <= 0:
         return {"intensity": 0.0, "bound": "Memory-Bound", "attainable_tflops": 0.0}
         
-    intensity = flops / bytes_transferred  # FLOPs per byte
+    intensity = flops / bytes_transferred
     knee_point = (peak_tflops * 1e12) / (memory_bandwidth_gbs * 1e9)
     
     memory_bound_limit_tflops = (intensity * memory_bandwidth_gbs * 1e9) / 1e12
@@ -91,53 +91,130 @@ export const generateRooflineIntensityClassifierSteps = (input: RooflineInput): 
   addStep(
     1,
     "Initialize Roofline Performance Classification",
-    `Evaluating kernel (${(flops / 1e9).toFixed(2)} GFLOPs, ${(bytesTransferred / 1e6).toFixed(
+    `Evaluating kernel workload (${(flops / 1e9).toFixed(2)} GFLOPs, ${(
+      bytesTransferred / 1e6
+    ).toFixed(
       2,
-    )} MB memory traffic) on hardware (${peakTflops} TFLOPS, ${memoryBandwidthGbs} GB/s bandwidth).`,
+    )} MB memory traffic) against target hardware peak compute (${peakTflops} TFLOPS) and memory bandwidth (${memoryBandwidthGbs} GB/s).`,
     { flops, bytesTransferred, peakTflops, memoryBandwidthGbs },
+  );
+
+  addStep(
+    2,
+    "Check Memory Traffic Boundary Condition",
+    `Checking if memory traffic bytes_transferred (${(bytesTransferred / 1e6).toFixed(2)} MB) is <= 0.`,
+    { bytesTransferred },
+    elements.map((el) => ({ ...el, state: el.id === "el-bytes" ? "compare" : "default" })),
   );
 
   if (bytesTransferred <= 0) {
     addStep(
       3,
-      "Zero Memory Bytes Transferred",
-      "Kernel memory traffic is zero or invalid. Classifying as Memory-Bound with 0 attainable throughput.",
-      { intensity: 0, bound: "Memory-Bound", attainable_tflops: 0 },
-      elements.map((el) => ({ ...el, state: "compare" })),
-      { bound: "Memory-Bound", attainable_tflops: 0 },
+      "Zero Memory Traffic Edge Case",
+      "Kernel memory traffic is zero or negative. Returning zero-throughput dictionary with Memory-Bound classification.",
+      { intensity: 0, bound: "Memory-Bound", attainable_tflops: 0, attainable_pct: 0 },
+      elements.map((el) => ({ ...el, state: "pivot" })),
+      { bound: "Memory-Bound", attainable_tflops: 0, attainablePct: "0.0%" },
     );
     return steps;
   }
 
   const intensity = flops / bytesTransferred;
-  const kneePoint = (peakTflops * 1e12) / (memoryBandwidthGbs * 1e9);
-
   addStep(
     5,
-    `Compute Operational Intensity & Hardware Knee Point`,
-    `Kernel intensity = ${intensity.toFixed(2)} FLOP/byte. Target GPU knee point I_knee = ${kneePoint.toFixed(
+    "Compute Operational Intensity",
+    `Calculate operational intensity I = FLOPs / Bytes = ${(flops / 1e9).toFixed(2)} GFLOPs / ${(
+      bytesTransferred / 1e6
+    ).toFixed(2)} MB = ${intensity.toFixed(2)} FLOP/byte.`,
+    { intensity: Number(intensity.toFixed(2)) },
+    elements.map((el) => ({
+      ...el,
+      state: el.id === "el-flops" || el.id === "el-bytes" ? "active" : "default",
+    })),
+    {
+      intensity: `${intensity.toFixed(2)} FLOP/B`,
+      flops: `${(flops / 1e9).toFixed(2)} GFLOPs`,
+      bytes: `${(bytesTransferred / 1e6).toFixed(2)} MB`,
+    },
+  );
+
+  const kneePoint = (peakTflops * 1e12) / (memoryBandwidthGbs * 1e9);
+  addStep(
+    6,
+    "Compute Hardware Knee Point",
+    `Calculate GPU hardware knee point I_knee = Peak Compute / Memory Bandwidth = (${peakTflops} * 1e12) / (${memoryBandwidthGbs} * 1e9) = ${kneePoint.toFixed(
       2,
     )} FLOP/byte.`,
-    { intensity: Number(intensity.toFixed(2)), kneePoint: Number(kneePoint.toFixed(2)) },
-    elements.map((el) => ({ ...el, state: "active" })),
-    { intensity: intensity.toFixed(2), kneePoint: kneePoint.toFixed(2) },
+    { intensity: Number(intensity.toFixed(2)), knee_point: Number(kneePoint.toFixed(2)) },
+    elements.map((el) => ({
+      ...el,
+      state: el.id === "el-peak" || el.id === "el-bw" ? "active" : "default",
+    })),
+    {
+      intensity: `${intensity.toFixed(2)} FLOP/B`,
+      kneePoint: `${kneePoint.toFixed(2)} FLOP/B`,
+      gpuHardware: `${peakTflops} TFLOPs | ${memoryBandwidthGbs} GB/s`,
+    },
   );
 
   const memoryBoundLimitTflops = (intensity * memoryBandwidthGbs * 1e9) / 1e12;
+  addStep(
+    8,
+    "Compute Memory Bandwidth Ceil Throughput",
+    `Calculate bandwidth-limited throughput limit = I * Bandwidth = ${intensity.toFixed(2)} * ${memoryBandwidthGbs} GB/s = ${memoryBoundLimitTflops.toFixed(
+      2,
+    )} TFLOPs.`,
+    {
+      intensity: Number(intensity.toFixed(2)),
+      knee_point: Number(kneePoint.toFixed(2)),
+      memoryBoundLimitTflops: Number(memoryBoundLimitTflops.toFixed(2)),
+    },
+    elements.map((el) => ({
+      ...el,
+      state: el.id === "el-bw" ? "active" : "default",
+    })),
+    {
+      intensity: `${intensity.toFixed(2)} FLOP/B`,
+      kneePoint: `${kneePoint.toFixed(2)} FLOP/B`,
+      memoryLimit: `${memoryBoundLimitTflops.toFixed(2)} TFLOPs`,
+    },
+  );
+
   const attainableTflops = Math.min(peakTflops, memoryBoundLimitTflops);
+  addStep(
+    9,
+    "Determine Attainable Throughput Ceiling",
+    `Attainable throughput = min(Peak TFLOPs, Memory Limit TFLOPs) = min(${peakTflops}, ${memoryBoundLimitTflops.toFixed(
+      2,
+    )}) = ${attainableTflops.toFixed(2)} TFLOPs.`,
+    {
+      intensity: Number(intensity.toFixed(2)),
+      knee_point: Number(kneePoint.toFixed(2)),
+      attainable_tflops: Number(attainableTflops.toFixed(2)),
+    },
+    elements.map((el) => ({
+      ...el,
+      state: el.id === "el-peak" ? "compare" : "default",
+    })),
+    {
+      attainableTflops: `${attainableTflops.toFixed(2)} TFLOPs`,
+      peakTflops: `${peakTflops} TFLOPs`,
+    },
+  );
+
   const isComputeBound = intensity >= kneePoint;
   const bound = isComputeBound ? "Compute-Bound" : "Memory-Bound";
   const attainablePct = (attainableTflops / peakTflops) * 100.0;
 
   addStep(
     11,
-    `Classify Kernel Performance: ${bound}`,
-    `Kernel intensity (${intensity.toFixed(2)}) is ${
+    `Classify Performance Regime: ${bound}`,
+    `Kernel intensity (${intensity.toFixed(2)} FLOP/B) is ${
       isComputeBound ? ">=" : "<"
-    } knee point (${kneePoint.toFixed(2)}). Kernel is ${bound}.`,
+    } hardware knee point (${kneePoint.toFixed(2)} FLOP/B). Classifying workload as ${bound}.`,
     {
       intensity: Number(intensity.toFixed(2)),
-      kneePoint: Number(kneePoint.toFixed(2)),
+      knee_point: Number(kneePoint.toFixed(2)),
       bound,
       attainable_tflops: Number(attainableTflops.toFixed(2)),
       attainable_pct: Number(attainablePct.toFixed(1)),
@@ -147,6 +224,29 @@ export const generateRooflineIntensityClassifierSteps = (input: RooflineInput): 
       state: isComputeBound ? "sorted" : "pivot",
       pointers: [i === 0 ? bound : el.pointers?.[0] || ""],
     })),
+    {
+      bound,
+      attainableTflops: `${attainableTflops.toFixed(2)} TFLOPs`,
+      attainablePct: `${attainablePct.toFixed(1)}%`,
+    },
+  );
+
+  addStep(
+    13,
+    "Return Roofline Classification Result",
+    `Returning result dictionary: operational_intensity=${intensity.toFixed(2)}, knee_point=${kneePoint.toFixed(
+      2,
+    )}, bound='${bound}', attainable_tflops=${attainableTflops.toFixed(2)}, attainable_pct=${attainablePct.toFixed(
+      1,
+    )}%.`,
+    {
+      operational_intensity: Number(intensity.toFixed(2)),
+      knee_point: Number(kneePoint.toFixed(2)),
+      bound,
+      attainable_tflops: Number(attainableTflops.toFixed(2)),
+      attainable_pct: Number(attainablePct.toFixed(1)),
+    },
+    elements.map((el) => ({ ...el, state: "visited" })),
     {
       bound,
       attainableTflops: `${attainableTflops.toFixed(2)} TFLOPs`,
@@ -175,26 +275,32 @@ const ROOFLINE_CLASSIFIER_TRIVIA: TriviaMeta = {
       hint: "The Roofline knee point is the ratio of Peak Compute Throughput (FLOP/s) to Peak Memory Bandwidth (Bytes/s).",
     },
     {
+      line: 8,
+      hint: "Memory bound performance limit is calculated from intensity and memory bandwidth.",
+    },
+    {
       line: 11,
       hint: "Kernels below the knee point are memory bandwidth limited; kernels above achieve peak compute throughput.",
     },
   ],
   lineExplanations: {
     1: "Defines Roofline performance model classification routine.",
+    2: "Checks if memory traffic is zero or negative.",
+    3: "Returns default zero-throughput dictionary if no memory traffic.",
     5: "Computes operational intensity (FLOP/byte) for the ML workload.",
     6: "Derives hardware knee point boundary separating memory-bound and compute-bound regimes.",
-    8: "Calculates maximum attainable performance capped by memory bandwidth bandwidth ceiling.",
-    11: "Classifies kernel as Compute-Bound or Memory-Bound and computes percentage of peak TFLOPs.",
+    8: "Calculates maximum attainable performance capped by memory bandwidth ceiling.",
+    9: "Determines attainable throughput as min of peak TFLOPs and memory-bound ceiling.",
+    11: "Classifies kernel as Compute-Bound or Memory-Bound based on operational intensity.",
+    13: "Returns final classification metrics dictionary.",
   },
 };
 
 export const rooflineIntensityClassifier: AlgorithmDefinition<RooflineInput> = {
   id: "roofline-intensity-classifier",
   title: "Roofline Performance Model & Operational Intensity Classifier",
-  category: "ml_gemm_roofline",
+  topicIds: ["ml_gemm_roofline"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   description:
     "Evaluates an ML kernel workload against the Roofline Model, computing operational intensity (FLOP/byte) and hardware knee point to determine if execution is Memory-Bound or Compute-Bound.",
   constraints: ["flops >= 0", "bytesTransferred >= 0", "peakTflops > 0", "memoryBandwidthGbs > 0"],

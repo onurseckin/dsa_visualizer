@@ -1,4 +1,4 @@
-import { ArrayElement, ElementState } from "../../../types/dsa";
+import { ArrayElement, ElementState, elementStateToken } from "../../../types/dsa";
 
 export interface ArrayVisualizerProps {
   elements: ArrayElement[];
@@ -7,8 +7,10 @@ export interface ArrayVisualizerProps {
   title?: string;
 }
 
-export const stateColor = (state: ElementState): string => `var(--state-${state})`;
-export const stateBg = (state: ElementState): string => `var(--state-${state}-bg)`;
+export const stateColor = (state: ElementState): string =>
+  `var(--state-${elementStateToken(state)})`;
+export const stateBg = (state: ElementState): string =>
+  `var(--state-${elementStateToken(state)}-bg)`;
 
 export const GAP = 8;
 export const MAX_GAP_RATIO = 0.25;

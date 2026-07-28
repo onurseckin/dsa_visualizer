@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { disjointSetUnion, DEFAULT_DISJOINT_SET_UNION_INPUT } from "../disjointSetUnion";
+import {
+  disjointSetUnion,
+  DEFAULT_DISJOINT_SET_UNION_INPUT,
+  type DisjointSetUnionInput,
+} from "../disjointSetUnion";
 
 describe("disjointSetUnion definition and step generator", () => {
   it("has correct metadata and category", () => {
     expect(disjointSetUnion.id).toBe("disjoint-set-union");
-    expect(disjointSetUnion.category).toBe("graph_spanning_trees");
+    expect(disjointSetUnion.topicIds).toContain("graph_spanning_trees");
   });
 
   it("produces >= 20 steps for default input", () => {
@@ -22,9 +26,10 @@ describe("disjointSetUnion definition and step generator", () => {
 
   it("ensures codeLine is 1-indexed (1..N) for defaultInput and all examples", () => {
     const totalLines = disjointSetUnion.code.split("\n").length;
+    const examples = disjointSetUnion.examples ?? [];
     const inputs = [
       disjointSetUnion.defaultInput,
-      ...disjointSetUnion.examples.map((e) => e.input),
+      ...examples.map((e) => e.input as DisjointSetUnionInput),
     ];
     for (const input of inputs) {
       const steps = disjointSetUnion.generateSteps(input);
@@ -35,4 +40,3 @@ describe("disjointSetUnion definition and step generator", () => {
     }
   });
 });
-

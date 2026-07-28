@@ -35,18 +35,12 @@ export const DEFAULT_TREE_TRAVERSAL_INPUT: TreeNodePredictionTraverserInput = {
 };
 
 export const TREE_NODE_PREDICTION_TRAVERSER_CODE = `def traverse_decision_tree(sample: list[float], tree_nodes: dict, root_id: int) -> tuple[float, list[int]]:
-    """
-    Decision Tree Prediction Traverser.
-    Routes a test sample vector X through decision tree nodes from root_id down to a leaf node.
-    At internal nodes, branches Left if sample[feature_idx] <= threshold, else Right.
-    """
     curr_id = root_id
     traversal_path = [curr_id]
 
     while curr_id in tree_nodes:
         node = tree_nodes[curr_id]
 
-        # Terminal leaf node
         if "leafValue" in node and node["leafValue"] is not None:
             return node["leafValue"], traversal_path
 
@@ -75,27 +69,23 @@ export const generateTreeTraversalSteps = (
   let currId = rootId;
   const traversalPath: number[] = [currId];
 
-  const getSnapshot = (
-    activeNodeId: number = -1,
-  ) => {
+  const getSnapshot = (activeNodeId: number = -1) => {
     return {
-      kind: "array" as const,
-      elements: Object.keys(treeNodes).map((nIdStr) => {
+      kind: "tree" as const,
+      rootId: String(rootId),
+      nodes: Object.keys(treeNodes).map((nIdStr) => {
         const nId = Number(nIdStr);
         const node = treeNodes[nId];
-        const isLeaf = "leafValue" in node && node.leafValue !== undefined;
         let state: ElementState = "default";
         if (nId === activeNodeId) state = "active";
         else if (traversalPath.includes(nId)) state = "visited";
 
         return {
-          id: `node-${nId}`,
-          value: nId,
-          label: isLeaf
-            ? `Leaf ${nId} (val=${node.leafValue})`
-            : `Node ${nId} (X[${node.featureIdx}]<=${node.threshold})`,
+          id: String(nId),
+          val: nId,
+          leftId: node.leftId !== undefined ? String(node.leftId) : undefined,
+          rightId: node.rightId !== undefined ? String(node.rightId) : undefined,
           state,
-          pointers: nId === activeNodeId ? ["Current"] : [],
         };
       }),
     };
@@ -124,7 +114,7 @@ export const generateTreeTraversalSteps = (
     });
   };
 
-  // Step 1: Signature
+  // Line 1: Function signature entry
   addStep(
     1,
     "Decision Tree Prediction Traverser Entry",
@@ -132,52 +122,17 @@ export const generateTreeTraversalSteps = (
     { rootId },
   );
 
-  // Step 2: Init curr_id
-    addStep(
+  // Line 2: Init curr_id
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "Decision Tree Prediction Traverser.",
-    {},
-  );
-
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "Routes a test sample vector X through decision tree nodes from root_id down",
-    {},
-  );
-
-  addStep(
-    5,
-    "Docstring body: algorithm description",
-    "At internal nodes, branches Left if sample[feature_idx] <= threshold, else ",
-    {},
-  );
-
-  addStep(
-    6,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    7,
     `Initialize Current Node ID: curr_id = ${currId}`,
     `Set curr_id = ${currId} (Root Node).`,
     { curr_id: currId },
   );
 
-  // Step 3: Init traversal_path
+  // Line 3: Init traversal_path
   addStep(
-    8,
+    3,
     `Initialize Traversal Path Buffer: traversal_path = [${currId}]`,
     `Recorded root node ${currId} in traversal path list.`,
     { traversal_path: `[${currId}]` },
@@ -186,7 +141,7 @@ addStep(
   // Loop
   while (currId in treeNodes) {
     addStep(
-      10,
+      5,
       `While Loop Check: Node ${currId} in tree_nodes`,
       `Verified node ID ${currId} exists in decision tree node dictionary.`,
       { curr_id: currId },
@@ -194,7 +149,7 @@ addStep(
 
     const node = treeNodes[currId];
     addStep(
-      11,
+      6,
       `Fetch Node Metadata for Node ID ${currId}`,
       `Loaded node ${currId} metadata dictionary.`,
       { curr_id: currId, node: JSON.stringify(node) },
@@ -202,7 +157,7 @@ addStep(
 
     const isLeaf = "leafValue" in node && node.leafValue !== undefined;
     addStep(
-      14,
+      8,
       `Check Leaf Node Condition: Is Node ${currId} a Leaf?`,
       isLeaf
         ? `Node ${currId} is a terminal leaf node with output value ${node.leafValue}.`
@@ -213,7 +168,7 @@ addStep(
     if (isLeaf) {
       const leafVal = node.leafValue!;
       addStep(
-        15,
+        9,
         `Return Leaf Prediction Value ${leafVal}`,
         `Terminated traversal at leaf node ${currId}. Returned prediction value ${leafVal}.`,
         { curr_id: currId, leafVal, completed: true },
@@ -223,7 +178,7 @@ addStep(
 
     const fIdx = node.featureIdx!;
     addStep(
-      17,
+      11,
       `Read Feature Index: f_idx = ${fIdx}`,
       `Node ${currId} splits on sample feature dimension index ${fIdx}.`,
       { f_idx: fIdx },
@@ -231,7 +186,7 @@ addStep(
 
     const threshold = node.threshold!;
     addStep(
-      18,
+      12,
       `Read Decision Threshold: threshold = ${threshold}`,
       `Node ${currId} decision threshold: ${threshold}.`,
       { threshold },
@@ -239,7 +194,7 @@ addStep(
 
     const featVal = sample[fIdx];
     addStep(
-      19,
+      13,
       `Fetch Sample Feature Value: sample[${fIdx}] = ${featVal}`,
       `Loaded feature scalar value sample[${fIdx}] = ${featVal} from input sample vector X.`,
       { fIdx, featVal },
@@ -247,7 +202,7 @@ addStep(
 
     const isLeft = featVal <= threshold;
     addStep(
-      21,
+      15,
       `Evaluate Branch Predicate: sample[${fIdx}] (${featVal}) <= ${threshold}`,
       isLeft
         ? `True (${featVal} <= ${threshold}) -> Routing to Left child node ${node.leftId}.`
@@ -258,7 +213,7 @@ addStep(
     if (isLeft) {
       currId = node.leftId!;
       addStep(
-        22,
+        16,
         `Branch Left: Set curr_id = ${currId}`,
         `Updated curr_id to left child node ID ${currId}.`,
         { curr_id: currId },
@@ -266,7 +221,7 @@ addStep(
     } else {
       currId = node.rightId!;
       addStep(
-        24,
+        18,
         `Branch Right: Set curr_id = ${currId}`,
         `Updated curr_id to right child node ID ${currId}.`,
         { curr_id: currId },
@@ -275,16 +230,16 @@ addStep(
 
     traversalPath.push(currId);
     addStep(
-      26,
+      20,
       `Append Node ${currId} to Traversal Path`,
       `Updated traversal path: [${traversalPath.join(" -> ")}].`,
       { traversal_path: `[${traversalPath.join(" -> ")}]` },
     );
   }
 
-  // Fallback step 28
+  // Fallback step
   addStep(
-    28,
+    22,
     "Execution Complete: Return Default Fallback 0.0",
     "Node ID missing from dictionary. Returned fallback 0.0.",
     { completed: true },
@@ -294,7 +249,7 @@ addStep(
 };
 
 const TREE_NODE_PREDICTION_TRAVERSER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 9, 12, 13, 16, 20, 23, 25, 27],
+  skipLines: [4, 7, 10, 14, 17, 19, 21],
   distractors: [
     "if feat_val > threshold: curr_id = node['leftId']",
     "traversal_path = sample",
@@ -302,50 +257,34 @@ const TREE_NODE_PREDICTION_TRAVERSER_TRIVIA: TriviaMeta = {
     "curr_id = root_id + 1",
   ],
   hints: [
-    { line: 21, hint: "Branch left if sample[f_idx] <= threshold, else branch right." },
-    { line: 15, hint: "Return leafValue and traversal_path upon reaching terminal leaf node." },
+    { line: 15, hint: "Branch left if sample[f_idx] <= threshold, else branch right." },
+    { line: 9, hint: "Return leafValue and traversal_path upon reaching terminal leaf node." },
   ],
   lineExplanations: {
     1: "Defines entry point for traverse_decision_tree function.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes Decision Tree Prediction Traverser routing sample vector X to leaf.",
-    4: "Docstring continuation describing internal node branching logic.",
-    5: "Docstring closing delimiter tag.",
-    6: "Blank line before initialization.",
-    7: "Initializes curr_id pointer to root_id.",
-    8: "Initializes traversal_path list containing root_id.",
-    9: "Blank line before traversal loop.",
-    10: "Loops while curr_id exists in tree_nodes dictionary.",
-    11: "Fetches node metadata dictionary for curr_id.",
-    12: "Blank line before leaf node check.",
-    13: "Comment for terminal leaf node check.",
-    14: "Checks if 'leafValue' key exists in node dictionary.",
-    15: "Returns leaf prediction value and traversal_path list upon reaching terminal leaf node.",
-    16: "Blank line before feature extraction.",
-    17: "Reads split feature dimension index f_idx from node dictionary.",
-    18: "Reads split decision threshold from node dictionary.",
-    19: "Loads feature value feat_val = sample[f_idx] from test sample vector.",
-    20: "Blank line before predicate evaluation.",
-    21: "Evaluates branch condition: is feat_val <= threshold?",
-    22: "Updates curr_id to left child node ID node['leftId'].",
-    23: "Else branch executed when feat_val > threshold.",
-    24: "Updates curr_id to right child node ID node['rightId'].",
-    25: "Blank line before path update.",
-    26: "Appends new curr_id to traversal_path list.",
-    27: "Blank line separating traversal loop from fallback return statement.",
-    28: "Fallback return statement yielding 0.0 if node ID is missing from dictionary.",
+    2: "Initializes curr_id pointer to root_id.",
+    3: "Initializes traversal_path list containing root_id.",
+    5: "Loops while curr_id exists in tree_nodes dictionary.",
+    6: "Fetches node metadata dictionary for curr_id.",
+    8: "Checks if 'leafValue' key exists in node dictionary.",
+    9: "Returns leaf prediction value and traversal_path list upon reaching terminal leaf node.",
+    11: "Reads split feature dimension index f_idx from node dictionary.",
+    12: "Reads split decision threshold from node dictionary.",
+    13: "Loads feature value feat_val = sample[f_idx] from test sample vector.",
+    15: "Evaluates branch condition: is feat_val <= threshold?",
+    16: "Updates curr_id to left child node ID node['leftId'].",
+    17: "Else branch executed when feat_val > threshold.",
+    18: "Updates curr_id to right child node ID node['rightId'].",
+    20: "Appends new curr_id to traversal_path list.",
+    22: "Fallback return statement yielding 0.0 if node ID is missing from dictionary.",
   },
 };
 
 export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePredictionTraverserInput> = {
-  id: "treeNodePredictionTraverser",
+  id: "tree-node-prediction-traverser",
   title: "Decision Tree Prediction Traverser",
-  category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "advanced_range_queries"],
+  topicIds: ["ml_tree_ensembles", "advanced_range_queries"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_tree_ensembles",
   description:
     "The Decision Tree Prediction Traverser routes a continuous multi-dimensional test sample vector $X \\in \\mathbb{R}^D$ through a trained Decision Tree from the root node down to a terminal leaf node. At each internal decision node $k$, the engine evaluates a scalar predicate $X[j_k] \\le t_k$: if true, it branches to the left child node; otherwise, it branches to the right child node. Upon reaching a terminal leaf node, it returns the leaf prediction value $\\hat{y}$.\n\n### Why It Exists\nTree inference is the execution core of Decision Trees, Random Forests, and Gradient Boosted Decision Trees (GBDTs like XGBoost, LightGBM, CatBoost). Fast tree traversal enables real-time high-throughput model inference ($< 1$ microsecond per sample).\n\n### Mathematical Formulation\nGiven a decision tree represented as a directed acyclic graph of nodes $V$, root node $r \\in V$, and sample $X \\in \\mathbb{R}^D$:\n\n$$\\text{NextNode}(v) = \\begin{cases} \\text{Left}(v) & \\text{if } X[j_v] \\le t_v \\\\ \\text{Right}(v) & \\text{otherwise} \\end{cases}$$\n\n$$\\hat{y} = \\text{LeafValue}(v_{final}) \\quad \\text{where } v_{final} \\text{ satisfies IsLeaf}(v_{final}) = \\text{True}$$\n\n### Step-by-Step Intuition\n1. **Root Pointer Initialization**: Set current node pointer `curr_id = root_id` and initialize traversal path array.\n2. **Leaf Node Check**: If `curr_id` is a terminal leaf node, immediately return its leaf prediction value $\\hat{y}$.\n3. **Feature Comparison**: Read feature index $j$ and threshold $t$. Load $X[j]$ from sample vector.\n4. **Branch Step**: If $X[j] \\le t$, update `curr_id = left_id`; else `curr_id = right_id`.\n5. **Path Recording**: Record `curr_id` in traversal path array and repeat loop.\n\n### Key Trade-Offs & Hardware Execution\n- **Branch Misprediction**: Random branch decisions at internal tree nodes cause CPU pipeline stalls (branch mispredictions). Compilers use predication (AVX-512 `vpcmpeqd` and CMOV instructions) to avoid branch instructions.\n- **Cache Locality (Flat Array Trees)**: Storing tree nodes in contiguous flat arrays (e.g. pointerless array-based trees) minimizes CPU L1/L2 cache misses.",
   constraints: [
@@ -361,7 +300,8 @@ export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePrediction
       outputDisplay: "Leaf Value = 2.0, Path = [0, 1, 3, 5]",
       input: DEFAULT_TREE_TRAVERSAL_INPUT,
       output: "(2.0, [0, 1, 3, 5])",
-      explanation: "Node 0 (X[0]=2.5 <= 3.0) -> Left Node 1 (X[1]=4.0 > 3.5) -> Right Node 3 (X[2]=1.8 <= 2.0) -> Left Leaf 5 (val=2.0).",
+      explanation:
+        "Node 0 (X[0]=2.5 <= 3.0) -> Left Node 1 (X[1]=4.0 > 3.5) -> Right Node 3 (X[2]=1.8 <= 2.0) -> Left Leaf 5 (val=2.0).",
     },
   ],
   code: TREE_NODE_PREDICTION_TRAVERSER_CODE,
@@ -407,7 +347,8 @@ export const treeNodePredictionTraverser: AlgorithmDefinition<TreeNodePrediction
       },
       {
         term: "Branch Misprediction",
-        definition: "CPU pipeline stall caused by unpredictable branch decisions at internal tree nodes.",
+        definition:
+          "CPU pipeline stall caused by unpredictable branch decisions at internal tree nodes.",
       },
     ],
   },

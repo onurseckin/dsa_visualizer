@@ -16,10 +16,6 @@ export const DEFAULT_GINI_IMPURITY_INPUT: GiniImpurityBinarySplitInput = {
 };
 
 export const GINI_IMPURITY_CODE = `def compute_gini_impurity(labels: list[int]) -> float:
-    """
-    Computes Gini Impurity for a classification node.
-    Gini = 1 - sum(p_i^2) where p_i is class probability.
-    """
     if not labels:
         return 0.0
 
@@ -31,10 +27,6 @@ export const GINI_IMPURITY_CODE = `def compute_gini_impurity(labels: list[int]) 
     return 1.0 - sum((cnt / n) ** 2 for cnt in counts.values())
 
 def gini_binary_split_gain(labels: list[int], split_index: int) -> tuple[float, float, float, float]:
-    """
-    Calculates Gini Impurity reduction (Gain) for a binary node split.
-    Gain = Gini(Parent) - (N_left / N) * Gini(Left) - (N_right / N) * Gini(Right).
-    """
     left = labels[:split_index + 1]
     right = labels[split_index + 1:]
 
@@ -79,7 +71,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Step 1: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 12,
     explanation: {
       what: "Initialize Gini Impurity Binary Split Evaluator (CART)",
       why: `Parent node contains ${labels.length} class labels [${labels.join(", ")}]. Evaluating candidate split at index ${splitIndex}.`,
@@ -97,7 +89,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
       customState: {
         "Total Samples N": String(n),
         "Split Index": String(splitIndex),
-        "Status": "Initialized",
+        Status: "Initialized",
       },
     },
     variables: { n, splitIndex },
@@ -106,7 +98,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Step 2: Slice left
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 21,
+    codeLine: 13,
     explanation: {
       what: `Slice Left Partition: labels[0..${splitIndex}]`,
       why: `Created left child node partition containing ${nLeft} samples [${leftLabels.join(", ")}].`,
@@ -120,14 +112,16 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
         state: idx <= splitIndex ? ("visited" as ElementState) : ("default" as ElementState),
       })),
     },
-    auxiliaryState: { customState: { "Left Partition": `[${leftLabels.join(", ")}]`, "N_left": String(nLeft) } },
+    auxiliaryState: {
+      customState: { "Left Partition": `[${leftLabels.join(", ")}]`, N_left: String(nLeft) },
+    },
     variables: { n_left: nLeft },
   });
 
   // Step 3: Slice right
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 14,
     explanation: {
       what: `Slice Right Partition: labels[${splitIndex + 1}..${n - 1}]`,
       why: `Created right child node partition containing ${nRight} samples [${rightLabels.join(", ")}].`,
@@ -145,7 +139,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
       customState: {
         "Left Partition": `[${leftLabels.join(", ")}]`,
         "Right Partition": `[${rightLabels.join(", ")}]`,
-        "N_right": String(nRight),
+        N_right: String(nRight),
       },
     },
     variables: { n_right: nRight },
@@ -154,7 +148,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Compute Parent Gini sub-steps
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 24,
+    codeLine: 16,
     explanation: {
       what: "Compute Parent Node Gini Impurity",
       why: "Calling compute_gini_impurity(labels) on parent dataset.",
@@ -168,13 +162,13 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
         state: "active" as ElementState,
       })),
     },
-    auxiliaryState: { customState: { "Target": "Parent Node Gini" } },
+    auxiliaryState: { customState: { Target: "Parent Node Gini" } },
     variables: { target: "Parent" },
   });
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 5,
     explanation: {
       what: `Parent Gini: Measure N = ${n}`,
       why: `Parent node sample count N = ${n}.`,
@@ -192,13 +186,33 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
     variables: { parent_n: n },
   });
 
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: "Initialize Class Frequency Dictionary",
+      why: "Initializes hash map counts to store frequency of each label in parent node.",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: "active" as ElementState,
+      })),
+    },
+    auxiliaryState: { customState: { "Parent Class Frequencies": "{}" } },
+    variables: { counts: {} },
+  });
+
   // Count parent frequencies
   const parentCounts: Record<number, number> = {};
   labels.forEach((y, idx) => {
     parentCounts[y] = (parentCounts[y] || 0) + 1;
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
+      codeLine: 8,
       explanation: {
         what: `Parent Frequency Scan: Sample ${idx} (Class y=${y})`,
         why: `Class ${y} count is now ${parentCounts[y]}.`,
@@ -209,7 +223,12 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
           id: `y-${i}`,
           value: v,
           label: `y=${v}`,
-          state: i === idx ? ("compare" as ElementState) : i < idx ? ("visited" as ElementState) : ("default" as ElementState),
+          state:
+            i === idx
+              ? ("compare" as ElementState)
+              : i < idx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
         })),
       },
       auxiliaryState: {
@@ -223,7 +242,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 14,
+    codeLine: 10,
     explanation: {
       what: `Evaluated Parent Gini Impurity: Gini(Parent) = ${parentGini.toFixed(4)}`,
       why: `Evaluated Gini = 1 - sum(p_i^2) = ${parentGini.toFixed(4)}.`,
@@ -244,7 +263,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Compute Left Gini
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 17,
     explanation: {
       what: `Compute Left Child Node Gini Impurity: Gini(Left) = ${leftGini.toFixed(4)}`,
       why: `Evaluated Left Gini on ${nLeft} samples [${leftLabels.join(", ")}]: Gini(Left) = ${leftGini.toFixed(4)}.`,
@@ -270,7 +289,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Compute Right Gini
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 26,
+    codeLine: 18,
     explanation: {
       what: `Compute Right Child Node Gini Impurity: Gini(Right) = ${rightGini.toFixed(4)}`,
       why: `Evaluated Right Gini on ${nRight} samples [${rightLabels.join(", ")}]: Gini(Right) = ${rightGini.toFixed(4)}.`,
@@ -297,14 +316,19 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Extract lengths
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 28,
+    codeLine: 20,
     explanation: {
       what: `Extract Dataset Length: n = ${n}`,
       why: `Total sample count n = ${n}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: labels.map((y, idx) => ({ id: `y-${idx}`, value: y, label: `y=${y}`, state: "default" as ElementState })),
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { n: String(n) } },
     variables: { n },
@@ -312,14 +336,19 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 29,
+    codeLine: 21,
     explanation: {
       what: `Extract Left Child Length: n_left = ${nLeft}`,
       why: `Left child sample count n_left = ${nLeft}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: labels.map((y, idx) => ({ id: `y-${idx}`, value: y, label: `y=${y}`, state: "default" as ElementState })),
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { n_left: String(nLeft) } },
     variables: { n_left: nLeft },
@@ -327,14 +356,19 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 30,
+    codeLine: 22,
     explanation: {
       what: `Extract Right Child Length: n_right = ${nRight}`,
       why: `Right child sample count n_right = ${nRight}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: labels.map((y, idx) => ({ id: `y-${idx}`, value: y, label: `y=${y}`, state: "default" as ElementState })),
+      elements: labels.map((y, idx) => ({
+        id: `y-${idx}`,
+        value: y,
+        label: `y=${y}`,
+        state: "default" as ElementState,
+      })),
     },
     auxiliaryState: { customState: { n_right: String(nRight) } },
     variables: { n_right: nRight },
@@ -343,7 +377,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Weighted child Gini
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 32,
+    codeLine: 24,
     explanation: {
       what: `Calculate Weighted Child Gini = ${weightedChildGini.toFixed(4)}`,
       why: `Evaluated weighted child Gini = (${nLeft}/${n}) * ${leftGini.toFixed(4)} + (${nRight}/${n}) * ${rightGini.toFixed(4)} = ${weightedChildGini.toFixed(4)}.`,
@@ -369,7 +403,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Gini Gain
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 33,
+    codeLine: 25,
     explanation: {
       what: `Calculate Gini Gain = ${giniGain.toFixed(4)}`,
       why: `Evaluated Gini Gain = Parent Gini (${parentGini.toFixed(4)}) - Weighted Child Gini (${weightedChildGini.toFixed(4)}) = ${giniGain.toFixed(4)}.`,
@@ -396,7 +430,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
   // Return step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 35,
+    codeLine: 27,
     explanation: {
       what: `Execution Complete: Return Gini Split Gain Summary`,
       why: `Returned tuple (Parent Gini=${parentGini.toFixed(4)}, Left Gini=${leftGini.toFixed(4)}, Right Gini=${rightGini.toFixed(4)}, Gain=${giniGain.toFixed(4)}).`,
@@ -425,7 +459,7 @@ export const generateGiniImpuritySteps = (input: GiniImpurityBinarySplitInput): 
 };
 
 const GINI_IMPURITY_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 8, 13, 15, 17, 18, 19, 20, 23, 27, 31, 34],
+  skipLines: [4, 9, 11, 15, 19, 23, 26],
   distractors: [
     "gini = 1.0 - sum(cnt / n)",
     "gain = weighted_child_gini - parent_gini",
@@ -433,57 +467,45 @@ const GINI_IMPURITY_TRIVIA: TriviaMeta = {
     "weighted_child_gini = left_gini + right_gini",
   ],
   hints: [
-    { line: 14, hint: "Gini impurity equation: 1.0 - sum( (count / N)^2 )." },
-    { line: 33, hint: "Gini gain equation: Gini(Parent) - Weighted_Child_Gini." },
+    { line: 10, hint: "Gini impurity equation: 1.0 - sum( (count / N)^2 )." },
+    { line: 25, hint: "Gini gain equation: Gini(Parent) - Weighted_Child_Gini." },
   ],
   lineExplanations: {
     1: "Defines helper function compute_gini_impurity calculating node classification variance.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes Gini Impurity calculation for a classification node.",
-    4: "Docstring Gini equation formula line.",
-    5: "Docstring closing delimiter tag.",
-    6: "Checks if labels list is empty; returns 0.0 for empty node.",
-    7: "Returns 0.0 Gini impurity for empty label list.",
-    8: "Blank line before label count calculation.",
-    9: "Measures total sample count n in labels list.",
-    10: "Initializes dictionary counts to store class label frequencies.",
-    11: "Iterates over classification class label y in labels list.",
-    12: "Increments class label frequency counter counts[y].",
-    13: "Blank line before Gini sum evaluation.",
-    14: "Evaluates and returns Gini impurity: 1.0 - sum( (cnt / n)**2 ).",
-    15: "Blank line before split gain function definition.",
-    16: "Defines entry point for gini_binary_split_gain function.",
-    17: "Docstring opening delimiter tag.",
-    18: "Describes calculation of Gini Impurity reduction (Gain) for a binary node split.",
-    19: "Docstring Gini Gain formula line.",
-    20: "Docstring closing delimiter tag.",
-    21: "Slices left child node labels list labels[:split_index + 1].",
-    22: "Slices right child node labels list labels[split_index + 1:].",
-    23: "Blank line before Gini evaluations.",
-    24: "Calls compute_gini_impurity on full parent labels list.",
-    25: "Calls compute_gini_impurity on left child node labels list.",
-    26: "Calls compute_gini_impurity on right child node labels list.",
-    27: "Blank line before weighted sum calculation.",
-    28: "Extracts total parent sample count n.",
-    29: "Extracts left child sample count n_left.",
-    30: "Extracts right child sample count n_right.",
-    31: "Blank line before weighted Gini subtraction.",
-    32: "Calculates weighted child Gini impurity sum: (n_left/n)*left_gini + (n_right/n)*right_gini.",
-    33: "Calculates Gini Gain reduction: parent_gini - weighted_child_gini.",
-    34: "Blank line before return statement.",
-    35: "Returns tuple of (parent_gini, left_gini, right_gini, gini_gain).",
+    2: "Checks if labels list is empty; returns 0.0 for empty node.",
+    3: "Returns 0.0 Gini impurity for empty label list.",
+    4: "Blank line before sample count calculation.",
+    5: "Measures total sample count n in labels list.",
+    6: "Initializes dictionary counts to store class label frequencies.",
+    7: "Iterates over classification class label y in labels list.",
+    8: "Increments class label frequency counter counts[y].",
+    9: "Blank line before Gini sum evaluation.",
+    10: "Evaluates and returns Gini impurity: 1.0 - sum( (cnt / n)**2 ).",
+    11: "Blank line before split gain function definition.",
+    12: "Defines entry point for gini_binary_split_gain function.",
+    13: "Slices left child node labels list labels[:split_index + 1].",
+    14: "Slices right child node labels list labels[split_index + 1:].",
+    15: "Blank line before Gini evaluations.",
+    16: "Calls compute_gini_impurity on full parent labels list.",
+    17: "Calls compute_gini_impurity on left child node labels list.",
+    18: "Calls compute_gini_impurity on right child node labels list.",
+    19: "Blank line before sample count extraction.",
+    20: "Extracts total parent sample count n.",
+    21: "Extracts left child sample count n_left.",
+    22: "Extracts right child sample count n_right.",
+    23: "Blank line before weighted sum calculation.",
+    24: "Calculates weighted child Gini impurity sum: (n_left/n)*left_gini + (n_right/n)*right_gini.",
+    25: "Calculates Gini Gain reduction: parent_gini - weighted_child_gini.",
+    26: "Blank line before return statement.",
+    27: "Returns tuple of (parent_gini, left_gini, right_gini, gini_gain).",
   },
 };
 
 export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySplitInput> = {
-  id: "giniImpurityBinarySplit",
+  id: "gini-impurity-binary-split",
   title: "Gini Impurity Binary Split Evaluator",
-  category: "ml_tree_ensembles",
-  categories: ["ml_tree_ensembles", "advanced_range_queries"],
+  topicIds: ["ml_tree_ensembles", "advanced_range_queries"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_tree_ensembles",
   description:
     "The Gini Impurity Binary Split Evaluator measures the classification purity reduction (Gain) when splitting a decision tree node into left and right children using the **CART (Classification and Regression Trees)** algorithm. Gini Impurity measures the probability of misclassifying a randomly chosen element from a set if it were randomly labeled according to the class distribution in the subset.\n\n### Why It Exists\nDecision tree construction algorithms (CART, Random Forest, Scikit-Learn DecisionTreeClassifier) evaluate hundreds of candidate threshold splits across features to choose the split that maximizes purity gain, driving node samples toward homogeneous single-class clusters.\n\n### Mathematical Formulation\nFor a node containing $N$ samples across $K$ classes with class counts $N_k$ and class probabilities $p_k = N_k / N$:\n\n$$1. \\quad I_G(\\text{Node}) = 1 - \\sum_{k=1}^{K} p_k^2 \\quad (\\text{Gini Impurity})$$\n\n$$2. \\quad \\text{Weighted Child Gini} = \\frac{N_L}{N} I_G(L) + \\frac{N_R}{N} I_G(R)$$\n\n$$3. \\quad \\text{Gini Gain} = I_G(\\text{Parent}) - \\left[ \\frac{N_L}{N} I_G(L) + \\frac{N_R}{N} I_G(R) \\right]$$\n\nwhere $0 \\le I_G \\le 1 - 1/K$. A pure node containing a single class has $I_G = 0.0$.\n\n### Step-by-Step Intuition\n1. **Parent Gini Evaluation**: Count class frequencies in parent node $S$ and compute $I_G(\\text{Parent})$.\n2. **Partition Slicing**: Divide parent labels into Left child $S_L = S[0..idx]$ and Right child $S_R = S[idx+1..end]$.\n3. **Child Gini Evaluation**: Compute $I_G(S_L)$ and $I_G(S_R)$ independently.\n4. **Weighted Gain Subtraction**: Subtract the sample-weighted average child Gini from Parent Gini.\n\n### Key Trade-Offs & Hardware Execution\n- **Gini vs Entropy (LogLoss)**: Gini Impurity does not compute transcendental logarithms (no $\\log_2$), making it computationally faster to compute on CPUs and GPUs than Shannon Entropy.\n- **Histogram Acceleration**: In XGBoost and LightGBM, Gini is evaluated directly from integer class histograms in $O(K)$ time per split candidate.",
   constraints: [
@@ -499,7 +521,8 @@ export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySpli
       outputDisplay: "Parent Gini = 0.4861, Left Gini = 0.2778, Right Gini = 0.2778, Gain = 0.2083",
       input: DEFAULT_GINI_IMPURITY_INPUT,
       output: "(0.4861, 0.2778, 0.2778, 0.2083)",
-      explanation: "Splitting at index 5 separates mostly class 0 (left) from mostly class 1 (right), yielding Gini Gain = 0.2083.",
+      explanation:
+        "Splitting at index 5 separates mostly class 0 (left) from mostly class 1 (right), yielding Gini Gain = 0.2083.",
     },
   ],
   code: GINI_IMPURITY_CODE,
@@ -533,19 +556,23 @@ export const giniImpurityBinarySplit: AlgorithmDefinition<GiniImpurityBinarySpli
     keyTerms: [
       {
         term: "Gini Impurity",
-        definition: "Purity metric 1 - sum(p_i^2) measuring misclassification variance at a tree node.",
+        definition:
+          "Purity metric 1 - sum(p_i^2) measuring misclassification variance at a tree node.",
       },
       {
         term: "CART Algorithm",
-        definition: "Classification and Regression Trees framework introduced by Breiman et al. using Gini impurity.",
+        definition:
+          "Classification and Regression Trees framework introduced by Breiman et al. using Gini impurity.",
       },
       {
         term: "Gini Gain",
-        definition: "Impurity reduction achieved by splitting a node: Parent_Gini - Weighted_Child_Gini.",
+        definition:
+          "Impurity reduction achieved by splitting a node: Parent_Gini - Weighted_Child_Gini.",
       },
       {
         term: "Pure Node",
-        definition: "A tree node containing samples from exactly one class, having Gini Impurity = 0.0.",
+        definition:
+          "A tree node containing samples from exactly one class, having Gini Impurity = 0.0.",
       },
     ],
   },

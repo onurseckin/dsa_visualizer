@@ -6,7 +6,7 @@ let placeholderCount = 0;
 let singleStepCount = 0;
 let missingExamplesCount = 0;
 let leetcodeCount = 0;
-let multiCategoryCount = 0;
+let multiTopicCount = 0;
 
 const placeholders: string[] = [];
 
@@ -22,16 +22,20 @@ for (const [id, alg] of Object.entries(ALGORITHM_REGISTRY)) {
     placeholders.push(id);
   }
 
-  if (alg.examples.length < 3) {
+  if ((alg.examples?.length ?? 0) < 3) {
     missingExamplesCount++;
+  }
+
+  if (alg.generateSteps(alg.defaultInput).length <= 1) {
+    singleStepCount++;
   }
 
   if (alg.leetcode) {
     leetcodeCount++;
   }
 
-  if (alg.categories && alg.categories.length > 1) {
-    multiCategoryCount++;
+  if (alg.topicIds.length > 1) {
+    multiTopicCount++;
   }
 }
 
@@ -42,10 +46,12 @@ console.log(
 console.log(`Algorithms with <= 1 step: ${singleStepCount}`);
 console.log(`Algorithms with < 3 examples: ${missingExamplesCount}`);
 console.log(`Algorithms with LeetCode metadata: ${leetcodeCount}`);
-console.log(`Algorithms with multi-category tags: ${multiCategoryCount}`);
+console.log(`Algorithms with multiple topic relations: ${multiTopicCount}`);
 
 if (placeholders.length > 0) {
   console.log(`\nSample placeholder algorithm IDs:`, placeholders.slice(0, 15));
 } else {
-  console.log("\n✅ ALL 317 ALGORITHMS CONTAIN AUTHENTIC PRODUCTION-GRADE PYTHON CODE!");
+  console.log(
+    `\n✅ ALL ${Object.keys(ALGORITHM_REGISTRY).length} ALGORITHMS CONTAIN AUTHENTIC PRODUCTION-GRADE PYTHON CODE!`,
+  );
 }

@@ -9,10 +9,11 @@ import {
 describe("ring-allgather-vector-reconstructor (Ring All-Gather Phase Vector Reconstructor)", () => {
   it("should have correct metadata", () => {
     expect(ringAllgatherVectorReconstructor.id).toBe("ring-allgather-vector-reconstructor");
-    expect(ringAllgatherVectorReconstructor.isMlInfra).toBe(true);
-    expect(ringAllgatherVectorReconstructor.mlInfraLevel).toBe(11);
-    expect(ringAllgatherVectorReconstructor.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(ringAllgatherVectorReconstructor.categories).toContain("ml_distributed_systems");
+    expect(
+      ringAllgatherVectorReconstructor.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(ringAllgatherVectorReconstructor.topicIds).toContain("ml_distributed_systems");
+    expect(ringAllgatherVectorReconstructor.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {

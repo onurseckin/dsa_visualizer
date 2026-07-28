@@ -9,10 +9,9 @@ import {
 describe("reshape-matrix-566 (Reshape Matrix Coordinates Engine)", () => {
   it("should have correct metadata", () => {
     expect(reshapeMatrix566.id).toBe("reshape-matrix-566");
-    expect(reshapeMatrix566.isMlInfra).toBe(true);
-    expect(reshapeMatrix566.mlInfraLevel).toBe(2);
-    expect(reshapeMatrix566.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(reshapeMatrix566.categories).toContain("ml_gemm_roofline");
+    expect(reshapeMatrix566.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(reshapeMatrix566.topicIds).toContain("ml_gemm_roofline");
+    expect(reshapeMatrix566.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {

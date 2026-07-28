@@ -8,10 +8,9 @@ import {
 describe("find-zero-indegree-nodes (Find Zero In-Degree Root Input Nodes)", () => {
   it("should have correct metadata", () => {
     expect(findZeroIndegreeNodes.id).toBe("find-zero-indegree-nodes");
-    expect(findZeroIndegreeNodes.isMlInfra).toBe(true);
-    expect(findZeroIndegreeNodes.mlInfraLevel).toBe(3);
-    expect(findZeroIndegreeNodes.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(findZeroIndegreeNodes.categories).toContain("ml_autograd_dags");
+    expect(findZeroIndegreeNodes.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(findZeroIndegreeNodes.topicIds).toContain("ml_autograd_dags");
+    expect(findZeroIndegreeNodes.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

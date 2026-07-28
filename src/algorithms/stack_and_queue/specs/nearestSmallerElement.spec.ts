@@ -9,7 +9,7 @@ describe("nearestSmallerElement algorithm spec", () => {
   it("should have valid metadata", () => {
     expect(nearestSmallerElement.id).toBe("nearest-smaller-element");
     expect(nearestSmallerElement.title).toBe("Nearest Smaller Element");
-    expect(nearestSmallerElement.category).toBe("stack_and_queue");
+    expect(nearestSmallerElement.topicIds).toContain("stack_and_queue");
     expect(nearestSmallerElement.difficulty).toBe("Medium");
     expect(nearestSmallerElement.defaultInput).toEqual(DEFAULT_NEAREST_SMALLER_INPUT);
   });

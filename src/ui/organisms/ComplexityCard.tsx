@@ -1,12 +1,12 @@
 import type { ReactElement } from "react";
 import { Chip, Well } from "../index";
-import type { ComplexityAnalysis, TimeComplexity } from "../../types/dsa";
+import type { ComplexityAnalysis, DisplayValue, TimeComplexity } from "../../types/dsa";
 
 export interface ComplexityCardProps {
   timeComplexity: TimeComplexity;
   spaceComplexity: string;
   complexityAnalysis: ComplexityAnalysis;
-  variableState?: Record<string, string | number | boolean>;
+  variableState?: Record<string, DisplayValue>;
 }
 
 export interface BigOChip {
@@ -42,7 +42,7 @@ export function ProseBlock({ label, body }: { label: string; body: string }): Re
 export function ComplexityVariables({
   variableState,
 }: {
-  variableState?: Record<string, string | number | boolean>;
+  variableState?: Record<string, DisplayValue>;
 }): ReactElement | null {
   const variables = variableState ? Object.entries(variableState) : [];
   if (variables.length === 0) return null;

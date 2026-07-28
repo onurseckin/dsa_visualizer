@@ -9,10 +9,9 @@ import {
 describe("transpose-matrix-square (Square Matrix Transpose Operator)", () => {
   it("should have correct metadata", () => {
     expect(transposeMatrixSquare.id).toBe("transpose-matrix-square");
-    expect(transposeMatrixSquare.isMlInfra).toBe(true);
-    expect(transposeMatrixSquare.mlInfraLevel).toBe(2);
-    expect(transposeMatrixSquare.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(transposeMatrixSquare.categories).toContain("ml_gemm_roofline");
+    expect(transposeMatrixSquare.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(transposeMatrixSquare.topicIds).toContain("ml_gemm_roofline");
+    expect(transposeMatrixSquare.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 steps with matrix snapshot for default input", () => {
@@ -20,7 +19,9 @@ describe("transpose-matrix-square (Square Matrix Transpose Operator)", () => {
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Square Matrix Transpose Operator");
     expect(steps[0].primarySnapshot.kind).toBe("matrix");
-    expect(steps[steps.length - 1].explanation.what).toContain("In-Place Matrix Transpose Complete");
+    expect(steps[steps.length - 1].explanation.what).toContain(
+      "In-Place Matrix Transpose Complete",
+    );
   });
 
   it("should map every line of CODE in trivia.lineExplanations", () => {

@@ -31,9 +31,7 @@ describe("BinarySearchMatrix React Component Spec", () => {
 
     expect(screen.getByText("Search a 2D Matrix")).toBeInTheDocument();
 
-    expect(
-      screen.getAllByText(/Locate a target value in an/i)[0],
-    ).toBeInTheDocument();
+    expect(screen.getAllByText(/Locate a target value in an/i)[0]).toBeInTheDocument();
     expect(
       screen.getAllByText(/Binary search is not limited to physical 1D arrays/i)[0],
     ).toBeInTheDocument();

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, GridCellNode } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface MatrixMultiplicationNaiveInput {
@@ -12,7 +17,7 @@ export const MATRIX_MULTIPLICATION_NAIVE_CODE = `def matrix_multiply_naive(A: li
     M, K1 = len(A), len(A[0])
     K2, N = len(B), len(B[0])
     if K1 != K2:
-        return []  # Dimension mismatch
+        return []
     
     C = [[0] * N for _ in range(M)]
     for i in range(M):
@@ -46,21 +51,52 @@ export const generateMatrixMultiplicationNaiveSteps = (
   const K2 = B.length;
   const N = K2 > 0 ? B[0].length : 0;
 
-  const buildGridSnapshot = (
+  const completedCells = new Set<string>();
+
+  const buildMatrixSnapshot = (
     activeRowA: number | null,
     activeColB: number | null,
-    _activeK: number | null,
+    activeK: number | null,
     C: number[][],
-  ): GridCellNode[][] => {
-    // Render matrix C as grid
-    return C.map((rowArr, r) =>
-      rowArr.map((val, c) => ({
-        row: r,
-        col: c,
-        distance: val,
-        state: r === activeRowA && c === activeColB ? "active" : val !== 0 ? "visited" : "default",
-      })),
-    );
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < M; r++) {
+      for (let c = 0; c < N; c++) {
+        let state: "default" | "active" | "compared" | "sorted" | "pivot" | "inactive" = "default";
+        if (r === activeRowA && c === activeColB) {
+          state = "active";
+        } else if (completedCells.has(`${r},${c}`)) {
+          state = "sorted";
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: C[r][c],
+          state,
+          label: `C[${r}][${c}]`,
+        });
+      }
+    }
+
+    let title = `Matrix C (${M}x${N}) = A (${M}x${K1}) × B (${K2}x${N})`;
+    if (activeRowA !== null && activeColB !== null) {
+      if (activeK !== null) {
+        title = `Computing C[${activeRowA}][${activeColB}]: k=${activeK} (A[${activeRowA}][${activeK}] = ${A[activeRowA]?.[activeK]} * B[${activeK}][${activeColB}] = ${B[activeK]?.[activeColB]})`;
+      } else {
+        title = `Computing C[${activeRowA}][${activeColB}]`;
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows: M,
+      cols: N,
+      cells,
+      rowHeaders: Array.from({ length: M }, (_, i) => `Row ${i}`),
+      colHeaders: Array.from({ length: N }, (_, j) => `Col ${j}`),
+      title,
+    };
   };
 
   const addStep = (
@@ -77,10 +113,7 @@ export const generateMatrixMultiplicationNaiveSteps = (
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "grid",
-        grid: buildGridSnapshot(activeRowA, activeColB, activeK, C),
-      },
+      primarySnapshot: buildMatrixSnapshot(activeRowA, activeColB, activeK, C),
       auxiliaryState: {
         customState: {
           dimA: `${M}x${K1}`,
@@ -88,6 +121,10 @@ export const generateMatrixMultiplicationNaiveSteps = (
           dimC: `${M}x${N}`,
           activePair:
             activeRowA !== null && activeColB !== null ? `C[${activeRowA}][${activeColB}]` : "None",
+          currentK:
+            activeRowA !== null && activeColB !== null && activeK !== null
+              ? `k=${activeK} (A[${activeRowA}][${activeK}] * B[${activeK}][${activeColB}])`
+              : "N/A",
         },
       },
       variables: vars,
@@ -126,12 +163,34 @@ export const generateMatrixMultiplicationNaiveSteps = (
   );
 
   for (let i = 0; i < M; i++) {
+    addStep(
+      10,
+      `Outer loop: row i = ${i} of matrix A`,
+      `Processing row ${i} of matrix A across all columns of matrix B.`,
+      i,
+      null,
+      null,
+      C.map((r) => [...r]),
+      { i },
+    );
+
     for (let j = 0; j < N; j++) {
+      addStep(
+        11,
+        `Middle loop: column j = ${j} of matrix B`,
+        `Computing target cell C[${i}][${j}] via dot product of A[${i}][:] and B[:][${j}].`,
+        i,
+        j,
+        null,
+        C.map((r) => [...r]),
+        { i, j },
+      );
+
       let acc = 0;
       addStep(
         12,
-        `Start computing output cell C[${i}][${j}]`,
-        `Dot product of Row ${i} in A and Column ${j} in B.`,
+        `Initialize accumulator acc = 0 for cell C[${i}][${j}]`,
+        `Resetting running dot product sum to zero prior to inner reduction loop.`,
         i,
         j,
         null,
@@ -156,10 +215,12 @@ export const generateMatrixMultiplicationNaiveSteps = (
       }
 
       C[i][j] = acc;
+      completedCells.add(`${i},${j}`);
+
       addStep(
         15,
         `Store C[${i}][${j}] = ${acc}`,
-        `Completed dot product for cell (${i}, ${j}).`,
+        `Completed dot product for cell (${i}, ${j}). Matrix cell C[${i}][${j}] is finalized.`,
         i,
         j,
         null,
@@ -196,10 +257,8 @@ export const MATRIX_MULTIPLICATION_NAIVE_TRIVIA: TriviaMeta = {
 export const matrixMultiplicationNaive: AlgorithmDefinition<MatrixMultiplicationNaiveInput> = {
   id: "matrix-multiplication-naive",
   title: "Naive Matrix Multiplication (GEMM)",
-  category: "ml_gemm_roofline",
+  topicIds: ["ml_gemm_roofline"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Triple-nested loop matrix multiplication (C = A * B) illustrating dot products and memory access patterns.",

@@ -9,9 +9,8 @@ import type { ArrayVisualSnapshot } from "../../../types/dsa";
 describe("tensorStrideOffset algorithm spec", () => {
   it("should have correct ML Infra Level 1 metadata", () => {
     expect(tensorStrideOffset.id).toBe("tensor-stride-offset");
-    expect(tensorStrideOffset.isMlInfra).toBe(true);
-    expect(tensorStrideOffset.mlInfraLevel).toBe(1);
-    expect(tensorStrideOffset.category).toBe("ml_tensor_algebra");
+    expect(tensorStrideOffset.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(tensorStrideOffset.topicIds).toContain("ml_tensor_algebra");
     expect(tensorStrideOffset.defaultInput).toEqual(DEFAULT_TENSOR_STRIDE_OFFSET_INPUT);
     expect(tensorStrideOffset.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 1" },
@@ -23,7 +22,7 @@ describe("tensorStrideOffset algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(8);
+    expect(lastStep.codeLine).toBe(9);
     expect(lastStep.variables.offset).toBe(93);
     expect(lastStep.variables.valid).toBe(true);
 
@@ -51,7 +50,7 @@ describe("tensorStrideOffset algorithm spec", () => {
     };
     const steps = generateTensorStrideOffsetSteps(oobInput);
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(6);
+    expect(lastStep.codeLine).toBe(7);
     expect(lastStep.variables.offset).toBe(-1);
   });
 });

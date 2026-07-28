@@ -8,9 +8,6 @@ export interface fusedFfnGemmOnlineSoftmaxInput {
 }
 
 export const FUSEDFFNGEMMONLINESOFTMAX_CODE = `def fused_ffn_gemm_online_softmax(matrix_a, matrix_b):
-    """
-    Fuses linear matrix multiply GEMM with row-wise online max/sum softmax normalization.
-    """
     import math
     rows = len(matrix_a)
     cols = len(matrix_b[0])
@@ -91,9 +88,10 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
         cells.push({
           row: r,
           col: c,
-          value: typeof currentGrid[r][c] === "number"
-            ? (currentGrid[r][c] as number).toFixed(3)
-            : String(currentGrid[r][c]),
+          value:
+            typeof currentGrid[r][c] === "number"
+              ? (currentGrid[r][c] as number).toFixed(3)
+              : String(currentGrid[r][c]),
           state: cellState,
           label: `r${r}c${c}`,
         });
@@ -151,62 +149,41 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     { rows, cols, kDim },
   );
 
+  // Step 2: Import math
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Fuses linear matrix multiply GEMM with row-wise online max/sum softmax normaliza",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Step 5: Import math
-  addStep(
-    5,
     "Import Math Module",
     "Loading mathematical primitives for floating-point exponential calculation math.exp().",
     { rows, cols },
   );
 
-  // Step 6: Dimensions M
+  // Step 3: Dimensions M
   addStep(
-    6,
+    3,
     `Inspect Matrix A Row Dimension (rows = ${rows})`,
     "Determining token sequence length M for row-parallel execution.",
     { rows },
   );
 
-  // Step 7: Dimensions N
+  // Step 4: Dimensions N
   addStep(
-    7,
+    4,
     `Inspect Matrix B Column Dimension (cols = ${cols})`,
     "Determining feature projection dimension N.",
     { cols },
   );
 
-  // Step 8: Contraction K
+  // Step 5: Contraction K
   addStep(
-    8,
+    5,
     `Inspect Shared Contraction Dimension (k_dim = ${kDim})`,
     "Determining dot-product length K for matrix contraction.",
     { kDim },
   );
 
-  // Step 9: Initialize output structure
+  // Step 6: Initialize output structure
   addStep(
-    9,
+    6,
     "Allocate Softmax Output Buffer",
     "Initializing container to accumulate normalized row probability vectors.",
     { softmax_output_rows: 0 },
@@ -215,9 +192,9 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
   const softmaxOutput: number[][] = [];
 
   for (let r = 0; r < rows; r++) {
-    // Step 11: Outer loop row r
+    // Step 8: Outer loop row r
     addStep(
-      11,
+      8,
       `Start Processing Row ${r}`,
       `Iterating through token row ${r} of ${rows} in fused SRAM register workspace.`,
       { r },
@@ -226,9 +203,9 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       "dot",
     );
 
-    // Step 12: Initialize scores
+    // Step 9: Initialize scores
     addStep(
-      12,
+      9,
       `Initialize Scores Buffer for Row ${r}`,
       "Allocating temporary score logit register array.",
       { r, scores_len: 0 },
@@ -240,9 +217,9 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     const scores: number[] = [];
 
     for (let c = 0; c < cols; c++) {
-      // Step 13: Inner loop col c
+      // Step 10: Inner loop col c
       addStep(
-        13,
+        10,
         `Evaluate Column ${c} for Row ${r}`,
         `Computing GEMM linear projection entry for cell (${r}, ${c}).`,
         { r, c },
@@ -258,7 +235,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
         dot += prod;
 
         addStep(
-          14,
+          11,
           `GEMM Multiply-Accumulate: k=${k} (A[${r}][${k}] * B[${k}][${c}])`,
           `A[${r}][${k}] (${matrixA[r][k]}) * B[${k}][${c}] (${matrixB[k][c]}) = ${prod.toFixed(
             3,
@@ -273,9 +250,9 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       scores.push(dot);
       currentGrid[r][c] = dot;
 
-      // Step 15: Append score
+      // Step 12: Append score
       addStep(
-        15,
+        12,
         `Store Score Logit (${dot.toFixed(3)}) for Cell (${r}, ${c})`,
         `Appended GEMM dot product score logit to row ${r} accumulator.`,
         { r, c, dot },
@@ -285,10 +262,10 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       );
     }
 
-    // Step 17: Max value for numerical stability
+    // Step 14: Max value for numerical stability
     const maxVal = Math.max(...scores);
     addStep(
-      17,
+      14,
       `Compute Row Max Logit (max_val = ${maxVal.toFixed(3)})`,
       "Tracking maximum score logit to prevent math.exp() floating-point overflow during exponentiation.",
       { r, maxVal },
@@ -297,10 +274,10 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       "max",
     );
 
-    // Step 18: Shifted exponentials
+    // Step 15: Shifted exponentials
     const expVals = scores.map((x) => Math.exp(x - maxVal));
     addStep(
-      18,
+      15,
       `Calculate Shifted Exponentials exp(x - max_val)`,
       `Subtracted max (${maxVal.toFixed(3)}) from scores [${scores
         .map((s) => s.toFixed(2))
@@ -311,10 +288,10 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       "exp",
     );
 
-    // Step 19: Sum of exponentials
+    // Step 16: Sum of exponentials
     const sumExp = expVals.reduce((a, b) => a + b, 0);
     addStep(
-      19,
+      16,
       `Sum Exponentials (sum_exp = ${sumExp.toFixed(4)})`,
       "Reducing exponential terms across row columns to establish normalizer denominator.",
       { r, sumExp },
@@ -323,14 +300,14 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       "sum",
     );
 
-    // Step 20: Normalize probabilities
+    // Step 17: Normalize probabilities
     const probs = expVals.map((x) => x / sumExp);
     for (let c = 0; c < cols; c++) {
       currentGrid[r][c] = probs[c];
     }
 
     addStep(
-      20,
+      17,
       `Compute Softmax Probabilities for Row ${r}`,
       `Divided exponentials by sum_exp (${sumExp.toFixed(4)}) -> Probs: [${probs
         .map((p) => p.toFixed(4))
@@ -341,10 +318,10 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
       "prob",
     );
 
-    // Step 21: Append row result
+    // Step 18: Append row result
     softmaxOutput.push(probs);
     addStep(
-      21,
+      18,
       `Append Softmax Row ${r} Result to Output Matrix`,
       `Row ${r} normalized probability vector successfully appended.`,
       { r, softmaxOutputRows: softmaxOutput.length },
@@ -354,9 +331,9 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
     );
   }
 
-  // Step 23: Return statement
+  // Step 20: Return statement
   addStep(
-    23,
+    20,
     "Execution Complete: Return Softmax Output",
     "Successfully completed fused GEMM and online softmax normalization kernel.",
     { completed: true, totalRowsProcessed: rows },
@@ -369,7 +346,7 @@ export const generateFusedFfnGemmOnlineSoftmaxSteps = (
 };
 
 const FUSEDFFNGEMMONLINESOFTMAX_TRIVIA: TriviaMeta = {
-  skipLines: [10, 16, 22],
+  skipLines: [7, 13, 19],
   distractors: [
     "softmax_output.append(scores)",
     "exp_vals = [math.exp(x) for x in scores]",
@@ -377,46 +354,39 @@ const FUSEDFFNGEMMONLINESOFTMAX_TRIVIA: TriviaMeta = {
     "return scores",
   ],
   hints: [
-    { line: 14, hint: "Compute dot product sum over contraction dimension K." },
-    { line: 17, hint: "Subtract max_val to enforce numerical stability." },
-    { line: 19, hint: "Sum exponentials to find normalization denominator." },
+    { line: 11, hint: "Compute dot product sum over contraction dimension K." },
+    { line: 14, hint: "Subtract max_val to enforce numerical stability." },
+    { line: 16, hint: "Sum exponentials to find normalization denominator." },
   ],
   lineExplanations: {
     1: "Defines fused FFN GEMM and online softmax kernel function.",
-    2: "Start of docstring explaining kernel operation.",
-    3: "Describes fusion of matrix multiplication GEMM and online softmax.",
-    4: "End of docstring.",
-    5: "Imports Python math module for math.exp() exponential computation.",
-    6: "Gets row count M from matrix A.",
-    7: "Gets column count N from matrix B.",
-    8: "Gets shared inner contraction dimension K from matrix A.",
-    9: "Initializes list to collect row-wise normalized softmax probabilities.",
-    10: "Blank line between initialization and outer loop.",
-    11: "Loops through each matrix row index r.",
-    12: "Initializes list to store raw GEMM score logits for current row.",
-    13: "Loops through each column index c.",
-    14: "Computes GEMM dot product sum(A[r][k] * B[k][c]) across inner dimension K.",
-    15: "Appends calculated scalar dot product score to row score list.",
-    16: "Blank line separating score generation and softmax normalization.",
-    17: "Finds maximum score logit in current row for numerical stability.",
-    18: "Computes shifted exponentials math.exp(x - max_val) to prevent overflow.",
-    19: "Sums shifted exponentials to obtain normalization divisor sum_exp.",
-    20: "Divides each exponential by sum_exp to produce normalized probabilities.",
-    21: "Appends normalized probability row vector to softmax output.",
-    22: "Blank line prior to return.",
-    23: "Returns completed 2D matrix of row-wise softmax probabilities.",
+    2: "Imports Python math module for math.exp() exponential computation.",
+    3: "Gets row count M from matrix A.",
+    4: "Gets column count N from matrix B.",
+    5: "Gets shared inner contraction dimension K from matrix A.",
+    6: "Initializes list to collect row-wise normalized softmax probabilities.",
+    7: "Blank line between initialization and outer loop.",
+    8: "Loops through each matrix row index r.",
+    9: "Initializes list to store raw GEMM score logits for current row.",
+    10: "Loops through each column index c.",
+    11: "Computes GEMM dot product sum(A[r][k] * B[k][c]) across inner dimension K.",
+    12: "Appends calculated scalar dot product score to row score list.",
+    13: "Blank line separating score generation and softmax normalization.",
+    14: "Finds maximum score logit in current row for numerical stability.",
+    15: "Computes shifted exponentials math.exp(x - max_val) to prevent overflow.",
+    16: "Sums shifted exponentials to obtain normalization divisor sum_exp.",
+    17: "Divides each exponential by sum_exp to produce normalized probabilities.",
+    18: "Appends normalized probability row vector to softmax output.",
+    19: "Blank line prior to return.",
+    20: "Returns completed 2D matrix of row-wise softmax probabilities.",
   },
 };
 
 export const fusedFfnGemmOnlineSoftmax: AlgorithmDefinition<fusedFfnGemmOnlineSoftmaxInput> = {
   id: "fused-ffn-gemm-online-softmax",
   title: "Fused FFN GEMM & Online Softmax Kernel",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "In Transformer Feed-Forward Networks (FFN) and Attention mechanisms (e.g. FlashAttention, vLLM fused kernels, Triton GEMM + Softmax), standard unfused execution computes matrix multiplication $C = A \\times B$, writes intermediate score logits $C$ to High Bandwidth Memory (HBM), and subsequently reads $C$ back into SRAM to perform row-wise Softmax normalization. This unfused pipeline incurs heavy DRAM memory bandwidth overhead and causes memory bus thrashing.\n\nFused GEMM + Online Softmax eliminates DRAM round-trips by keeping score logits in GPU SRAM registers or shared memory, immediately computing numerically stable Softmax statistics (row maximum $m = \\max_j(s_j)$ and sum of exponentials $d = \\sum_j \\exp(s_j - m)$), and writing only normalized probability distributions to main memory.\n\nInput Format:\n- matrixA: M x K activation matrix (e.g., token embeddings).\n- matrixB: K x N weight matrix (e.g., feed-forward projection weights).\n\nOutput Format:\n- Returns M x N matrix containing row-wise normalized Softmax probabilities $\\sum_j p_{ij} = 1.0$.\n\nEdge Cases & Constraints:\n- Large negative or positive logit values requiring $m = \\max_j(s_j)$ subtraction for numerical stability.\n- Uniform score distributions leading to equal probabilities $1/N$.\n- Small batch/token sequence lengths.",
   constraints: ["1 <= matrixA.length <= 100", "1 <= matrixB[0].length <= 100"],
@@ -436,7 +406,8 @@ export const fusedFfnGemmOnlineSoftmax: AlgorithmDefinition<fusedFfnGemmOnlineSo
   spaceComplexity: "O(M * N)",
   complexityAnalysis: {
     time: "Matrix multiplication requires M * N * K scalar multiplications and additions. Online Softmax requires M * N exponential and division operations, yielding O(M * N * K) overall time complexity.",
-    space: "Allocates M x N buffer for final normalized probability output. Intermediate registers remain in SRAM without extra DRAM allocation.",
+    space:
+      "Allocates M x N buffer for final normalized probability output. Intermediate registers remain in SRAM without extra DRAM allocation.",
   },
   topicGuide: {
     overview:

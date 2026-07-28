@@ -6,7 +6,7 @@ describe("meetInTheMiddle algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(meetInTheMiddle.id).toBe("meet-in-the-middle");
     expect(meetInTheMiddle.title).toContain("Meet in the Middle");
-    expect(meetInTheMiddle.category).toBe("binary_search");
+    expect(meetInTheMiddle.topicIds).toContain("binary_search");
     expect(meetInTheMiddle.timeComplexity.average).toContain("2^(n/2)");
     expect(meetInTheMiddle.spaceComplexity).toContain("2^(n/2)");
   });
@@ -22,7 +22,11 @@ describe("meetInTheMiddle algorithm spec", () => {
     const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements).toBeDefined();
 
-    const matchStep = steps.find((s) => s.explanation.what.includes("Return True") || s.explanation.what.includes("Found subset pair"));
+    const matchStep = steps.find(
+      (s) =>
+        s.explanation.what.includes("Return True") ||
+        s.explanation.what.includes("Found subset pair"),
+    );
     expect(matchStep).toBeDefined();
   });
 
@@ -51,7 +55,7 @@ describe("meetInTheMiddle algorithm spec", () => {
 
   it("should handle empty array input", () => {
     const steps = generateMeetInTheMiddleSteps({ array: [], target: 0 });
-    expect(steps.length).toBe(4);
+    expect(steps.length).toBe(5);
   });
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {

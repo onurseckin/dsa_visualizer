@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface computeScalarChainRuleInput {
@@ -7,9 +12,6 @@ export interface computeScalarChainRuleInput {
 }
 
 export const COMPUTESCALARCHAINRULE_CODE = `def compute_scalar_chain_rule(op_history, upstream_grad=1.0):
-    """
-    Accumulates scalar chain rule gradients backwards through operation history.
-    """
     gradients = {}
     curr_grad = upstream_grad
 
@@ -31,37 +33,81 @@ export const generateComputeScalarChainRuleSteps = (
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
   const target = input?.target ?? 30;
+  const numOps = arrayData.length;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const buildGraphSnapshot = (
+    activeIdx: number | null,
+    phase: "FETCH" | "PRODUCT" | "ACCUMULATE" | "INIT" | "DONE",
+    gradientsMap: Record<string, number>,
+  ): { nodes: GraphNodeItem[]; edges: GraphEdgeItem[] } => {
+    const nodes: GraphNodeItem[] = arrayData.map((val, idx) => {
+      const varName = `w_${idx}`;
+      const gradVal = gradientsMap[varName] ?? 0.0;
+      let state: GraphNodeItem["state"] = "default";
+
+      if (idx === activeIdx) {
+        if (phase === "FETCH") state = "compare";
+        else if (phase === "PRODUCT") state = "active";
+        else if (phase === "ACCUMULATE") state = "sorted";
+      } else if (activeIdx !== null && idx > activeIdx) {
+        state = "visited";
+      } else if (phase === "DONE") {
+        state = "sorted";
+      }
+
+      return {
+        id: `node-${idx}`,
+        label: `${varName} (v:${val}, dL:${gradVal})`,
+        val: gradVal,
+        state,
+        x: 80 + idx * 130,
+        y: idx % 2 === 0 ? 120 : 200,
+      };
+    });
+
+    const edges: GraphEdgeItem[] = [];
+    for (let i = numOps - 1; i > 0; i--) {
+      const localDeriv = Number((0.1 * (i + 1)).toFixed(2));
+      const isCurrent = activeIdx === i;
+      const isTraversed = activeIdx !== null ? i > activeIdx : phase === "DONE";
+
+      edges.push({
+        from: `node-${i}`,
+        to: `node-${i - 1}`,
+        weight: localDeriv,
+        isTraversed,
+        isPath: isCurrent,
+      });
+    }
+
+    return { nodes, edges };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeIdx: number | null = null,
+    phase: "FETCH" | "PRODUCT" | "ACCUMULATE" | "INIT" | "DONE" = "INIT",
+    gradientsMap: Record<string, number> = {},
     customState?: Record<string, string | number>,
   ) => {
+    const graphSnap = buildGraphSnapshot(activeIdx, phase, gradientsMap);
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "graph",
+        nodes: graphSnap.nodes,
+        edges: graphSnap.edges,
       },
       auxiliaryState: {
         customState: {
           data: `[${arrayData.join(", ")}]`,
           target: String(target),
-          curr_grad: String(variables.curr_grad ?? 1.0),
           ...customState,
         },
       },
@@ -73,52 +119,38 @@ export const generateComputeScalarChainRuleSteps = (
   addStep(
     1,
     "Initialize Scalar Chain Rule Gradient Accumulator Engine",
-    "Setting up reverse autograd tape pass and gradient hash map dictionary `gradients = {}`.",
+    "Setting up reverse autograd tape pass and preparing scalar chain rule evaluation.",
     { opCount: arrayData.length, target, curr_grad: 1.0, phase: "INIT_CHAIN_RULE" },
-    undefined,
+    null,
+    "INIT",
+    {},
     { upstream_grad: "1.0", tape_status: "REVERSE_TRAVERSAL" },
   );
 
+  // Step 2: Init gradients dictionary
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Accumulates scalar chain rule gradients backwards through operation history.",
+    "Initialize Gradient Dictionary",
+    "Allocating empty dictionary gradients = {} to store parameter variable names and their accumulated partial derivatives.",
+    { gradientsCount: 0, phase: "INIT_GRADIENTS" },
+    null,
+    "INIT",
     {},
   );
 
+  // Step 3: Seed upstream grad
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
+    "Seed Upstream Loss Gradient dL/dL = 1.0",
+    "Setting running derivative seed curr_grad = upstream_grad (default 1.0).",
+    { curr_grad: 1.0, phase: "SEED_UPSTREAM" },
+    null,
+    "INIT",
     {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Step 2: Inspect execution tape size
-  addStep(
-    1,
-    "Scan Recorded Operation Tape",
-    "Counting recorded forward pass operations to determine total reverse gradient steps.",
-    { tapeLength: arrayData.length, phase: "SCAN_TAPE" },
-  );
-
-  // Step 3: Init gradients dictionary & curr_grad
-  addStep(
-    5,
-    "Allocate Gradient Dictionary & Set Upstream Seed dL/dL = 1.0",
-    "Initializing `gradients = {}` and seeding running gradient accumulator `curr_grad = upstream_grad` (1.0).",
-    { curr_grad: 1.0, gradientsCount: 0, phase: "SEED_UPSTREAM" },
   );
 
   // Detailed multi-step simulation per operation in reverse history
   let currGrad = 1.0;
-  const numOps = arrayData.length;
   const gradMap: Record<string, number> = {};
 
   for (let idx = numOps - 1; idx >= 0; idx--) {
@@ -126,85 +158,82 @@ export const generateComputeScalarChainRuleSteps = (
     const varName = `w_${idx}`;
     const localDeriv = Number((0.1 * (idx + 1)).toFixed(2));
     const opName = idx % 2 === 0 ? "MUL" : "ADD";
-    const isTarget = val === target;
 
-    // Sub-step A: Fetch operation from tape
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`op=${opName}`, `var=${varName}`] };
-      if (i > idx) return { ...el, state: "visited" };
-      return el;
-    });
+    // Sub-step A: Fetch operation from tape (Line 5)
     addStep(
-      8,
+      5,
       `Fetch Operation ${idx} from Tape: (${opName}, "${varName}", local_deriv=${localDeriv})`,
       `Popping operation tuple from execution tape in reverse chronological order.`,
       { idx, op: opName, var_name: varName, local_deriv: localDeriv, phase: "FETCH_TAPE_OP" },
-      stateA,
-      { currentVar: varName, opType: opName },
+      idx,
+      "FETCH",
+      gradMap,
+      { currentVar: varName, opType: opName, val: String(val) },
     );
 
-    // Sub-step B: Apply Chain Rule Multiplication
+    // Sub-step B: Apply Chain Rule Multiplication (Line 6)
     const prevGrad = currGrad;
     currGrad = Number((currGrad * localDeriv).toFixed(4));
-    const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "active", pointers: [`curr_grad=${currGrad}`] };
-      if (i > idx) return { ...el, state: "visited" };
-      return el;
-    });
     addStep(
-      9,
+      6,
       `Chain Rule Multiplication: curr_grad = ${prevGrad} * ${localDeriv} -> ${currGrad}`,
       `Applying chain rule product rule: dL/d(${varName}) = (dL/dOut) * dOut/d(${varName}) = ${currGrad}.`,
       { idx, varName, prevGrad, localDeriv, curr_grad: currGrad, phase: "CHAIN_RULE_PRODUCT" },
-      stateB,
+      idx,
+      "PRODUCT",
+      gradMap,
       { curr_grad: String(currGrad) },
     );
 
-    // Sub-step C: Accumulate Multivariable Gradient
+    // Sub-step C: Accumulate Multivariable Gradient (Line 7)
     const prevVarGrad = gradMap[varName] || 0.0;
     gradMap[varName] = Number((prevVarGrad + currGrad).toFixed(4));
-    const stateC: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "sorted", value: gradMap[varName], pointers: ["grad_acc"] };
-      if (i > idx) return { ...el, state: "visited" };
-      return el;
-    });
     addStep(
-      10,
+      7,
       `Accumulate Gradient: gradients["${varName}"] = ${prevVarGrad} + ${currGrad} -> ${gradMap[varName]}`,
       `Summing gradient contribution into variable table to handle multivariable dependencies.`,
-      { idx, varName, prevVarGrad, currGrad, totalGrad: gradMap[varName], phase: "ACCUMULATE_VAR_GRAD" },
-      stateC,
+      {
+        idx,
+        varName,
+        prevVarGrad,
+        currGrad,
+        totalGrad: gradMap[varName],
+        phase: "ACCUMULATE_VAR_GRAD",
+      },
+      idx,
+      "ACCUMULATE",
+      gradMap,
       { [varName]: String(gradMap[varName]) },
     );
   }
 
-  // Step final-1: Final Graph Pass Verification
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
+  // Step final-1: Return gradients (Line 9)
   addStep(
-    10,
-    "Verify Full Autograd Tape Chain Rule Traversal",
-    "Checking that all partial derivatives were computed correctly and accumulated into parameter gradient table.",
+    9,
+    "Return Accumulated Parameter Gradients",
+    "Returning dictionary containing final scalar partial derivatives for all recorded variables.",
     { totalOpsProcessed: numOps, finalLeafGrad: currGrad },
-    finalElements,
+    null,
+    "DONE",
+    gradMap,
   );
 
-  // Step final: Complete
+  // Step final: Complete (Line 9)
   addStep(
-    12,
+    9,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
     { completed: true, totalSteps: stepIndex },
-    finalElements,
+    null,
+    "DONE",
+    gradMap,
   );
 
   return steps;
 };
 
 const COMPUTESCALARCHAINRULE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 7],
+  skipLines: [4, 8],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -212,36 +241,29 @@ const COMPUTESCALARCHAINRULE_TRIVIA: TriviaMeta = {
     "curr_grad = curr_grad + local_deriv",
   ],
   hints: [
-    { line: 5, hint: "Initialize gradients map to store parameter gradient totals." },
-    { line: 6, hint: "Set running gradient curr_grad to upstream_grad (default 1.0)." },
-    { line: 9, hint: "Multiply running gradient by local derivative: curr_grad *= local_deriv." },
-    { line: 10, hint: "Accumulate computed gradient into gradients[var_name]." },
+    { line: 2, hint: "Initialize gradients map to store parameter gradient totals." },
+    { line: 3, hint: "Set running gradient curr_grad to upstream_grad (default 1.0)." },
+    { line: 6, hint: "Multiply running gradient by local derivative: curr_grad *= local_deriv." },
+    { line: 7, hint: "Accumulate computed gradient into gradients[var_name]." },
   ],
   lineExplanations: {
     1: "Defines entry point for compute_scalar_chain_rule autograd backward pass function.",
-    2: "Docstring opening: describes scalar chain rule gradient accumulation.",
-    3: "Docstring body: computes partial derivatives backwards through recorded operation history.",
-    4: "Docstring closing.",
-    5: "Initializes gradients dictionary map storing parameter variable names to scalar gradient values.",
-    6: "Sets running gradient accumulator curr_grad to upstream loss gradient seed (default 1.0).",
-    7: "Empty line separating gradient dictionary allocation from tape iteration loop.",
-    8: "Iterates in reverse chronological order through recorded operation history tape tuples.",
-    9: "Applies chain rule derivative multiplication: curr_grad = curr_grad * local_deriv.",
-    10: "Accumulates running gradient into variable map gradients[var_name] to handle multi-path dependencies.",
-    11: "Empty line before returning accumulated gradient dictionary.",
-    12: "Returns dictionary map containing accumulated scalar gradients for all graph variables.",
+    2: "Initializes gradients dictionary map storing parameter variable names to scalar gradient values.",
+    3: "Sets running gradient accumulator curr_grad to upstream loss gradient seed (default 1.0).",
+    4: "Empty line separating initializations from reverse tape iteration loop.",
+    5: "Iterates in reverse chronological order through recorded operation history tape tuples.",
+    6: "Applies chain rule derivative multiplication: curr_grad = curr_grad * local_deriv.",
+    7: "Accumulates running gradient into variable map gradients[var_name] to handle multi-path dependencies.",
+    8: "Empty line before returning accumulated gradient dictionary.",
+    9: "Returns dictionary map containing accumulated scalar gradients for all graph variables.",
   },
 };
 
 export const computeScalarChainRule: AlgorithmDefinition<computeScalarChainRuleInput> = {
   id: "compute-scalar-chain-rule",
   title: "Scalar Chain Rule Gradient Accumulator",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Scalar Chain Rule Gradient Accumulator
 
 In automatic differentiation scalar engines (**Micrograd**, **PyTorch scalar autograd**, and **Custom Backpropagation Tapes**), partial derivatives are evaluated backwards using the multivariable calculus **Chain Rule**.
@@ -257,7 +279,7 @@ With chain rule gradient accumulation:
 - Reverse-mode autograd steps backwards along the recorded execution tape.
 - Applies the chain rule product formula:
   $$\\frac{\\partial L}{\\partial x} = \\frac{\\partial L}{\\partial y} \\cdot \\frac{\\partial y}{\\partial x}$$
-- Accumulates gradients for shared variables ($\sum_i \\frac{\\partial L}{\\partial y_i} \\frac{\\partial y_i}{\\partial x}$), guaranteeing exact parameter updates for gradient descent.
+- Accumulates gradients for shared variables ($sum_i \\frac{\\partial L}{\\partial y_i} \\frac{\\partial y_i}{\\partial x}$), guaranteeing exact parameter updates for gradient descent.
 
 #### Step-by-Step Mechanism
 1. **Initialize Upstream Gradient**: Seed running derivative \`curr_grad = 1.0\` ($dL/dL$).
@@ -336,13 +358,11 @@ With chain rule gradient accumulation:
       },
       {
         term: "Gradient Accumulation",
-        definition:
-          "Summing partial derivative contributions across multiple computational paths.",
+        definition: "Summing partial derivative contributions across multiple computational paths.",
       },
       {
         term: "Local Derivative",
-        definition:
-          "The partial derivative dy/dx of a single isolated mathematical operation.",
+        definition: "The partial derivative dy/dx of a single isolated mathematical operation.",
       },
       {
         term: "Execution Tape",
@@ -356,4 +376,3 @@ With chain rule gradient accumulation:
   defaultInput: DEFAULT_COMPUTESCALARCHAINRULE_INPUT,
   generateSteps: generateComputeScalarChainRuleSteps,
 };
-

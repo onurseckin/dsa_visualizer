@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { flashAttentionBackwardRecomputationEngine } from "./flashAttentionBackwardRecomputationEngine";
 
-describe("flashAttentionBackwardRecomputationEngine", () => {
+describe("flash-attention-backward-recomputation-engine", () => {
   it("should have valid metadata", () => {
     expect(flashAttentionBackwardRecomputationEngine.id).toBeDefined();
     expect(flashAttentionBackwardRecomputationEngine.title).toBeDefined();

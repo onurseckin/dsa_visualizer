@@ -9,10 +9,6 @@ export interface speculativeDecodingResidualDistributionRecovererInput {
 export const SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_CODE = `def speculative_decoding_residual_distribution_recoverer(
     data: list[int], target: int = 30
 ) -> list[int]:
-    """
-    Computes normalized residual distribution p'(x) = max(0, p(x) - q(x)) / sum(max(0, p - q))
-    to sample a replacement token when a draft token is rejected during speculative decoding.
-    """
     residual_tokens = []
     for idx, val in enumerate(data):
         if val > target:
@@ -80,7 +76,7 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
 
   const residualTokens: number[] = [];
   addStep(
-    8,
+    4,
     "Initialize residual_tokens = []",
     "Empty list to accumulate positive residual probability mass max(0, p(x) - q(x)).",
     { residual_tokens: "[]" },
@@ -92,11 +88,17 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
     const resVal = isOverThreshold ? val - target : val;
 
     addStep(
-      9,
+      5,
       `Iteration ${idx + 1}/${input.data.length}: Inspect candidate token idx=${idx}, val=${val}`,
       `Evaluating residual distribution for token ${idx}: val=${val} vs target=${target}.`,
       { idx, val, target, isOverThreshold },
-      elements.map((el, i) => i === idx ? { ...el, state: "compare" as const, pointers: [`idx=${idx}`] } : i < idx ? { ...el, state: "visited" as const } : el),
+      elements.map((el, i) =>
+        i === idx
+          ? { ...el, state: "compare" as const, pointers: [`idx=${idx}`] }
+          : i < idx
+            ? { ...el, state: "visited" as const }
+            : el,
+      ),
     );
 
     if (isOverThreshold) {
@@ -109,7 +111,7 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
       });
 
       addStep(
-        10,
+        6,
         `Check Condition: val (${val}) > target (${target}) -> TRUE`,
         `Draft model probability lower than target model; positive residual mass exists: val - target = ${val} - ${target} = ${resVal}.`,
         { idx, val, target, resVal, isOverThreshold: true },
@@ -117,7 +119,7 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
       );
 
       addStep(
-        11,
+        7,
         `Append positive residual (${resVal}) to residual_tokens -> [${residualTokens.join(", ")}]`,
         `Appended residual mass ${resVal} for token ${idx} to residual distribution.`,
         { idx, resVal, residual_tokens: residualTokens.join(", ") },
@@ -133,7 +135,7 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
       });
 
       addStep(
-        10,
+        6,
         `Check Condition: val (${val}) > target (${target}) -> FALSE`,
         `Draft model probability covers target probability (val <= target); zero residual difference.`,
         { idx, val, target, resVal, isOverThreshold: false },
@@ -141,7 +143,7 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
       );
 
       addStep(
-        13,
+        9,
         `Append base token value (${resVal}) to residual_tokens -> [${residualTokens.join(", ")}]`,
         `Appended token value ${resVal} to residual distribution.`,
         { idx, resVal, residual_tokens: residualTokens.join(", ") },
@@ -157,7 +159,7 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
   }));
 
   addStep(
-    15,
+    11,
     "Return Normalized Residual Distribution residual_tokens",
     `Completed residual distribution recovery pass across all ${input.data.length} vocabulary candidate tokens.`,
     { completed: true, residual_count: residualTokens.length },
@@ -170,20 +172,16 @@ export const generateSpeculativeDecodingResidualDistributionRecovererSteps = (
 const SPECULATIVEDECODINGRESIDUALDISTRIBUTIONRECOVERER_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Function signature line for speculative_decoding_residual_distribution_recoverer.",
-    2: "Parameter declaration specifying data list and default target = 30.",
+    2: "Parameter declaration specifying data list and default target threshold = 30.",
     3: "Return type hint specifying list[int].",
-    4: "Begin docstring describing residual distribution computation p'(x).",
-    5: "Docstring line detailing formula p'(x) = max(0, p(x) - q(x)) / sum(max(0, p - q)).",
-    6: "Docstring line detailing replacement token sampling on draft rejection.",
-    7: "End docstring.",
-    8: "Initialize empty list residual_tokens to store computed residual probability values.",
-    9: "Iterate over candidate vocabulary tokens using enumerate(data).",
-    10: "Check if token value val exceeds target probability threshold.",
-    11: "Append residual difference val - target when draft probability is lower than target probability.",
-    12: "Else branch when token value is less than or equal to target bound.",
-    13: "Append original token value val when draft model covers target probability.",
-    14: "Blank line before return statement.",
-    15: "Return residual_tokens list to caller.",
+    4: "Initialize empty list residual_tokens to store computed residual probability values.",
+    5: "Iterate over candidate vocabulary tokens using enumerate(data).",
+    6: "Check if token value val exceeds target probability threshold.",
+    7: "Append residual difference val - target when draft probability is lower than target probability.",
+    8: "Else branch when token value is less than or equal to target bound.",
+    9: "Append original token value val when draft model covers target probability.",
+    10: "Blank line separating residual extraction loop from return statement.",
+    11: "Return residual_tokens list to caller.",
   },
 };
 
@@ -191,12 +189,8 @@ export const speculativeDecodingResidualDistributionRecoverer: AlgorithmDefiniti
   {
     id: "speculative-decoding-residual-distribution-recoverer",
     title: "Speculative Decoding Residual Distribution Recovery Engine",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_attention_geometry"],
+    topicIds: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "In speculative decoding for LLMs, when a candidate draft token generated by a small draft model is rejected by the target model during rejection sampling, the system cannot sample directly from target probability distribution $p(x)$ without introducing statistical bias into output generation. Instead, to maintain a rigorous proof of exact target distribution matching, the replacement token must be sampled from the Residual Distribution:\n\n$$p'(x) = \\frac{\\max(0, p(x) - q(x))}{\\sum_{y} \\max(0, p(y) - q(y))}$$\n\nwhere $p(x)$ is the target model distribution and $q(x)$ is the draft model distribution.\n\n### Input Parameters\n- `data`: Array of numerical values representing target/draft probability distributions or token logit scores.\n- `target`: Target baseline bound or rejection reference index.\n\n### Output\n- Returns normalized residual probability distribution array $p'(x)$.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],

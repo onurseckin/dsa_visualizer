@@ -5,14 +5,13 @@ import {
   generateRecurrentUnrollingBpttSteps,
   recurrentUnrollingBptt,
 } from "../recurrentUnrollingBptt";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("recurrentUnrollingBptt algorithm spec", () => {
   it("should have correct ML Infra Level 6 metadata", () => {
     expect(recurrentUnrollingBptt.id).toBe("recurrent-unrolling-bptt");
-    expect(recurrentUnrollingBptt.isMlInfra).toBe(true);
-    expect(recurrentUnrollingBptt.mlInfraLevel).toBe(6);
-    expect(recurrentUnrollingBptt.category).toBe("ml_recurrent_gates");
+    expect(recurrentUnrollingBptt.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(recurrentUnrollingBptt.topicIds).toContain("ml_recurrent_gates");
     expect(recurrentUnrollingBptt.defaultInput).toEqual(DEFAULT_RECURRENT_UNROLLING_BPTT_INPUT);
     expect(recurrentUnrollingBptt.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },
@@ -26,10 +25,13 @@ describe("recurrentUnrollingBptt algorithm spec", () => {
     expect(lastStep.variables.complete).toBe(true);
     expect(lastStep.variables.T).toBe(3);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    expect(snap.elements.length).toBe(3);
-    expect(snap.elements.every((el) => el.state === "sorted")).toBe(true);
+    const snap = lastStep.primarySnapshot as MatrixVisualSnapshot;
+    expect(snap.kind).toBe("matrix");
+    expect(snap.rows).toBe(3);
+    expect(snap.cols).toBe(3);
+    const hiddenStateCells = snap.cells.filter((cell) => cell.row === 2);
+    expect(hiddenStateCells).toHaveLength(3);
+    expect(hiddenStateCells.every((cell) => cell.state === "sorted")).toBe(true);
   });
 
   it("should handle empty inputs gracefully", () => {

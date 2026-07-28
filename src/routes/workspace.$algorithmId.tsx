@@ -58,7 +58,7 @@ function WorkspacePage(): React.ReactElement {
   // Random sized inputs only fit algorithms that consume a plain number array;
   // object-shaped inputs (e.g. Two Sum's {nums, target}) keep their curated default.
   const supportsRandomArray =
-    algorithm.category === "arrays_and_hashing" && Array.isArray(algorithm.defaultInput);
+    algorithm.topicIds.includes("arrays_and_hashing") && Array.isArray(algorithm.defaultInput);
 
   const {
     currentStepIndex,
@@ -129,8 +129,7 @@ function WorkspacePage(): React.ReactElement {
         playback.stepBackward();
         return;
       }
-      // ' ' is the standard key value; 'Spacebar' is the legacy Edge/IE spelling.
-      if (event.key === " " || event.key === "Spacebar") {
+      if (event.key === " ") {
         if (activatesOnSpace(event.target)) return;
         // Without this the page (or the nearest scroller) pages down on every play.
         event.preventDefault();

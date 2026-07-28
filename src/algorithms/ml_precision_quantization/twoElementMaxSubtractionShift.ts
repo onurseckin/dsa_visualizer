@@ -155,7 +155,14 @@ export const generateTwoElementMaxSubtractionShiftSteps = (
       6,
       `Evaluate Exponentials: exp(${shiftX1}) = ${expX1Fixed}, exp(${shiftX2}) = ${expX2Fixed}`,
       `Evaluated exponentials: exp(${shiftX1}) = ${expX1Fixed}, exp(${shiftX2}) = ${expX2Fixed}. Max exponential is strictly 1.0.`,
-      { pair: pIdx + 1, shiftX1, shiftX2, expX1: expX1Fixed, expX2: expX2Fixed, phase: "EVAL_EXPS" },
+      {
+        pair: pIdx + 1,
+        shiftX1,
+        shiftX2,
+        expX1: expX1Fixed,
+        expX2: expX2Fixed,
+        phase: "EVAL_EXPS",
+      },
       x1,
       expX1Fixed,
     );
@@ -208,16 +215,13 @@ const TWOELEMENTMAXSUBTRACTIONSHIFT_TRIVIA: TriviaMeta = {
   },
 };
 
-export const twoElementMaxSubtractionShift: AlgorithmDefinition<twoElementMaxSubtractionShiftInput> = {
-  id: "two-element-max-subtraction-shift",
-  title: "Two Element Max Subtraction Shift",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
-  difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
-  description: `### Two Element Max Subtraction Shift
+export const twoElementMaxSubtractionShift: AlgorithmDefinition<twoElementMaxSubtractionShiftInput> =
+  {
+    id: "two-element-max-subtraction-shift",
+    title: "Two Element Max Subtraction Shift",
+    topicIds: ["ml_precision_quantization", "bit_manipulation"],
+    difficulty: "Easy",
+    description: `### Two Element Max Subtraction Shift
 
 Two-Element Max Subtraction Shift is the atomic pairwise reduction step used in GPU parallel Softmax kernels (e.g. CUDA warp shuffle butterfly reductions, FlashAttention online tile reductions).
 
@@ -237,81 +241,85 @@ When computing Softmax reductions across a row of logits, threads pair up to com
 - **Time Complexity**: $\\mathcal{O}(1)$ constant time operations.
 - **Space Complexity**: $\\mathcal{O}(1)$ constant auxiliary memory.
 - **Trade-Off**: Enables 1-cycle butterfly warp shuffle reductions in CUDA shared memory without floating point overflow.`,
-  constraints: ["-10^9 <= x1, x2 <= 10^9"],
-  examples: [
-    {
-      kind: "basic",
-      title: "Standard Pairwise Shift",
-      inputDisplay: "x1 = 5.5, x2 = 8.2",
-      outputDisplay: "max_x = 8.2, exp_x1 = 0.0672, exp_x2 = 1.0",
-      input: { x1: 5.5, x2: 8.2 },
-      output: "max_x = 8.2, exp_x1 = 0.0672, exp_x2 = 1.0",
-      explanation: "Max is 8.2. Shifted exponentials: exp(5.5 - 8.2) = exp(-2.7) = 0.0672, exp(8.2 - 8.2) = 1.0.",
-    },
-    {
-      kind: "complex",
-      title: "Identical Logits Pair",
-      inputDisplay: "x1 = 4.0, x2 = 4.0",
-      outputDisplay: "max_x = 4.0, exp_x1 = 1.0, exp_x2 = 1.0",
-      input: { x1: 4.0, x2: 4.0 },
-      output: "max_x = 4.0, exp_x1 = 1.0, exp_x2 = 1.0",
-      explanation: "Identical logits yield max_x = 4.0 and exponentials [1.0, 1.0].",
-    },
-    {
-      kind: "negative",
-      title: "Negative Logits Pair",
-      inputDisplay: "x1 = -10.0, x2 = -2.0",
-      outputDisplay: "max_x = -2.0, exp_x1 = 0.000335, exp_x2 = 1.0",
-      input: { x1: -10.0, x2: -2.0 },
-      output: "max_x = -2.0, exp_x1 = 0.000335, exp_x2 = 1.0",
-      explanation: "Negative logits find max_x = -2.0 and compute shifted exponentials correctly.",
-    },
-  ],
-  code: TWOELEMENTMAXSUBTRACTIONSHIFT_CODE,
-  timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
-  spaceComplexity: "O(1)",
-  complexityAnalysis: {
-    time: "Constant time O(1) max comparison and exponential evaluation.",
-    space: "Constant space O(1) auxiliary variables.",
-  },
-  topicGuide: {
-    overview:
-      "Two-element max subtraction is the fundamental step in parallel reduction trees for online softmax. In GPU warp shuffle butterfly reductions, threads pair up to compute two-element max shifts to reduce attention scores safely in shared memory.",
-    sections: [
+    constraints: ["-10^9 <= x1, x2 <= 10^9"],
+    examples: [
       {
-        heading: "Core Concept & Mathematical Formulation",
-        body: "Mathematically, $m = \\max(x_1, x_2)$. Shifted logits are $\\Delta_1 = x_1 - m$ and $\\Delta_2 = x_2 - m$. Exponentials are $e_1 = e^{\\Delta_1}$ and $e_2 = e^{\\Delta_2}$ where $\\max(e_1, e_2) = 1.0$.",
+        kind: "basic",
+        title: "Standard Pairwise Shift",
+        inputDisplay: "x1 = 5.5, x2 = 8.2",
+        outputDisplay: "max_x = 8.2, exp_x1 = 0.0672, exp_x2 = 1.0",
+        input: { x1: 5.5, x2: 8.2 },
+        output: "max_x = 8.2, exp_x1 = 0.0672, exp_x2 = 1.0",
+        explanation:
+          "Max is 8.2. Shifted exponentials: exp(5.5 - 8.2) = exp(-2.7) = 0.0672, exp(8.2 - 8.2) = 1.0.",
       },
       {
-        heading: "Practical Applications in ML Systems",
-        body: "CUDA warp shuffle functions (`__shfl_xor_sync`) use pairwise max subtraction shifts to build parallel LogSumExp trees across GPU SIMD lanes.",
+        kind: "complex",
+        title: "Identical Logits Pair",
+        inputDisplay: "x1 = 4.0, x2 = 4.0",
+        outputDisplay: "max_x = 4.0, exp_x1 = 1.0, exp_x2 = 1.0",
+        input: { x1: 4.0, x2: 4.0 },
+        output: "max_x = 4.0, exp_x1 = 1.0, exp_x2 = 1.0",
+        explanation: "Identical logits yield max_x = 4.0 and exponentials [1.0, 1.0].",
       },
       {
-        heading: "Implementation Details & Exp Shift",
-        body: "Implementation computes pairwise maximum `max_x`, subtracts `max_x` from operands x1 and x2, and evaluates exponentials `exp(shift_x1)` and `exp(shift_x2)`.",
-      },
-      {
-        heading: "Edge Case Analysis & Dynamic Range",
-        body: "Edge cases include identical logits ($x_1 = x_2$) yielding shift 0 and exponential 1.0.",
+        kind: "negative",
+        title: "Negative Logits Pair",
+        inputDisplay: "x1 = -10.0, x2 = -2.0",
+        outputDisplay: "max_x = -2.0, exp_x1 = 0.000335, exp_x2 = 1.0",
+        input: { x1: -10.0, x2: -2.0 },
+        output: "max_x = -2.0, exp_x1 = 0.000335, exp_x2 = 1.0",
+        explanation:
+          "Negative logits find max_x = -2.0 and compute shifted exponentials correctly.",
       },
     ],
-    keyTerms: [
-      {
-        term: "Warp Shuffle Reduction",
-        definition: "GPU hardware instruction exchanging register values directly between SIMD threads without DRAM memory access.",
-      },
-      {
-        term: "Butterfly Reduction Tree",
-        definition: "Parallel tree pattern reducing N operands in log2(N) steps across CUDA threads.",
-      },
-      {
-        term: "Pairwise Local Maximum",
-        definition: "The local maximum max(x1, x2) computed between two SIMD lane operands.",
-      },
-    ],
-  },
-  trivia: TWOELEMENTMAXSUBTRACTIONSHIFT_TRIVIA,
-  sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
-  defaultInput: DEFAULT_TWOELEMENTMAXSUBTRACTIONSHIFT_INPUT,
-  generateSteps: generateTwoElementMaxSubtractionShiftSteps,
-};
+    code: TWOELEMENTMAXSUBTRACTIONSHIFT_CODE,
+    timeComplexity: { best: "O(1)", average: "O(1)", worst: "O(1)" },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Constant time O(1) max comparison and exponential evaluation.",
+      space: "Constant space O(1) auxiliary variables.",
+    },
+    topicGuide: {
+      overview:
+        "Two-element max subtraction is the fundamental step in parallel reduction trees for online softmax. In GPU warp shuffle butterfly reductions, threads pair up to compute two-element max shifts to reduce attention scores safely in shared memory.",
+      sections: [
+        {
+          heading: "Core Concept & Mathematical Formulation",
+          body: "Mathematically, $m = \\max(x_1, x_2)$. Shifted logits are $\\Delta_1 = x_1 - m$ and $\\Delta_2 = x_2 - m$. Exponentials are $e_1 = e^{\\Delta_1}$ and $e_2 = e^{\\Delta_2}$ where $\\max(e_1, e_2) = 1.0$.",
+        },
+        {
+          heading: "Practical Applications in ML Systems",
+          body: "CUDA warp shuffle functions (`__shfl_xor_sync`) use pairwise max subtraction shifts to build parallel LogSumExp trees across GPU SIMD lanes.",
+        },
+        {
+          heading: "Implementation Details & Exp Shift",
+          body: "Implementation computes pairwise maximum `max_x`, subtracts `max_x` from operands x1 and x2, and evaluates exponentials `exp(shift_x1)` and `exp(shift_x2)`.",
+        },
+        {
+          heading: "Edge Case Analysis & Dynamic Range",
+          body: "Edge cases include identical logits ($x_1 = x_2$) yielding shift 0 and exponential 1.0.",
+        },
+      ],
+      keyTerms: [
+        {
+          term: "Warp Shuffle Reduction",
+          definition:
+            "GPU hardware instruction exchanging register values directly between SIMD threads without DRAM memory access.",
+        },
+        {
+          term: "Butterfly Reduction Tree",
+          definition:
+            "Parallel tree pattern reducing N operands in log2(N) steps across CUDA threads.",
+        },
+        {
+          term: "Pairwise Local Maximum",
+          definition: "The local maximum max(x1, x2) computed between two SIMD lane operands.",
+        },
+      ],
+    },
+    trivia: TWOELEMENTMAXSUBTRACTIONSHIFT_TRIVIA,
+    sources: [{ type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" }],
+    defaultInput: DEFAULT_TWOELEMENTMAXSUBTRACTIONSHIFT_INPUT,
+    generateSteps: generateTwoElementMaxSubtractionShiftSteps,
+  };

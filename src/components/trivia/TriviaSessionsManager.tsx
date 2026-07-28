@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Brain } from "lucide-react";
 import type { PuzzleLine, TriviaSessionRecord } from "../../types/trivia";
-import { Button, ConfirmDialog, SessionCard, SessionStats } from "../../ui";
+import { Button, SessionCard, SessionStats } from "../../ui";
+import { ConfirmDialog } from "../../ui/molecules/ConfirmDialog";
 import { coverageRatio, parsePuzzleLines } from "../../trivia/triviaEngine";
 import { getAlgorithm } from "../../algorithms/registry";
 

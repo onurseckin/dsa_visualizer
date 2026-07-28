@@ -33,8 +33,7 @@ def hnsw_search_layer(
     ef: int
 ) -> list[str]:
     curr_id = entry_id
-    
-    # Fast Greedy Search through upper layers (layer max_layer down to 1)
+
     for level in range(max_layer, 0, -1):
         changed = True
         while changed:
@@ -47,20 +46,19 @@ def hnsw_search_layer(
                     curr_dist = d
                     curr_id = nbr
                     changed = True
-                    
-    # Multi-Candidate Beam Search at Layer 0
+
     candidates = [curr_id]
     w_set = [curr_id]
     visited = {curr_id}
-    
+
     while candidates:
         curr_candidate = candidates.pop(0)
         c_dist = euclidean_dist(query, nodes[curr_candidate]["vector"])
         furthest_w_dist = max(euclidean_dist(query, nodes[w]["vector"]) for w in w_set)
-        
+
         if c_dist > furthest_w_dist:
             break
-            
+
         for nbr in nodes[curr_candidate]["layers"].get(0, []):
             if nbr not in visited:
                 visited.add(nbr)
@@ -70,8 +68,8 @@ def hnsw_search_layer(
                     w_set.append(nbr)
                     w_set.sort(key=lambda x: euclidean_dist(query, nodes[x]["vector"]))
                     if len(w_set) > ef:
-                        w_set.pop() # Evict furthest neighbor
-                        
+                        w_set.pop()
+
     return w_set`;
 
 export const DEFAULT_HNSW_VECTOR_SEARCH_INPUT: HnswVectorSearchInput = {
@@ -199,7 +197,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
   };
 
   addStep(
-    1,
+    13,
     "Initialize HNSW Graph Multi-Layer Beam Search",
     `Target Query vector: [${input.query.join(
       ", ",
@@ -217,7 +215,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
   for (let level = input.maxLayer; level > 0; level--) {
     let changed = true;
     addStep(
-      11,
+      15,
       `Enter Layer ${level} Greedy Search`,
       `Routing greedily through layer ${level} graph to find closest entry point for layer ${level - 1}.`,
       { level, currId, currDist: Number(currDist.toFixed(2)) },
@@ -236,7 +234,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
           const d = euclideanDist(input.query, nbrNode.vector);
           if (d < currDist) {
             addStep(
-              19,
+              24,
               `Greedy hop at Layer ${level}: '${currId}' -> '${nbrId}' (dist ${currDist.toFixed(
                 1,
               )} -> ${d.toFixed(1)})`,
@@ -260,7 +258,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
   let wSet: string[] = [currId];
 
   addStep(
-    23,
+    28,
     `Descend to Layer 0 Beam Search with entry point '${currId}'`,
     `Initializing beam candidate pool and nearest result set W (capacity ef=${input.efSearch}) at Layer 0.`,
     { level: 0, entryPointLayer0: currId, ef: input.efSearch },
@@ -290,7 +288,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
 
     if (cDist > furthestWDist && wSet.length >= input.efSearch) {
       addStep(
-        32,
+        38,
         `Terminate Beam Search early`,
         `Candidate distance ${cDist.toFixed(
           1,
@@ -331,7 +329,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
             if (wSet.length > input.efSearch) {
               const evicted = wSet.pop();
               addStep(
-                44,
+                49,
                 `Insert '${nbrId}' into beam set W (evicted '${evicted}')`,
                 `Neighbor '${nbrId}' (dist ${dNbr.toFixed(
                   1,
@@ -344,7 +342,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
               );
             } else {
               addStep(
-                42,
+                46,
                 `Insert '${nbrId}' into beam set W`,
                 `Neighbor '${nbrId}' (dist ${dNbr.toFixed(1)}) added to beam set.`,
                 { inserted: nbrId, beamSize: wSet.length },
@@ -361,7 +359,7 @@ export const generateHnswVectorSearchSteps = (input: HnswVectorSearchInput): Alg
   }
 
   addStep(
-    46,
+    51,
     `HNSW Vector Search Complete: Result set [${wSet.join(", ")}]`,
     `Returned ${wSet.length} nearest neighbor vectors to query [${input.query.join(", ")}].`,
     { resultCount: wSet.length, topMatch: wSet[0] },
@@ -379,41 +377,39 @@ const HNSW_VECTOR_SEARCH_TRIVIA: TriviaMeta = {
   distractors: [
     "if c_dist < furthest_w_dist: break",
     "for level in range(0, max_layer):",
-    "w_set.pop(0) # Evict nearest neighbor",
+    "w_set.pop(0)",
     "candidates.append(entry_id)",
   ],
   hints: [
     {
-      line: 11,
+      line: 15,
       hint: "Traverse upper layers greedily from max_layer down to 1 to zoom into query neighborhood.",
     },
     {
-      line: 23,
+      line: 28,
       hint: "Switch to multi-candidate beam search at base Layer 0.",
     },
     {
-      line: 44,
+      line: 49,
       hint: "Evict the furthest neighbor when beam search candidate set size exceeds capacity ef.",
     },
   ],
   lineExplanations: {
-    1: "Defines HNSW graph multi-layer beam search function.",
-    11: "Loops through upper skip-layers from max_layer down to 1.",
-    19: "Executes greedy 1-hop routing to minimize distance to query vector.",
-    23: "Initializes beam search candidate pool and result set W at Layer 0.",
-    32: "Terminates beam search early when candidate distance exceeds worst neighbor in W.",
-    44: "Evicts furthest vector from result set W when capacity ef is exceeded.",
-    46: "Returns k nearest neighbor vector node IDs.",
+    6: "Defines HNSW graph multi-layer beam search function.",
+    15: "Loops through upper skip-layers from max_layer down to 1.",
+    24: "Executes greedy 1-hop routing to minimize distance to query vector.",
+    28: "Initializes beam search candidate pool and result set W at Layer 0.",
+    38: "Terminates beam search early when candidate distance exceeds worst neighbor in W.",
+    49: "Evicts furthest vector from result set W when capacity ef is exceeded.",
+    51: "Returns k nearest neighbor vector node IDs.",
   },
 };
 
 export const hnswVectorSearch: AlgorithmDefinition<HnswVectorSearchInput> = {
   id: "hnsw-vector-search",
   title: "HNSW Graph Multi-Layer Beam Search",
-  category: "ml_vector_search",
+  topicIds: ["ml_vector_search"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 4,
   description:
     "Performs Approximate Nearest Neighbor (ANN) vector retrieval over a Hierarchical Navigable Small World (HNSW) multi-layer graph via top-layer greedy routing and base-layer beam search.",
   constraints: [

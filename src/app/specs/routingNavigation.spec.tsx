@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
 
@@ -11,12 +11,9 @@ function buildRouter(initialEntries: string[]): ReturnType<typeof createRouter> 
 }
 
 describe("App routing spec", () => {
-  beforeAll(() => {
-    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-  });
-
   beforeEach(() => {
     window.localStorage.clear();
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -34,7 +31,7 @@ describe("App routing spec", () => {
     ).toBeInTheDocument();
   });
 
-  it("clicking a tree category node lands on /problems pre-filtered to that category", async () => {
+  it("clicking a tree topic node lands on /problems pre-filtered to that topic", async () => {
     const router = buildRouter(["/"]);
     render(<RouterProvider router={router} />);
 
@@ -44,27 +41,27 @@ describe("App routing spec", () => {
     await waitFor(() => {
       expect(router.state.location.pathname).toBe("/problems");
     });
-    expect(router.state.location.search).toEqual({ category: "arrays_and_hashing" });
+    expect(router.state.location.search).toEqual({ topic: "arrays_and_hashing" });
 
-    const select = (await screen.findByRole("combobox", {
-      name: "Filter by Category",
-    })) as HTMLSelectElement;
+    const select = await screen.findByRole<HTMLSelectElement>("combobox", {
+      name: "Filter by topic",
+    });
     expect(select.value).toBe("arrays_and_hashing");
     expect(await screen.findByText("Bubble Sort")).toBeInTheDocument();
     expect(screen.queryByText("N-Queens Backtracking")).not.toBeInTheDocument();
   });
 
-  it("changing the category filter on /problems writes the new category to the URL", async () => {
+  it("changing the topic filter on /problems writes the new topic to the URL", async () => {
     const router = buildRouter(["/problems"]);
     render(<RouterProvider router={router} />);
 
-    const select = (await screen.findByRole("combobox", {
-      name: "Filter by Category",
-    })) as HTMLSelectElement;
+    const select = await screen.findByRole<HTMLSelectElement>("combobox", {
+      name: "Filter by topic",
+    });
     fireEvent.change(select, { target: { value: "backtracking" } });
 
     await waitFor(() => {
-      expect(router.state.location.search).toEqual({ category: "backtracking" });
+      expect(router.state.location.search).toEqual({ topic: "backtracking" });
     });
     expect(await screen.findByText("N-Queens Backtracking")).toBeInTheDocument();
     expect(screen.queryByText("Bubble Sort")).not.toBeInTheDocument();
@@ -97,7 +94,7 @@ describe("App routing spec", () => {
     const router = buildRouter(["/problems"]);
     render(<RouterProvider router={router} />);
 
-    await screen.findByRole("combobox", { name: "Filter by Category" });
+    await screen.findByRole("combobox", { name: "Filter by topic" });
     const navbar = within(screen.getByRole("banner"));
     for (const label of ["Visualizer", "Code", "Tutorial", "Aux data", "Reset layout"]) {
       expect(navbar.queryByRole("button", { name: label })).not.toBeInTheDocument();
@@ -132,12 +129,9 @@ describe("App routing spec", () => {
 });
 
 describe("Workspace layout reset spec", () => {
-  beforeAll(() => {
-    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
-  });
-
   beforeEach(() => {
     window.localStorage.clear();
+    vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   });
 
   afterEach(() => {

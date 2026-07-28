@@ -1,10 +1,10 @@
 import React from "react";
 import { Card, Chip } from "../index";
-import { AuxiliaryState } from "../../types/dsa";
+import type { AuxiliaryState, DisplayValue } from "../../types/dsa";
 
 export interface AuxiliaryPanelProps {
   state?: AuxiliaryState;
-  variables?: Record<string, string | number | boolean>;
+  variables?: Record<string, DisplayValue>;
 }
 
 interface DataGroup {
@@ -15,7 +15,7 @@ interface DataGroup {
 
 export function hasAuxiliaryContent(
   state?: AuxiliaryState,
-  variables?: Record<string, string | number | boolean>,
+  variables?: Record<string, DisplayValue>,
 ): boolean {
   const hasVars = variables !== undefined && Object.keys(variables).length > 0;
   if (hasVars) return true;
@@ -29,6 +29,18 @@ export function hasAuxiliaryContent(
     Object.keys(distanceTable ?? {}).length > 0 ||
     Object.keys(customState ?? {}).length > 0
   );
+}
+
+export function formatDisplayValue(value: DisplayValue): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(formatDisplayValue).join(", ")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    return `{${Object.entries(value)
+      .map(([key, nested]) => `${JSON.stringify(key)}: ${formatDisplayValue(nested)}`)
+      .join(", ")}}`;
+  }
+  return String(value);
 }
 
 export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables }) => {
@@ -99,7 +111,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
       key: "hashmap",
       label: "Hash map",
       chips: hashMapEntries.map(([k, v]) => (
-        <Chip key={`hash-${k}`} size="md" label={k} value={String(v)} />
+        <Chip key={`hash-${k}`} size="md" label={k} value={formatDisplayValue(v)} />
       )),
     });
   }
@@ -119,7 +131,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
       key: "custom",
       label: "State",
       chips: customEntries.map(([k, v]) => (
-        <Chip key={`custom-${k}`} size="md" label={k} value={String(v)} />
+        <Chip key={`custom-${k}`} size="md" label={k} value={formatDisplayValue(v)} />
       )),
     });
   }
@@ -129,7 +141,7 @@ export const AuxiliaryPanel: React.FC<AuxiliaryPanelProps> = ({ state, variables
       key: "variables",
       label: "Variables",
       chips: varEntries.map(([k, val]) => (
-        <Chip key={`var-${k}`} size="md" label={k} value={String(val)} />
+        <Chip key={`var-${k}`} size="md" label={k} value={formatDisplayValue(val)} />
       )),
     });
   }

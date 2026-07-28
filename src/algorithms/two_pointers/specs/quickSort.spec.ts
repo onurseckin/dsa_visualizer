@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { generateQuickSortSteps, quickSort } from "../quickSort";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("quickSort algorithm spec", () => {
   it("should have correct metadata", () => {
     expect(quickSort.id).toBe("quick-sort");
     expect(quickSort.title).toBe("Quick Sort");
-    expect(quickSort.category).toBe("two_pointers");
+    expect(quickSort.topicIds).toContain("two_pointers");
     expect(quickSort.defaultInput).toEqual([6, 2, 9, 3, 7, 1, 5]);
   });
 
@@ -75,7 +76,9 @@ describe("quickSort algorithm spec", () => {
     const N = quickSort.code.split("\n").length;
     const inputs = [
       quickSort.defaultInput,
-      ...(quickSort.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(quickSort, (input): input is typeof quickSort.defaultInput =>
+        Array.isArray(input),
+      ),
     ];
 
     for (const inp of inputs) {

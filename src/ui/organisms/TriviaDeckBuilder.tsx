@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Layers, Search } from "lucide-react";
-import type { CategoryType, DifficultyLevel } from "../../types/dsa";
+import type { TopicId, DifficultyLevel } from "../../types/dsa";
 import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
-import { CATEGORIES, getAlgorithmCategories } from "../../app/categories";
+import { TOPICS, getAlgorithmTopics } from "../../app/topics";
 import { getAllAlgorithms } from "../../algorithms/registry";
 import { Badge, Button, ButtonGroup, Card, Input, Select } from "..";
 import { DeckGroup, DeckGroupCollapsible } from "./DeckGroupCollapsible";
@@ -20,13 +20,13 @@ interface DeckEntry {
   sources?: ReturnType<typeof getAlgorithmSources>;
 }
 
-const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  CATEGORIES.map((category) => [category.id, category.label.replace(/^\d+\.\s*/, "")]),
+const TOPIC_LABELS: Record<string, string> = Object.fromEntries(
+  TOPICS.map((topic) => [topic.id, topic.label.replace(/^\d+\.\s*/, "")]),
 );
 
 export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onChange }) => {
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [topicFilter, setTopicFilter] = useState<string>("ALL");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("ALL");
   const [sourceFilter, setSourceFilter] = useState<string>("ALL");
 
@@ -35,49 +35,55 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
 
   const groups = useMemo<DeckGroup[]>(() => {
     const query = search.trim().toLowerCase();
-    const byCategory = new Map<CategoryType, DeckEntry[]>();
+    const byTopic = new Map<TopicId, DeckEntry[]>();
 
     algorithms.forEach((algorithm) => {
-      const cats = getAlgorithmCategories(algorithm);
-      if (categoryFilter !== "ALL" && !cats.includes(categoryFilter as CategoryType)) return;
+      const topics = getAlgorithmTopics(algorithm);
+      if (topicFilter !== "ALL" && !topics.includes(topicFilter as TopicId)) return;
       if (difficultyFilter !== "ALL" && algorithm.difficulty !== difficultyFilter) return;
       const sources = getAlgorithmSources(algorithm);
       if (sourceFilter !== "ALL") {
         if (!sources.some((s) => getSourceKind(s) === sourceFilter)) return;
       }
 
-      const primaryCat = cats[0] || "arrays_and_hashing";
-      const label = CATEGORY_LABELS[primaryCat] ?? primaryCat;
-      const matches =
-        query.length === 0 ||
-        algorithm.title.toLowerCase().includes(query) ||
-        label.toLowerCase().includes(query);
-      if (!matches) return;
+      const visibleTopics =
+        topicFilter === "ALL"
+          ? topics
+          : topics.filter((topicId) => topicId === (topicFilter as TopicId));
 
-      const entries = byCategory.get(primaryCat) ?? [];
-      entries.push({
-        id: algorithm.id,
-        title: algorithm.title,
-        difficulty: algorithm.difficulty,
-        sources,
+      visibleTopics.forEach((topicId) => {
+        const label = TOPIC_LABELS[topicId] ?? topicId;
+        const matches =
+          query.length === 0 ||
+          algorithm.title.toLowerCase().includes(query) ||
+          label.toLowerCase().includes(query);
+        if (!matches) return;
+
+        const entries = byTopic.get(topicId) ?? [];
+        entries.push({
+          id: algorithm.id,
+          title: algorithm.title,
+          difficulty: algorithm.difficulty,
+          sources,
+        });
+        byTopic.set(topicId, entries);
       });
-      byCategory.set(primaryCat, entries);
     });
 
-    return CATEGORIES.filter((category) => byCategory.has(category.id)).map((category) => ({
-      id: category.id,
-      label: CATEGORY_LABELS[category.id] ?? category.id,
-      entries: byCategory.get(category.id) ?? [],
+    return TOPICS.filter((topic) => byTopic.has(topic.id)).map((topic) => ({
+      id: topic.id,
+      label: TOPIC_LABELS[topic.id] ?? topic.id,
+      entries: byTopic.get(topic.id) ?? [],
     }));
-  }, [algorithms, search, categoryFilter, difficultyFilter, sourceFilter]);
+  }, [algorithms, search, topicFilter, difficultyFilter, sourceFilter]);
 
   const visibleIds = useMemo(
-    () => groups.flatMap((group) => group.entries.map((entry) => entry.id)),
+    () => [...new Set(groups.flatMap((group) => group.entries.map((entry) => entry.id)))],
     [groups],
   );
 
   const addMany = (ids: string[]) => {
-    const newIds = ids.filter((id) => !selected.has(id));
+    const newIds = [...new Set(ids)].filter((id) => !selected.has(id));
     if (newIds.length > 0) onChange([...deck, ...newIds]);
   };
 
@@ -125,14 +131,14 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
               />
             </div>
             <Select
-              value={categoryFilter}
-              onChange={(event) => setCategoryFilter(event.target.value)}
-              aria-label="Filter by category"
+              value={topicFilter}
+              onChange={(event) => setTopicFilter(event.target.value)}
+              aria-label="Filter by topic"
             >
-              <option value="ALL">All categories</option>
-              {CATEGORIES.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {CATEGORY_LABELS[category.id]}
+              <option value="ALL">All topics</option>
+              {TOPICS.map((topic) => (
+                <option key={topic.id} value={topic.id}>
+                  {TOPIC_LABELS[topic.id]}
                 </option>
               ))}
             </Select>
@@ -164,7 +170,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
               {deck.length} of {algorithms.length} algorithms selected
             </Badge>
             {search.trim().length > 0 ||
-            categoryFilter !== "ALL" ||
+            topicFilter !== "ALL" ||
             difficultyFilter !== "ALL" ||
             sourceFilter !== "ALL" ? (
               <>
@@ -176,7 +182,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
                   variant="secondary"
                   onClick={() => {
                     setSearch("");
-                    setCategoryFilter("ALL");
+                    setTopicFilter("ALL");
                     setDifficultyFilter("ALL");
                     setSourceFilter("ALL");
                   }}

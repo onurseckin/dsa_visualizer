@@ -5,14 +5,15 @@ import {
   generateFusedDepthwiseSeparableConv2dEngineSteps,
 } from "./fusedDepthwiseSeparableConv2dEngine";
 
-describe("fusedDepthwiseSeparableConv2dEngine", () => {
+describe("fused-depthwise-separable-conv2d-engine", () => {
   it("should have correct metadata", () => {
-    expect(fusedDepthwiseSeparableConv2dEngine.id).toBe("fusedDepthwiseSeparableConv2dEngine");
-    expect(fusedDepthwiseSeparableConv2dEngine.isMlInfra).toBe(true);
-    expect(fusedDepthwiseSeparableConv2dEngine.mlInfraLevel).toBe(8);
-    expect(fusedDepthwiseSeparableConv2dEngine.mlInfraCategory).toBe("ml_convolutions");
-    expect(fusedDepthwiseSeparableConv2dEngine.categories).toContain("ml_convolutions");
-    expect(fusedDepthwiseSeparableConv2dEngine.categories).toContain("ml_hardware_kernels");
+    expect(fusedDepthwiseSeparableConv2dEngine.id).toBe("fused-depthwise-separable-conv2d-engine");
+    expect(
+      fusedDepthwiseSeparableConv2dEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(fusedDepthwiseSeparableConv2dEngine.topicIds).toContain("ml_convolutions");
+    expect(fusedDepthwiseSeparableConv2dEngine.topicIds).toContain("ml_convolutions");
+    expect(fusedDepthwiseSeparableConv2dEngine.topicIds).toContain("ml_hardware_kernels");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

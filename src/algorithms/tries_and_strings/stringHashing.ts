@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, ElementState, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  ElementState,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface StringHashingInput {
@@ -9,15 +15,10 @@ export interface StringHashingInput {
 }
 
 export const PYTHON_STRING_HASHING_CODE = `def string_hashing_search(text: str, pattern: str, p: int = 31, mod: int = 1000000007) -> list[int]:
-    """
-    Finds all occurrences of pattern in text using Polynomial Rolling Hash.
-    Returns 0-based starting indices.
-    """
     n, m = len(text), len(pattern)
     if m > n or m == 0:
         return []
 
-    # Precompute prefix hashes and powers of p
     h = [0] * (n + 1)
     pow_p = [1] * (n + 1)
     for i in range(n):
@@ -25,20 +26,17 @@ export const PYTHON_STRING_HASHING_CODE = `def string_hashing_search(text: str, 
         h[i + 1] = (h[i] * p + char_val) % mod
         pow_p[i + 1] = (pow_p[i] * p) % mod
 
-    # Calculate pattern hash
     pattern_hash = 0
     for ch in pattern:
         char_val = ord(ch) - ord('a') + 1
         pattern_hash = (pattern_hash * p + char_val) % mod
 
-    # Query substring hash text[l..r] in O(1) time
     def query_hash(l: int, r: int) -> int:
         return (h[r + 1] - (h[l] * pow_p[r - l + 1]) % mod + mod) % mod
 
     matches = []
     for i in range(n - m + 1):
         if query_hash(i, i + m - 1) == pattern_hash:
-            # Full match check to eliminate hash collisions
             if text[i : i + m] == pattern:
                 matches.append(i)
 
@@ -116,43 +114,23 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { n, m, p, mod },
   });
 
-  // L2-L5: docstring
-  for (const [line, text_] of [
-    [2, `"""` ] as const,
-    [3, "Finds all occurrences of pattern in text using Polynomial Rolling Hash."] as const,
-    [4, "Returns 0-based starting indices."] as const,
-    [5, `"""` ] as const,
-  ]) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: line,
-      explanation: {
-        what: text_,
-        why: "Docstring documents the contract: algorithm name, return type, and purpose.",
-      },
-      primarySnapshot: { kind: "array", elements: makeElements() },
-      auxiliaryState: { hashMap: { Text: text, Pattern: pattern } },
-      variables: { n, m },
-    });
-  }
-
-  // L6: unpack lengths
+  // L2: unpack lengths
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 2,
     explanation: {
       what: `n, m = len(text), len(pattern)  →  n=${n}, m=${m}`,
-      why: "Caching the two lengths avoids repeated len() calls in the hot loops.",
+      why: "Extract sequence lengths n and m to bound prefix precomputation and sliding window iteration.",
     },
     primarySnapshot: { kind: "array", elements: makeElements() },
     auxiliaryState: { hashMap: { n, m } },
     variables: { n, m },
   });
 
-  // L7: guard condition
+  // L3: guard condition
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 3,
     explanation: {
       what: `Guard: m > n or m == 0  →  ${m > n || m === 0 ? "true — early exit" : "false — proceed"}`,
       why: "If pattern is longer than text or empty no match is possible; skip all O(N) work.",
@@ -163,10 +141,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
   });
 
   if (m > n || m === 0) {
-    // L8: early return branch
+    // L4: early return branch
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 8,
+      codeLine: 4,
       explanation: {
         what: "return []  — pattern cannot appear in text",
         why: "Short-circuit avoids allocating O(N) hash tables when no match is possible.",
@@ -175,15 +153,16 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
       auxiliaryState: { hashMap: { result: "[]" } },
       variables: { matchCount: 0 },
     });
+    return steps;
   }
 
-  // L11: allocate prefix hash + power tables
+  // L6: allocate prefix hash table
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 6,
     explanation: {
-      what: `Allocate prefix hash table h and power table pow_p of size ${n + 1}`,
-      why: "h[i] stores the rolling hash of text prefix text[0..i-1], while pow_p[i] stores (p^i) % mod.",
+      what: `Allocate prefix hash table h of size ${n + 1}`,
+      why: "h[i] stores the rolling hash of text prefix text[0..i-1].",
     },
     primarySnapshot: {
       kind: "array",
@@ -198,23 +177,23 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { n, m },
   });
 
-  // L12: pow_p allocation
+  // L7: pow_p allocation
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 12,
+    codeLine: 7,
     explanation: {
-      what: `pow_p = [1] * (${n + 1})  — prime power table initialised to 1s`,
-      why: "pow_p[i] will hold p^i % mod; starting at 1 (p^0 = 1) lets each step multiply by p.",
+      what: `pow_p = [1] * (${n + 1})  — prime power table initialized to 1s`,
+      why: "pow_p[i] stores p^i % mod so O(1) substring hash calculation can multiply by p^len without exponentiation.",
     },
     primarySnapshot: { kind: "array", elements: makeElements() },
     auxiliaryState: { hashMap: { "pow_p[0]": 1 } },
     variables: { n },
   });
 
-  // L13: prefix hash loop — add header step once before the loop body steps
+  // L8: prefix hash loop header
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
+    codeLine: 8,
     explanation: {
       what: `for i in range(${n}):  — iterate over every character index of text`,
       why: "Each iteration extends the prefix hash and prime power tables by one position.",
@@ -230,10 +209,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     hashVals[i + 1] = (hashVals[i] * p + charVal) % mod;
     powP[i + 1] = (powP[i] * p) % mod;
 
-    // L14: char_val computation
+    // L9: char_val computation
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 14,
+      codeLine: 9,
       explanation: {
         what: `char_val = ord(text[${i}]) - ord('a') + 1  →  '${text[i]}' = ${charVal}`,
         why: "1-indexed mapping ('a'→1…'z'→26) avoids a leading-zero hash ambiguity.",
@@ -243,10 +222,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
       variables: { i, char: text[i], charVal },
     });
 
-    // L15: h[i+1] update
+    // L10: h[i+1] update
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 15,
+      codeLine: 10,
       explanation: {
         what: `Precompute prefix hash h[${i + 1}] for text[0..${i}] ("${text.substring(0, i + 1)}"): char '${text[i]}' (${charVal}) → h = ${hashVals[i + 1]}`,
         why: `Formula: h[${i + 1}] = (h[${i}] * ${p} + ${charVal}) % ${mod} = ${hashVals[i + 1]}.`,
@@ -264,10 +243,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
       variables: { i, char: text[i], charVal, "h[i+1]": hashVals[i + 1] },
     });
 
-    // L16: pow_p[i+1] update
+    // L11: pow_p[i+1] update
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 16,
+      codeLine: 11,
       explanation: {
         what: `pow_p[${i + 1}] = (pow_p[${i}] * ${p}) % mod  →  ${powP[i + 1]}`,
         why: "Precomputing prime powers avoids recomputation in each O(1) substring hash query.",
@@ -278,12 +257,12 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     });
   }
 
-  // L19: pattern_hash init
+  // L13: pattern_hash init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 19,
+    codeLine: 13,
     explanation: {
-      what: "pattern_hash = 0  — initialise accumulator before rolling over pattern characters",
+      what: "pattern_hash = 0  — initialize accumulator before rolling over pattern characters",
       why: "Zeroing before the loop ensures no leftover value contaminates the first multiplication.",
     },
     primarySnapshot: { kind: "array", elements: makeElements() },
@@ -291,10 +270,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { patternHash: 0 },
   });
 
-  // L20: pattern hash loop header
+  // L14: pattern hash loop header
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 20,
+    codeLine: 14,
     explanation: {
       what: `for ch in pattern:  — iterate over each of the ${m} pattern characters`,
       why: "Builds the target hash value to compare against each text window.",
@@ -310,10 +289,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     const charVal = pattern.charCodeAt(i) - 96;
     patternHash = (patternHash * p + charVal) % mod;
 
-    // L21: char_val for pattern character
+    // L15: char_val for pattern character
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 21,
+      codeLine: 15,
       explanation: {
         what: `char_val = ord('${pattern[i]}') - ord('a') + 1  →  ${charVal}`,
         why: "Same 1-indexed mapping as for text characters to keep hash formulas consistent.",
@@ -323,10 +302,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
       variables: { i, char: pattern[i], charVal },
     });
 
-    // L22: pattern_hash rolling update
+    // L16: pattern_hash rolling update
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 22,
+      codeLine: 16,
       explanation: {
         what: `Compute pattern hash prefix for pattern[0..${i}] ("${pattern.substring(0, i + 1)}"): char '${pattern[i]}' → hash = ${patternHash}`,
         why: `Rolling formula accumulates character values: pattern_hash = ${patternHash}.`,
@@ -350,10 +329,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     return val;
   };
 
-  // L25: define query_hash helper
+  // L18: define query_hash helper
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 25,
+    codeLine: 18,
     explanation: {
       what: "def query_hash(l, r) → int:  — define O(1) substring hash helper",
       why: "Encapsulating the formula keeps the main loop readable and avoids repeated expression duplication.",
@@ -363,10 +342,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { n, m },
   });
 
-  // L26: query_hash body
+  // L19: query_hash body
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 26,
+    codeLine: 19,
     explanation: {
       what: "return (h[r+1] - (h[l] * pow_p[r-l+1]) % mod + mod) % mod",
       why: "Adding mod before final % mod prevents negative results from subtraction in modular arithmetic.",
@@ -378,12 +357,12 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
 
   const matches: number[] = [];
 
-  // L28: initialise matches list
+  // L21: initialise matches list
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 28,
+    codeLine: 21,
     explanation: {
-      what: "matches = []  — initialise result list",
+      what: "matches = []  — initialize result list",
       why: "Collects every 0-based starting index where the pattern was found.",
     },
     primarySnapshot: { kind: "array", elements: makeElements() },
@@ -391,10 +370,10 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { matchCount: 0 },
   });
 
-  // L29: main search loop header
+  // L22: main search loop header
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 29,
+    codeLine: 22,
     explanation: {
       what: `for i in range(${n - m + 1}):  — slide window over ${n - m + 1} positions`,
       why: "Each window starting at i is evaluated with a single O(1) hash comparison.",
@@ -404,19 +383,43 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
     variables: { n, m },
   });
 
-  if (m <= n) {
-    for (let i = 0; i <= n - m; i++) {
-      const subHash = queryHash(i, i + m - 1);
-      const hashMatches = subHash === patternHash;
-      const isMatch = hashMatches && text.substring(i, i + m) === pattern;
+  for (let i = 0; i <= n - m; i++) {
+    const subHash = queryHash(i, i + m - 1);
+    const hashMatches = subHash === patternHash;
+    const isMatch = hashMatches && text.substring(i, i + m) === pattern;
 
-      // L30: hash comparison
+    // L23: hash comparison
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 23,
+      explanation: {
+        what: `Evaluate window text[${i}..${i + m - 1}] ("${text.substring(i, i + m)}"): Substring Hash = ${subHash}`,
+        why: `Comparing against patternHash (${patternHash}): ${hashMatches ? "hashes match — verify string" : "No match"}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: makeElements({ l: i, r: i + m - 1 }, matches),
+      },
+      auxiliaryState: {
+        hashMap: {
+          Window: `[${i}..${i + m - 1}] "${text.substring(i, i + m)}"`,
+          "Substring Hash": subHash,
+          "Pattern Hash": patternHash,
+          "Hash Match": hashMatches ? "YES" : "NO",
+          "Found Matches": matches.join(", ") || "None",
+        },
+      },
+      variables: { i, subHash, hashMatches },
+    });
+
+    if (hashMatches) {
+      // L24: collision check
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 30,
+        codeLine: 24,
         explanation: {
-          what: `Evaluate window text[${i}..${i + m - 1}] ("${text.substring(i, i + m)}"): Substring Hash = ${subHash}`,
-          why: `Comparing against patternHash (${patternHash}): ${hashMatches ? "hashes match — verify string" : "No match"}.`,
+          what: `if text[${i}:${i + m}] == pattern  →  "${text.substring(i, i + m)}" == "${pattern}"  →  ${isMatch}`,
+          why: "String comparison guards against hash collisions; expected near-zero rate with a good modulus.",
         },
         primarySnapshot: {
           kind: "array",
@@ -424,24 +427,24 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
         },
         auxiliaryState: {
           hashMap: {
-            Window: `[${i}..${i + m - 1}] "${text.substring(i, i + m)}"`,
-            "Substring Hash": subHash,
-            "Pattern Hash": patternHash,
-            "Hash Match": hashMatches ? "YES" : "NO",
-            "Found Matches": matches.join(", ") || "None",
+            Substring: text.substring(i, i + m),
+            Pattern: pattern,
+            Equal: isMatch ? "YES — match confirmed" : "NO — hash collision",
           },
         },
-        variables: { i, subHash, hashMatches },
+        variables: { i, isMatch },
       });
 
-      if (hashMatches) {
-        // L32: collision check
+      if (isMatch) {
+        matches.push(i);
+
+        // L25: record match
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 32,
+          codeLine: 25,
           explanation: {
-            what: `if text[${i}:${i + m}] == pattern  →  "${text.substring(i, i + m)}" == "${pattern}"  →  ${isMatch}`,
-            why: "String comparison guards against hash collisions; expected near-zero rate with a good modulus.",
+            what: `matches.append(${i})  — confirmed match at index ${i}`,
+            why: "Index appended only after the string comparison eliminates any collision risk.",
           },
           primarySnapshot: {
             kind: "array",
@@ -449,70 +452,20 @@ export const generateStringHashingSteps = (input: StringHashingInput): Algorithm
           },
           auxiliaryState: {
             hashMap: {
-              Substring: text.substring(i, i + m),
-              Pattern: pattern,
-              Equal: isMatch ? "YES — match confirmed" : "NO — hash collision",
+              "New Match": i,
+              "All Matches": matches.join(", "),
             },
           },
-          variables: { i, isMatch },
+          variables: { i, matches: [...matches] },
         });
-
-        if (isMatch) {
-          matches.push(i);
-
-          // L33: record match
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 33,
-            explanation: {
-              what: `matches.append(${i})  — confirmed match at index ${i}`,
-              why: "Index appended only after the string comparison eliminates any collision risk.",
-            },
-            primarySnapshot: {
-              kind: "array",
-              elements: makeElements({ l: i, r: i + m - 1 }, matches),
-            },
-            auxiliaryState: {
-              hashMap: {
-                "New Match": i,
-                "All Matches": matches.join(", "),
-              },
-            },
-            variables: { i, matches: [...matches] },
-          });
-        }
-      } else {
-        // isMatch was computed earlier but the branch above handles it; keep consistent state
       }
     }
   }
 
-  while (steps.length < 20) {
-    const padIdx = steps.length;
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 35,
-      explanation: {
-        what: `Validate substring hash verification (Step ${padIdx + 1})`,
-        why: `Confirming zero hash collision rate and match bounds across text.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: makeElements(undefined, matches),
-      },
-      auxiliaryState: {
-        hashMap: {
-          "Total Matches": matches.length,
-          "Match Indices": matches.join(", ") || "None",
-        },
-      },
-      variables: { verifiedStep: padIdx + 1 },
-    });
-  }
-
+  // L27: return matches
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 35,
+    codeLine: 27,
     explanation: {
       what: `String Hashing search complete. Found ${matches.length} occurrence(s) at indices: [${matches.join(", ")}]`,
       why: "O(N) precomputation enabled O(1) substring hash queries for all N - M + 1 windows.",
@@ -580,48 +533,39 @@ const STRING_HASHING_TOPIC_GUIDE: TopicGuide = {
 const STRING_HASHING_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines function string_hashing_search using Polynomial Rolling Hash for O(N + M) pattern search.",
-    2: "Docstring opening line describing the function's algorithm and objective.",
-    3: "Docstring body explaining polynomial rolling hash mechanism.",
-    4: "Docstring closing line for returned 0-based match indices.",
-    5: "Docstring end quote.",
-    6: "Extracts lengths n of text and m of pattern.",
-    7: "Guards against invalid inputs: pattern longer than text or empty pattern.",
-    8: "Returns empty list immediately when no match is possible.",
-    9: "Blank line before prefix hash precomputation.",
-    10: "Comment: Precompute prefix hashes and powers of p.",
-    11: "Allocates prefix hash table h of size n + 1 initialized to zeros.",
-    12: "Allocates prime power table pow_p of size n + 1 initialized to ones.",
-    13: "Loops through each character index i of the text string.",
-    14: "Converts text character text[i] to 1-indexed integer value char_val.",
-    15: "Updates prefix hash h[i+1] = (h[i] * p + char_val) % mod.",
-    16: "Updates prime power table pow_p[i+1] = (pow_p[i] * p) % mod.",
-    17: "Blank line before pattern hash computation.",
-    18: "Comment: Calculate pattern hash.",
-    19: "Initializes pattern_hash accumulator to 0.",
-    20: "Loops through each character ch in pattern.",
-    21: "Converts pattern character ch to 1-indexed integer value char_val.",
-    22: "Updates pattern_hash accumulator using rolling polynomial formula.",
-    23: "Blank line before query helper definition.",
-    24: "Comment: Query substring hash text[l..r] in O(1) time.",
-    25: "Defines helper function query_hash(l, r) to compute substring hash.",
-    26: "Computes substring hash (h[r+1] - h[l]*pow_p[r-l+1]) % mod with positive modulo fix.",
-    27: "Blank line before window matching loop.",
-    28: "Initializes matches list to store 0-based starting indices.",
-    29: "Iterates through all possible starting window indices i from 0 to n - m.",
-    30: "Compares O(1) query_hash(i, i + m - 1) against target pattern_hash.",
-    31: "Comment: Full match check to eliminate hash collisions.",
-    32: "Verifies substring text[i : i + m] == pattern to guard against modulo collisions.",
-    33: "Appends valid starting index i to matches list.",
-    34: "Blank line before return statement.",
-    35: "Returns list of all verified starting match indices.",
+    2: "Extracts string lengths n (text) and m (pattern).",
+    3: "Guards against invalid inputs: pattern longer than text or empty pattern.",
+    4: "Returns empty list immediately when no match is possible.",
+    5: "Blank line before prefix hash precomputation arrays.",
+    6: "Allocates prefix hash table h of size n + 1 initialized to zeros.",
+    7: "Allocates prime power table pow_p of size n + 1 initialized to ones.",
+    8: "Iterates through each character index i of text string.",
+    9: "Converts character text[i] to 1-indexed value (a=1, b=2, ...).",
+    10: "Updates prefix hash h[i+1] = (h[i] * p + char_val) % mod.",
+    11: "Updates prime power table pow_p[i+1] = (pow_p[i] * p) % mod.",
+    12: "Blank line before pattern hash computation.",
+    13: "Initializes pattern_hash accumulator to 0.",
+    14: "Loops through each character ch in pattern string.",
+    15: "Converts pattern character ch to 1-indexed value char_val.",
+    16: "Updates pattern_hash accumulator using rolling polynomial formula.",
+    17: "Blank line before O(1) query helper definition.",
+    18: "Defines helper function query_hash(l, r) for O(1) substring hash queries.",
+    19: "Computes (h[r+1] - h[l]*pow_p[r-l+1]) % mod with positive modulo correction.",
+    20: "Blank line before sliding window search loop.",
+    21: "Initializes matches list to store 0-based starting indices.",
+    22: "Iterates through all possible starting window indices i from 0 to n - m.",
+    23: "Compares O(1) query_hash(i, i + m - 1) against target pattern_hash.",
+    24: "Verifies substring text[i : i + m] == pattern to guard against modulo collisions.",
+    25: "Appends valid starting match index i to matches list.",
+    26: "Blank line before return statement.",
+    27: "Returns list of all verified starting match indices.",
   },
 };
 
 export const stringHashing: AlgorithmDefinition<StringHashingInput> = {
   id: "string-hashing",
   title: "Polynomial Rolling String Hashing",
-  category: "tries_and_strings",
-  categories: ["tries_and_strings"],
+  topicIds: ["tries_and_strings"],
   difficulty: "Medium",
   description:
     "Compute prefix hashes in $O(N)$ time to evaluate the hash value of any arbitrary substring $S[L..R]$ in $O(1)$ constant time using modular arithmetic.\n\n### Problem Statement\nGiven a text string `text` of length $N$ and a pattern string `pattern` of length $M$, find all starting indices in `text` where `pattern` occurs by using Polynomial Rolling String Hashing.\n\nThe algorithm computes an array of prefix hashes $H$ and powers of a prime base $p$ modulo $M$. Using these precomputed tables, the hash of any substring `text[L..R]` is extracted in $O(1)$ time and compared directly against `patternHash`.\n\n### Input Parameters\n- `text`: The primary search text string of length $N$.\n- `pattern`: Target query pattern string of length $M$.\n- `p`: Prime base (default: 31).\n- `mod`: Prime modulus (default: $10^9 + 7$).\n\n### Output\n- Returns an array of integers representing the starting indices of all match occurrences.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `1 <= M <= N`.\n- Strings contain lowercase ASCII characters (`'a'` to `'z'`).\n- Handle modulo overflow and negative intermediate results correctly.",

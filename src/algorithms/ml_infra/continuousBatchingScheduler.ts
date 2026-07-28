@@ -38,7 +38,7 @@ export const CONTINUOUS_BATCHING_SCHEDULER_CODE = `def continuous_batching_sched
                 req['state'] = 'prefill'
                 req['generatedTokens'] = 0
                 active_batch.append(req)
-                used_blocks += needed_blocks
+                used_blocks += req['promptLen']
                 waiting_queue.pop(i)
             else:
                 i += 1
@@ -203,13 +203,18 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
       else if (req.state === "waiting") cellState = "inactive";
 
       const blocksNeeded =
-        req.state === "finished"
+        req.state === "waiting" || req.state === "finished"
           ? 0
-          : req.promptLen + req.generatedTokens + (req.state === "waiting" ? 0 : 1);
+          : req.promptLen + req.generatedTokens;
 
       cells.push({ row: rIdx, col: 0, value: req.state, state: cellState });
       cells.push({ row: rIdx, col: 1, value: req.promptLen, state: cellState });
-      cells.push({ row: rIdx, col: 2, value: `${req.generatedTokens}/${req.maxTokens}`, state: cellState });
+      cells.push({
+        row: rIdx,
+        col: 2,
+        value: `${req.generatedTokens}/${req.maxTokens}`,
+        state: cellState,
+      });
       cells.push({ row: rIdx, col: 3, value: blocksNeeded, state: cellState });
       cells.push({ row: rIdx, col: 4, value: req.arrivalStep, state: cellState });
     });
@@ -300,7 +305,12 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
       8,
       `Iterate Step #${currentStep}: Check Scheduler Loop Condition`,
       `Scheduler loop check at step #${currentStep}: ${unprocessed.length} unprocessed, ${waitingQueue.length} waiting, ${activeBatch.length} active.`,
-      { currentStep, unprocessed: unprocessed.length, waiting: waitingQueue.length, active: activeBatch.length },
+      {
+        currentStep,
+        unprocessed: unprocessed.length,
+        waiting: waitingQueue.length,
+        active: activeBatch.length,
+      },
     );
 
     // Line 9: arrivals = [r for r in unprocessed if r['arrivalStep'] <= step]
@@ -354,20 +364,27 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
         13,
         `Step #${currentStep}: Check Admission for Request ${req.id} (Queue Slot i=${i})`,
         `Inspecting candidate request ${req.id}: needs ${neededBlocks} KV blocks (prompt=${req.promptLen}, gen=${req.generatedTokens}). Batch size ${activeBatch.length}/${maxBatchSize}.`,
-        { currentStep, i, reqId: req.id, neededBlocks, activeBatchSize: activeBatch.length, maxBatchSize },
+        {
+          currentStep,
+          i,
+          reqId: req.id,
+          neededBlocks,
+          activeBatchSize: activeBatch.length,
+          maxBatchSize,
+        },
       );
 
       // Line 16: if used_blocks + needed_blocks <= max_blocks
       if (usedBlocks + neededBlocks <= maxMemoryBlocks) {
         req.state = "prefill";
         activeBatch.push(req);
-        usedBlocks += neededBlocks;
+        usedBlocks += req.promptLen;
         waitingQueue.splice(i, 1);
 
         addStep(
           17,
           `Step #${currentStep}: Admit ${req.id} to Active Batch (State -> 'prefill')`,
-          `Admitted ${req.id} into active batch in 'prefill' state. Allocated ${neededBlocks} KV-cache blocks. Total memory: ${usedBlocks}/${maxMemoryBlocks}.`,
+          `Admitted ${req.id} into active batch in 'prefill' state. Allocated ${req.promptLen} prompt KV-cache blocks. Total memory: ${usedBlocks}/${maxMemoryBlocks}.`,
           { currentStep, reqId: req.id, state: "prefill", usedBlocks, maxMemoryBlocks },
         );
       } else {
@@ -406,7 +423,13 @@ export function generateContinuousBatchingSteps(input: ContinuousBatchingInput):
         27,
         `Step #${currentStep}: Generate Token #${req.generatedTokens}/${req.maxTokens} for ${req.id}`,
         `Generated token #${req.generatedTokens}/${req.maxTokens} for ${req.id}. Allocated 1 KV-cache block (used: ${usedBlocks}/${maxMemoryBlocks}).`,
-        { currentStep, reqId: req.id, generatedTokens: req.generatedTokens, maxTokens: req.maxTokens, usedBlocks },
+        {
+          currentStep,
+          reqId: req.id,
+          generatedTokens: req.generatedTokens,
+          maxTokens: req.maxTokens,
+          usedBlocks,
+        },
       );
     }
 
@@ -461,10 +484,22 @@ export const CONTINUOUS_BATCHING_SCHEDULER_TRIVIA: TriviaMeta = {
     "return waiting_queue",
   ],
   hints: [
-    { line: 8, hint: "Main iteration loop runs while unprocessed items, waiting queue, or active batch exist." },
-    { line: 13, hint: "Admit waiting requests into active batch if batch size and KV memory permit." },
-    { line: 24, hint: "Generate 1 token for each active request during GPU iteration forward pass." },
-    { line: 31, hint: "Evict finished requests instantly upon reaching maxTokens and free KV memory blocks." },
+    {
+      line: 8,
+      hint: "Main iteration loop runs while unprocessed items, waiting queue, or active batch exist.",
+    },
+    {
+      line: 13,
+      hint: "Admit waiting requests into active batch if batch size and KV memory permit.",
+    },
+    {
+      line: 24,
+      hint: "Generate 1 token for each active request during GPU iteration forward pass.",
+    },
+    {
+      line: 31,
+      hint: "Evict finished requests instantly upon reaching maxTokens and free KV memory blocks.",
+    },
   ],
   lineExplanations: {
     1: "Declares function signature continuous_batching_scheduler accepting requests list, max_batch_size, and max_blocks.",
@@ -513,12 +548,8 @@ export const CONTINUOUS_BATCHING_SCHEDULER_TRIVIA: TriviaMeta = {
 export const continuousBatchingScheduler: AlgorithmDefinition<ContinuousBatchingInput> = {
   id: "continuous-batching-scheduler",
   title: "Continuous Batching Iteration Scheduler",
-  category: "ml_llm_serving",
-  categories: ["ml_llm_serving"],
+  topicIds: ["ml_llm_serving"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 10,
-  mlInfraCategory: "ml_llm_serving",
   description: `### Continuous Batching Iteration Scheduler
 
 Continuous Batching (Yu et al., 2022 — Orca, vLLM) is the core iteration-level scheduling paradigm for high-throughput Large Language Model (LLM) serving systems.

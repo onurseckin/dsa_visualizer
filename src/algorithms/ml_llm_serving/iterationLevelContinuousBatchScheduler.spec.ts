@@ -10,10 +10,11 @@ describe("iteration-level-continuous-batch-scheduler", () => {
     expect(iterationLevelContinuousBatchScheduler.id).toBe(
       "iteration-level-continuous-batch-scheduler",
     );
-    expect(iterationLevelContinuousBatchScheduler.isMlInfra).toBe(true);
-    expect(iterationLevelContinuousBatchScheduler.mlInfraLevel).toBe(12);
-    expect(iterationLevelContinuousBatchScheduler.mlInfraCategory).toBe("ml_llm_serving");
-    expect(iterationLevelContinuousBatchScheduler.categories).toContain("ml_llm_serving");
+    expect(
+      iterationLevelContinuousBatchScheduler.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(iterationLevelContinuousBatchScheduler.topicIds).toContain("ml_llm_serving");
+    expect(iterationLevelContinuousBatchScheduler.topicIds).toContain("ml_llm_serving");
     expect(iterationLevelContinuousBatchScheduler.defaultInput).toEqual(
       DEFAULT_ITERATIONLEVELCONTINUOUSBATCHSCHEDULER_INPUT,
     );
@@ -34,6 +35,6 @@ describe("iteration-level-continuous-batch-scheduler", () => {
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(27);
+    expect(steps[steps.length - 1].codeLine).toBe(19);
   });
 });

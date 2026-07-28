@@ -9,7 +9,7 @@ import {
 describe("knapsack01 algorithm logic spec", () => {
   it("has categories ['dp_1d'] and valid metadata", () => {
     expect(knapsack01.id).toBe("knapsack-01");
-    expect(knapsack01.categories).toEqual(["dp_1d"]);
+    expect(knapsack01.topicIds).toEqual(["dp_1d"]);
     expect(knapsack01.difficulty).toBe("Medium");
     expect(knapsack01.code).toContain("def knapsack_01");
   });

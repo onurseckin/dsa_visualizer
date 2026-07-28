@@ -4,11 +4,12 @@ import {
   generateGeneratingSubsetsSteps,
   generatingSubsets,
 } from "../generatingSubsets";
+import { requireExampleInputs, requireLineExplanations } from "../../specs/assertions";
 
 describe("generatingSubsets logic spec", () => {
   it("should have valid metadata", () => {
     expect(generatingSubsets.id).toBe("generating-subsets");
-    expect(generatingSubsets.category).toBe("backtracking");
+    expect(generatingSubsets.topicIds).toContain("backtracking");
     expect(generatingSubsets.difficulty).toBe("Easy");
   });
 
@@ -23,9 +24,10 @@ describe("generatingSubsets logic spec", () => {
 
   it("should map every line of python code in trivia lineExplanations", () => {
     const codeLines = generatingSubsets.code.split("\n").length;
+    const explanations = requireLineExplanations(generatingSubsets);
     expect(codeLines).toBe(18);
     for (let line = 1; line <= codeLines; line++) {
-      expect(generatingSubsets.trivia?.lineExplanations[line]).toBeDefined();
+      expect(explanations[line]).toBeDefined();
     }
   });
 
@@ -33,7 +35,11 @@ describe("generatingSubsets logic spec", () => {
     const totalLines = generatingSubsets.code.split("\n").length;
     const inputsToTest = [
       generatingSubsets.defaultInput,
-      ...(generatingSubsets.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        generatingSubsets,
+        (input): input is typeof generatingSubsets.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const input of inputsToTest) {

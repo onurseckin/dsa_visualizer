@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  ElementState,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface findFirstOccurrence1dInput {
@@ -8,9 +13,6 @@ export interface findFirstOccurrence1dInput {
 }
 
 export const FINDFIRSTOCCURRENCE1D_CODE = `def find_first_occurrence_1d(buffer, target, stride=1):
-    """
-    Performs strided 1D linear memory scan to locate target element offset.
-    """
     n = len(buffer)
     match_index = -1
 
@@ -42,42 +44,33 @@ export const generateFindFirstOccurrence1dSteps = (
   const stride = Math.max(1, input.stride ?? 1);
   const n = buffer.length;
 
-  const cols = 4;
-  const rows = Math.ceil(n / cols);
-
-  const buildCells = (
+  const buildElements = (
     currentI?: number,
     matchI: number = -1,
     checkedIndices: number[] = [],
-  ): MatrixCellItem[] => {
-    const cells: MatrixCellItem[] = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const globalIdx = r * cols + c;
-        const exists = globalIdx < n;
-        const val = exists ? buffer[globalIdx] : "N/A";
-        let state: MatrixCellItem["state"] = "default";
+  ): ArrayElement[] => {
+    return buffer.map((val, idx) => {
+      let state: ElementState = "default";
+      const pointers: string[] = [];
 
-        if (globalIdx === matchI) {
-          state = "pivot";
-        } else if (globalIdx === currentI) {
-          state = "active";
-        } else if (checkedIndices.includes(globalIdx)) {
-          state = "compared";
-        } else if (!exists) {
-          state = "inactive";
-        }
-
-        cells.push({
-          row: r,
-          col: c,
-          value: val,
-          label: exists ? `buf[${globalIdx}]` : "PAD",
-          state,
-        });
+      if (idx === matchI) {
+        state = "sorted";
+        pointers.push("match");
+      } else if (idx === currentI) {
+        state = "compare";
+        pointers.push("i");
+      } else if (checkedIndices.includes(idx)) {
+        state = "visited";
       }
-    }
-    return cells;
+
+      return {
+        id: `buf-${idx}`,
+        value: val,
+        label: `buf[${idx}]`,
+        state,
+        pointers: pointers.length > 0 ? pointers : undefined,
+      };
+    });
   };
 
   const addStep = (
@@ -94,13 +87,8 @@ export const generateFindFirstOccurrence1dSteps = (
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "matrix",
-        rows,
-        cols,
-        cells: buildCells(currentI, matchI, checkedIndices),
-        rowHeaders: Array.from({ length: rows }, (_, i) => `Line ${i}`),
-        colHeaders: Array.from({ length: cols }, (_, i) => `Col ${i}`),
-        title: "1D Strided Memory Scan Grid",
+        kind: "array",
+        elements: buildElements(currentI, matchI, checkedIndices),
       },
       auxiliaryState: {
         customState: {
@@ -122,38 +110,12 @@ export const generateFindFirstOccurrence1dSteps = (
     { n, target, stride },
   );
 
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Performs strided 1D linear memory scan to locate target element offset.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
   // Step 2: Measure n
-  addStep(
-    5,
-    "Extract Buffer Length n",
-    `Measured total memory buffer length n = ${n}.`,
-    { n },
-  );
+  addStep(2, "Extract Buffer Length n", `Measured total memory buffer length n = ${n}.`, { n });
 
   // Step 3: Init match_index
   addStep(
-    6,
+    3,
     "Initialize Match Result Index",
     "Set match_index = -1 (target scalar not yet discovered).",
     { match_index: -1 },
@@ -167,7 +129,7 @@ export const generateFindFirstOccurrence1dSteps = (
     const isMatch = val === target;
 
     addStep(
-      8,
+      5,
       `Advance Search Pointer to Physical Offset i = ${i}`,
       `Iterating loop for index i = ${i} (stride step ${stride}).`,
       { i, stride, n },
@@ -177,7 +139,7 @@ export const generateFindFirstOccurrence1dSteps = (
     );
 
     addStep(
-      9,
+      6,
       `Fetch Scalar Value at Offset ${i}`,
       `Read buffer[${i}] = ${val}.`,
       { i, val },
@@ -189,7 +151,7 @@ export const generateFindFirstOccurrence1dSteps = (
     checkedIndices.push(i);
 
     addStep(
-      10,
+      7,
       `Compare Value ${val} against Target ${target}`,
       isMatch
         ? `Match FOUND! val (${val}) == target (${target}).`
@@ -203,7 +165,7 @@ export const generateFindFirstOccurrence1dSteps = (
     if (isMatch) {
       foundIndex = i;
       addStep(
-        11,
+        8,
         `Record Match Physical Offset i = ${i}`,
         `Updated match_index = ${i}.`,
         { match_index: i },
@@ -213,7 +175,7 @@ export const generateFindFirstOccurrence1dSteps = (
       );
 
       addStep(
-        12,
+        9,
         "Execute Early Exit (Break)",
         `Target discovered at index ${i}. Terminating linear memory search immediately.`,
         { match_index: i, terminated_early: true },
@@ -227,7 +189,7 @@ export const generateFindFirstOccurrence1dSteps = (
 
   // Return step
   addStep(
-    14,
+    11,
     "Return Match Physical Offset Result",
     foundIndex !== -1
       ? `Search complete. Target ${target} found at physical offset ${foundIndex}.`
@@ -242,7 +204,7 @@ export const generateFindFirstOccurrence1dSteps = (
 };
 
 const FINDFIRSTOCCURRENCE1D_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [],
   distractors: [
     "match_index = buffer.index(target)",
     "for i in range(n): match_index = i",
@@ -250,41 +212,34 @@ const FINDFIRSTOCCURRENCE1D_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 10,
+      line: 7,
       hint: "Compare buffer element val against target scalar query.",
     },
     {
-      line: 12,
+      line: 9,
       hint: "Execute break statement immediately upon match to ensure early exit and avoid redundant DRAM checks.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for strided 1D buffer search function with default unit stride.",
-    2: "Starts docstring for 1D search function.",
-    3: "Explains purpose of performing strided linear memory scan to find target scalar offset.",
-    4: "Closes docstring for 1D search function.",
-    5: "Measures total element length N of input memory buffer.",
-    6: "Initializes match_index variable to -1 (indicating target not yet found).",
-    7: "Blank line before strided loop execution.",
-    8: "Iterates memory index i from 0 up to n - 1 advancing by stride.",
-    9: "Fetches scalar value val = buffer[i] at current physical offset i.",
-    10: "Compares fetched scalar val against target query scalar.",
-    11: "Sets match_index = i upon discovering matching target scalar.",
-    12: "Terminates loop execution immediately via break statement.",
-    13: "Blank line before return statement.",
-    14: "Returns match_index containing physical offset or -1 if target is absent.",
+    2: "Measures total element length N of input memory buffer.",
+    3: "Initializes match_index variable to -1 (indicating target not yet found).",
+    4: "Blank line before strided loop execution.",
+    5: "Iterates memory index i from 0 up to n - 1 advancing by stride.",
+    6: "Fetches scalar value val = buffer[i] at current physical offset i.",
+    7: "Compares fetched scalar val against target query scalar.",
+    8: "Sets match_index = i upon discovering matching target scalar.",
+    9: "Terminates loop execution immediately via break statement.",
+    10: "Blank line before return statement.",
+    11: "Returns match_index containing physical offset or -1 if target is absent.",
   },
 };
 
 export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInput> = {
   id: "find-first-occurrence-1d",
   title: "Find First Occurrence in 1D Buffer",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In strided tensor indexing, token search kernels, and payload metadata parsers, locating matching scalar markers or target tokens across non-contiguous memory layouts requires strided linear scans.\n\nThis algorithm performs a strided search pass across a 1D memory array to find the first physical index matching a target query scalar. Upon discovering the match, it records the physical offset index and terminates execution immediately via early exit.\n\n### Problem Solved & ML Compiler Relevance\nIn LLM tokenization pipelines, KV cache metadata lookups, and sparse tensor indexing, search kernels scan flat 1D memory buffers to locate sentinel tokens (such as End-Of-Sequence `<eos>` or padding tokens). When tensors have non-unit strides, evaluating offsets via strided steps ($i = 0, S, 2S, \\dots$) avoids unnecessary memory reads while locating target elements.\n\n### Step-by-Step Execution\n1. **Buffer Length Measurement**: Extract length $N = len(buffer)$.\n2. **Result Pointer Initialization**: Set $match\\_index = -1$.\n3. **Strided Iteration**: Loop index $i$ from 0 to $N-1$ in step increments of $stride$.\n4. **Scalar Comparison**: If $buffer[i] == target$, set $match\\_index = i$ and break immediately.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
@@ -292,7 +247,8 @@ export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInp
     {
       kind: "basic",
       title: "Target Found at Index 9",
-      inputDisplay: "data = [15, 28, 42, 10, 55, 63, 77, 84, 91, 102, 115, 120], target = 102, stride = 1",
+      inputDisplay:
+        "data = [15, 28, 42, 10, 55, 63, 77, 84, 91, 102, 115, 120], target = 102, stride = 1",
       outputDisplay: "match_index = 9",
       input: {
         data: [15, 28, 42, 10, 55, 63, 77, 84, 91, 102, 115, 120],
@@ -300,7 +256,8 @@ export const findFirstOccurrence1d: AlgorithmDefinition<findFirstOccurrence1dInp
         stride: 1,
       },
       output: "9",
-      explanation: "Scans buffer elements sequentially and terminates at index 9 where buffer[9] == 102.",
+      explanation:
+        "Scans buffer elements sequentially and terminates at index 9 where buffer[9] == 102.",
     },
     {
       kind: "complex",

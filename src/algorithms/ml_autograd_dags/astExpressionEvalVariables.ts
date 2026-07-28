@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, TreeNodeItem } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface astExpressionEvalVariablesInput {
@@ -7,9 +7,6 @@ export interface astExpressionEvalVariablesInput {
 }
 
 export const ASTEXPRESSIONEVALVARIABLES_CODE = `def ast_expression_eval_variables(node, env):
-    """
-    Evaluates AST expression tree substituting variable bindings from environment.
-    """
     if isinstance(node, (int, float)):
         return node
     if isinstance(node, str):
@@ -36,18 +33,38 @@ export const generateAstExpressionEvalVariablesSteps = (
   const arrayData = input?.data || [10, 20, 30, 40, 50];
   const target = input?.target ?? 30;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const val0 = arrayData[0] ?? 10;
+  const val1 = arrayData[1] ?? 20;
+  const val2 = arrayData[2] ?? 30;
+  const val3 = arrayData[3] ?? 40;
+  const val4 = arrayData[4] ?? 50;
+
+  const env: Record<string, number> = {
+    x_0: val0,
+    x_1: val1,
+    x_2: val2,
+    x_3: val3,
+    x_4: val4,
+  };
+
+  const initialNodes: TreeNodeItem[] = [
+    { id: "root", val: 0, leftId: "op_left", rightId: "op_right", state: "default" },
+    { id: "op_left", val: 0, leftId: "var_0", rightId: "var_1", state: "default" },
+    { id: "var_0", val: val0, state: "default" },
+    { id: "var_1", val: val1, state: "default" },
+    { id: "op_right", val: 0, leftId: "op_sub", rightId: "var_4", state: "default" },
+    { id: "op_sub", val: 0, leftId: "var_2", rightId: "var_3", state: "default" },
+    { id: "var_2", val: val2, state: "default" },
+    { id: "var_3", val: val3, state: "default" },
+    { id: "var_4", val: val4, state: "default" },
+  ];
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    customNodes?: TreeNodeItem[],
     customState?: Record<string, string | number>,
   ) => {
     steps.push({
@@ -55,16 +72,15 @@ export const generateAstExpressionEvalVariablesSteps = (
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "tree",
+        rootId: "root",
+        nodes: (customNodes || initialNodes).map((node) => ({ ...node })),
       },
       auxiliaryState: {
         customState: {
           data: `[${arrayData.join(", ")}]`,
           target: String(target),
+          env: JSON.stringify(env),
           ...customState,
         },
       },
@@ -72,151 +88,400 @@ export const generateAstExpressionEvalVariablesSteps = (
     });
   };
 
-  // Step 1: Initialize AST Evaluation Environment Pass
+  // Step 1: Line 1 — Init Evaluator & Environment
   addStep(
     1,
     "Initialize AST Expression Evaluator with Variable Binding",
-    "Setting up execution environment table `env` mapping variable identifiers (e.g. 'x_0', 'w_1') to runtime tensor scalars.",
-    { n: arrayData.length, envVars: 5, target, phase: "INIT_ENV" },
-    undefined,
-    { env_x0: "10", env_w1: "20", env_b: "5" },
+    "Setting up execution environment table env mapping variable identifiers to runtime scalar values.",
+    { envVars: 5, target, phase: "INIT_ENV" },
+    initialNodes,
+    {
+      env_x0: String(val0),
+      env_x1: String(val1),
+      env_x2: String(val2),
+      env_x3: String(val3),
+      env_x4: String(val4),
+    },
   );
 
+  // Step 2: Line 2 — Inspect Root AST Node
+  const nodesStep2 = initialNodes.map((n) =>
+    n.id === "root" ? { ...n, state: "compare" as const } : n,
+  );
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Evaluates AST expression tree substituting variable bindings from environment.",
-    {},
+    "Inspect Root AST Expression Node: op = '+'",
+    "Evaluating isinstance(node, (int, float)) for root node. Root is a compound operator dictionary node.",
+    { node: "root", op: "+", isNumeric: false },
+    nodesStep2,
+    { currentNode: "root" },
   );
 
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
+  // Step 3: Line 4 — Check if Root is String Variable
   addStep(
     4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
+    "Check Root Node: isinstance(node, str) -> False",
+    "Evaluating isinstance(node, str) for root node. Root is compound operator node, not variable identifier string.",
+    { node: "root", isString: false },
+    nodesStep2,
   );
 
-  // Step 2: Begin AST root traversal
+  // Step 4: Line 7 — Unpack Root Operator & Children
+  const nodesStep4 = initialNodes.map((n) =>
+    n.id === "root" ? { ...n, state: "active" as const } : n,
+  );
+  addStep(
+    7,
+    "Unpack Root Node: op = '+', left = op_left (*), right = op_right (+)",
+    "Extracting operator symbol '+' and child subtree references op_left and op_right for recursive evaluation.",
+    { op: "+", leftNode: "op_left", rightNode: "op_right" },
+    nodesStep4,
+    { op: "+", left: "op_left", right: "op_right" },
+  );
+
+  // Step 5: Line 8 — Recurse Left Subtree
+  const nodesStep5 = initialNodes.map((n) => {
+    if (n.id === "root") return { ...n, state: "active" as const };
+    if (n.id === "op_left") return { ...n, state: "active" as const };
+    return n;
+  });
+  addStep(
+    8,
+    "Evaluate Left Child Subtree of Root: op_left (*)",
+    "Invoking recursive call val_l = ast_expression_eval_variables(left, env) on left child node op_left.",
+    { callStack: "root -> op_left", activeNode: "op_left" },
+    nodesStep5,
+  );
+
+  // Step 6: Line 2 — Inspect Left Operator Node
+  const nodesStep6 = initialNodes.map((n) => {
+    if (n.id === "root") return { ...n, state: "active" as const };
+    if (n.id === "op_left") return { ...n, state: "compare" as const };
+    return n;
+  });
+  addStep(
+    2,
+    "Inspect AST Node op_left: op = '*'",
+    "Evaluating isinstance(node, (int, float)) for node op_left. Node is compound operator node.",
+    { node: "op_left", op: "*", isNumeric: false },
+    nodesStep6,
+  );
+
+  // Step 7: Line 4 — Check if op_left is String Variable
+  addStep(
+    4,
+    "Check Node op_left: isinstance(node, str) -> False",
+    "Evaluating isinstance(node, str) for node op_left. Node is operator dictionary, not string variable.",
+    { node: "op_left", isString: false },
+    nodesStep6,
+  );
+
+  // Step 8: Line 7 — Unpack op_left Operator Node
+  addStep(
+    7,
+    "Unpack Node op_left: op = '*', left = 'x_0', right = 'x_1'",
+    "Extracting left variable operand 'x_0' and right variable operand 'x_1'.",
+    { op: "*", left: "x_0", right: "x_1" },
+    nodesStep5,
+  );
+
+  // Step 9: Line 8 — Recurse into Left Leaf 'x_0'
+  const nodesStep9 = initialNodes.map((n) => {
+    if (n.id === "root" || n.id === "op_left") return { ...n, state: "active" as const };
+    if (n.id === "var_0") return { ...n, state: "active" as const };
+    return n;
+  });
+  addStep(
+    8,
+    "Evaluate Left Leaf Variable: 'x_0'",
+    "Invoking recursive call ast_expression_eval_variables('x_0', env) for variable symbol 'x_0'.",
+    { targetVariable: "x_0", callStack: "root -> op_left -> x_0" },
+    nodesStep9,
+  );
+
+  // Step 10: Line 2 — Check if 'x_0' is Numeric
+  const nodesStep10 = initialNodes.map((n) => {
+    if (n.id === "root" || n.id === "op_left") return { ...n, state: "active" as const };
+    if (n.id === "var_0") return { ...n, state: "compare" as const };
+    return n;
+  });
+  addStep(
+    2,
+    "Check Leaf Node 'x_0': isinstance('x_0', (int, float)) -> False",
+    "Node 'x_0' is string variable identifier, not literal numeric scalar.",
+    { node: "x_0", isNumeric: false },
+    nodesStep10,
+  );
+
+  // Step 11: Line 4 — Check if 'x_0' is String
+  addStep(
+    4,
+    "Check Leaf Node 'x_0': isinstance('x_0', str) -> True",
+    "Node 'x_0' is valid string variable identifier.",
+    { node: "x_0", isString: true },
+    nodesStep9,
+  );
+
+  // Step 12: Line 5 — Environment Symbol Lookup for 'x_0'
+  const nodesStep12 = initialNodes.map((n) => {
+    if (n.id === "root" || n.id === "op_left") return { ...n, state: "active" as const };
+    if (n.id === "var_0") return { ...n, val: val0, state: "visited" as const };
+    return n;
+  });
   addStep(
     5,
-    "Inspect Root AST Expression Node",
-    "Checking whether node is a literal numeric constant, variable identifier string, or binary operator dictionary.",
-    { nodeKind: "BinaryOpDict", isNumeric: false, isString: false },
+    `Environment Symbol Lookup: env.get('x_0') -> ${val0}`,
+    `Retrieving scalar value ${val0} bound to symbol 'x_0' from environment map env.`,
+    { varName: "x_0", resolvedValue: val0 },
+    nodesStep12,
+    { lookupResult: String(val0) },
   );
 
-  // Detailed multi-step simulation per element in arrayData
-  let evalAccumulator = 0;
-  arrayData.forEach((val, idx) => {
-    const varName = `var_${idx}`;
-    const isTarget = val === target;
-
-    // Sub-step A: Check if numeric
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`node=${varName}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      5,
-      `Check Node [Index ${idx}]: Type Check`,
-      `Evaluating isinstance(node, (int, float)) for variable '${varName}'. Is non-numeric AST variable node.`,
-      { idx, nodeVal: varName, isNumeric: false, phase: "TYPE_CHECK_NUMERIC" },
-      stateA,
-      { currentNode: varName },
-    );
-
-    // Sub-step B: Variable environment lookup
-    const stateB: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "active", pointers: [`env[${varName}]=${val}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      7,
-      `Environment Symbol Lookup: env.get("${varName}") -> ${val}`,
-      `Retrieving runtime tensor scalar bound to symbol '${varName}' from variable table env.`,
-      { idx, varName, resolvedValue: val, phase: "ENV_LOOKUP" },
-      stateB,
-      { lookupKey: varName, lookupVal: String(val) },
-    );
-
-    // Sub-step C: Unpack operator & children
-    addStep(
-      10,
-      `Unpack Node Structure: op = "${idx % 2 === 0 ? "+" : "*"}", left = "${varName}", right = ${idx * 5}`,
-      "Extracting operator symbol and child subtrees for recursive evaluation.",
-      { op: idx % 2 === 0 ? "+" : "*", left: varName, right: idx * 5, phase: "UNPACK_NODE" },
-      stateB,
-    );
-
-    // Sub-step D: Recursive children evaluation
-    evalAccumulator += idx % 2 === 0 ? val + idx * 5 : val * Math.max(1, idx * 5);
-    const stateD: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "sorted", value: evalAccumulator, pointers: ["eval_result"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-    addStep(
-      11,
-      `Evaluate Left Child Subtree: val_l = ${val}`,
-      `Recursively evaluated left child expression yielding scalar value ${val}.`,
-      { idx, val_l: val, phase: "EVAL_LEFT_CHILD" },
-      stateD,
-    );
-
-    addStep(
-      12,
-      `Evaluate Right Child Subtree: val_r = ${idx * 5}`,
-      `Recursively evaluated right child expression yielding scalar value ${idx * 5}.`,
-      { idx, val_r: idx * 5, phase: "EVAL_RIGHT_CHILD" },
-      stateD,
-    );
-
-    // Sub-step E: Compute operator math
-    addStep(
-      14,
-      `Apply Binary Operator Math: ${val} ${idx % 2 === 0 ? "+" : "*"} ${idx * 5} -> ${evalAccumulator}`,
-      `Executing binary arithmetic operator resulting in cumulative output state ${evalAccumulator}.`,
-      { op: idx % 2 === 0 ? "+" : "*", val_l: val, val_r: idx * 5, result: evalAccumulator, phase: "COMPUTE_MATH" },
-      stateD,
-      { evalAccumulator: String(evalAccumulator) },
-    );
+  // Step 13: Line 9 — Recurse into Right Leaf 'x_1'
+  const nodesStep13 = nodesStep12.map((n) => {
+    if (n.id === "var_1") return { ...n, state: "active" as const };
+    return n;
   });
-
-  // Step final-1: Final Graph Verification
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
   addStep(
-    14,
-    "Verify Full AST Expression Tree Evaluation Result",
-    "Checking that all variable bindings were resolved and intermediate scalar results accumulated correctly.",
-    { totalEvaluated: arrayData.length, finalScalarOutput: evalAccumulator },
-    finalElements,
+    9,
+    "Evaluate Right Leaf Variable: 'x_1'",
+    "Invoking recursive call ast_expression_eval_variables('x_1', env) for variable symbol 'x_1'.",
+    { targetVariable: "x_1", callStack: "root -> op_left -> x_1" },
+    nodesStep13,
   );
 
-  // Step final: Complete
+  // Step 14: Line 2 — Check if 'x_1' is Numeric
+  const nodesStep14 = nodesStep12.map((n) => {
+    if (n.id === "var_1") return { ...n, state: "compare" as const };
+    return n;
+  });
   addStep(
-    16,
+    2,
+    "Check Leaf Node 'x_1': isinstance('x_1', (int, float)) -> False",
+    "Node 'x_1' is string variable identifier, not literal numeric scalar.",
+    { node: "x_1", isNumeric: false },
+    nodesStep14,
+  );
+
+  // Step 15: Line 4 — Check if 'x_1' is String
+  addStep(
+    4,
+    "Check Leaf Node 'x_1': isinstance('x_1', str) -> True",
+    "Node 'x_1' is valid string variable identifier.",
+    { node: "x_1", isString: true },
+    nodesStep13,
+  );
+
+  // Step 16: Line 5 — Environment Symbol Lookup for 'x_1'
+  const valLeftSub = val0 * val1;
+  const nodesStep16 = nodesStep12.map((n) => {
+    if (n.id === "var_1") return { ...n, val: val1, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    5,
+    `Environment Symbol Lookup: env.get('x_1') -> ${val1}`,
+    `Retrieving scalar value ${val1} bound to symbol 'x_1' from environment map env.`,
+    { varName: "x_1", resolvedValue: val1 },
+    nodesStep16,
+    { lookupResult: String(val1) },
+  );
+
+  // Step 17: Line 12 — Apply Multiplication on op_left
+  const nodesStep17 = nodesStep16.map((n) => {
+    if (n.id === "op_left") return { ...n, val: valLeftSub, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    12,
+    `Apply Binary Operator Math: ${val0} * ${val1} -> ${valLeftSub}`,
+    `Executing binary operator op == '*' on left subtree yielding scalar value ${valLeftSub}.`,
+    { op: "*", val_l: val0, val_r: val1, result: valLeftSub },
+    nodesStep17,
+    { op_left_val: String(valLeftSub) },
+  );
+
+  // Step 18: Line 9 — Recurse into Right Subtree of Root
+  const nodesStep18 = nodesStep17.map((n) => {
+    if (n.id === "op_right") return { ...n, state: "active" as const };
+    return n;
+  });
+  addStep(
+    9,
+    "Evaluate Right Child Subtree of Root: op_right (+)",
+    "Invoking recursive call val_r = ast_expression_eval_variables(right, env) on right child node op_right.",
+    { callStack: "root -> op_right", activeNode: "op_right" },
+    nodesStep18,
+  );
+
+  // Step 19: Line 2 — Inspect Right Operator Node
+  const nodesStep19 = nodesStep17.map((n) => {
+    if (n.id === "op_right") return { ...n, state: "compare" as const };
+    return n;
+  });
+  addStep(
+    2,
+    "Inspect AST Node op_right: op = '+'",
+    "Evaluating isinstance(node, (int, float)) for node op_right. Node is compound operator node.",
+    { node: "op_right", op: "+", isNumeric: false },
+    nodesStep19,
+  );
+
+  // Step 20: Line 4 — Check if op_right is String
+  addStep(
+    4,
+    "Check Node op_right: isinstance(node, str) -> False",
+    "Evaluating isinstance(node, str) for node op_right. Node is compound operator dictionary node.",
+    { node: "op_right", isString: false },
+    nodesStep19,
+  );
+
+  // Step 21: Line 7 — Unpack op_right Operator Node
+  addStep(
+    7,
+    "Unpack Node op_right: op = '+', left = op_sub (*), right = 'x_4'",
+    "Extracting left child subtree op_sub and right variable leaf 'x_4'.",
+    { op: "+", left: "op_sub", right: "x_4" },
+    nodesStep18,
+  );
+
+  // Step 22: Line 8 — Recurse into Subtree op_sub
+  const nodesStep22 = nodesStep18.map((n) => {
+    if (n.id === "op_sub") return { ...n, state: "active" as const };
+    return n;
+  });
+  addStep(
+    8,
+    "Evaluate Subtree op_sub (*)",
+    "Recursively visiting child multiplication subtree op_sub.",
+    { callStack: "root -> op_right -> op_sub", activeNode: "op_sub" },
+    nodesStep22,
+  );
+
+  // Step 23: Line 2 — Inspect Node op_sub
+  const nodesStep23 = nodesStep18.map((n) => {
+    if (n.id === "op_sub") return { ...n, state: "compare" as const };
+    return n;
+  });
+  addStep(
+    2,
+    "Inspect AST Node op_sub: op = '*'",
+    "Evaluating isinstance(node, (int, float)) for node op_sub.",
+    { node: "op_sub", op: "*", isNumeric: false },
+    nodesStep23,
+  );
+
+  // Step 24: Line 7 — Unpack Node op_sub
+  addStep(
+    7,
+    "Unpack Node op_sub: op = '*', left = 'x_2', right = 'x_3'",
+    "Extracting left variable operand 'x_2' and right variable operand 'x_3'.",
+    { op: "*", left: "x_2", right: "x_3" },
+    nodesStep22,
+  );
+
+  // Step 25: Line 5 — Environment Symbol Lookup for 'x_2'
+  const nodesStep25 = nodesStep22.map((n) => {
+    if (n.id === "var_2") return { ...n, val: val2, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    5,
+    `Environment Symbol Lookup: env.get('x_2') -> ${val2}`,
+    `Retrieving scalar value ${val2} bound to variable 'x_2' from environment table.`,
+    { varName: "x_2", resolvedValue: val2 },
+    nodesStep25,
+    { lookupResult: String(val2) },
+  );
+
+  // Step 26: Line 5 — Environment Symbol Lookup for 'x_3'
+  const valSubMul = val2 * val3;
+  const nodesStep26 = nodesStep25.map((n) => {
+    if (n.id === "var_3") return { ...n, val: val3, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    5,
+    `Environment Symbol Lookup: env.get('x_3') -> ${val3}`,
+    `Retrieving scalar value ${val3} bound to variable 'x_3' from environment table.`,
+    { varName: "x_3", resolvedValue: val3 },
+    nodesStep26,
+    { lookupResult: String(val3) },
+  );
+
+  // Step 27: Line 12 — Compute Multiplication on op_sub
+  const nodesStep27 = nodesStep26.map((n) => {
+    if (n.id === "op_sub") return { ...n, val: valSubMul, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    12,
+    `Apply Binary Operator Math: ${val2} * ${val3} -> ${valSubMul}`,
+    `Executing operator op == '*' on subtree op_sub yielding scalar value ${valSubMul}.`,
+    { op: "*", val_l: val2, val_r: val3, result: valSubMul },
+    nodesStep27,
+    { op_sub_val: String(valSubMul) },
+  );
+
+  // Step 28: Line 5 — Environment Symbol Lookup for 'x_4'
+  const valRightSub = valSubMul + val4;
+  const nodesStep28 = nodesStep27.map((n) => {
+    if (n.id === "var_4") return { ...n, val: val4, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    5,
+    `Environment Symbol Lookup: env.get('x_4') -> ${val4}`,
+    `Retrieving scalar value ${val4} bound to variable 'x_4' from environment table.`,
+    { varName: "x_4", resolvedValue: val4 },
+    nodesStep28,
+    { lookupResult: String(val4) },
+  );
+
+  // Step 29: Line 11 — Compute Addition on op_right
+  const nodesStep29 = nodesStep28.map((n) => {
+    if (n.id === "op_right") return { ...n, val: valRightSub, state: "visited" as const };
+    return n;
+  });
+  addStep(
+    11,
+    `Apply Binary Operator Math: ${valSubMul} + ${val4} -> ${valRightSub}`,
+    `Executing operator op == '+' on right subtree op_right yielding scalar value ${valRightSub}.`,
+    { op: "+", val_l: valSubMul, val_r: val4, result: valRightSub },
+    nodesStep29,
+    { op_right_val: String(valRightSub) },
+  );
+
+  // Step 30: Line 11 — Compute Root Addition
+  const totalResult = valLeftSub + valRightSub;
+  const nodesStep30 = nodesStep29.map((n) => {
+    if (n.id === "root") return { ...n, val: totalResult, state: "sorted" as const };
+    return n;
+  });
+  addStep(
+    11,
+    `Apply Root Operator Math: ${valLeftSub} + ${valRightSub} -> ${totalResult}`,
+    `Executing root addition combining left subtree (${valLeftSub}) and right subtree (${valRightSub}).`,
+    { op: "+", val_l: valLeftSub, val_r: valRightSub, result: totalResult },
+    nodesStep30,
+    { root_final_val: String(totalResult) },
+  );
+
+  // Step 31: Line 13 — Execution Complete
+  const finalNodes = nodesStep30.map((n) => ({ ...n, state: "sorted" as const }));
+  addStep(
+    13,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
-    { completed: true, totalSteps: stepIndex },
-    finalElements,
+    "Successfully evaluated AST expression tree substituting variable bindings from environment.",
+    { completed: true, totalSteps: stepIndex, finalResult: totalResult },
+    finalNodes,
   );
 
   return steps;
 };
 
 const ASTEXPRESSIONEVALVARIABLES_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 9, 13],
+  skipLines: [6, 10],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -224,39 +489,32 @@ const ASTEXPRESSIONEVALVARIABLES_TRIVIA: TriviaMeta = {
     "return env[node] if node in env else None",
   ],
   hints: [
-    { line: 5, hint: "Check if node is primitive int or float scalar." },
-    { line: 7, hint: "Look up string variable name in environment env." },
-    { line: 10, hint: "Unpack op, left, and right from node dictionary." },
+    { line: 2, hint: "Check if node is primitive int or float scalar constant." },
+    { line: 4, hint: "Look up variable identifier string in environment map env." },
+    { line: 7, hint: "Unpack op symbol, left child, and right child from AST node dictionary." },
   ],
   lineExplanations: {
     1: "Defines entry point for ast_expression_eval_variables recursive expression evaluator.",
-    2: "Docstring opening: describes AST evaluation with dynamic environment bindings.",
-    3: "Docstring body: evaluates AST tree by replacing variable strings with env lookups.",
-    4: "Docstring closing.",
-    5: "Base case: checks if current node is a literal numeric scalar constant (int/float).",
-    6: "Returns numeric scalar constant directly without environment lookup.",
-    7: "Base case: checks if current node is a variable identifier string.",
-    8: "Looks up variable name string in runtime environment map env with default fallback 0.",
-    9: "Empty line separating base cases from compound operator unpacking.",
-    10: "Unpacks operator symbol 'op', left child node, and right child node from AST dictionary.",
-    11: "Recursively evaluates left child node expression under environment env.",
-    12: "Recursively evaluates right child node expression under environment env.",
-    13: "Empty line separating operand evaluation from binary arithmetic calculation.",
-    14: "Applies addition operator returning computed sum (val_l + val_r).",
-    15: "Applies multiplication operator returning computed product (val_l * val_r).",
-    16: "Fallback case returning 0 for unsupported or unknown operator symbols.",
+    2: "Base case: checks if current node is a literal numeric scalar constant (int/float).",
+    3: "Returns numeric scalar constant directly without environment lookup.",
+    4: "Base case: checks if current node is a variable identifier string.",
+    5: "Looks up variable name string in runtime environment map env with default fallback 0.",
+    6: "Empty line separating base cases from compound operator unpacking.",
+    7: "Unpacks operator symbol 'op', left child node, and right child node from AST dictionary.",
+    8: "Recursively evaluates left child node expression under environment env.",
+    9: "Recursively evaluates right child node expression under environment env.",
+    10: "Empty line separating operand evaluation from binary arithmetic calculation.",
+    11: "Applies addition operator returning computed sum (val_l + val_r).",
+    12: "Applies multiplication operator returning computed product (val_l * val_r).",
+    13: "Fallback case returning 0 for unsupported or unknown operator symbols.",
   },
 };
 
 export const astExpressionEvalVariables: AlgorithmDefinition<astExpressionEvalVariablesInput> = {
   id: "ast-expression-eval-variables",
   title: "AST Expression Evaluation with Variables",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### AST Expression Evaluation with Variable Environment
 
 In deep learning runtime frameworks (**PyTorch autograd**, **SymPy**, **ONNX Runtime**, and **JIT Executors**), evaluating computation graphs requires resolving dynamic tensor variables against a runtime binding environment (\`env\`).
@@ -370,4 +628,3 @@ With environment-based AST evaluation:
   defaultInput: DEFAULT_ASTEXPRESSIONEVALVARIABLES_INPUT,
   generateSteps: generateAstExpressionEvalVariablesSteps,
 };
-

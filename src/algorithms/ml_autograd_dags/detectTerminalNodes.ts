@@ -1,15 +1,19 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface detectTerminalNodesInput {
-  data: number[];
+  numNodes?: number;
+  edges?: [number, number][];
+  data?: number[];
   target?: number;
 }
 
 export const DETECTTERMINALNODES_CODE = `def detect_terminal_nodes(num_nodes, edges):
-    """
-    Finds leaf sink nodes with out-degree 0 in autograd computation graph.
-    """
     out_degree = [0] * num_nodes
     for u, v in edges:
         out_degree[u] += 1
@@ -18,8 +22,14 @@ export const DETECTTERMINALNODES_CODE = `def detect_terminal_nodes(num_nodes, ed
     return terminal_nodes`;
 
 export const DEFAULT_DETECTTERMINALNODES_INPUT: detectTerminalNodesInput = {
-  data: [10, 20, 30, 40, 50],
-  target: 30,
+  numNodes: 6,
+  edges: [
+    [0, 2],
+    [1, 2],
+    [2, 4],
+    [3, 4],
+    [4, 5],
+  ],
 };
 
 export const generateDetectTerminalNodesSteps = (
@@ -27,38 +37,73 @@ export const generateDetectTerminalNodesSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const arrayData = input?.data || [10, 20, 30, 40, 50];
-  const target = input?.target ?? 30;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const numNodes = input?.numNodes ?? (input?.data ? input.data.length : 6);
+  const edges: [number, number][] = input?.edges ?? [
+    [0, 2],
+    [1, 2],
+    [2, 4],
+    [3, 4],
+    [4, 5],
+  ];
+
+  const getNodes = (
+    nodeStates: Record<number, "default" | "active" | "visited" | "sorted" | "pivot"> = {},
+  ): GraphNodeItem[] => {
+    const nodes: GraphNodeItem[] = [];
+    const cols = Math.min(3, numNodes);
+    for (let i = 0; i < numNodes; i++) {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      nodes.push({
+        id: `${i}`,
+        label: `Node ${i}`,
+        state: nodeStates[i] || "default",
+        x: 100 + col * 180,
+        y: 100 + row * 120,
+      });
+    }
+    return nodes;
+  };
+
+  const getEdges = (
+    activeEdgeIdx?: number,
+    traversedEdgeIndices: Set<number> = new Set(),
+  ): GraphEdgeItem[] => {
+    return edges.map(([u, v], idx) => ({
+      from: `${u}`,
+      to: `${v}`,
+      isTraversed: traversedEdgeIndices.has(idx) || activeEdgeIdx === idx,
+      isPath: activeEdgeIdx === idx,
+    }));
+  };
+
+  const outDegree: number[] = new Array(numNodes).fill(0);
+  const terminalNodes: number[] = [];
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
-    customState?: Record<string, string | number>,
+    nodeStates: Record<number, "default" | "active" | "visited" | "sorted" | "pivot"> = {},
+    activeEdgeIdx?: number,
+    traversedEdgeIndices: Set<number> = new Set(),
+    customState: Record<string, string | number> = {},
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "graph",
+        nodes: getNodes(nodeStates),
+        edges: getEdges(activeEdgeIdx, traversedEdgeIndices),
       },
       auxiliaryState: {
         customState: {
-          data: `[${arrayData.join(", ")}]`,
-          target: String(target),
+          out_degree: `[${outDegree.join(", ")}]`,
+          terminal_nodes: `[${terminalNodes.join(", ")}]`,
           ...customState,
         },
       },
@@ -66,134 +111,144 @@ export const generateDetectTerminalNodesSteps = (
     });
   };
 
-  // Step 1: Init Terminal Node Finder
+  // Step 1: Function Entry
   addStep(
     1,
     "Initialize Terminal Sink Node Detector for DAG",
-    "Setting up out-degree counter array `out_degree = [0] * num_nodes` to identify autograd loss output nodes.",
-    { numNodes: arrayData.length, target, phase: "INIT_TERMINAL_FINDER" },
+    `Setting up out-degree analysis on autograd computation graph with ${numNodes} nodes and ${edges.length} directed edges.`,
+    { numNodes, totalEdges: edges.length },
+    {},
     undefined,
-    { out_degree_status: "INITIALIZING", terminal_nodes: "[]" },
+    new Set(),
+    { status: "INITIALIZING" },
   );
 
+  // Step 2: Allocate out_degree array
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Finds leaf sink nodes with out-degree 0 in autograd computation graph.",
-    {},
+    "Allocate Out-Degree Tracking Array",
+    `Initializing out_degree array of size ${numNodes} with zeros: [${outDegree.join(", ")}].`,
+    { numNodes, phase: "ALLOC_OUT_DEGREE" },
   );
 
+  // Step 3: Scan Edge List
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
+    "Iterate Directed Edge List",
+    `Looping through ${edges.length} directed edge(s) in the computation graph DAG to count node out-degrees.`,
+    { totalEdges: edges.length, phase: "PREPARE_EDGE_LOOP" },
   );
 
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
+  const traversedEdges = new Set<number>();
+  edges.forEach(([u, v], idx) => {
+    // Select Edge
+    const nodeStates: Record<number, "default" | "active" | "visited" | "sorted" | "pivot"> = {
+      [u]: "active",
+      [v]: "visited",
+    };
+    addStep(
+      3,
+      `Inspect Directed Edge (${u} -> ${v})`,
+      `Examining directed connection from source node ${u} to target node ${v}.`,
+      { edgeIndex: idx, u, v, currentOutDegree: outDegree[u] },
+      nodeStates,
+      idx,
+      traversedEdges,
+    );
 
-  // Step 2: Init Out-Degree Array
-  addStep(
-    5,
-    "Allocate Out-Degree Counter Array [0, 0, ...]",
-    "Initializing out-degree counts to zero for all computation graph vertices.",
-    { numNodes: arrayData.length, phase: "ALLOC_OUT_DEGREE" },
-  );
+    // Increment out-degree
+    outDegree[u] += 1;
+    traversedEdges.add(idx);
+    addStep(
+      4,
+      `Increment out_degree[${u}] -> ${outDegree[u]}`,
+      `Node ${u} has an outgoing edge to Node ${v}, so increment out_degree[${u}] to ${outDegree[u]}.`,
+      { u, v, newOutDegree: outDegree[u] },
+      nodeStates,
+      idx,
+      traversedEdges,
+    );
+  });
 
-  // Step 3: Scan Edge List Structure
+  // Step 6: Filter Terminal Nodes
   addStep(
     6,
-    "Inspect Graph Edge Topology List",
-    "Preparing directed edge traversal pass to compute out-degrees for each vertex.",
-    { totalEdgesCount: arrayData.length - 1, phase: "PREPARE_EDGE_SCAN" },
+    "Filter Terminal Sink Nodes (Out-Degree == 0)",
+    "Scanning the out_degree array to extract sink leaf nodes with no outgoing edges.",
+    { outDegreeArray: `[${outDegree.join(", ")}]`, phase: "CHECK_TERMINALS" },
   );
 
-  // Edge processing pass: Count out-degrees for each node
-  const outDegreeMap: number[] = new Array(arrayData.length).fill(0);
-  arrayData.forEach((val, idx) => {
-    const hasOutgoingEdge = idx < arrayData.length - 2;
-    if (hasOutgoingEdge) {
-      outDegreeMap[idx] += 1;
+  for (let i = 0; i < numNodes; i++) {
+    const isTerminal = outDegree[i] === 0;
+    if (isTerminal) {
+      terminalNodes.push(i);
     }
 
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`outdeg=${outDegreeMap[idx]}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
+    const nodeStates: Record<number, "default" | "active" | "visited" | "sorted" | "pivot"> = {};
+    for (let k = 0; k < numNodes; k++) {
+      if (k < i) {
+        nodeStates[k] = terminalNodes.includes(k) ? "sorted" : "visited";
+      } else if (k === i) {
+        nodeStates[k] = isTerminal ? "pivot" : "active";
+      }
+    }
+
     addStep(
       6,
-      `Process Outgoing Edges for Node ${idx}`,
-      `Scanning graph edges from source vertex Node_${idx}. Outdegree = ${outDegreeMap[idx]}.`,
-      { idx, outDegree: outDegreeMap[idx], hasOutgoing: hasOutgoingEdge, phase: "SCAN_EDGES" },
-      stateA,
-      { [`Node_${idx}_outdeg`]: String(outDegreeMap[idx]) },
+      `Check Node ${i}: out_degree[${i}] == ${outDegree[i]}`,
+      `Node ${i} has out-degree ${outDegree[i]}. It is ${
+        isTerminal
+          ? "a TERMINAL SINK NODE (Loss Output head with zero outgoing edges)"
+          : "an internal intermediate computation node"
+      }.`,
+      {
+        node: i,
+        outDegree: outDegree[i],
+        isTerminal,
+        terminalNodesSoFar: `[${terminalNodes.join(", ")}]`,
+      },
+      nodeStates,
+      undefined,
+      traversedEdges,
     );
+  }
 
-    addStep(
-      7,
-      `Update Out-Degree Count: out_degree[${idx}] -> ${outDegreeMap[idx]}`,
-      `Incrementing out_degree[${idx}] for each directed downstream edge in DAG.`,
-      { idx, finalOutDegree: outDegreeMap[idx], phase: "UPDATE_OUTDEG" },
-      stateA,
-    );
-  });
+  // Final Step: Return terminal nodes
+  const finalNodeStates: Record<number, "default" | "active" | "visited" | "sorted" | "pivot"> = {};
+  for (let i = 0; i < numNodes; i++) {
+    finalNodeStates[i] = terminalNodes.includes(i) ? "sorted" : "visited";
+  }
 
-  // Terminal node extraction pass: Find nodes with out-degree 0
-  const terminalList: number[] = [];
-  arrayData.forEach((val, idx) => {
-    const isTerminal = outDegreeMap[idx] === 0;
-    if (isTerminal) terminalList.push(idx);
-    const isTarget = val === target;
-
-    const stateExtract: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTerminal ? "active" : "sorted", pointers: [isTerminal ? "SINK_NODE" : "INTERNAL"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
-    addStep(
-      9,
-      `Inspect Node ${idx} Out-Degree: out_degree[${idx}] == ${outDegreeMap[idx]}`,
-      `Checking terminal condition (out_degree == 0). Node_${idx} is ${isTerminal ? "a TERMINAL SINK (Loss Output)" : "an internal intermediate node"}.`,
-      { idx, outDegree: outDegreeMap[idx], isTerminal, totalTerminalFound: terminalList.length, phase: "CHECK_TERMINAL" },
-      stateExtract,
-      { terminalList: `[${terminalList.join(", ")}]` },
-    );
-  });
-
-  // Step final-1: Final Graph Verification
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
   addStep(
-    9,
-    "Verify All Graph Terminal Sink Nodes Extracted",
-    `Identified ${terminalList.length} terminal loss sink nodes: [${terminalList.join(", ")}]. Ready for autograd loss gradient seed initialization.`,
-    { totalTerminalNodes: terminalList.length, terminalList: terminalList.join(",") },
-    finalElements,
+    7,
+    "Return Detected Terminal Sink Nodes",
+    `Identified ${terminalNodes.length} terminal sink node(s): [${terminalNodes.join(
+      ", ",
+    )}]. Gradient seeding dL/dL = 1.0 can be initialized at these nodes for reverse-mode autograd.`,
+    { terminalCount: terminalNodes.length, terminalNodes: `[${terminalNodes.join(", ")}]` },
+    finalNodeStates,
+    undefined,
+    traversedEdges,
   );
 
-  // Step final: Complete
   addStep(
-    10,
+    7,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    `Successfully processed all nodes in the computation graph structure. Identified terminal sink nodes: [${terminalNodes.join(
+      ", ",
+    )}].`,
     { completed: true, totalSteps: stepIndex },
-    finalElements,
+    finalNodeStates,
+    undefined,
+    traversedEdges,
+    { status: "COMPLETED" },
   );
 
   return steps;
 };
 
 const DETECTTERMINALNODES_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -201,33 +256,26 @@ const DETECTTERMINALNODES_TRIVIA: TriviaMeta = {
     "terminal_nodes = [i for i in range(num_nodes) if in_degree[i] == 0]",
   ],
   hints: [
-    { line: 5, hint: "Initialize out_degree array with zeros for all nodes." },
-    { line: 7, hint: "Increment out_degree[u] for each directed edge u -> v." },
-    { line: 9, hint: "Extract node indices i where out_degree[i] == 0 (sink leaf nodes)." },
+    { line: 2, hint: "Initialize out_degree array with zeros for all nodes." },
+    { line: 4, hint: "Increment out_degree[u] for each directed edge u -> v." },
+    { line: 6, hint: "Extract node indices i where out_degree[i] == 0 (sink leaf nodes)." },
   ],
   lineExplanations: {
     1: "Defines entry point for detect_terminal_nodes graph sink detector.",
-    2: "Docstring opening: describes finding terminal leaf sink nodes.",
-    3: "Docstring body: identifies out-degree 0 sink nodes in autograd computation graph.",
-    4: "Docstring closing.",
-    5: "Allocates out_degree array initialized to 0 for num_nodes graph nodes.",
-    6: "Iterates through directed edge tuples (u, v) in graph.",
-    7: "Increments out-degree count out_degree[u] for source node u.",
-    8: "Empty line separating edge iteration from terminal node list comprehension extraction.",
-    9: "List comprehension extracting node indices i whose out-degree is 0 (terminal leaf sink nodes).",
-    10: "Returns list of detected terminal sink node IDs.",
+    2: "Allocates out_degree array initialized to 0 for num_nodes graph nodes.",
+    3: "Iterates through directed edge tuples (u, v) in graph.",
+    4: "Increments out-degree count out_degree[u] for source node u.",
+    5: "Blank line separating edge iteration from terminal node extraction.",
+    6: "List comprehension extracting node indices i whose out-degree is 0 (terminal leaf sink nodes).",
+    7: "Returns list of detected terminal sink node IDs.",
   },
 };
 
 export const detectTerminalNodes: AlgorithmDefinition<detectTerminalNodesInput> = {
   id: "detect-terminal-nodes",
   title: "Detect Terminal Leaf Nodes in DAG",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Detect Terminal Leaf Nodes in DAG
 
 In deep learning autograd engines (**PyTorch**, **JAX**, **TensorFlow**, and **Graph Compilers**), **terminal leaf nodes** (sink nodes with **out-degree = 0**) represent final model output tensors, loss nodes, or target metrics.
@@ -240,8 +288,8 @@ Without terminal node detection:
 2. Multi-task loss topologies (where multiple loss heads exist) fail to discover all backward starting entry points.
 
 With out-degree terminal detection:
-- The graph engine scans directed edges and tracks the out-degree count $\\text{out\_degree}[u]$ of every node $u$.
-- Vertices with $\\text{out\_degree}[u] == 0$ are classified as **terminal sink nodes**.
+- The graph engine scans directed edges and tracks the out-degree count $\\text{out\\_degree}[u]$ of every node $u$.
+- Vertices with $\\text{out\\_degree}[u] == 0$ are classified as **terminal sink nodes**.
 - Initializes backward gradient propagation cleanly for single-loss or multi-loss computation DAGs.
 
 #### Step-by-Step Mechanism
@@ -254,39 +302,49 @@ With out-degree terminal detection:
 - **Time Complexity**: $\\mathcal{O}(V + E)$ linear time across graph vertices $V$ and directed edges $E$.
 - **Space Complexity**: $\\mathcal{O}(V)$ auxiliary space for out-degree tracking array.
 - **Trade-Off**: Extremely cheap $\\mathcal{O}(V+E)$ scan that automates backward pass initialization across arbitrary graph topologies.`,
-  constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
+  constraints: ["1 <= num_nodes <= 1000", "0 <= edges.length <= 5000"],
   examples: [
     {
       kind: "basic",
-      title: "Standard Autograd Pass",
-      inputDisplay: "data = [10, 20, 30], target = 30",
-      outputDisplay: "Evaluated Graph State",
-      input: { data: [10, 20, 30], target: 30 },
-      output: "[10, 20, 30]",
-      explanation: "Standard execution pass over computation graph.",
+      title: "Standard Autograd Single-Loss DAG",
+      inputDisplay: "numNodes = 6, edges = [[0, 2], [1, 2], [2, 4], [3, 4], [4, 5]]",
+      outputDisplay: "[5]",
+      input: {
+        numNodes: 6,
+        edges: [
+          [0, 2],
+          [1, 2],
+          [2, 4],
+          [3, 4],
+          [4, 5],
+        ],
+      },
+      output: "[5]",
+      explanation: "Node 5 has out-degree 0 (terminal loss node).",
     },
     {
       kind: "complex",
-      title: "Larger DAG Input",
-      inputDisplay: "data = [10, 20, 30, 40, 50]",
-      outputDisplay: "Evaluated Graph State",
-      input: { data: [10, 20, 30, 40, 50] },
-      output: "[10, 20, 30, 40, 50]",
-      explanation: "Evaluates multi-node computation graph DAG.",
-    },
-    {
-      kind: "negative",
-      title: "Edge Case DAG",
-      inputDisplay: "data = [5, 10, 15], target = 99",
-      outputDisplay: "Evaluated Graph State",
-      input: { data: [5, 10, 15], target: 99 },
-      output: "[5, 10, 15]",
-      explanation: "Edge case handling completes safely.",
+      title: "Multi-Task Dual Loss DAG",
+      inputDisplay: "numNodes = 7, edges = [[0, 2], [1, 2], [2, 4], [3, 4], [4, 5], [4, 6]]",
+      outputDisplay: "[5, 6]",
+      input: {
+        numNodes: 7,
+        edges: [
+          [0, 2],
+          [1, 2],
+          [2, 4],
+          [3, 4],
+          [4, 5],
+          [4, 6],
+        ],
+      },
+      output: "[5, 6]",
+      explanation: "Nodes 5 and 6 have out-degree 0 (multi-task loss outputs).",
     },
   ],
   code: DETECTTERMINALNODES_CODE,
   timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
-  spaceComplexity: "O(V + E)",
+  spaceComplexity: "O(V)",
   complexityAnalysis: {
     time: "Linear time scan over graph vertices and directed edges.",
     space: "Linear memory allocation for node out-degree tracking array.",
@@ -320,13 +378,11 @@ With out-degree terminal detection:
       },
       {
         term: "Out-Degree",
-        definition:
-          "The number of directed edges originating from a specific graph vertex.",
+        definition: "The number of directed edges originating from a specific graph vertex.",
       },
       {
         term: "Sink Node",
-        definition:
-          "A vertex in a directed graph with zero outgoing edges.",
+        definition: "A vertex in a directed graph with zero outgoing edges.",
       },
       {
         term: "Loss Seed",

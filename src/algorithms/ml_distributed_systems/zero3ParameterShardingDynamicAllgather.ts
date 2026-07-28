@@ -7,23 +7,6 @@ export interface zero3ParameterShardingDynamicAllgatherInput {
 }
 
 export const ZERO3PARAMETERSHARDINGDYNAMICALLGATHER_CODE = `def estimate_zero3_memory(parameters, num_gpus):
-    """
-    Calculates per-GPU memory footprint under DeepSpeed ZeRO-3 (Parameter, Gradient, and Optimizer State Partitioning).
-    
-    Under ZeRO-3, all three model states are fully sharded across N GPUs:
-    - Model Weights (FP16): 2 * Psi / N bytes (sharded, fetched JIT via All-Gather per layer)
-    - Gradients (FP16): 2 * Psi / N bytes (sharded)
-    - Optimizer States (FP32): 12 * Psi / N bytes (sharded)
-
-    Total persistent VRAM memory per GPU = (2*Psi / N) + (2*Psi / N) + (12*Psi / N) = 16*Psi / N bytes.
-
-    Args:
-        parameters: Total parameter count (Psi)
-        num_gpus: Number of data parallel GPUs (N)
-
-    Returns:
-        dict containing persistent per-GPU memory footprint and per-step communication metrics.
-    """
     if num_gpus <= 0:
         raise ValueError("Number of GPUs must be at least 1")
 
@@ -99,7 +82,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   );
 
   addStep(
-    19,
+    2,
     "Check Number of GPUs Guard (num_gpus <= 0)",
     `Validating GPU count: ${N} >= 1. Guard check passed.`,
     { num_gpus: N, valid: true },
@@ -108,7 +91,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
 
   const perGpuWeightBytes = (2 * params) / N;
   addStep(
-    22,
+    5,
     `Compute Sharded FP16 Model Weight Memory per_gpu_weight_bytes = ${(perGpuWeightBytes / 1e9).toFixed(2)} GB`,
     `Full parameter sharding: (2 * ${params.toLocaleString()}) / ${N} = ${(perGpuWeightBytes / 1e9).toFixed(2)} GB persistent VRAM per GPU.`,
     { parameters: params, num_gpus: N, per_gpu_weight_bytes: perGpuWeightBytes },
@@ -117,7 +100,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
 
   const perGpuGradBytes = (2 * params) / N;
   addStep(
-    23,
+    6,
     `Compute Sharded FP16 Gradient Memory per_gpu_grad_bytes = ${(perGpuGradBytes / 1e9).toFixed(2)} GB`,
     `Reduce-Scatter gradient sharding: (2 * ${params.toLocaleString()}) / ${N} = ${(perGpuGradBytes / 1e9).toFixed(2)} GB per GPU.`,
     { parameters: params, num_gpus: N, per_gpu_grad_bytes: perGpuGradBytes },
@@ -126,7 +109,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
 
   const perGpuOptBytes = (12 * params) / N;
   addStep(
-    24,
+    7,
     `Compute Sharded FP32 Optimizer State Memory per_gpu_opt_bytes = ${(perGpuOptBytes / 1e9).toFixed(2)} GB`,
     `Adam optimizer state sharding: (12 * ${params.toLocaleString()}) / ${N} = ${(perGpuOptBytes / 1e9).toFixed(2)} GB per GPU.`,
     { parameters: params, num_gpus: N, per_gpu_opt_bytes: perGpuOptBytes },
@@ -135,10 +118,15 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
 
   const persistentPerGpu = perGpuWeightBytes + perGpuGradBytes + perGpuOptBytes;
   addStep(
-    25,
+    8,
     `Compute Total Persistent Per-GPU Memory persistent_per_gpu = ${(persistentPerGpu / 1e9).toFixed(2)} GB`,
     `Total persistent VRAM: weight (${(perGpuWeightBytes / 1e9).toFixed(2)}GB) + grad (${(perGpuGradBytes / 1e9).toFixed(2)}GB) + opt (${(perGpuOptBytes / 1e9).toFixed(2)}GB) = ${(persistentPerGpu / 1e9).toFixed(2)} GB per GPU.`,
-    { per_gpu_weight_bytes: perGpuWeightBytes, per_gpu_grad_bytes: perGpuGradBytes, per_gpu_opt_bytes: perGpuOptBytes, persistent_per_gpu: persistentPerGpu },
+    {
+      per_gpu_weight_bytes: perGpuWeightBytes,
+      per_gpu_grad_bytes: perGpuGradBytes,
+      per_gpu_opt_bytes: perGpuOptBytes,
+      persistent_per_gpu: persistentPerGpu,
+    },
     [...elements],
   );
 
@@ -149,14 +137,14 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
         return {
           ...el,
           state: isTarget ? ("active" as const) : ("compare" as const),
-          pointers: [`GPU_${idx}`, `JIT All-Gather (${(val * 2 / N).toFixed(1)}MB)`],
+          pointers: [`GPU_${idx}`, `JIT All-Gather (${((val * 2) / N).toFixed(1)}MB)`],
         };
       if (i < idx) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      22,
+      5,
       `Layer ${idx}: Dynamic All-Gather Weight Fetch (${val} MB payload)`,
       `Broadcasting sharded weight partition ${idx} across all ${N} GPUs JIT before forward/backward layer execution.`,
       { idx, layer_bytes: val, persistent_per_gpu: persistentPerGpu, isTarget },
@@ -171,7 +159,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   }));
 
   addStep(
-    27,
+    10,
     "Construct Return Memory & Communication Payload",
     "Assembling ZeRO-3 persistent memory breakdown dictionary.",
     { persistent_per_gpu: persistentPerGpu },
@@ -179,7 +167,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   );
 
   addStep(
-    28,
+    11,
     `Set persistent_per_gpu = ${(persistentPerGpu / 1e9).toFixed(2)} GB`,
     "Assigning total persistent per-GPU VRAM requirement (16 * Psi / N).",
     { persistent_per_gpu: persistentPerGpu },
@@ -187,7 +175,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   );
 
   addStep(
-    29,
+    12,
     `Set per_gpu_weight_bytes = ${(perGpuWeightBytes / 1e9).toFixed(2)} GB`,
     "Assigning sharded FP16 weight memory requirement (2 * Psi / N).",
     { per_gpu_weight_bytes: perGpuWeightBytes },
@@ -195,7 +183,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   );
 
   addStep(
-    30,
+    13,
     `Set per_gpu_grad_bytes = ${(perGpuGradBytes / 1e9).toFixed(2)} GB`,
     "Assigning sharded FP16 gradient memory requirement (2 * Psi / N).",
     { per_gpu_grad_bytes: perGpuGradBytes },
@@ -203,7 +191,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   );
 
   addStep(
-    31,
+    14,
     `Set per_gpu_opt_bytes = ${(perGpuOptBytes / 1e9).toFixed(2)} GB`,
     "Assigning sharded FP32 optimizer state memory requirement (12 * Psi / N).",
     { per_gpu_opt_bytes: perGpuOptBytes },
@@ -211,7 +199,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
   );
 
   addStep(
-    32,
+    15,
     "Return DeepSpeed ZeRO-3 Memory Allocation Analysis",
     `Completed ZeRO-3 memory estimation across ${N} GPUs. Total persistent per-GPU VRAM footprint = ${(persistentPerGpu / 1e9).toFixed(2)} GB.`,
     {
@@ -228,7 +216,7 @@ export const generateZero3ParameterShardingDynamicAllgatherSteps = (
 };
 
 const ZERO3PARAMETERSHARDINGDYNAMICALLGATHER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 26],
+  skipLines: [4, 9],
   distractors: [
     "persistent_per_gpu = parameters * 16",
     "per_gpu_weight_bytes = parameters * num_gpus",
@@ -236,44 +224,36 @@ const ZERO3PARAMETERSHARDINGDYNAMICALLGATHER_TRIVIA: TriviaMeta = {
     "per_gpu_opt_bytes = (12 * parameters) * num_gpus",
   ],
   hints: [
-    { line: 22, hint: "FP16 weights are sharded under ZeRO-3: per_gpu_weight_bytes = (2 * parameters) / num_gpus." },
-    { line: 23, hint: "Gradients are sharded: per_gpu_grad_bytes = (2 * parameters) / num_gpus." },
-    { line: 24, hint: "Optimizer states are sharded: per_gpu_opt_bytes = (12 * parameters) / num_gpus." },
-    { line: 25, hint: "Total persistent per-GPU memory = per_gpu_weight_bytes + per_gpu_grad_bytes + per_gpu_opt_bytes = 16 * Psi / N." },
+    {
+      line: 5,
+      hint: "FP16 weights are sharded under ZeRO-3: per_gpu_weight_bytes = (2 * parameters) / num_gpus.",
+    },
+    { line: 6, hint: "Gradients are sharded: per_gpu_grad_bytes = (2 * parameters) / num_gpus." },
+    {
+      line: 7,
+      hint: "Optimizer states are sharded: per_gpu_opt_bytes = (12 * parameters) / num_gpus.",
+    },
+    {
+      line: 8,
+      hint: "Total persistent per-GPU memory = per_gpu_weight_bytes + per_gpu_grad_bytes + per_gpu_opt_bytes = 16 * Psi / N.",
+    },
   ],
   lineExplanations: {
     1: "Function signature for estimate_zero3_memory taking parameters and num_gpus.",
-    2: "Docstring start describing ZeRO-3 full parameter, gradient, and optimizer state sharding.",
-    3: "Describes per-GPU memory footprint under DeepSpeed ZeRO-3.",
-    4: "Blank line in docstring.",
-    5: "Describes full sharding of all three model states across N GPUs.",
-    6: "Explains FP16 weights sharding (2 * Psi / N bytes) fetched JIT via All-Gather.",
-    7: "Explains FP16 gradients sharding (2 * Psi / N bytes).",
-    8: "Explains FP32 optimizer states sharding (12 * Psi / N bytes).",
-    9: "Blank line in docstring.",
-    10: "Shows total persistent VRAM formula: 16 * Psi / N bytes.",
-    11: "Blank line in docstring.",
-    12: "Docstring parameters section header.",
-    13: "Explains parameters argument representing total model parameter count Psi.",
-    14: "Explains num_gpus argument representing Data Parallel world size N.",
-    15: "Blank line in docstring.",
-    16: "Docstring returns section header.",
-    17: "Explains return dictionary payload of per-GPU persistent memory metrics.",
-    18: "Docstring close.",
-    19: "Checks guard condition if num_gpus is less than or equal to 0.",
-    20: "Raises ValueError if GPU count is invalid.",
-    21: "Blank line before memory calculations.",
-    22: "Calculates sharded FP16 weight memory per GPU per_gpu_weight_bytes = (2 * parameters) / num_gpus.",
-    23: "Calculates sharded FP16 gradient memory per GPU per_gpu_grad_bytes = (2 * parameters) / num_gpus.",
-    24: "Calculates sharded FP32 optimizer state memory per GPU per_gpu_opt_bytes = (12 * parameters) / num_gpus.",
-    25: "Calculates persistent_per_gpu by summing per-GPU weight, gradient, and optimizer bytes.",
-    26: "Blank line before returning dictionary payload.",
-    27: "Opens return dictionary payload.",
-    28: "Sets persistent_per_gpu field in return dictionary.",
-    29: "Sets per_gpu_weight_bytes field in return dictionary.",
-    30: "Sets per_gpu_grad_bytes field in return dictionary.",
-    31: "Sets per_gpu_opt_bytes field in return dictionary.",
-    32: "Closes return dictionary payload and returns result.",
+    2: "Checks guard condition if num_gpus is less than or equal to 0.",
+    3: "Raises ValueError if GPU count is invalid.",
+    4: "Blank line before memory calculations.",
+    5: "Calculates sharded FP16 weight memory per GPU per_gpu_weight_bytes = (2 * parameters) / num_gpus.",
+    6: "Calculates sharded FP16 gradient memory per GPU per_gpu_grad_bytes = (2 * parameters) / num_gpus.",
+    7: "Calculates sharded FP32 optimizer state memory per GPU per_gpu_opt_bytes = (12 * parameters) / num_gpus.",
+    8: "Calculates persistent_per_gpu by summing per-GPU weight, gradient, and optimizer bytes.",
+    9: "Blank line before returning dictionary payload.",
+    10: "Opens return dictionary payload.",
+    11: "Sets persistent_per_gpu field in return dictionary.",
+    12: "Sets per_gpu_weight_bytes field in return dictionary.",
+    13: "Sets per_gpu_grad_bytes field in return dictionary.",
+    14: "Sets per_gpu_opt_bytes field in return dictionary.",
+    15: "Closes return dictionary payload and returns result.",
   },
 };
 
@@ -281,12 +261,8 @@ export const zero3ParameterShardingDynamicAllgather: AlgorithmDefinition<zero3Pa
   {
     id: "zero3-parameter-sharding-dynamic-allgather",
     title: "DeepSpeed ZeRO-3 Parameter Sharding & Dynamic All-Gather Engine",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+    topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "Calculates per-GPU VRAM memory footprint and dynamic inter-GPU communication requirements under DeepSpeed ZeRO-3 (Zero Redundancy Optimizer Stage 3: Parameter Partitioning / PyTorch FSDP).\n\n### Mathematical Formulation & Linear Memory Scaling\nIn deep learning mixed-precision training (FP16/BF16) with parameter count $\\Psi$ across $N$ Data Parallel GPUs:\n- **Model Weights (FP16/BF16)**: $M_{\\text{weights}} = \\frac{2\\Psi}{N}$ bytes (sharded, fetched JIT per layer)\n- **Gradients (FP16/BF16)**: $M_{\\text{grads}} = \\frac{2\\Psi}{N}$ bytes (sharded)\n- **Adam Optimizer States (FP32)**: $M_{\\text{opt}} = \\frac{12\\Psi}{N}$ bytes (sharded)\n\nTotal persistent per-GPU memory footprint under ZeRO-3:\n$$M_{\\text{ZeRO-3}} = \\frac{2\\Psi}{N} + \\frac{2\\Psi}{N} + \\frac{12\\Psi}{N} = \\frac{16\\Psi}{N} \\text{ bytes}$$\n\nNotice that memory scales linearly with the number of GPUs $N$! For $N=64$ GPUs, VRAM requirements are reduced by a factor of 64 relative to standard DDP ($16\\Psi$ bytes).\n\n### Dynamic All-Gather Mechanics\nSince model weights are sharded across all GPUs, each rank does not hold the full model in VRAM. During forward and backward execution of layer $L$:\n1. GPUs issue an All-Gather collective to fetch the unsharded FP16 weights for layer $L$.\n2. Layer $L$ forward/backward computation is executed.\n3. Unsharded weights for layer $L$ are immediately discarded from VRAM.\n\nCommunication Impact:\nZeRO-3 increases total communication volume by $1.5\\times$ relative to standard DDP ($3\\frac{N-1}{N}\\Psi$ bytes per step instead of $2\\frac{N-1}{N}\\Psi$). However, by overlapping All-Gather prefetching with computation, network overhead is hidden.\n\nInput Format:\n- `data`: Array of parameter counts or layer size metrics across transformer blocks.\n- `target`: Optional target search value.\n\nOutput Format:\n- Returns persistent per-GPU VRAM memory footprint and per-step communication metrics.",
     constraints: ["1 <= data.length <= 1000", "0 <= data[i] <= 10^9"],

@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { characterFrequencyNgramCounter } from "./characterFrequencyNgramCounter";
 
-describe("characterFrequencyNgramCounter", () => {
+describe("character-frequency-ngram-counter", () => {
   it("should be a valid AlgorithmDefinition", () => {
-    expect(characterFrequencyNgramCounter.id).toBe("characterFrequencyNgramCounter");
-    expect(characterFrequencyNgramCounter.category).toBe("ml_tokenization");
-    expect(characterFrequencyNgramCounter.isMlInfra).toBe(true);
-    expect(characterFrequencyNgramCounter.mlInfraCategory).toBe("ml_tokenization");
+    expect(characterFrequencyNgramCounter.id).toBe("character-frequency-ngram-counter");
+    expect(characterFrequencyNgramCounter.topicIds).toContain("ml_tokenization");
+    expect(
+      characterFrequencyNgramCounter.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(characterFrequencyNgramCounter.topicIds).toContain("ml_tokenization");
   });
 
   it("generateSteps should return at least one step for defaultInput", () => {

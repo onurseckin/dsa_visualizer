@@ -1,4 +1,4 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
 
 export interface KmeansCentroidClusteringInput {
   vectors: number[][];
@@ -274,14 +274,10 @@ export const generateKmeansClusteringSteps = (
 };
 
 export const kmeansCentroidClustering: AlgorithmDefinition<KmeansCentroidClusteringInput> = {
-  id: "kmeansCentroidClustering",
+  id: "kmeans-centroid-clustering",
   title: "K-Means Centroid Clustering",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search"],
+  topicIds: ["ml_vector_search"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "K-Means clustering partitions N multi-dimensional vectors into K distinct Voronoi clusters using Lloyd's Expectation-Maximization (EM) algorithm. Alternates between the Expectation step (assigning each vector to its nearest centroid) and the Maximization step (updating centroids to the arithmetic mean of assigned vectors).\n\nInput Format:\n- vectors: N data vectors of dimension D.\n- k: Target number of clusters K.\n- maxIter: Maximum optimization iterations.\n- initialCentroids: Optional K initial centroid coordinates.\n\nOutput Format:\n- Returns tuple (finalCentroids, clusterAssignments).\n\nEdge Cases & Constraints:\n- Empty cluster: Retains previous centroid position.\n- K >= N: Every vector becomes its own centroid.",
   constraints: ["1 <= k <= vectors.length.", "All vectors must have matching dimension D."],

@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { generateKadaneMaxSubarraySteps, kadaneMaxSubarray } from "../kadaneMaxSubarray";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("kadaneMaxSubarray algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(kadaneMaxSubarray.id).toBe("kadane-max-subarray");
     expect(kadaneMaxSubarray.title).toContain("Kadane's Algorithm");
-    expect(kadaneMaxSubarray.category).toBe("arrays_and_hashing");
+    expect(kadaneMaxSubarray.topicIds).toContain("arrays_and_hashing");
     expect(kadaneMaxSubarray.timeComplexity.average).toBe("O(n)");
     expect(kadaneMaxSubarray.spaceComplexity).toBe("O(1)");
   });
@@ -53,7 +54,13 @@ describe("kadaneMaxSubarray algorithm spec", () => {
   it("ensures codeLine is 1-indexed (1..15) for defaultInput and all examples", () => {
     const totalLines = kadaneMaxSubarray.code.split("\n").length;
     expect(totalLines).toBe(15);
-    const inputs = [kadaneMaxSubarray.defaultInput, ...kadaneMaxSubarray.examples.map((e) => e.input)];
+    const inputs = [
+      kadaneMaxSubarray.defaultInput,
+      ...requireExampleInputs(
+        kadaneMaxSubarray,
+        (input): input is typeof kadaneMaxSubarray.defaultInput => Array.isArray(input),
+      ),
+    ];
     for (const input of inputs) {
       const steps = generateKadaneMaxSubarraySteps(input);
       expect(steps.length).toBeGreaterThan(0);
@@ -77,4 +84,3 @@ describe("kadaneMaxSubarray algorithm spec", () => {
     }
   });
 });
-

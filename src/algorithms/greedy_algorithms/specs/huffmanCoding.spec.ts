@@ -10,7 +10,8 @@ describe("huffmanCoding spec logic", () => {
   it("has category greedy_algorithms and valid metadata", () => {
     expect(huffmanCoding.id).toBe("huffman-coding");
     expect(huffmanCoding.title).toBe("Huffman Coding");
-    expect(huffmanCoding.category).toBe("greedy_algorithms");
+    expect(huffmanCoding.topicIds).toContain("heap_and_priority_queue");
+    expect(huffmanCoding.topicIds).toContain("greedy_algorithms");
     expect(huffmanCoding.difficulty).toBe("Medium");
     expect(huffmanCoding.defaultInput).toEqual(DEFAULT_HUFFMAN_CODING_INPUT);
     expect(huffmanCoding.code).toBe(PYTHON_HUFFMAN_CODE);
@@ -41,7 +42,7 @@ describe("huffmanCoding spec logic", () => {
     }
   });
 
-  it('generates steps for default input (>= 20 steps)', () => {
+  it("generates steps for default input (>= 20 steps)", () => {
     const steps = generateHuffmanCodingSteps(DEFAULT_HUFFMAN_CODING_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
 

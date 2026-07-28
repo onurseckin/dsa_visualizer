@@ -5,7 +5,7 @@ describe("kosarajuScc algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(kosarajuScc.id).toBe("kosaraju-scc");
     expect(kosarajuScc.title).toBe("Kosaraju's Strongly Connected Components");
-    expect(kosarajuScc.category).toBe("graph_directed_and_scc");
+    expect(kosarajuScc.topicIds).toContain("graph_directed_and_scc");
     expect(kosarajuScc.difficulty).toBe("Hard");
     expect(kosarajuScc.defaultInput).toEqual(DEFAULT_KOSARAJU_INPUT);
   });

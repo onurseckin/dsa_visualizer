@@ -1,22 +1,24 @@
-import type { AlgorithmDefinition, AlgorithmStep, VectorItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  ArrayVisualSnapshot,
+  ElementState,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface CatalanNumbersInput {
   n: number;
 }
 
-export const PYTHON_CATALAN_NUMBERS_CODE = `
-def catalan_number(n: int) -> int:
-    """
-    Computes the n-th Catalan number using dynamic programming recurrence.
-    """
+export const PYTHON_CATALAN_NUMBERS_CODE = `def catalan_number(n: int) -> int:
     C = [0] * (n + 1)
     C[0] = 1
     for i in range(1, n + 1):
         for j in range(i):
             C[i] += C[j] * C[i - 1 - j]
-    return C[n]
-`;
+    return C[n]`;
 
 export const DEFAULT_CATALAN_NUMBERS_INPUT: CatalanNumbersInput = {
   n: 6,
@@ -29,52 +31,61 @@ export const generateCatalanNumbersSteps = (input: CatalanNumbersInput): Algorit
   const nVal = Math.min(10, Math.max(0, Math.floor(input.n)));
   const C: number[] = new Array(nVal + 1).fill(0);
 
-  const createVectorSnapshot = (
+  const createArraySnapshot = (
     activeIdx: number | null,
     jIdx: number | null = null,
     compIdx: number | null = null,
-  ) => {
-    const vectors: VectorItem[] = C.map((val, idx) => {
-      let state: VectorItem["state"] = "default";
+    computedUpTo: number = -1,
+  ): ArrayVisualSnapshot => {
+    const elements: ArrayElement[] = C.map((val, idx) => {
+      let state: ElementState = "default";
+      const pointers: string[] = [];
+
+      if (idx <= computedUpTo) {
+        state = "sorted";
+      }
+
+      if (idx === jIdx) {
+        state = "compare";
+        pointers.push("j");
+      }
+      if (idx === compIdx) {
+        state = "compare";
+        pointers.push("i-1-j");
+      }
       if (idx === activeIdx) {
         state = "active";
-      } else if (idx === jIdx || idx === compIdx) {
-        state = "compared";
-      } else if (idx < (activeIdx ?? 0)) {
-        state = "result";
+        pointers.push("i");
       }
 
       return {
         id: `C-${idx}`,
-        label: `C_${idx}`,
-        x: idx * 40,
-        y: val,
-        subText: `C_${idx} = ${val}`,
+        value: val,
+        label: `C[${idx}]`,
         state,
+        pointers: pointers.length > 0 ? pointers : undefined,
       };
     });
 
     return {
-      kind: "vector" as const,
-      vectors,
-      planeTitle: "Catalan Sequence DP Vector C[0..n]",
-      dimensions: "2d" as const,
+      kind: "array",
+      elements,
     };
   };
 
-  // Step 0: Entry
+  // Step 0: Function entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
+    codeLine: 1,
     explanation: {
-      what: `Initializing Catalan numbers vector C[0..${nVal}] to compute C_${nVal}.`,
+      what: `Calling catalan_number(n = ${nVal}).`,
       why: "Catalan numbers count combinatorial structures such as balanced parentheses, Dyck paths, and binary trees.",
     },
-    primarySnapshot: createVectorSnapshot(null),
+    primarySnapshot: createArraySnapshot(null),
     auxiliaryState: {
       hashMap: {
         "Target Catalan Number": `C_${nVal}`,
-        "Vector Size": `${nVal + 1}`,
+        "Array Size": `${nVal + 1}`,
       },
       customState: {
         n: nVal,
@@ -85,17 +96,39 @@ export const generateCatalanNumbersSteps = (input: CatalanNumbersInput): Algorit
     },
   });
 
-  // Base Case
+  // Step 1: Array allocation
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: `Initializing DP state array C of size ${nVal + 1} with zeros.`,
+      why: "Array C will store subproblem solutions C[0] through C[${nVal}].",
+    },
+    primarySnapshot: createArraySnapshot(null),
+    auxiliaryState: {
+      hashMap: {
+        "Array Size": `${nVal + 1}`,
+      },
+      customState: {
+        n: nVal,
+      },
+    },
+    variables: {
+      n: nVal,
+    },
+  });
+
+  // Step 2: Base Case
   C[0] = 1;
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 3,
     explanation: {
-      what: "Base case: C[0] = 1.",
+      what: "Setting base case C[0] = 1.",
       why: "By convention, there is exactly 1 valid empty combinatorial structure.",
     },
-    primarySnapshot: createVectorSnapshot(0),
+    primarySnapshot: createArraySnapshot(null, null, null, 0),
     auxiliaryState: {
       hashMap: {
         "Base Case": "C[0] = 1",
@@ -113,12 +146,12 @@ export const generateCatalanNumbersSteps = (input: CatalanNumbersInput): Algorit
   for (let i = 1; i <= nVal; i++) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 8,
+      codeLine: 4,
       explanation: {
-        what: `Computing Catalan number C[${i}]. Initializing sum = 0.`,
-        why: "Convolution formula: C_i = sum_{j=0}^{i-1} (C_j * C_{i-1-j}).",
+        what: `Outer loop i = ${i}: Computing Catalan number C[${i}]. Initializing sum C[${i}] = 0.`,
+        why: `Convolution recurrence formula: C[${i}] = sum_{j=0}^{${i - 1}} (C[j] * C[${i - 1}-j]).`,
       },
-      primarySnapshot: createVectorSnapshot(i),
+      primarySnapshot: createArraySnapshot(i, null, null, i - 1),
       auxiliaryState: {
         hashMap: {
           CurrentIndex: `i = ${i}`,
@@ -143,12 +176,12 @@ export const generateCatalanNumbersSteps = (input: CatalanNumbersInput): Algorit
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 10,
+        codeLine: 6,
         explanation: {
-          what: `j = ${j}: Product C[${j}] * C[${comp}] = ${C[j]} * ${C[comp]} = ${product}. Add to C[${i}]: ${prevVal} -> ${C[i]}.`,
-          why: "Splitting into left sub-structure size j and right sub-structure size i-1-j.",
+          what: `j = ${j}: Product C[${j}] * C[${comp}] = ${C[j]} * ${C[comp]} = ${product}. Accumulating into C[${i}]: ${prevVal} + ${product} = ${C[i]}.`,
+          why: `Splitting structure into left sub-structure size j=${j} (C[${j}]=${C[j]}) and right sub-structure size ${i - 1 - j} (C[${comp}]=${C[comp]}).`,
         },
-        primarySnapshot: createVectorSnapshot(i, j, comp),
+        primarySnapshot: createArraySnapshot(i, j, comp, i - 1),
         auxiliaryState: {
           hashMap: {
             "Left Sub-structure C[j]": `C[${j}] = ${C[j]}`,
@@ -178,12 +211,12 @@ export const generateCatalanNumbersSteps = (input: CatalanNumbersInput): Algorit
   // Final Step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 7,
     explanation: {
-      what: `Computation completed! The ${nVal}-th Catalan number C_${nVal} = ${C[nVal]}.`,
-      why: "Target DP index evaluated successfully.",
+      what: `Computation completed! Returning C[${nVal}] = ${C[nVal]}.`,
+      why: `The ${nVal}-th Catalan number C_${nVal} has been computed using dynamic programming convolution.`,
     },
-    primarySnapshot: createVectorSnapshot(nVal),
+    primarySnapshot: createArraySnapshot(null, null, null, nVal),
     auxiliaryState: {
       hashMap: {
         "Final Catalan C_n": `${C[nVal]}`,
@@ -243,29 +276,23 @@ export const CATALAN_NUMBERS_TOPIC_GUIDE: TopicGuide = {
 
 export const CATALAN_NUMBERS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Empty leading line for code formatting.",
-    2: "Defines catalan_number(n: int) -> int: computes n-th Catalan number $C_n$ via DP.",
-    3: "Opening docstring tag.",
-    4: "Docstring explaining DP convolution recurrence for Catalan numbers.",
-    5: "Closing docstring tag.",
-    6: "Initializes DP state vector C of size $n + 1$ filled with 0s.",
-    7: "Sets base case $C[0] = 1$ for empty combinatorial structure.",
-    8: "Outer loop iterates target index $i$ from 1 to $n$.",
-    9: "Inner loop iterates partition index $j$ from 0 to $i - 1$.",
-    10: "Accumulates product of left substructure size $j$ ($C[j]$) and right substructure size $i-1-j$ ($C[i-1-j]$).",
-    11: "Returns $C[n]$, the $n$-th Catalan number.",
-    12: "Empty trailing line for code formatting.",
+    1: "Defines catalan_number(n: int) -> int: entry point for Catalan number DP computation.",
+    2: "Initializes DP state array C of size n + 1 filled with zeros.",
+    3: "Sets base case C[0] = 1 for the unique empty combinatorial structure.",
+    4: "Outer loop iterates target subproblem index i from 1 to n.",
+    5: "Inner loop iterates partition index j from 0 to i - 1.",
+    6: "Accumulates product of left substructure size j (C[j]) and right substructure size i-1-j (C[i-1-j]).",
+    7: "Returns C[n], the n-th Catalan number.",
   },
 };
 
 export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
   id: "catalan-numbers",
   title: "Catalan Numbers",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "Calculates the $n$-th Catalan number $C_n$ using dynamic programming convolution recurrence in $\\mathcal{O}(n^2)$ time:\n\n$$C_n = \\sum_{j=0}^{n-1} C_j C_{n-1-j}$$\n\n### State Vector Representation\nThe dynamic state is represented as a 1D sequence vector $\\mathbf{C} = (C_0, C_1, \\dots, C_n)^T \\in \\mathbb{Z}^{n+1}$ where entry $C_k$ stores the $k$-th Catalan number.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{\\ge 0}$): The index of the Catalan number to compute.\n\n### Output\n- `int`: The $n$-th Catalan number $C_n$.\n\n### Edge Cases & Constraints\n- Base Case: $C_0 = 1$ (empty set structure).\n- Overflow: $C_n$ exceeds 64-bit integer range for $n > 35$.",
+    "Calculates the $n$-th Catalan number $C_n$ using dynamic programming convolution recurrence in $\\mathcal{O}(n^2)$ time:\n\n$$C_n = \\sum_{j=0}^{n-1} C_j C_{n-1-j}$$\n\n### State Representation\nThe dynamic state is represented as a 1D sequence array $C[0 \\dots n]$ where entry $C_k$ stores the $k$-th Catalan number.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{\\ge 0}$): The index of the Catalan number to compute.\n\n### Output\n- `int`: The $n$-th Catalan number $C_n$.\n\n### Edge Cases & Constraints\n- Base Case: $C_0 = 1$ (empty set structure).\n- Overflow: $C_n$ exceeds 64-bit integer range for $n > 35$.",
   constraints: ["0 <= n <= 25"],
   examples: [
     {
@@ -321,4 +348,3 @@ export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
   defaultInput: DEFAULT_CATALAN_NUMBERS_INPUT,
   generateSteps: generateCatalanNumbersSteps,
 };
-

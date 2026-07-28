@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, FieldLabel, Well, MarkdownRenderer } from "..";
 import { cx } from "../cx";
 import {
-  CategoryType,
+  TopicId,
   DifficultyLevel,
   LeetCodeMeta,
   ProblemExample,
@@ -13,7 +13,7 @@ import { ProblemHeader } from "../../components/primitives/ProblemHeader";
 
 export interface ProblemDescriptionCardProps {
   title: string;
-  category: CategoryType;
+  topicIds: readonly TopicId[];
   difficulty?: DifficultyLevel;
   description: string;
   constraints?: string[];
@@ -32,7 +32,7 @@ export interface ProblemDescriptionCardProps {
 
 export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
   title,
-  category,
+  topicIds,
   difficulty = "Easy",
   description,
   constraints,
@@ -62,7 +62,7 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
           <div className="flex items-center justify-between flex-wrap gap-3">
             <ProblemHeader
               title={title}
-              category={category}
+              topicIds={topicIds}
               difficulty={difficulty}
               leetcode={leetcode}
               sources={sources}

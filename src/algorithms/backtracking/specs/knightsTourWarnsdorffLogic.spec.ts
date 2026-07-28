@@ -4,11 +4,12 @@ import {
   generateKnightsTourWarnsdorffSteps,
   knightsTourWarnsdorff,
 } from "../knightsTourWarnsdorff";
+import { requireExampleInputs, requireLineExplanations } from "../../specs/assertions";
 
 describe("knightsTourWarnsdorff logic spec", () => {
   it("should have valid metadata", () => {
     expect(knightsTourWarnsdorff.id).toBe("knights-tour-warnsdorff");
-    expect(knightsTourWarnsdorff.category).toBe("backtracking");
+    expect(knightsTourWarnsdorff.topicIds).toContain("backtracking");
     expect(knightsTourWarnsdorff.difficulty).toBe("Medium");
   });
 
@@ -23,9 +24,10 @@ describe("knightsTourWarnsdorff logic spec", () => {
 
   it("should map every line of python code in trivia lineExplanations", () => {
     const codeLines = knightsTourWarnsdorff.code.split("\n").length;
+    const explanations = requireLineExplanations(knightsTourWarnsdorff);
     expect(codeLines).toBe(30);
     for (let line = 1; line <= codeLines; line++) {
-      expect(knightsTourWarnsdorff.trivia?.lineExplanations[line]).toBeDefined();
+      expect(explanations[line]).toBeDefined();
     }
   });
 
@@ -33,7 +35,11 @@ describe("knightsTourWarnsdorff logic spec", () => {
     const totalLines = knightsTourWarnsdorff.code.split("\n").length;
     const inputsToTest = [
       knightsTourWarnsdorff.defaultInput,
-      ...(knightsTourWarnsdorff.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        knightsTourWarnsdorff,
+        (input): input is typeof knightsTourWarnsdorff.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const input of inputsToTest) {

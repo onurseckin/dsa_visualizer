@@ -1,7 +1,7 @@
 import React from "react";
 import { ResizableLayout } from "../../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../../types/trivia";
-import { CodePuzzle } from "../../../ui";
+import { CodePuzzle } from "../../../ui/molecules/CodePuzzle";
 import { TileTray } from "../../../ui";
 import { useTriviaSessionState } from "../hooks/useTriviaSessionState";
 
@@ -57,11 +57,12 @@ export const TriviaSessionStage: React.FC<TriviaSessionStageProps> = ({
     <div
       ref={session.puzzlePanel.ref}
       style={{
-        minHeight: "20rem",
+        minHeight: "12rem",
         height: "100%",
         flex: "1 1 0%",
         display: "flex",
         flexDirection: "column",
+        minWidth: 0,
       }}
     >
       <ResizableLayout

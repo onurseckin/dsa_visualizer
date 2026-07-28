@@ -10,9 +10,8 @@ import {
 describe("tritonKernelFusion (Level 8 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(tritonKernelFusion.id).toBe("triton-kernel-fusion");
-    expect(tritonKernelFusion.isMlInfra).toBe(true);
-    expect(tritonKernelFusion.mlInfraLevel).toBe(8);
-    expect(tritonKernelFusion.category).toBe("ml_hardware_kernels");
+    expect(tritonKernelFusion.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(tritonKernelFusion.topicIds).toContain("ml_hardware_kernels");
     expect(tritonKernelFusion.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 8" },
     ]);

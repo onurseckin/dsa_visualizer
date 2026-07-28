@@ -25,7 +25,6 @@ export const AUTOGRAD_VJP_DAG_CODE = `def autograd_vjp_backward(nodes: list[dict
     grads[output_id] = seed_grad
     node_map = {n["id"]: n for n in nodes}
     
-    # Reverse execution topological order
     for node in reversed(topological_sort(nodes)):
         nid = node["id"]
         g = grads[nid]
@@ -70,18 +69,61 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
     grads[n.id] = 0.0;
   });
 
-  // Position nodes nicely in 2D space for GraphVisualSnapshot
-  const positions: Record<string, { x: number; y: number }> = {
+  // Calculate dynamic layout levels for custom graph inputs
+  const depthMap = new Map<string, number>();
+  const getDepth = (id: string): number => {
+    if (depthMap.has(id)) return depthMap.get(id)!;
+    const n = nodeMap.get(id);
+    if (!n || !n.parents || n.parents.length === 0) {
+      depthMap.set(id, 0);
+      return 0;
+    }
+    let maxP = 0;
+    for (const p of n.parents) {
+      maxP = Math.max(maxP, getDepth(p));
+    }
+    const d = maxP + 1;
+    depthMap.set(id, d);
+    return d;
+  };
+  input.nodes.forEach((n) => getDepth(n.id));
+
+  const levelNodes: Record<number, string[]> = {};
+  input.nodes.forEach((n) => {
+    const d = depthMap.get(n.id) || 0;
+    if (!levelNodes[d]) levelNodes[d] = [];
+    levelNodes[d].push(n.id);
+  });
+
+  const presetPositions: Record<string, { x: number; y: number }> = {
     x: { x: 100, y: 100 },
     y: { x: 100, y: 250 },
     xy: { x: 300, y: 175 },
     z: { x: 300, y: 325 },
     out: { x: 500, y: 250 },
+    a: { x: 100, y: 100 },
+    b: { x: 100, y: 220 },
+    c: { x: 100, y: 340 },
+    ab: { x: 300, y: 160 },
+    rc: { x: 300, y: 340 },
+  };
+
+  const getNodePosition = (n: AutogradNode) => {
+    if (presetPositions[n.id]) return presetPositions[n.id];
+    const d = depthMap.get(n.id) || 0;
+    const nodesInLevel = levelNodes[d] || [n.id];
+    const idx = nodesInLevel.indexOf(n.id);
+    const totalInLevel = nodesInLevel.length;
+    const startY = 200 - ((totalInLevel - 1) * 120) / 2;
+    return {
+      x: 100 + d * 200,
+      y: Math.max(80, startY + (idx >= 0 ? idx : 0) * 120),
+    };
   };
 
   const getGraphSnapshot = (activeNodeId?: string, visitedNodes: Set<string> = new Set()) => {
     const graphNodes: GraphNodeItem[] = input.nodes.map((n) => {
-      const pos = positions[n.id] || { x: 250, y: 250 };
+      const pos = getNodePosition(n);
       let state: GraphNodeItem["state"] = "default";
       if (n.id === activeNodeId) {
         state = "active";
@@ -145,7 +187,7 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
   };
 
   addStep(
-    1,
+    2,
     "Initialize Autograd VJP Backward Pass",
     `Setting initial loss seed gradient dL/d(${input.outputId}) = ${input.seedGrad}. All other node gradients zeroed.`,
     { outputId: input.outputId, seedGrad: input.seedGrad },
@@ -155,7 +197,7 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
   const visited = new Set<string>();
 
   addStep(
-    2,
+    3,
     `Seed loss gradient for output '${input.outputId}'`,
     `Output node '${input.outputId}' receives upstream loss gradient dL/dout = ${input.seedGrad}.`,
     { outputId: input.outputId, grad: input.seedGrad },
@@ -189,7 +231,7 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
       grads[p1] += g;
 
       addStep(
-        11,
+        13,
         `VJP rule for ADD gate '${nid}': distribute grad ${g} to ${p0} & ${p1}`,
         `Addition gate passes incoming gradient equally to both inputs: dL/d(${p0}) += ${g}, dL/d(${p1}) += ${g}.`,
         { p0, p1, gradPassed: g },
@@ -210,7 +252,7 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
       grads[p1] += g1;
 
       addStep(
-        16,
+        18,
         `VJP rule for MUL gate '${nid}': swap-multiply with forward values`,
         `Multiplication gate VJP: dL/d(${p0}) += dL * val(${p1}) = ${g} * ${p1Val} = ${g0}; dL/d(${p1}) += dL * val(${p0}) = ${g} * ${p0Val} = ${g1}.`,
         { p0, p1, gradP0: g0, gradP1: g1 },
@@ -226,7 +268,7 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
       grads[p0] += g0;
 
       addStep(
-        19,
+        22,
         `VJP rule for RELU gate '${nid}': gate gradient by indicator (val > 0)`,
         `ReLU subgradient: dL/d(${p0}) += dL * (val(${p0}) > 0 ? 1 : 0) = ${g} * ${pass} = ${g0}.`,
         { p0, p0Val, pass, gradP0: g0 },
@@ -237,7 +279,7 @@ export const generateAutogradVjpDagSteps = (input: AutogradVjpInput): AlgorithmS
   }
 
   addStep(
-    22,
+    24,
     "Autograd VJP Backward Pass complete",
     `Gradients successfully accumulated for all nodes in computational DAG. Leaf input gradients ready for optimizer.`,
     { ...grads },
@@ -262,11 +304,11 @@ const AUTOGRAD_VJP_DAG_TRIVIA: TriviaMeta = {
       hint: "Traverse computational DAG nodes in reverse topological order (output to input leaves).",
     },
     {
-      line: 12,
+      line: 13,
       hint: "Add operation derivative distributes incoming gradient uniformly to both parent inputs.",
     },
     {
-      line: 17,
+      line: 18,
       hint: "Multiply operation derivative multiplies incoming gradient by the sibling's forward activation value.",
     },
   ],
@@ -275,20 +317,18 @@ const AUTOGRAD_VJP_DAG_TRIVIA: TriviaMeta = {
     2: "Initializes node gradients dictionary with zeros for all DAG nodes.",
     3: "Seeds the output node gradient with upstream loss gradient (typically 1.0).",
     6: "Iterates through nodes in reverse topological order.",
-    11: "Propagates additive VJP: dL/dx += dL/dz for z = x + y.",
-    16: "Propagates multiplicative VJP: dL/dx += dL/dz * y for z = x * y.",
-    19: "Propagates ReLU VJP: gates gradient based on forward sign indicator.",
-    22: "Returns dictionary of accumulated Vector-Jacobian Product gradients for all nodes.",
+    13: "Propagates additive VJP: dL/dx += dL/dz for z = x + y.",
+    18: "Propagates multiplicative VJP: dL/dx += dL/dz * y for z = x * y.",
+    22: "Propagates ReLU VJP: gates gradient based on forward sign indicator.",
+    24: "Returns dictionary of accumulated Vector-Jacobian Product gradients for all nodes.",
   },
 };
 
 export const autogradVjpDag: AlgorithmDefinition<AutogradVjpInput> = {
   id: "autograd-vjp-dag",
   title: "Autograd Computational Graph & VJP Accumulation",
-  category: "ml_autograd_dags",
+  topicIds: ["ml_autograd_dags"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 2,
   description:
     "Executes automatic differentiation via Vector-Jacobian Product (VJP) backpropagation over a directed computational graph DAG (Reverse-Mode AD).",
   constraints: [

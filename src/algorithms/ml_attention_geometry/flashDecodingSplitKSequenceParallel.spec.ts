@@ -9,10 +9,11 @@ import {
 describe("flash-decoding-split-k-sequence-parallel (Flash-Decoding Split-K Sequence Parallel Attention)", () => {
   it("should have correct metadata", () => {
     expect(flashDecodingSplitKSequenceParallel.id).toBe("flash-decoding-split-k-sequence-parallel");
-    expect(flashDecodingSplitKSequenceParallel.isMlInfra).toBe(true);
-    expect(flashDecodingSplitKSequenceParallel.mlInfraLevel).toBe(7);
-    expect(flashDecodingSplitKSequenceParallel.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(flashDecodingSplitKSequenceParallel.categories).toContain("ml_attention_geometry");
+    expect(
+      flashDecodingSplitKSequenceParallel.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(flashDecodingSplitKSequenceParallel.topicIds).toContain("ml_attention_geometry");
+    expect(flashDecodingSplitKSequenceParallel.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

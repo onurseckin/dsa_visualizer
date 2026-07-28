@@ -5,7 +5,7 @@ describe("bellmanFord algorithm logic spec", () => {
   it("should have correct algorithm definition metadata", () => {
     expect(bellmanFord.id).toBe("bellman-ford");
     expect(bellmanFord.title).toBe("Bellman-Ford Shortest Path");
-    expect(bellmanFord.category).toBe("graph_shortest_paths");
+    expect(bellmanFord.topicIds).toContain("graph_shortest_paths");
     expect(bellmanFord.difficulty).toBe("Medium");
     expect(bellmanFord.defaultInput).toEqual(DEFAULT_BELLMAN_FORD_INPUT);
     expect(bellmanFord.code).toContain("def bellman_ford");

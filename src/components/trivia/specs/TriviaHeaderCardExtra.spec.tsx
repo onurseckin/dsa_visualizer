@@ -10,7 +10,7 @@ describe("TriviaHeaderCard extra coverage", () => {
     name: "Header Session",
     createdAt: 1000,
     updatedAt: 2000,
-    config: { ...DEFAULT_TRIVIA_CONFIG, minBlanks: 1, maxBlanks: 1 },
+    config: { ...DEFAULT_TRIVIA_CONFIG, minBlanks: 1, maxBlanks: 2 },
     progress: { level: 1, drilled: {}, stats: {}, completed: false, roundsPlayed: 1 },
     lastScreen: "setup",
   };
@@ -54,12 +54,12 @@ describe("TriviaHeaderCard extra coverage", () => {
     expect(onRenameSession).toHaveBeenCalledWith("s-header", "New Header Name");
   });
 
-  it("displays singular badges for 1 algorithm, 1 round, 1 blank", () => {
+  it("displays singular badges for 1 algorithm and 1 round", () => {
     render(
       <TriviaHeaderCard
         activeSession={sampleSession}
         level={1}
-        config={{ ...DEFAULT_TRIVIA_CONFIG, minBlanks: 1, maxBlanks: 1 }}
+        config={{ ...DEFAULT_TRIVIA_CONFIG, minBlanks: 1, maxBlanks: 2 }}
         progress={{ level: 1, drilled: {}, stats: {}, completed: false, roundsPlayed: 1 }}
         sourcesCount={1}
         coverage={100}
@@ -73,7 +73,7 @@ describe("TriviaHeaderCard extra coverage", () => {
 
     expect(screen.getByText("1 round")).toBeInTheDocument();
     expect(screen.getByText("1 algorithm")).toBeInTheDocument();
-    expect(screen.getByText("1 blank")).toBeInTheDocument();
+    expect(screen.getByText("1–2 blanks")).toBeInTheDocument();
     expect(screen.getByText("Deck lines: 4–4")).toBeInTheDocument();
   });
 
@@ -108,12 +108,12 @@ describe("TriviaHeaderCard extra coverage", () => {
     expect(onRenameSession).toHaveBeenCalledWith("s-header", "Renamed Session");
   });
 
-  it("displays plural blanks when minBlanks equals maxBlanks and > 1", () => {
+  it("displays a multi-level blanks span", () => {
     render(
       <TriviaHeaderCard
         activeSession={sampleSession}
         level={2}
-        config={{ ...DEFAULT_TRIVIA_CONFIG, minBlanks: 2, maxBlanks: 2 }}
+        config={{ ...DEFAULT_TRIVIA_CONFIG, minBlanks: 2, maxBlanks: 3 }}
         progress={sampleSession.progress}
         sourcesCount={1}
         coverage={100}
@@ -124,7 +124,7 @@ describe("TriviaHeaderCard extra coverage", () => {
         onChangeSettings={vi.fn()}
       />,
     );
-    expect(screen.getByText("2 blanks")).toBeInTheDocument();
+    expect(screen.getByText("2–3 blanks")).toBeInTheDocument();
   });
 
   it("handles cancel rename button, empty input saving, missing onRenameSession, and key events", () => {

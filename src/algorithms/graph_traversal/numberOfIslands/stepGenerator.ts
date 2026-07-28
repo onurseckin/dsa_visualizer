@@ -112,7 +112,10 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
       why: "Islands are connected via orthogonal adjacency (up/down/left/right). Diagonal neighbors don't count as connected.",
     },
     primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0, directions: "[(1,0),(-1,0),(0,1),(0,-1)]" } },
+    auxiliaryState: {
+      visited: [],
+      customState: { islandCount: 0, directions: "[(1,0),(-1,0),(0,1),(0,-1)]" },
+    },
     variables: { rows, cols },
   });
 
@@ -154,102 +157,6 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 13,
-    explanation: {
-      what: "getNeighbors: iterate over 4 directions",
-      why: "For each neighbor direction (dr, dc), compute the candidate cell and yield it if it passes the bounds and water checks.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 14,
-    explanation: {
-      what: "getNeighbors: compute newRow = row + rowDiff",
-      why: "Calculate the row index of the candidate neighbor cell.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 15,
-    explanation: {
-      what: "getNeighbors: compute newCol = col + colDiff",
-      why: "Calculate the column index of the candidate neighbor cell.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 16,
-    explanation: {
-      what: "getNeighbors: check bounds",
-      why: "Discard neighbors that fall outside the grid. Out-of-bounds access would crash the grid lookup.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 17,
-    explanation: {
-      what: "getNeighbors: continue (skip out-of-bounds)",
-      why: "The candidate is outside the grid — skip it and move to the next direction.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 18,
-    explanation: {
-      what: "getNeighbors: check water or already visited",
-      why: "Water cells ('0') are not part of any island and visited cells are already counted — skip both.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 19,
-    explanation: {
-      what: "getNeighbors: continue (skip water/visited)",
-      why: "This cell is either water or already flooded into an island. Skip it.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 20,
-    explanation: {
-      what: "getNeighbors: yield valid land neighbor",
-      why: "This cell is in-bounds, unvisited land — it's a valid BFS expansion candidate. The generator yields it for the caller to process.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
     codeLine: 22,
     explanation: {
       what: `Begin row sweep (${rows} rows)`,
@@ -279,6 +186,21 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
       const isAlreadyVisited = visitedSet.has(key);
 
       if (isLand && !isAlreadyVisited) {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 24,
+          explanation: {
+            what: `Inspect cell (${r}, ${c})`,
+            why: `Cell (${r}, ${c}) is unvisited land ('1'). Launching a new island flood fill!`,
+          },
+          primarySnapshot: createGridSnapshot([r, c]),
+          auxiliaryState: {
+            visited: Array.from(visitedSet),
+            customState: { islandCount: count, inspectedCell: `(${r},${c})` },
+          },
+          variables: { r, c, isLand, isAlreadyVisited },
+        });
+
         count++;
         visitedSet.add(key);
 

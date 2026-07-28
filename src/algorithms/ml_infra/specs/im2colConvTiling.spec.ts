@@ -10,9 +10,8 @@ import {
 describe("im2colConvTiling (Level 6 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(im2colConvTiling.id).toBe("im2col-conv-tiling");
-    expect(im2colConvTiling.isMlInfra).toBe(true);
-    expect(im2colConvTiling.mlInfraLevel).toBe(6);
-    expect(im2colConvTiling.category).toBe("ml_convolutions");
+    expect(im2colConvTiling.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(im2colConvTiling.topicIds).toContain("ml_convolutions");
     expect(im2colConvTiling.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 6" },
     ]);
@@ -32,7 +31,7 @@ describe("im2colConvTiling (Level 6 ML Infra)", () => {
       expect(typeof steps[i].codeLine).toBe("number");
       expect(steps[i].explanation.what).toBeTruthy();
       expect(steps[i].explanation.why).toBeTruthy();
-      expect(steps[i].primarySnapshot.kind).toBe("array");
+      expect(steps[i].primarySnapshot.kind).toBe("matrix");
     }
   });
 

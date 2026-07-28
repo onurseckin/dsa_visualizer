@@ -5,14 +5,15 @@ import {
   generateReceptiveFieldGrowthCalculatorSteps,
 } from "./receptiveFieldGrowthCalculator";
 
-describe("receptiveFieldGrowthCalculator", () => {
+describe("receptive-field-growth-calculator", () => {
   it("should have correct metadata", () => {
-    expect(receptiveFieldGrowthCalculator.id).toBe("receptiveFieldGrowthCalculator");
-    expect(receptiveFieldGrowthCalculator.isMlInfra).toBe(true);
-    expect(receptiveFieldGrowthCalculator.mlInfraLevel).toBe(8);
-    expect(receptiveFieldGrowthCalculator.mlInfraCategory).toBe("ml_convolutions");
-    expect(receptiveFieldGrowthCalculator.categories).toContain("ml_convolutions");
-    expect(receptiveFieldGrowthCalculator.categories).toContain("ml_tensor_algebra");
+    expect(receptiveFieldGrowthCalculator.id).toBe("receptive-field-growth-calculator");
+    expect(
+      receptiveFieldGrowthCalculator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(receptiveFieldGrowthCalculator.topicIds).toContain("ml_convolutions");
+    expect(receptiveFieldGrowthCalculator.topicIds).toContain("ml_convolutions");
+    expect(receptiveFieldGrowthCalculator.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

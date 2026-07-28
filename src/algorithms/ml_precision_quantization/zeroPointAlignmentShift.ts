@@ -40,8 +40,8 @@ export const generateZeroPointAlignmentShiftSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const minVal = input?.minVal ?? (input?.values?.[0] ?? -10.0);
-  const maxVal = input?.maxVal ?? (input?.values?.[1] ?? 20.0);
+  const minVal = input?.minVal ?? input?.values?.[0] ?? -10.0;
+  const maxVal = input?.maxVal ?? input?.values?.[1] ?? 20.0;
   const qmin = input?.qmin ?? -128;
   const qmax = input?.qmax ?? 127;
 
@@ -151,7 +151,12 @@ export const generateZeroPointAlignmentShiftSteps = (
     3,
     `Divide Min Value by Scale: ${minVal} / ${scaleFixed} = ${(minVal / scale).toFixed(4)}`,
     `Divided min_val (${minVal}) by scale factor ${scaleFixed} to find relative integer offset ${(minVal / scale).toFixed(4)}.`,
-    { minVal, scale: scaleFixed, offset: Number((minVal / scale).toFixed(4)), phase: "MIN_VAL_DIV_SCALE" },
+    {
+      minVal,
+      scale: scaleFixed,
+      offset: Number((minVal / scale).toFixed(4)),
+      phase: "MIN_VAL_DIV_SCALE",
+    },
     minVal,
     0,
     scaleFixed,
@@ -163,9 +168,14 @@ export const generateZeroPointAlignmentShiftSteps = (
 
   addStep(
     3,
-    `Subtract Offset from Integer Min: ${qmin} - (${(rawOffset).toFixed(4)}) = ${zeroPointInitialFixed}`,
+    `Subtract Offset from Integer Min: ${qmin} - (${rawOffset.toFixed(4)}) = ${zeroPointInitialFixed}`,
     `Subtracted scaled float offset from qmin (${qmin}) to find raw zero-point Z_raw = ${zeroPointInitialFixed}.`,
-    { qmin, rawOffset: Number(rawOffset.toFixed(4)), zeroPointInitial: zeroPointInitialFixed, phase: "SUBTRACT_OFFSET" },
+    {
+      qmin,
+      rawOffset: Number(rawOffset.toFixed(4)),
+      zeroPointInitial: zeroPointInitialFixed,
+      phase: "SUBTRACT_OFFSET",
+    },
     minVal,
     zeroPointInitialFixed,
     scaleFixed,
@@ -175,7 +185,13 @@ export const generateZeroPointAlignmentShiftSteps = (
     3,
     `Raw Zero-Point Float Derived: zero_point_initial = ${zeroPointInitialFixed}`,
     `Computed raw unaligned zero-point float Z_raw = ${zeroPointInitialFixed}.`,
-    { qmin, minVal, scale: scaleFixed, zeroPointInitial: zeroPointInitialFixed, phase: "RAW_ZP_FLOAT" },
+    {
+      qmin,
+      minVal,
+      scale: scaleFixed,
+      zeroPointInitial: zeroPointInitialFixed,
+      phase: "RAW_ZP_FLOAT",
+    },
     minVal,
     zeroPointInitialFixed,
     scaleFixed,
@@ -211,7 +227,14 @@ export const generateZeroPointAlignmentShiftSteps = (
     4,
     `Lower Bound Check & Alignment Clamp: max(${qmin}, ${clampedUpper}) -> ${zeroPointAligned}`,
     `Clamped rounded zero-point within [${qmin}, ${qmax}] -> ${zeroPointAligned}.`,
-    { zeroPointInitial: zeroPointInitialFixed, roundedZP, zeroPointAligned, qmin, qmax, phase: "LOWER_BOUND_ZP" },
+    {
+      zeroPointInitial: zeroPointInitialFixed,
+      roundedZP,
+      zeroPointAligned,
+      qmin,
+      qmax,
+      phase: "LOWER_BOUND_ZP",
+    },
     minVal,
     zeroPointAligned,
     scaleFixed,
@@ -224,7 +247,14 @@ export const generateZeroPointAlignmentShiftSteps = (
     5,
     `Verify FP32 0.0 Alignment: (Z - qmin) * S + min_val = (${zeroPointAligned} - ${qmin}) * ${scaleFixed} + ${minVal} = ${floatZeroCheck.toFixed(4)}`,
     `Verified zero-point alignment: quantized zero-point ${zeroPointAligned} de-quantizes back to FP32 value ${floatZeroCheck.toFixed(4)} (approx 0.0).`,
-    { zeroPointAligned, qmin, scale: scaleFixed, minVal, floatZeroCheck: Number(floatZeroCheck.toFixed(4)), phase: "VERIFY_ZERO_ALIGNMENT" },
+    {
+      zeroPointAligned,
+      qmin,
+      scale: scaleFixed,
+      minVal,
+      floatZeroCheck: Number(floatZeroCheck.toFixed(4)),
+      phase: "VERIFY_ZERO_ALIGNMENT",
+    },
     0.0,
     zeroPointAligned,
     scaleFixed,
@@ -250,6 +280,62 @@ export const generateZeroPointAlignmentShiftSteps = (
     scaleFixed,
   );
 
+  // Multi-step sample quantization verification tests
+  const testQuant0 = Math.max(qmin, Math.min(qmax, zeroPointAligned));
+  addStep(
+    5,
+    `Quantize FP32 0.0: clamp(round(0.0 / ${scaleFixed}) + ${zeroPointAligned}) -> ${testQuant0}`,
+    `Simulated quantization of FP32 0.0 value: round(0 / scale) + Z = ${zeroPointAligned}. Maps exactly to zero-point Z = ${testQuant0}.`,
+    { valFP: 0.0, testQuant: testQuant0, zeroPointAligned, phase: "QUANTIZE_ZERO" },
+    0.0,
+    testQuant0,
+    scaleFixed,
+  );
+
+  const testDequant0 = 0;
+  addStep(
+    5,
+    `Dequantize Integer Z (${testQuant0}): (${testQuant0} - ${zeroPointAligned}) * ${scaleFixed} -> ${testDequant0.toFixed(4)}`,
+    `Dequantized integer zero-point ${testQuant0} back to FP32 float: produces exact FP32 ${testDequant0.toFixed(4)}.`,
+    {
+      testQuant: testQuant0,
+      testDequant: Number(testDequant0.toFixed(4)),
+      zeroPointAligned,
+      phase: "DEQUANTIZE_ZERO",
+    },
+    0.0,
+    testQuant0,
+    scaleFixed,
+  );
+
+  const testQuantMin = Math.max(
+    qmin,
+    Math.min(qmax, Math.round(minVal / scale) + zeroPointAligned),
+  );
+  addStep(
+    5,
+    `Quantize Min FP32 (${minVal}): clamp(round(${minVal} / ${scaleFixed}) + ${zeroPointAligned}) -> ${testQuantMin}`,
+    `Quantized lower range float min_val ${minVal}: maps to integer bound ${testQuantMin} (qmin = ${qmin}).`,
+    { valFP: minVal, testQuant: testQuantMin, qmin, phase: "QUANTIZE_MIN" },
+    minVal,
+    testQuantMin,
+    scaleFixed,
+  );
+
+  const testQuantMax = Math.max(
+    qmin,
+    Math.min(qmax, Math.round(maxVal / scale) + zeroPointAligned),
+  );
+  addStep(
+    5,
+    `Quantize Max FP32 (${maxVal}): clamp(round(${maxVal} / ${scaleFixed}) + ${zeroPointAligned}) -> ${testQuantMax}`,
+    `Quantized upper range float max_val ${maxVal}: maps to integer bound ${testQuantMax} (qmax = ${qmax}).`,
+    { valFP: maxVal, testQuant: testQuantMax, qmax, phase: "QUANTIZE_MAX" },
+    maxVal,
+    testQuantMax,
+    scaleFixed,
+  );
+
   // Step 5: Return result
   addStep(
     5,
@@ -264,24 +350,12 @@ export const generateZeroPointAlignmentShiftSteps = (
   addStep(
     5,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Zero-point alignment calibration completed successfully for target dynamic range.",
     { completed: true, totalSteps: stepIndex },
     0.0,
     zeroPointAligned,
     scaleFixed,
   );
-
-  while (steps.length < 20) {
-    addStep(
-      5,
-      `Verification step ${steps.length + 1}`,
-      `Verifying zero-point alignment invariant: (Z - qmin) * S == -min_val.`,
-      { scale: scaleFixed, zeroPointAligned },
-      0.0,
-      zeroPointAligned,
-      scaleFixed,
-    );
-  }
 
   return steps;
 };
@@ -295,10 +369,16 @@ const ZEROPOINTALIGNMENTSHIFT_TRIVIA: TriviaMeta = {
     "return scale + zero_point_aligned",
   ],
   hints: [
-    { line: 1, hint: "Defines zero-point alignment function accepting min_val, max_val, and qmin/qmax bounds." },
+    {
+      line: 1,
+      hint: "Defines zero-point alignment function accepting min_val, max_val, and qmin/qmax bounds.",
+    },
     { line: 2, hint: "Compute scale factor S = (max_val - min_val) / (qmax - qmin)." },
     { line: 3, hint: "Compute raw initial zero-point float Z_raw = qmin - (min_val / scale)." },
-    { line: 4, hint: "Round raw zero-point to integer and clamp within [qmin, qmax] integer bounds." },
+    {
+      line: 4,
+      hint: "Round raw zero-point to integer and clamp within [qmin, qmax] integer bounds.",
+    },
   ],
   lineExplanations: {
     1: "Declares function signature zero_point_alignment_shift accepting min_val, max_val, qmin = -128, qmax = 127.",
@@ -312,12 +392,8 @@ const ZEROPOINTALIGNMENTSHIFT_TRIVIA: TriviaMeta = {
 export const zeroPointAlignmentShift: AlgorithmDefinition<zeroPointAlignmentShiftInput> = {
   id: "zero-point-alignment-shift",
   title: "Zero Point Alignment Shift",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Zero Point Alignment Shift
 
 Zero-Point Alignment Shift is the core calibration routine (PyTorch \`torch.ao.quantization.observer\`) for asymmetric quantized neural networks.
@@ -347,7 +423,8 @@ In asymmetric quantization, an arbitrary FP32 dynamic range $[x_{\\text{min}}, x
       outputDisplay: "scale = 0.117647, zero_point_aligned = -43",
       input: { minVal: -10.0, maxVal: 20.0, qmin: -128, qmax: 127 },
       output: "scale = 0.117647, zero_point_aligned = -43",
-      explanation: "Computes scale S = 30 / 255 = 0.117647 and aligns zero-point Z = -128 - (-10 / 0.117647) = -43.",
+      explanation:
+        "Computes scale S = 30 / 255 = 0.117647 and aligns zero-point Z = -128 - (-10 / 0.117647) = -43.",
     },
     {
       kind: "complex",
@@ -356,7 +433,8 @@ In asymmetric quantization, an arbitrary FP32 dynamic range $[x_{\\text{min}}, x
       outputDisplay: "scale = 0.058824, zero_point_aligned = 0",
       input: { minVal: 0.0, maxVal: 15.0, qmin: 0, qmax: 255 },
       output: "scale = 0.058824, zero_point_aligned = 0",
-      explanation: "Non-negative activation range [0, 15] in UINT8 [0, 255] maps FP32 0.0 to zero-point Z = 0.",
+      explanation:
+        "Non-negative activation range [0, 15] in UINT8 [0, 255] maps FP32 0.0 to zero-point Z = 0.",
     },
     {
       kind: "negative",

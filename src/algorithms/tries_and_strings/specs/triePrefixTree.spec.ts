@@ -6,7 +6,7 @@ describe("triePrefixTree algorithm spec", () => {
   it("should have valid definition metadata", () => {
     expect(triePrefixTree.id).toBe("trie-prefix-tree");
     expect(triePrefixTree.title).toBe("Trie (Prefix Tree)");
-    expect(triePrefixTree.category).toBe("tries_and_strings");
+    expect(triePrefixTree.topicIds).toContain("tries_and_strings");
     expect(triePrefixTree.difficulty).toBe("Medium");
     expect(triePrefixTree.defaultInput).toEqual(DEFAULT_TRIE_INPUT);
   });

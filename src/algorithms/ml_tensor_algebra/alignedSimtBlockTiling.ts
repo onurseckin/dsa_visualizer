@@ -9,9 +9,6 @@ export interface alignedSimtBlockTilingInput {
 }
 
 export const ALIGNEDSIMTBLOCKTILING_CODE = `def aligned_simt_block_tiling(data, block_size=4, alignment=16):
-    """
-    Computes SIMD/SIMT 128-bit aligned memory block tiling and padding.
-    """
     n = len(data)
     padding = (alignment - (n % alignment)) % alignment
     padded_len = n + padding
@@ -67,8 +64,10 @@ export const generateAlignedSimtBlockTilingSteps = (
         } else if (r === activeRow) {
           if (c === activeCol) {
             state = "active";
+          } else if (activeCol !== undefined && c < activeCol) {
+            state = "visited";
           } else {
-            state = "compared";
+            state = "default";
           }
         } else if (!isData) {
           state = "inactive";
@@ -121,7 +120,7 @@ export const generateAlignedSimtBlockTilingSteps = (
     });
   };
 
-  // Step 1: Init function
+  // Line 1: def aligned_simt_block_tiling
   addStep(
     1,
     "Initialize SIMD/SIMT Aligned Memory Tiling Engine",
@@ -129,54 +128,30 @@ export const generateAlignedSimtBlockTilingSteps = (
     { n, block_size: blockSize, alignment },
   );
 
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Computes SIMD/SIMT 128-bit aligned memory block tiling and padding.",
-    {},
-  );
+  // Line 2: n = len(data)
+  addStep(2, "Compute Input Memory Length", `Calculated unpadded input tensor length n = ${n}.`, {
+    n,
+  });
 
+  // Line 3: padding = (alignment - (n % alignment)) % alignment
   addStep(
     3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Step 2: Compute n
-  addStep(
-    5,
-    "Compute Input Memory Length",
-    `Calculated unpadded input tensor length n = ${n}.`,
-    { n },
-  );
-
-  // Step 3: Compute padding
-  addStep(
-    6,
     "Calculate Alignment Padding",
     `padding = (${alignment} - (${n} % ${alignment})) % ${alignment} = ${padding} zero-padding elements required.`,
     { padding, alignment, n },
   );
 
-  // Step 4: Compute padded length
+  // Line 4: padded_len = n + padding
   addStep(
-    7,
+    4,
     "Determine Total Padded Buffer Length",
     `padded_len = ${n} + ${padding} = ${paddedLen} elements.`,
     { padded_len: paddedLen, padding },
   );
 
-  // Step 5: Init tiled_blocks
+  // Line 5: tiled_blocks = []
   addStep(
-    8,
+    5,
     "Initialize Tiled Blocks Container",
     "Allocated empty list tiled_blocks to store partitioned tile blocks.",
     { tiled_blocks_len: 0 },
@@ -184,31 +159,33 @@ export const generateAlignedSimtBlockTilingSteps = (
 
   const completedRows: number[] = [];
 
-  // Outer loop: b from 0 to paddedLen in block_size steps
+  // Line 7: for b in range(0, padded_len, block_size):
   for (let b = 0, r = 0; b < paddedLen; b += blockSize, r++) {
     addStep(
-      10,
+      7,
       `Begin Tile Block ${r} (Byte Offset b=${b})`,
       `Outer loop iteration for b = ${b} of total padded length ${paddedLen}.`,
       { b, block_size: blockSize, padded_len: paddedLen },
       r,
     );
 
+    // Line 8: block = []
     addStep(
-      11,
+      8,
       `Initialize Storage for Block ${r}`,
       `Created empty list block for tile ${r}.`,
       { b, block_row: r },
       r,
     );
 
+    // Line 9: for offset in range(block_size):
     for (let offset = 0; offset < blockSize; offset++) {
       const idx = b + offset;
       const isData = idx < n;
       const val = isData ? data[idx] : 0;
 
       addStep(
-        12,
+        9,
         `Loop Offset ${offset} in Block ${r}`,
         `Evaluating inner block offset ${offset}/${blockSize - 1}.`,
         { b, offset, block_size: blockSize },
@@ -217,8 +194,9 @@ export const generateAlignedSimtBlockTilingSteps = (
         completedRows,
       );
 
+      // Line 10: idx = b + offset
       addStep(
-        13,
+        10,
         `Calculate Global Index idx = ${b} + ${offset} = ${idx}`,
         `Computed global buffer offset idx = ${idx}.`,
         { idx, b, offset },
@@ -227,8 +205,9 @@ export const generateAlignedSimtBlockTilingSteps = (
         completedRows,
       );
 
+      // Line 11: val = data[idx] if idx < n else 0
       addStep(
-        14,
+        11,
         `Fetch Value at Global Index ${idx}`,
         isData
           ? `Extracted data element data[${idx}] = ${val}.`
@@ -239,8 +218,9 @@ export const generateAlignedSimtBlockTilingSteps = (
         completedRows,
       );
 
+      // Line 12: block.append(val)
       addStep(
-        15,
+        12,
         `Append Value ${val} to Block ${r}`,
         `Stored value ${val} into current tile block at offset ${offset}.`,
         { idx, val, block_offset: offset },
@@ -250,9 +230,10 @@ export const generateAlignedSimtBlockTilingSteps = (
       );
     }
 
+    // Line 13: tiled_blocks.append(block)
     completedRows.push(r);
     addStep(
-      16,
+      13,
       `Finalize and Append Block ${r}`,
       `Successfully registered block ${r} with ${blockSize} elements.`,
       { block_idx: r, completed_blocks: completedRows.length },
@@ -262,9 +243,9 @@ export const generateAlignedSimtBlockTilingSteps = (
     );
   }
 
-  // Return step
+  // Line 15: return tiled_blocks, padding
   addStep(
-    18,
+    15,
     "Return Tiled Blocks and Padding Count",
     `Execution complete. Produced ${numBlocks} tiled blocks with ${padding} padding elements.`,
     { completed: true, total_blocks: numBlocks, padding },
@@ -277,7 +258,7 @@ export const generateAlignedSimtBlockTilingSteps = (
 };
 
 const ALIGNEDSIMTBLOCKTILING_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [6, 14],
   distractors: [
     "padding = alignment - (n % alignment)",
     "for b in range(0, n, block_size):",
@@ -285,45 +266,38 @@ const ALIGNEDSIMTBLOCKTILING_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 6,
+      line: 3,
       hint: "Modular arithmetic (alignment - (n % alignment)) % alignment guarantees padding is 0 when n is already aligned.",
     },
     {
-      line: 14,
+      line: 11,
       hint: "Use conditional expression data[idx] if idx < n else 0 to safely pad out-of-bounds tile slots.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for SIMD/SIMT memory block tiling algorithm with default 4-element blocks and 16-element alignment.",
-    2: "Starts docstring for aligned SIMT memory block tiling function.",
-    3: "Explains purpose of calculating 128-bit vector aligned memory partitions and zero padding.",
-    4: "Closes docstring for aligned block tiling function.",
-    5: "Measures actual number of elements N in unpadded input memory buffer.",
-    6: "Calculates required zero-padding element count to reach target SIMT memory alignment boundary.",
-    7: "Computes total padded memory buffer length N_padded = N + padding.",
-    8: "Initializes empty list tiled_blocks to hold partitioned block arrays.",
-    9: "Blank line before block slicing loop.",
-    10: "Iterates through padded buffer starting indices b in steps of block_size.",
-    11: "Initializes empty temporary list block for building current tile.",
-    12: "Loops across relative element offsets (0 to block_size - 1) within current tile.",
-    13: "Calculates global buffer index idx = b + offset.",
-    14: "Fetches element value from data[idx] if within bounds, otherwise pads with scalar zero.",
-    15: "Appends fetched or padded value into current tile block.",
-    16: "Appends complete block tile to tiled_blocks list.",
-    17: "Blank line before return statement.",
-    18: "Returns tuple containing list of tiled memory blocks and total padding element count.",
+    2: "Measures actual number of elements N in unpadded input memory buffer.",
+    3: "Calculates required zero-padding element count to reach target SIMT memory alignment boundary.",
+    4: "Computes total padded memory buffer length N_padded = N + padding.",
+    5: "Initializes empty list tiled_blocks to hold partitioned block arrays.",
+    6: "Blank line before block slicing loop.",
+    7: "Iterates through padded buffer starting indices b in steps of block_size.",
+    8: "Initializes empty temporary list block for building current tile.",
+    9: "Loops across relative element offsets (0 to block_size - 1) within current tile.",
+    10: "Calculates global buffer index idx = b + offset.",
+    11: "Fetches element value from data[idx] if within bounds, otherwise pads with scalar zero.",
+    12: "Appends fetched or padded value into current tile block.",
+    13: "Appends complete block tile to tiled_blocks list.",
+    14: "Blank line before return statement.",
+    15: "Returns tuple containing list of tiled memory blocks and total padding element count.",
   },
 };
 
 export const alignedSimtBlockTiling: AlgorithmDefinition<alignedSimtBlockTilingInput> = {
   id: "aligned-simt-block-tiling",
   title: "SIMD/SIMT Aligned Memory Tiling Engine",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In high-performance GPU execution pipelines (e.g., PyTorch ATen, Triton, CUDA, and vLLM), memory operations must be coalesced and aligned to 128-bit SIMD/SIMT vector boundaries. When tensor shapes are not exact multiples of block sizes, memory transactions incur unaligned access penalties, leading to multiple DRAM cycles and warp divergence.\n\nThis algorithm computes 128-bit aligned memory block partitions by calculating exact zero-padding element counts ($P = (A - (N \\bmod A)) \\bmod A$) and packing flat 1D memory buffers into fixed-width SIMD execution tiles. Tile elements outside unpadded memory boundaries are dynamically filled with scalar zero padding.\n\n### Problem Solved & ML Compiler Relevance\nGPU global memory transactions achieve peak bandwidth (up to 3.35 TB/s on NVIDIA H100) when 32 threads in a warp read contiguous 128-bit vector words aligned to 16-byte address boundaries. Unaligned accesses force the GPU memory controller to split a single transaction into two uncoalesced memory requests. SIMT block tiling ensures that every thread block reads perfectly aligned memory buffers.\n\n### Step-by-Step Execution\n1. **Unpadded Length Calculation**: Measure total scalar elements $N$ in input buffer.\n2. **Alignment Padding**: Derive zero-padding $P = (A - (N \\bmod A)) \\bmod A$ where $A$ is hardware vector alignment.\n3. **Padded Length Determination**: Set total padded length $N_{padded} = N + P$.\n4. **Tile Slicing & Padding**: Step through $N_{padded}$ in strides of $B$ (block size). For each offset $0 \\le o < B$, fetch $D[b+o]$ if $b+o < N$, else assign padding zero.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
@@ -345,7 +319,8 @@ export const alignedSimtBlockTiling: AlgorithmDefinition<alignedSimtBlockTilingI
       outputDisplay: "Blocks: [[1..4], [5..8]], Padding: 0",
       input: { data: [1, 2, 3, 4, 5, 6, 7, 8], blockSize: 4, alignment: 8 },
       output: "[[1, 2, 3, 4], [5, 6, 7, 8]], padding = 0",
-      explanation: "Input buffer length 8 is already a multiple of alignment 8; zero padding added.",
+      explanation:
+        "Input buffer length 8 is already a multiple of alignment 8; zero padding added.",
     },
     {
       kind: "negative",

@@ -24,9 +24,6 @@ export const DYNAMIC_SEGMENT_TREE_CODE = `class Node:
         self.right = None
 
 class DynamicSegmentTree:
-    """
-    Dynamic Segment Tree allocating nodes lazily on demand for range [l, r].
-    """
     def __init__(self, l: int, r: int):
         self.root = Node(l, r)
 
@@ -131,31 +128,10 @@ export const generateDynamicSegmentTreeSteps = (
     });
   };
 
-    addStep(
-    10,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
   addStep(
     11,
-    "Docstring body: algorithm description",
-    "Dynamic Segment Tree allocating nodes lazily on demand for range [l, r].",
-    {},
-  );
-
-  addStep(
-    12,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    14,
-    "Initialize Dynamic Segment Tree",
-    `Created root node representing interval [${rangeL}..${rangeR}]. Child nodes will be allocated lazily on demand when point updates arrive.`,
+    "Initialize Dynamic Segment Tree root node",
+    `Created root node covering range [${rangeL}..${rangeR}]. Child nodes will be lazily allocated on demand when point updates arrive.`,
     { rangeL, rangeR },
     root.id,
   );
@@ -164,27 +140,65 @@ addStep(
 
   const updateNode = (node: InternalNode, idx: number, val: number) => {
     addStep(
-      16,
-      `Visiting node [${node.l}..${node.r}] for update at index ${idx}`,
-      `Traversing node [${node.l}..${node.r}]. Target index is ${idx}.`,
+      13,
+      `Visit node [${node.l}..${node.r}] for update at index ${idx}`,
+      `Traversing node [${node.l}..${node.r}] during update operation for index ${idx}.`,
       { l: node.l, r: node.r, idx, val },
+      node.id,
+    );
+
+    addStep(
+      14,
+      `Check if node [${node.l}..${node.r}] is a leaf node`,
+      `Comparing interval bounds: node.l (${node.l}) == node.r (${node.r}).`,
+      { l: node.l, r: node.r, isLeaf: node.l === node.r },
       node.id,
     );
 
     if (node.l === node.r) {
       node.val += val;
       addStep(
-        18,
-        `Leaf node [${node.l}..${node.r}] updated to value ${node.val}`,
-        `Base case reached at leaf index ${idx}. Added value ${val}.`,
-        { idx, leafValue: node.val },
+        15,
+        `Update leaf node [${node.l}..${node.r}] value to ${node.val}`,
+        `Base case reached at leaf index ${idx}. Added value increment ${val} (new sum = ${node.val}).`,
+        { idx, val, nodeVal: node.val },
+        node.id,
+      );
+      addStep(
+        16,
+        `Return from leaf node [${node.l}..${node.r}] update`,
+        `Finished leaf update. Returning up the call stack.`,
+        { idx, nodeVal: node.val },
         node.id,
       );
       return;
     }
 
     const mid = Math.floor((node.l + node.r) / 2);
+    addStep(
+      17,
+      `Calculate range midpoint mid = ${mid}`,
+      `Dividing interval [${node.l}..${node.r}] into left [${node.l}..${mid}] and right [${mid + 1}..${node.r}].`,
+      { l: node.l, r: node.r, mid },
+      node.id,
+    );
+
+    addStep(
+      18,
+      `Check if target index ${idx} <= midpoint ${mid}`,
+      `Index ${idx} is ${idx <= mid ? "<=" : ">"} mid (${mid}). Route update to ${idx <= mid ? "left" : "right"} child.`,
+      { idx, mid, routeLeft: idx <= mid },
+      node.id,
+    );
+
     if (idx <= mid) {
+      addStep(
+        19,
+        `Check if left child of [${node.l}..${node.r}] exists`,
+        `Left child node [${node.l}..${mid}] is currently ${node.leftNode ? "allocated" : "unallocated (None)"}.`,
+        { l: node.l, mid, leftExists: Boolean(node.leftNode) },
+        node.id,
+      );
       if (!node.leftNode) {
         node.leftNode = {
           id: `node-[${node.l}..${mid}]`,
@@ -193,15 +207,29 @@ addStep(
           val: 0,
         };
         addStep(
-          23,
-          `Dynamically created left child node [${node.l}..${mid}]`,
-          `No left child existed. Allocated new node [${node.l}..${mid}] dynamically on demand.`,
+          20,
+          `Dynamically create left child node [${node.l}..${mid}]`,
+          `No left child existed. Allocated new node covering range [${node.l}..${mid}] lazily on demand.`,
           { l: node.l, r: mid },
           node.leftNode.id,
         );
       }
+      addStep(
+        21,
+        `Recurse update into left child [${node.leftNode.l}..${node.leftNode.r}]`,
+        `Descending recursively into left child for index ${idx}.`,
+        { idx, leftL: node.leftNode.l, leftR: node.leftNode.r },
+        node.leftNode.id,
+      );
       updateNode(node.leftNode, idx, val);
     } else {
+      addStep(
+        23,
+        `Check if right child of [${node.l}..${node.r}] exists`,
+        `Right child node [${mid + 1}..${node.r}] is currently ${node.rightNode ? "allocated" : "unallocated (None)"}.`,
+        { midPlus1: mid + 1, r: node.r, rightExists: Boolean(node.rightNode) },
+        node.id,
+      );
       if (!node.rightNode) {
         node.rightNode = {
           id: `node-[${mid + 1}..${node.r}]`,
@@ -210,43 +238,66 @@ addStep(
           val: 0,
         };
         addStep(
-          27,
-          `Dynamically created right child node [${mid + 1}..${node.r}]`,
-          `No right child existed. Allocated new node [${mid + 1}..${node.r}] dynamically on demand.`,
+          24,
+          `Dynamically create right child node [${mid + 1}..${node.r}]`,
+          `No right child existed. Allocated new node covering range [${mid + 1}..${node.r}] lazily on demand.`,
           { l: mid + 1, r: node.r },
           node.rightNode.id,
         );
       }
+      addStep(
+        25,
+        `Recurse update into right child [${node.rightNode.l}..${node.rightNode.r}]`,
+        `Descending recursively into right child for index ${idx}.`,
+        { idx, rightL: node.rightNode.l, rightR: node.rightNode.r },
+        node.rightNode.id,
+      );
       updateNode(node.rightNode, idx, val);
     }
 
     node.val = (node.leftNode?.val ?? 0) + (node.rightNode?.val ?? 0);
     addStep(
-      29,
-      `Updated parent node [${node.l}..${node.r}] value to ${node.val}`,
-      `Recomputed sum of left child (${node.leftNode?.val ?? 0}) and right child (${node.rightNode?.val ?? 0}).`,
+      26,
+      `Update parent node [${node.l}..${node.r}] value to ${node.val}`,
+      `Recomputed aggregate sum: left child (${node.leftNode?.val ?? 0}) + right child (${node.rightNode?.val ?? 0}) = ${node.val}.`,
       { l: node.l, r: node.r, nodeVal: node.val },
       node.id,
     );
   };
 
   const queryNode = (node: InternalNode | undefined, ql: number, qr: number): number => {
+    addStep(
+      29,
+      `Check query bounds for node ${node ? `[${node.l}..${node.r}]` : "null"} against [${ql}..${qr}]`,
+      `Checking if node is null or if interval [${node?.l ?? "?"}..${node?.r ?? "?"}] is disjoint from query range [${ql}..${qr}].`,
+      { ql, qr, nodeL: node?.l ?? -1, nodeR: node?.r ?? -1 },
+      node?.id,
+    );
+
     if (!node || qr < node.l || ql > node.r) {
+      addStep(
+        30,
+        `Return identity 0 for ${!node ? "unallocated node" : `disjoint range [${node.l}..${node.r}]`}`,
+        `No overlap with query interval [${ql}..${qr}]. Returning default 0.`,
+        { ql, qr, result: 0 },
+        node?.id,
+      );
       return 0;
     }
+
     addStep(
-      32,
-      `Querying node [${node.l}..${node.r}] for interval [${ql}..${qr}]`,
-      `Checking if node range [${node.l}..${node.r}] overlaps or is inside query interval [${ql}..${qr}].`,
+      31,
+      `Check total containment of node [${node.l}..${node.r}] inside [${ql}..${qr}]`,
+      `Checking condition: ql (${ql}) <= node.l (${node.l}) and node.r (${node.r}) <= qr (${qr}).`,
       { l: node.l, r: node.r, ql, qr },
       node.id,
     );
 
     if (ql <= node.l && node.r <= qr) {
       addStep(
-        35,
+        32,
         `Node [${node.l}..${node.r}] fully inside query range. Returning ${node.val}`,
-        `Complete range coverage match. Returning precomputed node value ${node.val}.`,
+        `Complete interval match. Returning precomputed node value ${node.val} directly.`,
         { l: node.l, r: node.r, val: node.val },
         node.id,
       );
@@ -258,9 +309,9 @@ addStep(
     const sumRes = leftRes + rightRes;
 
     addStep(
-      36,
-      `Combined child results for node [${node.l}..${node.r}]: ${leftRes} + ${rightRes} = ${sumRes}`,
-      `Partial range coverage. Combined left child query (${leftRes}) and right child query (${rightRes}) to get ${sumRes}.`,
+      33,
+      `Combine child results for node [${node.l}..${node.r}]: ${leftRes} + ${rightRes} = ${sumRes}`,
+      `Partial range coverage. Summed left query (${leftRes}) + right query (${rightRes}) = ${sumRes}.`,
       { l: node.l, r: node.r, leftRes, rightRes, sumRes },
       node.id,
     );
@@ -274,7 +325,7 @@ addStep(
       const idx = op.index ?? rangeL;
       const val = op.value ?? 0;
       addStep(
-        16,
+        13,
         `Operation ${opIdx + 1}: Point update at index ${idx} with value ${val}`,
         `Starting recursive point update traversal for index ${idx}.`,
         { opIndex: opIdx + 1, idx, val },
@@ -284,16 +335,16 @@ addStep(
       const ql = op.left ?? rangeL;
       const qr = op.right ?? rangeR;
       addStep(
-        31,
-        `Operation ${opIdx + 1}: Range query [${ql}..${qr}]`,
-        `Starting range query traversal over dynamic tree.`,
+        28,
+        `Operation ${opIdx + 1}: Range query over interval [${ql}..${qr}]`,
+        `Starting range query traversal over dynamic segment tree.`,
         { opIndex: opIdx + 1, ql, qr },
       );
       const res = queryNode(root, ql, qr);
       addStep(
-        36,
-        `Query [${ql}..${qr}] result = ${res}`,
-        `Completed dynamic segment tree range query with total sum ${res}.`,
+        33,
+        `Operation ${opIdx + 1}: Query [${ql}..${qr}] result = ${res}`,
+        `Completed dynamic segment tree range query over [${ql}..${qr}] with total sum ${res}.`,
         { ql, qr, result: res },
         root.id,
         { queryResult: String(res) },
@@ -354,7 +405,7 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
 };
 
 export const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
-  skipLines: [8, 15, 30],
+  skipLines: [8, 12, 27],
   distractors: [
     "node.left = Node(node.l, node.r)",
     "if node.left and node.right: return",
@@ -362,11 +413,11 @@ export const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 23,
+      line: 20,
       hint: "Allocate left child node covering range [node.l..mid]",
     },
     {
-      line: 33,
+      line: 30,
       hint: "Return 0 if node is None or out of query bounds",
     },
   ],
@@ -380,41 +431,37 @@ export const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
     7: "Initializes right child pointer to None.",
     8: "Blank line separating Node definition.",
     9: "Defines DynamicSegmentTree wrapper class.",
-    10: "Docstring describing dynamic on-demand node allocation.",
-    11: "Docstring continuation.",
-    12: "Docstring continuation.",
-    13: "Constructor initializing root node over range [l, r].",
-    14: "Instantiates root node covering full domain interval [l, r].",
-    15: "Blank line separating constructor.",
-    16: "Defines point update method recursing down dynamic tree.",
-    17: "Checks if leaf node is reached (node.l == node.r).",
-    18: "Adds value increment to leaf node value.",
-    19: "Returns from leaf update.",
-    20: "Calculates midpoint of interval: mid = (node.l + node.r) // 2.",
-    21: "Checks if target index falls in left half (idx <= mid).",
-    22: "Checks if left child is unallocated (not node.left).",
-    23: "Lazily instantiates new left child Node covering range [node.l..mid].",
-    24: "Recurses into left child to complete point update.",
-    25: "Else branch when target index falls in right half (idx > mid).",
-    26: "Checks if right child is unallocated (not node.right).",
-    27: "Lazily instantiates new right child Node covering range [mid + 1..node.r].",
-    28: "Recurses into right child to complete point update.",
-    29: "Recomputes parent node value by combining left and right child values.",
-    30: "Blank line separating update method.",
-    31: "Defines range query method returning sum over interval [ql..qr].",
-    32: "Checks for empty node or disjoint query interval bounds.",
-    33: "Returns default identity value 0 for non-overlapping or missing subtrees.",
-    34: "Checks if node interval is completely inside query interval [ql..qr].",
-    35: "Returns cached node value directly for complete range match.",
-    36: "Recursively queries left and right subtrees and returns their sum.",
+    10: "Constructor initializing root node over range [l, r].",
+    11: "Instantiates root node covering full domain interval [l, r].",
+    12: "Blank line separating constructor.",
+    13: "Defines point update method recursing down dynamic tree.",
+    14: "Checks if leaf node is reached (node.l == node.r).",
+    15: "Adds value increment to leaf node value.",
+    16: "Returns from leaf update.",
+    17: "Calculates midpoint of interval: mid = (node.l + node.r) // 2.",
+    18: "Checks if target index falls in left half (idx <= mid).",
+    19: "Checks if left child is unallocated (not node.left).",
+    20: "Lazily instantiates new left child Node covering range [node.l..mid].",
+    21: "Recurses into left child to complete point update.",
+    22: "Else branch when target index falls in right half (idx > mid).",
+    23: "Checks if right child is unallocated (not node.right).",
+    24: "Lazily instantiates new right child Node covering range [mid + 1..node.r].",
+    25: "Recurses into right child to complete point update.",
+    26: "Recomputes parent node value by combining left and right child values.",
+    27: "Blank line separating update method.",
+    28: "Defines range query method returning sum over interval [ql..qr].",
+    29: "Checks for empty node or disjoint query interval bounds.",
+    30: "Returns default identity value 0 for non-overlapping or missing subtrees.",
+    31: "Checks if node interval is completely inside query interval [ql..qr].",
+    32: "Returns cached node value directly for complete range match.",
+    33: "Recursively queries left and right subtrees and returns their sum.",
   },
 };
 
 export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = {
   id: "dynamic-segment-tree",
   title: "Dynamic Segment Tree (Sparse Range Queries)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "A **Dynamic Segment Tree** supports $O(\\log C)$ point updates and range queries over huge coordinate ranges (up to $10^9$) by allocating tree nodes lazily on demand. This approach optimizes memory usage to $O(Q \\log C)$ by creating only the nodes required to represent the sparse set of updated indices.",

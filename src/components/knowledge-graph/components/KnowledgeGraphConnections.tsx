@@ -1,19 +1,26 @@
 import React from "react";
-import { TOPIC_FAMILIES, TOPIC_ROADMAP_NODES, topicFamilyColor } from "../knowledgeGraphData";
+import {
+  TOPIC_FAMILIES,
+  DSA_TREE_PLACEMENTS,
+  topicFamilyColor,
+  type DsaCurriculumPlacement,
+} from "../knowledgeGraphData";
 
 interface KnowledgeGraphConnectionsProps {
   hoveredNodeId: string | null;
+  placements?: readonly DsaCurriculumPlacement[];
 }
 
 export const KnowledgeGraphConnections: React.FC<KnowledgeGraphConnectionsProps> = ({
   hoveredNodeId,
+  placements = DSA_TREE_PLACEMENTS,
 }) => {
   const renderConnections = () => {
     const lines: React.ReactNode[] = [];
 
-    TOPIC_ROADMAP_NODES.forEach((node) => {
+    placements.forEach((node) => {
       node.prerequisites.forEach((prereqId) => {
-        const parent = TOPIC_ROADMAP_NODES.find((n) => n.id === prereqId);
+        const parent = placements.find((candidate) => candidate.id === prereqId);
         if (parent) {
           const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
           const strokeColor = isHighlighted ? "var(--accent)" : topicFamilyColor(node.family);

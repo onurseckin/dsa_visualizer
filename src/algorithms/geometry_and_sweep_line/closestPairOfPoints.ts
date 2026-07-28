@@ -16,9 +16,6 @@ export const PYTHON_CLOSEST_PAIR_OF_POINTS_CODE = `
 import math
 
 def closest_pair_of_points(points: list[tuple[float, float]]) -> float:
-    """
-    Finds the minimum distance between any pair of 2D points in O(N log N) using a sweep line.
-    """
     pts = sorted(points, key=lambda p: (p[0], p[1]))
     min_dist = float('inf')
     active_window = []
@@ -104,7 +101,14 @@ export const generateClosestPairOfPointsSteps = (
     });
 
     const edges: GraphEdgeItem[] = [];
-    if (closestPair) {
+    const isComparingClosestPair =
+      closestPair &&
+      currentP &&
+      comparingP &&
+      ((closestPair[0].id === currentP.id && closestPair[1].id === comparingP.id) ||
+        (closestPair[0].id === comparingP.id && closestPair[1].id === currentP.id));
+
+    if (closestPair && !isComparingClosestPair) {
       edges.push({
         from: closestPair[0].id,
         to: closestPair[1].id,
@@ -119,6 +123,7 @@ export const generateClosestPairOfPointsSteps = (
         to: comparingP.id,
         weight: Math.round(dist(currentP, comparingP) * 100) / 100,
         isTraversed: true,
+        isPath: Boolean(isComparingClosestPair),
       });
     }
 
@@ -128,7 +133,7 @@ export const generateClosestPairOfPointsSteps = (
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 4,
     explanation: {
       what: `Initializing Closest Pair of Points algorithm for ${points.length} points.`,
       why: "A vertical sweep line will maintain candidate points within a dynamic 2D strip of width d.",
@@ -140,7 +145,7 @@ export const generateClosestPairOfPointsSteps = (
     auxiliaryState: {
       hashMap: {
         "Total Points": points.length,
-        "Status": "Starting Sweep Line",
+        Status: "Starting Sweep Line",
       },
     },
     variables: { totalPoints: points.length },
@@ -149,7 +154,7 @@ export const generateClosestPairOfPointsSteps = (
   // Step 1: Sort points
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 5,
     explanation: {
       what: `Sorted ${points.length} points primarily by X-coordinate.`,
       why: "Sorting points left-to-right enables linear X-axis sweep processing.",
@@ -169,7 +174,7 @@ export const generateClosestPairOfPointsSteps = (
   // Step 2: Init min_dist
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 23,
+    codeLine: 6,
     explanation: {
       what: `Initialized min_dist = Infinity.`,
       why: "Will track the smallest Euclidean distance delta found so far.",
@@ -179,7 +184,7 @@ export const generateClosestPairOfPointsSteps = (
       ...makeGraphSnapshot(),
     },
     auxiliaryState: {
-      hashMap: { "min_dist": "Infinity" },
+      hashMap: { min_dist: "Infinity" },
     },
     variables: { minDist: -1 },
   });
@@ -187,7 +192,7 @@ export const generateClosestPairOfPointsSteps = (
   // Step 3: Init active window
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 24,
+    codeLine: 7,
     explanation: {
       what: `Initialized active_window = [].`,
       why: "Active window holds points currently within X-distance delta from sweep position.",
@@ -197,7 +202,7 @@ export const generateClosestPairOfPointsSteps = (
       ...makeGraphSnapshot(),
     },
     auxiliaryState: {
-      hashMap: { "active_window": "[]" },
+      hashMap: { active_window: "[]" },
     },
     variables: { activeWindowSize: 0 },
   });
@@ -210,7 +215,7 @@ export const generateClosestPairOfPointsSteps = (
     // Step 4: Process current point p
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 26,
+      codeLine: 9,
       explanation: {
         what: `Processing point ${p.id} at (${p.x}, ${p.y}).`,
         why: "Advancing sweep line to next point in X-sorted order.",
@@ -233,7 +238,7 @@ export const generateClosestPairOfPointsSteps = (
       const removed = activeWindow.shift()!;
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 28,
+        codeLine: 11,
         explanation: {
           what: `Evicted point ${removed.id}(${removed.x},${removed.y}) from active window: X-diff = ${p.x - removed.x} >= min_dist ${minDist.toFixed(2)}.`,
           why: "Points outside the X-strip of width delta cannot form a closer pair.",
@@ -258,7 +263,7 @@ export const generateClosestPairOfPointsSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 31,
+        codeLine: 14,
         explanation: {
           what: `Comparing ${p.id}(${p.x},${p.y}) with candidate ${activePt.id}(${activePt.x},${activePt.y}): Y-diff = ${yDiff} vs min_dist ${minDist.toFixed(2)}.`,
           why: "Only test candidates whose vertical distance is strictly less than current min_dist.",
@@ -282,7 +287,7 @@ export const generateClosestPairOfPointsSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 32,
+          codeLine: 15,
           explanation: {
             what: `Calculated Euclidean distance d(${p.id}, ${activePt.id}) = sqrt((${p.x}-${activePt.x})^2 + (${p.y}-${activePt.y})^2) = ${d.toFixed(2)}.`,
             why: "Evaluating hypotenuse distance between sweep point and candidate.",
@@ -306,7 +311,7 @@ export const generateClosestPairOfPointsSteps = (
 
           steps.push({
             stepIndex: stepIndex++,
-            codeLine: 34,
+            codeLine: 17,
             explanation: {
               what: `New closest pair found: ${p.id}(${p.x},${p.y}) and ${activePt.id}(${activePt.x},${activePt.y}) with distance = ${d.toFixed(2)}.`,
               why: `Updated minimum distance delta to ${d.toFixed(2)}.`,
@@ -330,7 +335,7 @@ export const generateClosestPairOfPointsSteps = (
     activeWindow.push(p);
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 36,
+      codeLine: 19,
       explanation: {
         what: `Appended ${p.id}(${p.x},${p.y}) to active window.`,
         why: "Point is now eligible to serve as a candidate for future sweep points.",
@@ -350,7 +355,7 @@ export const generateClosestPairOfPointsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 38,
+    codeLine: 21,
     explanation: {
       what: `Completed Closest Pair search. Closest pair: ${closestPair ? `${closestPair[0].id} and ${closestPair[1].id}` : "None"} with distance ${minDist.toFixed(2)}.`,
       why: "Sweep line algorithm guarantees O(N log N) time complexity by comparing each point against at most 6 candidates in the active strip.",
@@ -431,38 +436,34 @@ export const CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE: TopicGuide = {
 export const CLOSEST_PAIR_OF_POINTS_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Empty leading line for code formatting.",
-    16: "Imports math module for sqrt/hypot calculations.",
-    17: "Empty line for formatting.",
-    18: "Defines closest_pair_of_points function signature taking point array.",
-    19: "Opening docstring tag.",
-    20: "Docstring describing sweep line closest pair algorithm.",
-    21: "Closing docstring tag.",
-    22: "Sorts 2D points primarily by X coordinate.",
-    23: "Initializes minimum distance delta to infinity.",
-    24: "Initializes active window array for X-strip candidates.",
-    25: "Empty line for formatting.",
-    26: "Loops through each point p in X-sorted order.",
-    27: "Checks while loop condition to evict points outside delta X-strip.",
-    28: "Pops expired point from active window.",
-    29: "Empty line for formatting.",
-    30: "Loops through candidate points in active window.",
-    31: "Checks if Y-difference is strictly less than min_dist delta.",
-    32: "Computes Euclidean hypotenuse distance d.",
-    33: "Checks if calculated distance d is strictly less than min_dist.",
-    34: "Updates minimum distance delta.",
-    35: "Empty line for formatting.",
-    36: "Appends current point p to active window array.",
-    37: "Empty line for formatting.",
-    38: "Returns overall minimum Euclidean distance found.",
-    39: "Empty trailing line for code formatting.",
+    2: "Imports math module for sqrt/hypot calculations.",
+    3: "Empty line for formatting.",
+    4: "Defines closest_pair_of_points function signature taking point array.",
+    5: "Sorts 2D points primarily by X coordinate.",
+    6: "Initializes minimum distance delta to infinity.",
+    7: "Initializes active window array for X-strip candidates.",
+    8: "Empty line for formatting.",
+    9: "Loops through each point p in X-sorted order.",
+    10: "Checks while loop condition to evict points outside delta X-strip.",
+    11: "Pops expired point from active window.",
+    12: "Empty line for formatting.",
+    13: "Loops through candidate points in active window.",
+    14: "Checks if Y-difference is strictly less than min_dist delta.",
+    15: "Computes Euclidean hypotenuse distance d.",
+    16: "Checks if calculated distance d is strictly less than min_dist.",
+    17: "Updates minimum distance delta.",
+    18: "Empty line for formatting.",
+    19: "Appends current point p to active window array.",
+    20: "Empty line for formatting.",
+    21: "Returns overall minimum Euclidean distance found.",
+    22: "Empty trailing line for code formatting.",
   },
 };
 
 export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> = {
   id: "closest-pair-of-points",
   title: "Closest Pair of Points via Sweep Line",
-  category: "geometry_and_sweep_line",
-  categories: ["geometry_and_sweep_line"],
+  topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
     "Find the minimum Euclidean distance between any pair of 2D points in $\\mathcal{O}(N \\log N)$ time using a vertical sweep line and active Y-interval candidate set:\n\n$$d = \\sqrt{(x_2 - x_1)^2 + (y_2 - y_1)^2}$$\n\n### Graph Snapshot Representation\nThe 2D points, active bounding strip, and current closest pair line are displayed on a coordinate grid.\n\n### Input Parameters\n- `points` (`Point2D[]`): Array of 2D coordinate points.\n\n### Output\n- `float`: Minimum Euclidean distance between any pair.\n\n### Edge Cases & Constraints\n- Base Case: $N = 2 \\implies \\text{return } d(P_1, P_2)$.\n- Duplicate Points: Yield minimum distance 0.0.",

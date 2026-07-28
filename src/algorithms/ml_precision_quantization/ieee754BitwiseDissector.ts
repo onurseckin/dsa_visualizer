@@ -26,13 +26,41 @@ const floatToUint32 = (val: number): number => {
   return view.getUint32(0, false);
 };
 
-const fp32ToBitItems = (val: number): BitItem[] => {
+const fp32ToBitItems = (val: number, activePhase?: string): BitItem[] => {
   const u32 = floatToUint32(val);
   const bitStr = u32.toString(2).padStart(32, "0");
   return [
-    { index: 31, label: "Sign (s)", value: bitStr[0], state: "sign", bitGroup: "sign" },
-    { index: 30, label: "Biased Exp (e) [30:23]", value: bitStr.slice(1, 9), state: "exponent", bitGroup: "exp" },
-    { index: 22, label: "Mantissa (m) [22:0]", value: bitStr.slice(9), state: "mantissa", bitGroup: "mant" },
+    {
+      index: 31,
+      label: "Sign (s)",
+      value: bitStr[0],
+      state: activePhase === "EXTRACT_SIGN" ? "active" : "sign",
+      bitGroup: "sign",
+    },
+    {
+      index: 30,
+      label: "Biased Exp (e) [30:23]",
+      value: bitStr.slice(1, 9),
+      state:
+        activePhase === "EXTRACT_EXPONENT"
+          ? "active"
+          : activePhase === "EXTRACT_SIGN"
+            ? "default"
+            : "exponent",
+      bitGroup: "exp",
+    },
+    {
+      index: 22,
+      label: "Mantissa (m) [22:0]",
+      value: bitStr.slice(9),
+      state:
+        activePhase === "EXTRACT_MANTISSA"
+          ? "active"
+          : activePhase === "EXTRACT_SIGN" || activePhase === "EXTRACT_EXPONENT"
+            ? "default"
+            : "mantissa",
+      bitGroup: "mant",
+    },
   ];
 };
 
@@ -41,7 +69,8 @@ export const generateIeee754BitwiseDissectorSteps = (
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const arrayValues = input?.values || (input?.val !== undefined ? [input.val] : [1.2, -3.4, 5.5, -0.15625, 65504.0]);
+  const arrayValues =
+    input?.values || (input?.val !== undefined ? [input.val] : [1.2, -3.4, 5.5, -0.15625, 65504.0]);
 
   const addStep = (
     codeLine: number,
@@ -50,6 +79,7 @@ export const generateIeee754BitwiseDissectorSteps = (
     variables: Record<string, string | number | boolean>,
     currValue?: number,
     currSign?: number,
+    phase?: string,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -61,7 +91,7 @@ export const generateIeee754BitwiseDissectorSteps = (
         quantizedValue: currSign ?? 0,
         scale: 1,
         zeroPoint: 0,
-        bits: fp32ToBitItems(currValue ?? arrayValues[0]),
+        bits: fp32ToBitItems(currValue ?? arrayValues[0], phase),
         title: "IEEE-754 Single-Precision (FP32) Bitwise Dissector",
       },
       auxiliaryState: {
@@ -81,6 +111,7 @@ export const generateIeee754BitwiseDissectorSteps = (
     { n: arrayValues.length },
     arrayValues[0],
     0,
+    "INIT",
   );
 
   // Step 2: Import struct
@@ -91,6 +122,7 @@ export const generateIeee754BitwiseDissectorSteps = (
     { module: "struct" },
     arrayValues[0],
     0,
+    "IMPORT",
   );
 
   // Multi-step dissection per element
@@ -102,6 +134,7 @@ export const generateIeee754BitwiseDissectorSteps = (
       { idx, val, phase: "INSPECT_VAL" },
       val,
       0,
+      "INSPECT_VAL",
     );
 
     const u32Bits = floatToUint32(val);
@@ -114,6 +147,7 @@ export const generateIeee754BitwiseDissectorSteps = (
       { idx, val, bitsUint32: u32Bits, bitsHex: hexBits, phase: "UNPACK_UINT32" },
       val,
       0,
+      "UNPACK_UINT32",
     );
 
     const sign = (u32Bits >>> 31) & 1;
@@ -125,6 +159,7 @@ export const generateIeee754BitwiseDissectorSteps = (
       { idx, val, sign, isNegative: sign === 1, phase: "EXTRACT_SIGN" },
       val,
       sign,
+      "EXTRACT_SIGN",
     );
 
     const exponent = (u32Bits >>> 23) & 0xff;
@@ -136,6 +171,7 @@ export const generateIeee754BitwiseDissectorSteps = (
       { idx, val, biasedExponent: exponent, phase: "EXTRACT_EXPONENT" },
       val,
       exponent,
+      "EXTRACT_EXPONENT",
     );
 
     const mantissa = u32Bits & 0x7fffff;
@@ -148,6 +184,7 @@ export const generateIeee754BitwiseDissectorSteps = (
       { idx, val, mantissa, mantissaHex, phase: "EXTRACT_MANTISSA" },
       val,
       mantissa,
+      "EXTRACT_MANTISSA",
     );
 
     const unbiasedExp = exponent - 127;
@@ -156,9 +193,17 @@ export const generateIeee754BitwiseDissectorSteps = (
       7,
       `Compute Unbiased Base-2 Exponent: exponent - 127 = ${exponent} - 127 = ${unbiasedExp}`,
       `Subtracted IEEE-754 bias 127 from biased exponent ${exponent} to find true base-2 exponent e = 2^${unbiasedExp}.`,
-      { idx, val, biasedExponent: exponent, unbiasedExp, powerOfTwo: `2^${unbiasedExp}`, phase: "UNBIAS_EXPONENT" },
+      {
+        idx,
+        val,
+        biasedExponent: exponent,
+        unbiasedExp,
+        powerOfTwo: `2^${unbiasedExp}`,
+        phase: "UNBIAS_EXPONENT",
+      },
       val,
       unbiasedExp,
+      "UNBIAS_EXPONENT",
     );
 
     addStep(
@@ -168,6 +213,7 @@ export const generateIeee754BitwiseDissectorSteps = (
       { idx, val, sign, exponent, unbiasedExp, mantissa, phase: "RETURN_TUPLE" },
       val,
       sign,
+      "RETURN_TUPLE",
     );
   });
 
@@ -175,10 +221,11 @@ export const generateIeee754BitwiseDissectorSteps = (
   addStep(
     8,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully completed IEEE-754 bitwise dissection across all input scalar float values.",
     { completed: true, totalSteps: stepIndex },
     arrayValues[arrayValues.length - 1],
     0,
+    "COMPLETE",
   );
 
   return steps;
@@ -214,12 +261,8 @@ const IEEE754BITWISEDISSECTOR_TRIVIA: TriviaMeta = {
 export const ieee754BitwiseDissector: AlgorithmDefinition<ieee754BitwiseDissectorInput> = {
   id: "ieee-754-bitwise-dissector",
   title: "Ieee754 Bitwise Dissector",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### IEEE-754 Bitwise Dissector
 
 IEEE-754 Single-Precision Floating Point Dissector parses a 32-bit floating point number (FP32) into its constituent binary bitfields: 1-bit sign $S$, 8-bit biased exponent $E$, and 23-bit mantissa fraction $M$.
@@ -252,7 +295,8 @@ $$V = (-1)^S \\times 2^{E - 127} \\times \\left(1 + \\frac{M}{2^{23}}\\right)$$
       outputDisplay: "Sign = 0, Biased Exp = 127 (Unbiased = 0), Mantissa = 0x19999A",
       input: { values: [1.2, -3.4, 5.5] },
       output: "(sign=0, exp=127, unbiased_exp=0, mantissa=0x19999A)",
-      explanation: "Dissects FP32 1.2 into sign 0, biased exponent 127 (2^0), and mantissa fraction 0x19999A.",
+      explanation:
+        "Dissects FP32 1.2 into sign 0, biased exponent 127 (2^0), and mantissa fraction 0x19999A.",
     },
     {
       kind: "complex",
@@ -304,11 +348,13 @@ $$V = (-1)^S \\times 2^{E - 127} \\times \\left(1 + \\frac{M}{2^{23}}\\right)$$
     keyTerms: [
       {
         term: "Biased Exponent (+127)",
-        definition: "8-bit exponent field offset by +127 to represent negative powers of two without a sign bit.",
+        definition:
+          "8-bit exponent field offset by +127 to represent negative powers of two without a sign bit.",
       },
       {
         term: "Implicit Leading One",
-        definition: "The implicit 1 in normalized IEEE-754 floats (1 + M/2^23) omitting 1 bit of storage.",
+        definition:
+          "The implicit 1 in normalized IEEE-754 floats (1 + M/2^23) omitting 1 bit of storage.",
       },
       {
         term: "Mantissa Fraction (M)",

@@ -9,10 +9,11 @@ import {
 describe("variance-preservation-proof-sim (Attention Variance Preservation Simulator)", () => {
   it("should have correct metadata", () => {
     expect(variancePreservationProofSim.id).toBe("variance-preservation-proof-sim");
-    expect(variancePreservationProofSim.isMlInfra).toBe(true);
-    expect(variancePreservationProofSim.mlInfraLevel).toBe(7);
-    expect(variancePreservationProofSim.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(variancePreservationProofSim.categories).toContain("ml_attention_geometry");
+    expect(variancePreservationProofSim.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(variancePreservationProofSim.topicIds).toContain("ml_attention_geometry");
+    expect(variancePreservationProofSim.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

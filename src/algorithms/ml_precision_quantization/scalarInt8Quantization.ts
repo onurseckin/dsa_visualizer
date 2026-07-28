@@ -37,7 +37,8 @@ export const generateScalarInt8QuantizationSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arrayValues = input?.values || (input?.val !== undefined ? [input.val] : [1.2, -3.4, 5.5, -15.0, 20.0]);
+  const arrayValues =
+    input?.values || (input?.val !== undefined ? [input.val] : [1.2, -3.4, 5.5, -15.0, 20.0]);
   const scale = input?.scale ?? 0.1;
   const zeroPoint = input?.zeroPoint ?? 0;
   const quantizedResults: number[] = [];
@@ -166,7 +167,7 @@ export const generateScalarInt8QuantizationSteps = (
   addStep(
     4,
     "Execution Complete",
-    "Successfully processed all nodes in the computation graph structure.",
+    "Successfully quantized all FP32 scalar values into signed INT8 integers within range [-128, 127].",
     { completed: true, totalSteps: stepIndex },
     arrayValues[arrayValues.length - 1],
     quantizedResults[quantizedResults.length - 1] ?? 0,
@@ -184,8 +185,14 @@ const SCALARINT8QUANTIZATION_TRIVIA: TriviaMeta = {
     "clamped = val & 0xFF",
   ],
   hints: [
-    { line: 1, hint: "Defines scalar INT8 quantization function signature with scale and zero_point parameters." },
-    { line: 2, hint: "Divide float by scale, round to nearest integer, and add zero_point offset." },
+    {
+      line: 1,
+      hint: "Defines scalar INT8 quantization function signature with scale and zero_point parameters.",
+    },
+    {
+      line: 2,
+      hint: "Divide float by scale, round to nearest integer, and add zero_point offset.",
+    },
     { line: 3, hint: "Clamp integer result strictly within 8-bit signed range [-128, 127]." },
   ],
   lineExplanations: {
@@ -199,12 +206,8 @@ const SCALARINT8QUANTIZATION_TRIVIA: TriviaMeta = {
 export const scalarInt8Quantization: AlgorithmDefinition<scalarInt8QuantizationInput> = {
   id: "scalar-int8-quantization",
   title: "Scalar Int8 Quantization",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Scalar INT8 Quantization
 
 Scalar INT8 Quantization is the fundamental atomic building block of deep learning precision reduction. It converts an individual continuous FP32 scalar value $x \\in \\mathbb{R}$ into a discrete 8-bit signed integer $q \\in [-128, 127]$.
@@ -235,7 +238,8 @@ Storing continuous 32-bit floating point numbers requires 4 bytes of memory per 
       outputDisplay: "Quantized INT8 = [12, -34, 55]",
       input: { values: [1.2, -3.4, 5.5], scale: 0.1, zeroPoint: 0 },
       output: "[12, -34, 55]",
-      explanation: "Divides each float by 0.1, rounds to nearest integer, and clamps within [-128, 127].",
+      explanation:
+        "Divides each float by 0.1, rounds to nearest integer, and clamps within [-128, 127].",
     },
     {
       kind: "complex",
@@ -277,7 +281,7 @@ Storing continuous 32-bit floating point numbers requires 4 bytes of memory per 
       },
       {
         heading: "Implementation Details & Step-by-Step Flow",
-        body: "Implementation computes scaled quotient \`val / scale\`, rounds to nearest integer, adds \`zero_point\` offset, and clamps within \`[-128, 127]\`.",
+        body: "Implementation computes scaled quotient `val / scale`, rounds to nearest integer, adds `zero_point` offset, and clamps within `[-128, 127]`.",
       },
       {
         heading: "Edge Case Analysis & Clamping",

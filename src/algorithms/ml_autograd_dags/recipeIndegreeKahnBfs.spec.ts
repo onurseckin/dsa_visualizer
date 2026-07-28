@@ -8,10 +8,9 @@ import {
 describe("recipe-indegree-kahn-bfs (Kahn's BFS Topological Sort)", () => {
   it("should have correct metadata", () => {
     expect(recipeIndegreeKahnBfs.id).toBe("recipe-indegree-kahn-bfs");
-    expect(recipeIndegreeKahnBfs.isMlInfra).toBe(true);
-    expect(recipeIndegreeKahnBfs.mlInfraLevel).toBe(3);
-    expect(recipeIndegreeKahnBfs.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(recipeIndegreeKahnBfs.categories).toContain("ml_autograd_dags");
+    expect(recipeIndegreeKahnBfs.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(recipeIndegreeKahnBfs.topicIds).toContain("ml_autograd_dags");
+    expect(recipeIndegreeKahnBfs.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

@@ -9,7 +9,7 @@ describe("reverseLinkedList algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(reverseLinkedList.id).toBe("reverse-linked-list");
     expect(reverseLinkedList.title).toBe("Reverse Linked List");
-    expect(reverseLinkedList.category).toBe("linked_list");
+    expect(reverseLinkedList.topicIds).toContain("linked_list");
     expect(reverseLinkedList.difficulty).toBe("Easy");
     expect(reverseLinkedList.defaultInput).toEqual(DEFAULT_REVERSE_LINKED_LIST_INPUT);
   });

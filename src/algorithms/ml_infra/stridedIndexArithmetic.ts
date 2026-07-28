@@ -15,7 +15,7 @@ export const STRIDED_INDEX_ARITHMETIC_CODE = `def strided_index_arithmetic(shape
     for d in range(ndim):
         idx = indices[d]
         if idx < 0 or idx >= shape[d]:
-            return -1  # Out of bounds
+            return -1
         offset += idx * strides[d]
     return offset`;
 
@@ -38,6 +38,7 @@ export const generateStridedIndexArithmeticSteps = (
     id: `dim-${idx}`,
     value: dimSize,
     state: "default",
+    pointers: [`Dim ${idx}`],
   }));
 
   const addStep = (
@@ -72,7 +73,7 @@ export const generateStridedIndexArithmeticSteps = (
 
   if (ndim !== strides.length || ndim !== indices.length || ndim === 0) {
     addStep(
-      3,
+      2,
       "Dimension mismatch or empty input",
       "Shape, strides, and indices arrays must have non-zero matching length.",
       { ndim, valid: false, offset: -1 },
@@ -81,11 +82,9 @@ export const generateStridedIndexArithmeticSteps = (
   }
 
   addStep(
-    5,
-    "Initialize strided index calculation",
-    `Calculating 1D linear memory address for multi-index [${indices.join(
-      ", ",
-    )}] in ${ndim}D tensor.`,
+    4,
+    `Initialize flat memory offset calculation for ${ndim}D tensor`,
+    `Number of dimensions ndim = ${ndim}. Setting starting offset = 0.`,
     { ndim, offset: 0 },
   );
 
@@ -97,27 +96,35 @@ export const generateStridedIndexArithmeticSteps = (
     const stride = strides[d];
 
     const currentEls: ArrayElement[] = elements.map((el, i) => {
-      if (i === d) return { ...el, state: "active", pointers: [`Dim ${d}`] };
-      if (i < d) return { ...el, state: "visited" };
-      return { ...el, state: "default" };
+      if (i === d) return { ...el, state: "active", pointers: [`Dim ${d}`, `idx=${idx}`] };
+      if (i < d) return { ...el, state: "visited", pointers: [`Dim ${i}`, `done`] };
+      return { ...el, state: "default", pointers: [`Dim ${i}`] };
     });
 
     addStep(
+      7,
+      `Access index idx = ${idx} for dimension ${d}`,
+      `Retrieving index ${idx} from indices[${d}] with stride ${stride} and size ${dimBound}.`,
+      { d, idx, shape_d: dimBound, stride_d: stride, offset: totalOffset },
+      currentEls,
+    );
+
+    addStep(
       8,
-      `Check dimension ${d}: index ${idx} in bounds [0, ${dimBound})`,
-      `Evaluating index ${idx} against dimension ${d} size ${dimBound}.`,
+      `Check dimension ${d} bounds: 0 <= ${idx} < ${dimBound}`,
+      `Verifying if coordinate index ${idx} lies within valid range [0, ${dimBound}).`,
       { d, idx, shape_d: dimBound, stride_d: stride, offset: totalOffset },
       currentEls,
     );
 
     if (idx < 0 || idx >= dimBound) {
       const errEls: ArrayElement[] = currentEls.map((el, i) =>
-        i === d ? { ...el, state: "compare", pointers: ["OOB"] } : el,
+        i === d ? { ...el, state: "compare", pointers: [`Dim ${d}`, `OOB (${idx})`] } : el,
       );
       addStep(
         9,
-        `Out of bounds at dimension ${d}`,
-        `Index ${idx} is out of bounds for dimension size ${dimBound}. Returning -1.`,
+        `Out of bounds index at dimension ${d}`,
+        `Index ${idx} is outside dimension boundary [0, ${dimBound}). Returning -1.`,
         { d, idx, shape_d: dimBound, offset: -1 },
         errEls,
       );
@@ -128,28 +135,28 @@ export const generateStridedIndexArithmeticSteps = (
     totalOffset += term;
 
     const termEls: ArrayElement[] = currentEls.map((el, i) =>
-      i === d ? { ...el, state: "sorted", pointers: [`+${term}`] } : el,
+      i === d ? { ...el, state: "sorted", pointers: [`Dim ${d}`, `+${term}`] } : el,
     );
 
     addStep(
       10,
-      `Accumulate dimension ${d} contribution: +${term}`,
-      `Added ${idx} * ${stride} = ${term} to offset. Current total = ${totalOffset}.`,
+      `Accumulate offset contribution: ${idx} * ${stride} = +${term}`,
+      `Added ${idx} * ${stride} = ${term} to offset. Running offset total = ${totalOffset}.`,
       { d, idx, stride_d: stride, term, offset: totalOffset },
       termEls,
     );
   }
 
-  const finalEls: ArrayElement[] = elements.map((el) => ({
+  const finalEls: ArrayElement[] = elements.map((el, i) => ({
     ...el,
     state: "sorted",
-    pointers: ["DONE"],
+    pointers: [`Dim ${i}`, "Done"],
   }));
 
   addStep(
     11,
-    `Final 1D offset computed: ${totalOffset}`,
-    `Successfully mapped multi-index [${indices.join(", ")}] to linear memory location ${totalOffset}.`,
+    `Final flat 1D offset computed: ${totalOffset}`,
+    `Successfully mapped multi-index [${indices.join(", ")}] to linear memory address ${totalOffset}.`,
     { offset: totalOffset, complete: true },
     finalEls,
   );
@@ -160,8 +167,8 @@ export const generateStridedIndexArithmeticSteps = (
 export const STRIDED_INDEX_ARITHMETIC_TRIVIA: TriviaMeta = {
   skipLines: [2],
   hints: [
-    { line: 7, hint: "Iterate through each tensor dimension" },
-    { line: 11, hint: "Multiply coordinate index by dimension stride" },
+    { line: 6, hint: "Iterate through each tensor dimension" },
+    { line: 10, hint: "Multiply coordinate index by dimension stride" },
   ],
   distractors: [
     "offset += idx / strides[d]",
@@ -173,10 +180,8 @@ export const STRIDED_INDEX_ARITHMETIC_TRIVIA: TriviaMeta = {
 export const stridedIndexArithmetic: AlgorithmDefinition<StridedIndexArithmeticInput> = {
   id: "strided-index-arithmetic",
   title: "Strided Index Arithmetic",
-  category: "ml_tensor_algebra",
+  topicIds: ["ml_tensor_algebra"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Compute flat 1D buffer offsets from multi-dimensional tensor indices using dimension strides.",

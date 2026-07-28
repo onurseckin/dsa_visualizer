@@ -110,20 +110,19 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
     variables: { m, n },
   });
 
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
-      what: `Loop over rows 0..${m} to set base column  dp[i][0] = i`,
+      what: `Loop over rows 0..${m} to set base column  dp[i][0] = i`,
       why: "Transforming word1 prefix of length i into an empty string always costs exactly i deletions, so the first column fills with 0, 1, 2, … m.",
     },
     primarySnapshot: createGridSnapshot(),
     auxiliaryState: { customState: { baseCol: "dp[i][0] = i for i in 0..m" } },
     variables: { m },
   });
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
 
   steps.push({
     stepIndex: stepIndex++,
@@ -141,13 +140,15 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 7,
     explanation: {
-      what: `Loop over columns 0..${n} to set base row  dp[0][j] = j`,
+      what: `Loop over columns 0..${n} to set base row  dp[0][j] = j`,
       why: "Transforming an empty string into word2 prefix of length j costs exactly j insertions.",
     },
-    primarySnapshot: createGridSnapshot(undefined, [], [0, 0]),
+    primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
     auxiliaryState: { customState: { baseRow: "dp[0][j] = j for j in 0..n" } },
     variables: { n },
   });
+
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
 
   steps.push({
     stepIndex: stepIndex++,
@@ -156,7 +157,7 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
       what: `Initialize base row dp[0][j] = j for j = 0..${n}`,
       why: "Transforming empty string to word2 prefix of length j requires j insertions.",
     },
-    primarySnapshot: createGridSnapshot(undefined, [], [0, n]),
+    primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
     auxiliaryState: { customState: { baseRowInitialized: true } },
     variables: { n },
   });
@@ -169,7 +170,7 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
         what: `Begin outer loop for row i = ${i} (char '${word1[i - 1]}')`,
         why: `Processing prefix word1[0..${i - 1}] against all prefixes of word2.`,
       },
-      primarySnapshot: createGridSnapshot(undefined, [], [i, 0]),
+      primarySnapshot: createGridSnapshot(undefined, [], [i - 1, n]),
       auxiliaryState: {
         customState: { i, char1: word1[i - 1], word1, word2 },
       },
@@ -197,9 +198,10 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
         codeLine: 12,
         explanation: {
           what: `Evaluate condition word1[${i - 1}] ('${char1}') == word2[${j - 1}] ('${char2}')`,
-          why: char1 === char2
-            ? `Characters match! Zero extra edit cost required.`
-            : `Characters differ! Must take 1 + min(delete, insert, replace).`,
+          why:
+            char1 === char2
+              ? `Characters match! Zero extra edit cost required.`
+              : `Characters differ! Must take 1 + min(delete, insert, replace).`,
         },
         primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
         auxiliaryState: { customState: { i, j, match: char1 === char2 } },
@@ -226,7 +228,6 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
         const insertOp = dp[i][j - 1];
         const replaceOp = dp[i - 1][j - 1];
         const minPrev = Math.min(deleteOp, insertOp, replaceOp);
-        dp[i][j] = 1 + minPrev;
 
         let bestOpName = "Replace";
         if (minPrev === deleteOp) bestOpName = "Delete";
@@ -243,6 +244,8 @@ export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmSt
           auxiliaryState: { customState: { i, j, char1, char2, match: false } },
           variables: { i, j, char1, char2, match: false },
         });
+
+        dp[i][j] = 1 + minPrev;
 
         steps.push({
           stepIndex: stepIndex++,
@@ -318,8 +321,7 @@ const EDIT_DISTANCE_TRIVIA: TriviaMeta = {
 export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   id: "edit-distance",
   title: "Edit Distance (2D Dynamic Programming)",
-  category: "dp_2d",
-  categories: ["dp_2d"],
+  topicIds: ["dp_2d"],
   difficulty: "Hard",
   description: `The **Edit Distance** (Levenshtein Distance) problem (LeetCode #72) asks for the minimum number of single-character operations—**Insert**, **Delete**, or **Replace**—required to transform string $A$ (\`word1\`) of length $M$ into string $B$ (\`word2\`) of length $N$.
 
@@ -451,4 +453,3 @@ For cell $(i, j)$:
   defaultInput: DEFAULT_EDIT_DISTANCE_INPUT,
   generateSteps: generateEditDistanceSteps,
 };
-

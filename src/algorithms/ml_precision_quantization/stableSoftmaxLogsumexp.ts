@@ -131,7 +131,14 @@ export const generateStableSoftmaxLogsumexpSteps = (
       4,
       `Accumulate Shifted Exp: exp(${shift.toFixed(4)}) = ${expTerm.toFixed(6)} -> sum_exp = ${sumExp.toFixed(6)}`,
       `Computed max-shifted exponential exp(${shift.toFixed(4)}) = ${expTerm.toFixed(6)} and accumulated into sum_exp.`,
-      { idx, x, maxVal, expTerm: Number(expTerm.toFixed(6)), sumExp: Number(sumExp.toFixed(6)), phase: "ACCUMULATE_EXP" },
+      {
+        idx,
+        x,
+        maxVal,
+        expTerm: Number(expTerm.toFixed(6)),
+        sumExp: Number(sumExp.toFixed(6)),
+        phase: "ACCUMULATE_EXP",
+      },
       x,
       sumExp,
     );
@@ -216,12 +223,8 @@ const STABLESOFTMAXLOGSUMEXP_TRIVIA: TriviaMeta = {
 export const stableSoftmaxLogsumexp: AlgorithmDefinition<stableSoftmaxLogsumexpInput> = {
   id: "stable-softmax-logsumexp",
   title: "Stable Softmax Logsumexp",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Stable Softmax & LogSumExp (LSE)
 
 Numerically Stable Softmax and LogSumExp (LSE) compute the log-sum-exp reduction and normalized probability distribution across floating-point logits without triggering exponent overflow.
@@ -252,7 +255,8 @@ Naive evaluation of $\\text{LSE}(\\mathbf{x}) = \\ln\\left(\\sum_{i} e^{x_i}\\ri
       outputDisplay: "LSE = 5.5134, Softmax Probs = [0.0133, 0.0001, 0.9866]",
       input: { values: [1.2, -3.4, 5.5] },
       output: "lse = 5.5134, probs = [0.0133, 0.0001, 0.9866]",
-      explanation: "Extracts max logit 5.5, computes sum_exp = 1.0135, and outputs LSE = 5.5 + ln(1.0135) = 5.5134.",
+      explanation:
+        "Extracts max logit 5.5, computes sum_exp = 1.0135, and outputs LSE = 5.5 + ln(1.0135) = 5.5134.",
     },
     {
       kind: "complex",
@@ -294,7 +298,7 @@ Naive evaluation of $\\text{LSE}(\\mathbf{x}) = \\ln\\left(\\sum_{i} e^{x_i}\\ri
       },
       {
         heading: "Implementation Details & Max Subtraction",
-        body: "Implementation finds row maximum \`max_val\`, computes \`exp(x - max_val)\`, sums exponentials, calculates \`LSE = max_val + log(sum_exp)\`, and outputs normalized probabilities.",
+        body: "Implementation finds row maximum `max_val`, computes `exp(x - max_val)`, sums exponentials, calculates `LSE = max_val + log(sum_exp)`, and outputs normalized probabilities.",
       },
       {
         heading: "Edge Case Analysis & Dynamic Range",
@@ -304,11 +308,13 @@ Naive evaluation of $\\text{LSE}(\\mathbf{x}) = \\ln\\left(\\sum_{i} e^{x_i}\\ri
     keyTerms: [
       {
         term: "LogSumExp (LSE)",
-        definition: "Smooth, convex approximation of the maximum function: LSE(x) = ln(sum(exp(x))).",
+        definition:
+          "Smooth, convex approximation of the maximum function: LSE(x) = ln(sum(exp(x))).",
       },
       {
         term: "Max Subtraction Trick",
-        definition: "Subtracting max(x) prior to exponentiation to guarantee all exponents are <= 0.",
+        definition:
+          "Subtracting max(x) prior to exponentiation to guarantee all exponents are <= 0.",
       },
       {
         term: "Softmax Probability",

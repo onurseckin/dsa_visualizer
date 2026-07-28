@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface microgradForwardPassInput {
@@ -7,9 +12,6 @@ export interface microgradForwardPassInput {
 }
 
 export const MICROGRADFORWARDPASS_CODE = `def micrograd_forward_pass(a, b, op="+"):
-    """
-    Evaluates forward pass scalar value and binds backward gradient function.
-    """
     if op == "+":
         out_val = a + b
         local_grad_a, local_grad_b = 1.0, 1.0
@@ -34,18 +36,106 @@ export const generateMicrogradForwardPassSteps = (
   const arrayData = input?.data || [10, 20, 30, 40, 50];
   const target = input?.target ?? 30;
 
-  const elements: ArrayElement[] = arrayData.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const buildGraphSnapshot = (
+    activeIdx: number | null,
+    activeStage: "inspect" | "op" | "grad" | "done" | "init",
+  ): { nodes: GraphNodeItem[]; edges: GraphEdgeItem[] } => {
+    const nodes: GraphNodeItem[] = [];
+    const edges: GraphEdgeItem[] = [];
+
+    arrayData.forEach((val, idx) => {
+      const a = val;
+      const b = (idx + 1) * 5;
+      const op = idx % 2 === 0 ? "+" : "*";
+      const outVal = op === "+" ? a + b : a * b;
+      const localGradA = op === "+" ? 1.0 : b;
+      const localGradB = op === "+" ? 1.0 : a;
+
+      const isCurrent = activeIdx === idx;
+      const isPast = activeIdx !== null && idx < activeIdx;
+      const isFinished = activeStage === "done" || isPast;
+
+      let nodeAState: GraphNodeItem["state"] = "default";
+      let nodeBState: GraphNodeItem["state"] = "default";
+      let nodeOutState: GraphNodeItem["state"] = "default";
+
+      if (isFinished) {
+        nodeAState = "visited";
+        nodeBState = "visited";
+        nodeOutState = "sorted";
+      } else if (isCurrent) {
+        if (activeStage === "inspect") {
+          nodeAState = "compare";
+          nodeBState = "compare";
+          nodeOutState = "default";
+        } else if (activeStage === "op") {
+          nodeAState = "compare";
+          nodeBState = "compare";
+          nodeOutState = "active";
+        } else if (activeStage === "grad") {
+          nodeAState = "active";
+          nodeBState = "active";
+          nodeOutState = "sorted";
+        }
+      }
+
+      nodes.push({
+        id: `node-a-${idx}`,
+        label: `a${idx}=${a}`,
+        val: a,
+        state: nodeAState,
+        x: 80 + idx * 160,
+        y: 70,
+      });
+
+      nodes.push({
+        id: `node-b-${idx}`,
+        label: `b${idx}=${b}`,
+        val: b,
+        state: nodeBState,
+        x: 80 + idx * 160,
+        y: 230,
+      });
+
+      nodes.push({
+        id: `node-out-${idx}`,
+        label: `out${idx}(${op})=${isFinished || (isCurrent && activeStage !== "inspect") ? outVal : "?"}`,
+        val: outVal,
+        state: nodeOutState,
+        x: 160 + idx * 160,
+        y: 150,
+      });
+
+      const isEdgeTraversed = isFinished || (isCurrent && activeStage !== "inspect");
+      const isEdgeActive = isCurrent && (activeStage === "op" || activeStage === "grad");
+
+      edges.push({
+        from: `node-a-${idx}`,
+        to: `node-out-${idx}`,
+        weight: isEdgeTraversed ? localGradA : undefined,
+        isTraversed: isEdgeTraversed,
+        isPath: isEdgeActive,
+      });
+
+      edges.push({
+        from: `node-b-${idx}`,
+        to: `node-out-${idx}`,
+        weight: isEdgeTraversed ? localGradB : undefined,
+        isTraversed: isEdgeTraversed,
+        isPath: isEdgeActive,
+      });
+    });
+
+    return { nodes, edges };
+  };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    customElements?: ArrayElement[],
+    activeIdx: number | null = null,
+    activeStage: "inspect" | "op" | "grad" | "done" | "init" = "init",
     customState?: Record<string, string | number>,
   ) => {
     steps.push({
@@ -53,11 +143,8 @@ export const generateMicrogradForwardPassSteps = (
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
-        kind: "array",
-        elements: (customElements || elements).map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        kind: "graph",
+        ...buildGraphSnapshot(activeIdx, activeStage),
       },
       auxiliaryState: {
         customState: {
@@ -70,64 +157,39 @@ export const generateMicrogradForwardPassSteps = (
     });
   };
 
-  // Step 1: Init Micrograd Forward Engine
+  // Step 1: Init Engine
   addStep(
     1,
     "Initialize Micrograd Computational Graph Forward Engine",
     "Setting up scalar `Value` node evaluation pass for dynamic autograd graph execution.",
     { n: arrayData.length, target, phase: "INIT_MICROGRAD_FORWARD" },
-    undefined,
+    null,
+    "init",
     { engine_mode: "EAGER_EXECUTION", grad_enabled: "True" },
-  );
-
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Evaluates forward pass scalar value and binds backward gradient function.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
   );
 
   // Step 2: Begin DAG operation traversal
   addStep(
-    5,
+    1,
     "Inspect Operator Input Parameters (a, b, op)",
     "Preparing to evaluate forward mathematical operation and compute local partial derivatives.",
     { operandCount: arrayData.length, phase: "INSPECT_OPERANDS" },
+    null,
+    "init",
   );
 
-  // Multi-step evaluation per pair of values in input data
   arrayData.forEach((val, idx) => {
     const a = val;
     const b = (idx + 1) * 5;
     const op = idx % 2 === 0 ? "+" : "*";
-    const isTarget = val === target;
-
-    const stateA: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: "compare", pointers: [`a=${a}`, `b=${b}`] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
 
     addStep(
-      5,
+      op === "+" ? 2 : 5,
       `Check Op Type for Pair ${idx}: op == "${op}"`,
       `Evaluating operator condition for operands a = ${a}, b = ${b}.`,
       { idx, a, b, op, phase: "CHECK_OP_TYPE" },
-      stateA,
+      idx,
+      "inspect",
       { active_a: String(a), active_b: String(b), active_op: op },
     );
 
@@ -141,20 +203,22 @@ export const generateMicrogradForwardPassSteps = (
       localGradB = 1.0;
 
       addStep(
-        6,
+        3,
         `Compute Forward Addition Sum: out_val = ${a} + ${b} -> ${outVal}`,
         "Executing forward scalar addition operator: out_val = a + b.",
         { a, b, op: "+", outVal, phase: "COMPUTE_ADD_SUM" },
-        stateA,
+        idx,
+        "op",
         { out_val: String(outVal) },
       );
 
       addStep(
-        7,
+        4,
         `Set Addition Local Derivatives: (d_out/d_a = 1.0, d_out/d_b = 1.0)`,
         "For addition, derivative with respect to both input operands is identity factor 1.0.",
         { localGradA: 1.0, localGradB: 1.0, phase: "SET_ADD_DERIVS" },
-        stateA,
+        idx,
+        "grad",
         { d_out_d_a: "1.0", d_out_d_b: "1.0" },
       );
     } else {
@@ -163,66 +227,60 @@ export const generateMicrogradForwardPassSteps = (
       localGradB = a;
 
       addStep(
-        9,
+        6,
         `Compute Forward Multiplication Product: out_val = ${a} * ${b} -> ${outVal}`,
         "Executing forward scalar multiplication operator: out_val = a * b.",
         { a, b, op: "*", outVal, phase: "COMPUTE_MUL_PROD" },
-        stateA,
+        idx,
+        "op",
         { out_val: String(outVal) },
       );
 
       addStep(
-        10,
+        7,
         `Set Multiplication Local Derivatives: (d_out/d_a = ${b}, d_out/d_b = ${a})`,
         `For multiplication, d(a*b)/da = b (${b}) and d(a*b)/db = a (${a}).`,
         { localGradA: b, localGradB: a, phase: "SET_MUL_DERIVS" },
-        stateA,
+        idx,
+        "grad",
         { d_out_d_a: String(b), d_out_d_b: String(a) },
       );
     }
 
-    const stateResult: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx) return { ...el, state: isTarget ? "active" : "sorted", value: outVal, pointers: ["Value_Node"] };
-      if (i < idx) return { ...el, state: "visited" };
-      return el;
-    });
-
     addStep(
-      14,
+      11,
       `Return Value Node [Node_${idx}]: (out_val=${outVal}, local_grad_a=${localGradA}, local_grad_b=${localGradB})`,
       `Constructed Micrograd Value node with computed forward scalar ${outVal} and backward derivative closures.`,
       { idx, outVal, localGradA, localGradB, phase: "RETURN_VALUE_NODE" },
-      stateResult,
+      idx,
+      "done",
       { node_out: String(outVal), node_d_a: String(localGradA), node_d_b: String(localGradB) },
     );
   });
 
-  const finalElements: ArrayElement[] = elements.map((el) => ({
-    ...el,
-    state: "sorted",
-  }));
-
   addStep(
-    14,
+    11,
     "Verify Full Forward Pass Computational Graph",
     "Checking that all scalar Value objects were instantiated with forward data and backward derivative hooks.",
     { totalNodesEvaluated: arrayData.length, graphBuilt: true },
-    finalElements,
+    null,
+    "done",
   );
 
   addStep(
-    14,
+    11,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
     { completed: true, totalSteps: stepIndex },
-    finalElements,
+    null,
+    "done",
   );
 
   return steps;
 };
 
 const MICROGRADFORWARDPASS_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 13],
+  skipLines: [10],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -230,37 +288,33 @@ const MICROGRADFORWARDPASS_TRIVIA: TriviaMeta = {
     "local_grad_a, local_grad_b = a, b",
   ],
   hints: [
-    { line: 5, hint: "Check if binary operator is addition (+) or multiplication (*)." },
-    { line: 7, hint: "Addition derivatives d(a+b)/da and d(a+b)/db are both 1.0." },
-    { line: 10, hint: "Multiplication derivative d(a*b)/da equals opponent operand b, d(a*b)/db equals a." },
+    { line: 2, hint: "Check if binary operator is addition (+) or multiplication (*)." },
+    { line: 4, hint: "Addition derivatives d(a+b)/da and d(a+b)/db are both 1.0." },
+    {
+      line: 7,
+      hint: "Multiplication derivative d(a*b)/da equals opponent operand b, d(a*b)/db equals a.",
+    },
   ],
   lineExplanations: {
     1: "Defines entry point for micrograd_forward_pass scalar autograd function.",
-    2: "Docstring opening: describes scalar value forward pass and backward gradient function binding.",
-    3: "Docstring body: computes forward pass scalar data and records local partial derivatives.",
-    4: "Docstring closing.",
-    5: "Checks if binary operator string symbol is addition ('+').",
-    6: "Computes forward scalar addition sum (out_val = a + b).",
-    7: "Sets local partial derivatives for addition: d_out/d_a = 1.0, d_out/d_b = 1.0.",
-    8: "Checks if binary operator string symbol is multiplication ('*').",
-    9: "Computes forward scalar multiplication product (out_val = a * b).",
-    10: "Sets local partial derivatives for multiplication: d_out/d_a = b, d_out/d_b = a.",
-    11: "Else fallback branch for identity or custom operator pass.",
-    12: "Sets fallback identity values: out_val = a, local_grad_a = 1.0, local_grad_b = 0.0.",
-    13: "Empty line before returning computed tuple.",
-    14: "Returns triple tuple containing forward output scalar and local partial derivative factors.",
+    2: "Checks if binary operator string symbol is addition ('+').",
+    3: "Computes forward scalar addition sum (out_val = a + b).",
+    4: "Sets local partial derivatives for addition: d_out/d_a = 1.0, d_out/d_b = 1.0.",
+    5: "Checks if binary operator string symbol is multiplication ('*').",
+    6: "Computes forward scalar multiplication product (out_val = a * b).",
+    7: "Sets local partial derivatives for multiplication: d_out/d_a = b, d_out/d_b = a.",
+    8: "Else fallback branch for identity or custom operator pass.",
+    9: "Sets fallback identity values: out_val = a, local_grad_a = 1.0, local_grad_b = 0.0.",
+    10: "Empty line before returning computed tuple.",
+    11: "Returns triple tuple containing forward output scalar and local partial derivative factors.",
   },
 };
 
 export const microgradForwardPass: AlgorithmDefinition<microgradForwardPassInput> = {
   id: "micrograd-forward-pass",
   title: "Micrograd Computational Graph Forward Pass",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Micrograd Computational Graph Forward Pass
 
 In Andrej Karpathy's **Micrograd** autograd engine and PyTorch's C++ **ATen core**, every scalar \`Value\` object records its forward mathematical data payload alongside local derivative rules ($\\frac{\\partial \\text{out}}{\\partial a}$ and $\\frac{\\partial \\text{out}}{\\partial b}$) for reverse-mode automatic differentiation.

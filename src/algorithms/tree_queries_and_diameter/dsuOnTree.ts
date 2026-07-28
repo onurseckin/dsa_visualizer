@@ -164,8 +164,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
       customState: {
-        sz: JSON.stringify(sz),
-        bigChild: JSON.stringify(bigChild),
+        sz: JSON.stringify(Array(n).fill(1)),
+        bigChild: JSON.stringify(Array(n).fill(-1)),
       },
     },
     variables: { numNodes: n },
@@ -182,7 +182,9 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     auxiliaryState: {
       customState: {
         "Subtree Sizes": sz.map((s, i) => `V${i}:${s}`).join(", "),
-        "Heavy Children": bigChild.map((b, i) => `V${i}->${b !== -1 ? `V${b}` : "None"}`).join(", "),
+        "Heavy Children": bigChild
+          .map((b, i) => `V${i}->${b !== -1 ? `V${b}` : "None"}`)
+          .join(", "),
       },
     },
     variables: { numNodes: n, rootHeavyChild: bigChild[0] },
@@ -407,8 +409,7 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
 export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
   id: "dsu-on-tree",
   title: "DSU on Tree (Sack / Small-to-Large)",
-  category: "tree_fundamentals",
-  categories: ["tree_fundamentals", "tree_queries_and_diameter"],
+  topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
     "Compute offline subtree statistics (such as distinct color counts) for every node in a tree using DSU on Tree (Sack / Small-to-Large merging) in $O(N \\log N)$ total time.\n\n### Problem Statement\nGiven a rooted tree with $N$ vertices, where each vertex $u$ has an associated integer attribute (e.g. `color[u]`), answer subtree queries for all nodes $u \\in [0, N-1]$.\n\nNaive subtree frequency aggregation takes $O(N^2)$ time as light subtrees are computed and discarded. DSU on Tree optimizes this by identifying the 'heavy child' (child with maximum subtree size $sz[v]$) for each node. The algorithm recursively computes light subtrees with `keep=False` (clearing their frequency table after evaluation), computes the heavy child with `keep=True` (retaining its accumulated table), and finally merges the light children back into the heavy child's table in $O(N \\log N)$ total time.\n\n### Input Parameters\n- `numNodes`: Total number of vertices $N$.\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `colors`: Array of size $N$ containing attribute values for each vertex.\n\n### Output\n- Returns an array `ans` of size $N$ where `ans[u]` is the count of distinct colors in node $u$'s subtree.\n\n### Constraints & Edge Cases\n- $1 \\le N \\le 10^5$.\n- $1 \\le colors[i] \\le 10^9$.\n- Single node tree ($N=1$): returns `ans = [1]`.\n- Star graph topology: root has $N-1$ leaves, heavy child can be any leaf.",

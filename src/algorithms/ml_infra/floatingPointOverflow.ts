@@ -18,11 +18,11 @@ export const FLOATING_POINT_OVERFLOW_CODE = `def stable_softmax(logits: list[flo
         
     exps = []
     for x in shifted:
-        exps.append(math.exp(x))  # May overflow to inf if un-stabilized!
+        exps.append(math.exp(x))
         
     sum_exps = sum(exps)
     if sum_exps == 0 or math.isinf(sum_exps) or math.isnan(sum_exps):
-        return [0.0] * len(logits)  # Numerical instability
+        return [0.0] * len(logits)
         
     probs = [e / sum_exps for e in exps]
     return probs`;
@@ -41,16 +41,23 @@ export const generateFloatingPointOverflowSteps = (
   const { logits, useStabilized } = input;
   const n = logits.length;
 
+  const formatVal = (v: number): number | string => {
+    if (!Number.isFinite(v)) return "inf";
+    return Math.abs(v) < 0.0001 && v !== 0
+      ? Number(v.toExponential(2))
+      : Math.round(v * 1000) / 1000;
+  };
+
   const buildElements = (
-    vals: number[],
+    vals: (number | string)[],
     state: ArrayElement["state"],
     ptrs?: string[],
   ): ArrayElement[] => {
     return vals.map((v, i) => ({
       id: `elem-${i}`,
-      value: Number.isFinite(v) ? Math.round(v * 100) / 100 : 9999,
+      value: typeof v === "number" ? formatVal(v) : v,
       state,
-      pointers: ptrs ? [ptrs[i] || ""] : [`${v}`],
+      pointers: ptrs ? [ptrs[i] || ""] : [`i=${i}`],
     }));
   };
 
@@ -82,19 +89,26 @@ export const generateFloatingPointOverflowSteps = (
   };
 
   if (n === 0) {
-    addStep(3, "Empty logits input", "Logits array is empty. Returning empty probabilities.", [], {
-      valid: false,
-    });
+    addStep(2, "Check empty logits input", "Logits array is empty.", [], { n: 0 });
+    addStep(
+      3,
+      "Return empty list",
+      "Logits array is empty. Returning empty probabilities array.",
+      [],
+      { valid: false },
+    );
     return steps;
   }
 
   addStep(
     5,
-    `Start Softmax computation (Stabilized: ${useStabilized})`,
-    `Input logits: [${logits.join(
-      ", ",
-    )}]. Testing numerical stability of exponential calculations.`,
-    buildElements(logits, "default"),
+    `Check numerical stabilization flag (useStabilized: ${useStabilized})`,
+    `Input logits: [${logits.join(", ")}]. Testing numerical stability of exponential calculations.`,
+    buildElements(
+      logits,
+      "default",
+      logits.map((v) => `logit=${v}`),
+    ),
     { n, useStabilized },
   );
 
@@ -103,61 +117,129 @@ export const generateFloatingPointOverflowSteps = (
 
   if (useStabilized) {
     maxVal = Math.max(...logits);
-    shifted = logits.map((x) => x - maxVal);
-
     addStep(
       6,
-      `Compute max(logits) = ${maxVal} and shift logits`,
-      `Subtracting maxVal = ${maxVal} guarantees all shifted logits are <= 0, preventing exp(x) overflow.`,
-      buildElements(shifted, "active"),
+      `Compute max(logits) = ${maxVal}`,
+      `Find the maximum logit value maxVal = ${maxVal} to shift all logits down to <= 0.`,
+      buildElements(
+        logits,
+        "active",
+        logits.map((v) => (v === maxVal ? "maxVal" : "")),
+      ),
+      { maxVal },
+      { maxVal: String(maxVal) },
+    );
+
+    shifted = logits.map((x) => x - maxVal);
+    addStep(
+      7,
+      `Shift logits: x - max_val`,
+      `Shifted logits: [${shifted.join(", ")}]. All shifted logits are <= 0, guaranteeing exp(x) <= 1.0 and preventing float overflow.`,
+      buildElements(
+        shifted,
+        "visited",
+        shifted.map((s) => `shifted=${s}`),
+      ),
       { maxVal },
       { shifted: `[${shifted.join(", ")}]` },
     );
   } else {
     shifted = [...logits];
     addStep(
-      8,
-      "Naive Softmax: Skipping logit shift",
-      "Using raw logits without subtracting max value. Large positive logits will cause float overflow (inf).",
-      buildElements(shifted, "compare"),
+      9,
+      "Naive Softmax: Keep raw logits",
+      "Using raw logits without subtracting max value. Large positive logits will cause exponentiation overflow (exp(x) -> inf).",
+      buildElements(
+        shifted,
+        "compare",
+        shifted.map((v) => `raw=${v}`),
+      ),
       { maxVal: 0 },
+      { shifted: `[${shifted.join(", ")}]` },
     );
   }
+
+  addStep(
+    11,
+    "Initialize exps list",
+    "Prepare buffer array to collect exponentiated values math.exp(x).",
+    buildElements(shifted, "default"),
+    { expsCount: 0 },
+  );
 
   const exps: number[] = [];
   let overflowOccurred = false;
 
   for (let i = 0; i < n; i++) {
     const x = shifted[i];
-    const e = Math.exp(x);
-    exps.push(e);
-
-    if (!Number.isFinite(e) || e > 1e300) {
-      overflowOccurred = true;
-    }
 
     addStep(
       12,
-      `Compute exp(${x}) = ${Number.isFinite(e) ? e.toExponential(3) : "inf/NaN"}`,
-      `Calculating e^(${x}). ${
-        overflowOccurred
-          ? "WARNING: Value exceeded float64 overflow limit! Resulted in inf."
-          : "Value successfully computed within bounds."
-      }`,
-      buildElements(exps, overflowOccurred ? "compare" : "visited"),
-      { i, x, expVal: Number.isFinite(e) ? e : "inf", overflowOccurred },
+      `Loop header: for x in shifted (index ${i}, x = ${x})`,
+      `Accessing element at index ${i} with shifted value ${x}.`,
+      buildElements(
+        shifted.map((val, idx) => (idx < i ? exps[idx] : val)),
+        "active",
+        shifted.map((_, idx) => (idx === i ? `idx=${i}` : idx < i ? "computed" : "")),
+      ),
+      { i, x, expsCount: exps.length },
+    );
+
+    const e = Math.exp(x);
+    exps.push(e);
+    const isInf = !Number.isFinite(e) || e > 1e300;
+    if (isInf) {
+      overflowOccurred = true;
+    }
+
+    const expDisplay = isInf ? "inf" : formatVal(e);
+    addStep(
+      13,
+      `Compute exp(${x}) = ${expDisplay}`,
+      isInf
+        ? "WARNING: Value exceeded IEEE 754 float64 bounds! Resulted in +inf overflow."
+        : `Successfully computed exp(${x}) = ${expDisplay}.`,
+      buildElements(
+        exps.concat(shifted.slice(i + 1)),
+        isInf ? "compare" : "visited",
+        exps.map((ev) => (!Number.isFinite(ev) ? "OVERFLOW" : `exp=${formatVal(ev)}`)),
+      ),
+      { i, x, expVal: isInf ? "inf" : formatVal(e), overflowOccurred },
     );
   }
 
   const sumExps = exps.reduce((acc, v) => acc + v, 0);
+  const isInvalidSum = overflowOccurred || !Number.isFinite(sumExps) || sumExps === 0;
 
-  if (overflowOccurred || !Number.isFinite(sumExps) || sumExps === 0) {
+  addStep(
+    15,
+    `Compute sum_exps = sum(exps) = ${isInvalidSum ? "inf" : formatVal(sumExps)}`,
+    "Sum all exponentials to form the normalization denominator for Softmax.",
+    buildElements(
+      exps,
+      isInvalidSum ? "compare" : "visited",
+      exps.map(() => `sum=${isInvalidSum ? "inf" : formatVal(sumExps)}`),
+    ),
+    { sumExps: isInvalidSum ? "inf" : formatVal(sumExps) },
+  );
+
+  addStep(
+    16,
+    `Check stability condition: sum_exps (${isInvalidSum ? "inf/NaN" : formatVal(sumExps)})`,
+    isInvalidSum
+      ? "Denominator sum_exps is infinite or zero! Softmax division would produce NaNs."
+      : `Denominator sum_exps is finite and valid (${formatVal(sumExps)}). Safe to perform division.`,
+    buildElements(exps, isInvalidSum ? "compare" : "visited"),
+    { isInvalidSum },
+  );
+
+  if (isInvalidSum) {
     addStep(
-      16,
-      "Numerical Failure: Sum of exps is inf/NaN",
-      "Dividing by inf/NaN produces [NaN, NaN, ...]. Softmax failed due to floating-point overflow!",
+      17,
+      "Numerical Failure: Return fallback zero probabilities",
+      "Dividing by inf/NaN produces [NaN, NaN, ...]. Softmax failed due to floating-point overflow! Returning [0.0, 0.0, ...].",
       buildElements(
-        exps,
+        exps.map(() => 0),
         "compare",
         exps.map(() => "OVERFLOW"),
       ),
@@ -169,26 +251,40 @@ export const generateFloatingPointOverflowSteps = (
   const probs = exps.map((e) => e / sumExps);
 
   addStep(
-    18,
-    `Compute Softmax Probabilities: [${probs.map((p) => p.toFixed(4)).join(", ")}]`,
-    `Successfully normalized exponentiated values into valid probability distribution (sum = 1.0).`,
+    19,
+    `Compute Softmax Probabilities: [${probs.map((p) => p.toFixed(3)).join(", ")}]`,
+    "Divide each exponential by sum_exps to convert shifted logits into a probability distribution.",
+    buildElements(
+      probs,
+      "active",
+      probs.map((p) => `p=${p.toFixed(3)}`),
+    ),
+    { sumExps: formatVal(sumExps), success: true },
+  );
+
+  addStep(
+    20,
+    `Return Softmax probabilities`,
+    "Successfully normalized exponentiated values into a valid probability distribution (sum = 1.0).",
     buildElements(
       probs,
       "sorted",
       probs.map((p) => `p=${p.toFixed(3)}`),
     ),
-    { sumExps, success: true },
+    { sumExps: formatVal(sumExps), success: true },
   );
 
   return steps;
 };
 
 export const FLOATING_POINT_OVERFLOW_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4],
+  skipLines: [1, 4, 10, 14, 18],
   hints: [
-    { line: 6, hint: "Subtract max value for stable Log-Sum-Exp" },
-    { line: 12, hint: "Exponentiate shifted logits exp(x - max)" },
-    { line: 15, hint: "Check for inf or NaN before division" },
+    { line: 6, hint: "Find max logit value for normalization" },
+    { line: 7, hint: "Subtract max value for stable Log-Sum-Exp" },
+    { line: 13, hint: "Exponentiate shifted logit: exp(x - max)" },
+    { line: 16, hint: "Check for inf or NaN before division" },
+    { line: 19, hint: "Normalize exponentials into probabilities: e / sum_exps" },
   ],
   distractors: [
     "shifted = [x + max_val for x in logits]",
@@ -200,10 +296,8 @@ export const FLOATING_POINT_OVERFLOW_TRIVIA: TriviaMeta = {
 export const floatingPointOverflow: AlgorithmDefinition<FloatingPointOverflowInput> = {
   id: "floating-point-overflow",
   title: "Floating-Point Overflow & Underflow (Log-Sum-Exp Trick)",
-  category: "ml_precision_quantization",
+  topicIds: ["ml_precision_quantization"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Demonstrate numerical instability in exponential calculations (Softmax) and stabilization via the Log-Sum-Exp trick.",

@@ -11,14 +11,13 @@ describe("relative-position-inner-product-preservation (Relative Position Inner 
     expect(relativePositionInnerProductPreservation.id).toBe(
       "relative-position-inner-product-preservation",
     );
-    expect(relativePositionInnerProductPreservation.isMlInfra).toBe(true);
-    expect(relativePositionInnerProductPreservation.mlInfraLevel).toBe(7);
-    expect(relativePositionInnerProductPreservation.mlInfraCategory).toBe(
-      "ml_attention_geometry",
-    );
-    expect(relativePositionInnerProductPreservation.categories).toContain(
-      "ml_attention_geometry",
-    );
+    expect(
+      relativePositionInnerProductPreservation.topicIds.some((topicId) =>
+        topicId.startsWith("ml_"),
+      ),
+    ).toBe(true);
+    expect(relativePositionInnerProductPreservation.topicIds).toContain("ml_attention_geometry");
+    expect(relativePositionInnerProductPreservation.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

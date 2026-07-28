@@ -76,7 +76,23 @@ describe("TriviaSettingsWarnings Component Spec", () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses singular "line" phrasing when maxBlanks is 1', () => {
+  it("uses plural line phrasing when the hardest level is greater than one", () => {
+    render(
+      <TriviaSettings
+        config={config({ minBlanks: 1, maxBlanks: 2 })}
+        onChange={vi.fn()}
+        deckLineCounts={[2, 5]}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "1 of 2 questions in this deck have 2 lines or fewer and will be shown fully blank at this level.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("supports a one-blank drill while keeping the hardest level adjustable", () => {
     render(
       <TriviaSettings
         config={config({ minBlanks: 1, maxBlanks: 1 })}
@@ -85,6 +101,14 @@ describe("TriviaSettingsWarnings Component Spec", () => {
       />,
     );
 
+    expect(screen.getByRole("slider", { name: /starting blanks/i })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("slider", { name: /hardest level/i })).not.toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     expect(
       screen.getByText(
         "1 of 2 questions in this deck have 1 line or fewer and will be shown fully blank at this level.",

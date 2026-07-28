@@ -32,15 +32,39 @@ const fp8ToBitItems = (val: number, formatType: "e4m3" | "e5m2"): BitItem[] => {
   if (formatType === "e4m3") {
     return [
       { index: 7, label: "Sign (s)", value: bitStr[0], state: "sign", bitGroup: "sign" },
-      { index: 6, label: "Exp (e4) [6:3]", value: bitStr.slice(1, 5), state: "exponent", bitGroup: "exp" },
-      { index: 2, label: "Mant (m3) [2:0]", value: bitStr.slice(5), state: "mantissa", bitGroup: "mant" },
+      {
+        index: 6,
+        label: "Exp (e4) [6:3]",
+        value: bitStr.slice(1, 5),
+        state: "exponent",
+        bitGroup: "exp",
+      },
+      {
+        index: 2,
+        label: "Mant (m3) [2:0]",
+        value: bitStr.slice(5),
+        state: "mantissa",
+        bitGroup: "mant",
+      },
     ];
   }
 
   return [
     { index: 7, label: "Sign (s)", value: bitStr[0], state: "sign", bitGroup: "sign" },
-    { index: 6, label: "Exp (e5) [6:2]", value: bitStr.slice(1, 6), state: "exponent", bitGroup: "exp" },
-    { index: 1, label: "Mant (m2) [1:0]", value: bitStr.slice(6), state: "mantissa", bitGroup: "mant" },
+    {
+      index: 6,
+      label: "Exp (e5) [6:2]",
+      value: bitStr.slice(1, 6),
+      state: "exponent",
+      bitGroup: "exp",
+    },
+    {
+      index: 1,
+      label: "Mant (m2) [1:0]",
+      value: bitStr.slice(6),
+      state: "mantissa",
+      bitGroup: "mant",
+    },
   ];
 };
 
@@ -147,7 +171,15 @@ export const generateFp8E4m3E5m2BitpackerSteps = (
         6,
         `Pack E4M3 Byte: (sign << 7) | (mag & 0x7F) -> 0x${packedByte.toString(16).padStart(2, "0").toUpperCase()}`,
         `Combined MSB sign bit (${signBit} << 7) with magnitude bits to produce 8-bit E4M3 packed byte 0x${packedByte.toString(16).padStart(2, "0").toUpperCase()} (${packedByte}).`,
-        { idx, x: val, signBit, magnitudeByte, packedByte, hex: `0x${packedByte.toString(16).padStart(2, "0").toUpperCase()}`, phase: "E4M3_PACK" },
+        {
+          idx,
+          x: val,
+          signBit,
+          magnitudeByte,
+          packedByte,
+          hex: `0x${packedByte.toString(16).padStart(2, "0").toUpperCase()}`,
+          phase: "E4M3_PACK",
+        },
         val,
         packedByte,
       );
@@ -165,7 +197,15 @@ export const generateFp8E4m3E5m2BitpackerSteps = (
         9,
         `Pack E5M2 Byte: (sign << 7) | (mag & 0x7F) -> 0x${packedByte.toString(16).padStart(2, "0").toUpperCase()}`,
         `Combined MSB sign bit (${signBit} << 7) with magnitude bits to produce 8-bit E5M2 packed byte 0x${packedByte.toString(16).padStart(2, "0").toUpperCase()} (${packedByte}).`,
-        { idx, x: val, signBit, magnitudeByte, packedByte, hex: `0x${packedByte.toString(16).padStart(2, "0").toUpperCase()}`, phase: "E5M2_PACK" },
+        {
+          idx,
+          x: val,
+          signBit,
+          magnitudeByte,
+          packedByte,
+          hex: `0x${packedByte.toString(16).padStart(2, "0").toUpperCase()}`,
+          phase: "E5M2_PACK",
+        },
         val,
         packedByte,
       );
@@ -237,12 +277,8 @@ const FP8E4M3E5M2BITPACKER_TRIVIA: TriviaMeta = {
 export const fp8E4m3E5m2Bitpacker: AlgorithmDefinition<fp8E4m3E5m2BitpackerInput> = {
   id: "fp8-e4m3-e5m2-bitpacker",
   title: "Fp8 E4m3 E5m2 Bitpacker",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### FP8 E4M3 / E5M2 Bitpacker
 
 Modern AI hardware accelerators (NVIDIA Hopper H100, Blackwell B200, Ada Lovelace) support two standardized 8-bit floating point formats (FP8): **E4M3** and **E5M2**.
@@ -279,7 +315,8 @@ $$\\text{byte} = (s \\ll 7) \\mid (E \\ll m_{\\text{bits}}) \\mid M$$
       outputDisplay: "Packed Bytes = [0x01, 0x83, 0x05]",
       input: { values: [1.2, -3.4, 5.5], formatType: "e4m3" },
       output: "[0x01, 0x83, 0x05]",
-      explanation: "Packs FP32 values into 8-bit E4M3 bitfields combining MSB sign bit with magnitude bits.",
+      explanation:
+        "Packs FP32 values into 8-bit E4M3 bitfields combining MSB sign bit with magnitude bits.",
     },
     {
       kind: "complex",
@@ -331,15 +368,18 @@ $$\\text{byte} = (s \\ll 7) \\mid (E \\ll m_{\\text{bits}}) \\mid M$$
     keyTerms: [
       {
         term: "E4M3 Format",
-        definition: "8-bit float format with 4 exponent bits and 3 mantissa bits optimized for forward pass precision.",
+        definition:
+          "8-bit float format with 4 exponent bits and 3 mantissa bits optimized for forward pass precision.",
       },
       {
         term: "E5M2 Format",
-        definition: "8-bit float format with 5 exponent bits and 2 mantissa bits optimized for backward pass dynamic range.",
+        definition:
+          "8-bit float format with 5 exponent bits and 2 mantissa bits optimized for backward pass dynamic range.",
       },
       {
         term: "Transformer Engine",
-        definition: "NVIDIA library automatically switching between E4M3 and E5M2 precision during FP8 GEMM execution.",
+        definition:
+          "NVIDIA library automatically switching between E4M3 and E5M2 precision during FP8 GEMM execution.",
       },
     ],
   },

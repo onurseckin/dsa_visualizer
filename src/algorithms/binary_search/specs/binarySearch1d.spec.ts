@@ -6,7 +6,7 @@ describe("binarySearch1d algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(binarySearch1d.id).toBe("binary-search-1d");
     expect(binarySearch1d.title).toContain("1D Binary Search");
-    expect(binarySearch1d.category).toBe("binary_search");
+    expect(binarySearch1d.topicIds).toContain("binary_search");
     expect(binarySearch1d.timeComplexity.average).toBe("O(log n)");
     expect(binarySearch1d.spaceComplexity).toBe("O(1)");
   });
@@ -22,7 +22,11 @@ describe("binarySearch1d algorithm spec", () => {
     const snapshot = firstStep.primarySnapshot as ArrayVisualSnapshot;
     expect(snapshot.elements).toBeDefined();
 
-    const matchStep = steps.find((s) => s.explanation.what.includes("Match confirmed") || s.explanation.what.includes("found at index"));
+    const matchStep = steps.find(
+      (s) =>
+        s.explanation.what.includes("Match confirmed") ||
+        s.explanation.what.includes("found at index"),
+    );
     expect(matchStep).toBeDefined();
   });
 
@@ -48,6 +52,17 @@ describe("binarySearch1d algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
     const lastStep = steps[steps.length - 1];
     expect(lastStep.explanation.what).toContain("Lower bound");
+  });
+
+  it("should handle upper_bound mode", () => {
+    const steps = generateBinarySearch1dSteps({
+      array: [1, 3, 3, 3, 5, 7],
+      target: 3,
+      mode: "upper_bound",
+    });
+    expect(steps.length).toBeGreaterThan(0);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.explanation.what).toContain("Upper bound");
   });
 
   it("should handle empty input array", () => {

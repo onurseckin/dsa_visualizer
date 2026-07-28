@@ -8,10 +8,11 @@ import {
 describe("eval-reverse-polish-notation (Evaluate Reverse Polish Notation)", () => {
   it("should have correct metadata", () => {
     expect(evalReversePolishNotation.id).toBe("eval-reverse-polish-notation");
-    expect(evalReversePolishNotation.isMlInfra).toBe(true);
-    expect(evalReversePolishNotation.mlInfraLevel).toBe(3);
-    expect(evalReversePolishNotation.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(evalReversePolishNotation.categories).toContain("ml_autograd_dags");
+    expect(evalReversePolishNotation.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(evalReversePolishNotation.topicIds).toContain("ml_autograd_dags");
+    expect(evalReversePolishNotation.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

@@ -23,75 +23,97 @@ export const PYTHON_LIS_CODE = `def length_of_lis(nums: list[int]) -> int:
     return max(dp)`;
 
 export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): AlgorithmStep[] => {
-  const nums = input?.nums && input.nums.length > 0 ? [...input.nums] : DEFAULT_LIS_INPUT.nums;
+  const nums = input?.nums ? [...input.nums] : DEFAULT_LIS_INPUT.nums;
   const n = nums.length;
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const dp = new Array<number>(n).fill(1);
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Check if nums is empty`,
-      why: "An empty list has no subsequence at all, so we return 0 immediately rather than entering the DP logic with an empty array.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v,
-        state: "default" as const,
-        pointers: [`nums[${idx}] = ${nums[idx]}`],
-      })),
-    },
-    auxiliaryState: { customState: { isEmpty: false, n } },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: `Input is non-empty (${n} elements) — skip early return`,
-      why: `nums has ${n} elements, so we proceed. If nums were empty, we would return 0 here.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v,
-        state: "default" as const,
-        pointers: [`nums[${idx}] = ${nums[idx]}`],
-      })),
-    },
-    auxiliaryState: { customState: { n } },
-    variables: { n },
-  });
-
+  // Line 1: Function entry
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Start Length of LIS algorithm with nums=[${nums.join(", ")}]`,
+      what: `Start length_of_lis(nums=[${nums.join(", ")}])`,
       why: "The goal is to find the length of the longest strictly increasing subsequence in nums.",
     },
     primarySnapshot: {
       kind: "array",
-      elements: dp.map((v, idx) => ({
+      elements: nums.map((val, idx) => ({
         id: `dp-${idx}`,
-        value: v,
+        value: "?",
         state: "default" as const,
-        pointers: [`nums[${idx}] = ${nums[idx]}`],
+        pointers: [`nums[${idx}] = ${val}`],
       })),
     },
     auxiliaryState: {
-      customState: { nums: nums.join(", ") },
+      customState: { nums: nums.join(", "), n },
     },
-    variables: { n, "max(dp)": 1 },
+    variables: { n },
   });
 
+  // Line 2: Empty check
+  if (n === 0) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 2,
+      explanation: {
+        what: "Check condition 'if not nums:' -> True",
+        why: "The input array is empty, so the guard condition evaluates to True.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: [],
+      },
+      auxiliaryState: {
+        customState: { isEmpty: true, n: 0 },
+      },
+      variables: { n: 0 },
+    });
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 3,
+      explanation: {
+        what: "Return 0",
+        why: "An empty array has no increasing subsequence, so return length 0 immediately.",
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: [],
+      },
+      auxiliaryState: {
+        customState: { result: 0 },
+      },
+      variables: { result: 0 },
+    });
+
+    return steps;
+  }
+
+  // Non-empty input branch
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 2,
+    explanation: {
+      what: "Check condition 'if not nums:' -> False",
+      why: `nums contains ${n} element${n > 1 ? "s" : ""}, so we skip early return and proceed to calculate length.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: nums.map((val, idx) => ({
+        id: `dp-${idx}`,
+        value: "?",
+        state: "default" as const,
+        pointers: [`nums[${idx}] = ${val}`],
+      })),
+    },
+    auxiliaryState: {
+      customState: { nums: nums.join(", "), n },
+    },
+    variables: { n },
+  });
+
+  // Line 4: Store array length
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 4,
@@ -101,10 +123,11 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
     },
     primarySnapshot: {
       kind: "array",
-      elements: dp.map((v, idx) => ({
+      elements: nums.map((val, idx) => ({
         id: `dp-${idx}`,
-        value: v,
-        state: "default",
+        value: "?",
+        state: "default" as const,
+        pointers: [`nums[${idx}] = ${val}`],
       })),
     },
     auxiliaryState: {
@@ -113,24 +136,27 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
     variables: { n },
   });
 
+  const dp = new Array<number>(n).fill(1);
+
+  // Line 5: Initialize DP array
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
-      what: `Initialize DP table of size ${n} with 1s`,
-      why: `dp[i] stores the length of the longest strictly increasing subsequence ending at index i. Initially 1 for all elements, as every element alone forms a valid subsequence of length 1.`,
+      what: `Initialize DP table dp = [1] * ${n}`,
+      why: "dp[i] stores the length of the longest strictly increasing subsequence ending at index i. Initially 1 for all elements since a single element is a valid subsequence of length 1.",
     },
     primarySnapshot: {
       kind: "array",
       elements: dp.map((v, idx) => ({
         id: `dp-${idx}`,
         value: v,
-        state: "default",
+        state: "default" as const,
         pointers: [`nums[${idx}] = ${nums[idx]}`],
       })),
     },
     auxiliaryState: {
-      customState: { nums: nums.join(", ") },
+      customState: { nums: nums.join(", "), dp: `[${dp.join(", ")}]` },
     },
     variables: { n, "max(dp)": 1 },
   });
@@ -140,7 +166,7 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
       stepIndex: stepIndex++,
       codeLine: 7,
       explanation: {
-        what: `Outer loop for index i = ${i} (nums[${i}] = ${nums[i]})`,
+        what: `Outer loop for i = ${i} (nums[${i}] = ${nums[i]})`,
         why: `Evaluating all preceding elements j < ${i} to determine the longest strictly increasing subsequence ending at index ${i}.`,
       },
       primarySnapshot: {
@@ -148,14 +174,15 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
         elements: dp.map((v, idx) => ({
           id: `dp-${idx}`,
           value: v,
-          state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? [`i: ${nums[i]}`] : undefined,
+          state:
+            idx === i ? ("active" as const) : idx < i ? ("visited" as const) : ("default" as const),
+          pointers: idx === i ? [`i (nums[${i}]=${nums[i]})`] : [`nums[${idx}]=${nums[idx]}`],
         })),
       },
       auxiliaryState: {
-        customState: { i, "nums[i]": nums[i] },
+        customState: { i, "nums[i]": nums[i], "dp[i]": dp[i] },
       },
-      variables: { i, "nums[i]": nums[i] },
+      variables: { i, "nums[i]": nums[i], "dp[i]": dp[i] },
     });
 
     for (let j = 0; j < i; j++) {
@@ -171,8 +198,15 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
           elements: dp.map((v, idx) => ({
             id: `dp-${idx}`,
             value: v,
-            state: idx === i ? "active" : idx === j ? "compare" : idx < i ? "visited" : "default",
-            pointers: idx === i ? [`i: ${nums[i]}`] : idx === j ? [`j: ${nums[j]}`] : undefined,
+            state:
+              idx === i
+                ? ("active" as const)
+                : idx === j
+                  ? ("compare" as const)
+                  : idx < i
+                    ? ("visited" as const)
+                    : ("default" as const),
+            pointers: idx === i ? [`i (${nums[i]})`] : idx === j ? [`j (${nums[j]})`] : undefined,
           })),
         },
         auxiliaryState: {
@@ -188,16 +222,23 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
         explanation: {
           what: `Evaluate condition nums[${i}] (${nums[i]}) > nums[${j}] (${nums[j]})`,
           why: isIncreasing
-            ? `Condition true (${nums[i]} > ${nums[j]}). We can extend LIS ending at ${j}.`
-            : `Condition false (${nums[i]} <= ${nums[j]}). Cannot extend LIS ending at ${j}.`,
+            ? `Condition True (${nums[i]} > ${nums[j]}). Element nums[${i}] can extend LIS ending at index ${j}.`
+            : `Condition False (${nums[i]} <= ${nums[j]}). Element nums[${i}] cannot extend LIS ending at index ${j}.`,
         },
         primarySnapshot: {
           kind: "array",
           elements: dp.map((v, idx) => ({
             id: `dp-${idx}`,
             value: v,
-            state: idx === i ? "active" : idx === j ? "compare" : idx < i ? "visited" : "default",
-            pointers: idx === i ? [`i: ${nums[i]}`] : idx === j ? [`j: ${nums[j]}`] : undefined,
+            state:
+              idx === i
+                ? ("active" as const)
+                : idx === j
+                  ? ("compare" as const)
+                  : idx < i
+                    ? ("visited" as const)
+                    : ("default" as const),
+            pointers: idx === i ? [`i (${nums[i]})`] : idx === j ? [`j (${nums[j]})`] : undefined,
           })),
         },
         auxiliaryState: {
@@ -215,15 +256,23 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
           codeLine: 10,
           explanation: {
             what: `Update dp[${i}] = max(dp[${i}], dp[${j}] + 1) -> max(${prevDpI}, ${dp[j]} + 1 = ${dp[j] + 1}) = ${dp[i]}`,
-            why: `Extended LIS ending at j (${j}) of length ${dp[j]} to index i (${i}), yielding candidate length ${dp[j] + 1}.`,
+            why: `Extending LIS ending at j (${j}) of length ${dp[j]} yields candidate length ${dp[j] + 1} for index ${i}.`,
           },
           primarySnapshot: {
             kind: "array",
             elements: dp.map((v, idx) => ({
               id: `dp-${idx}`,
               value: v,
-              state: idx === i ? "active" : idx === j ? "compare" : idx < i ? "visited" : "default",
-              pointers: idx === i ? [`i: ${nums[i]}`] : idx === j ? [`j: ${nums[j]}`] : undefined,
+              state:
+                idx === i
+                  ? ("active" as const)
+                  : idx === j
+                    ? ("compare" as const)
+                    : idx < i
+                      ? ("visited" as const)
+                      : ("default" as const),
+              pointers:
+                idx === i ? [`dp[${i}]=${dp[i]}`] : idx === j ? [`dp[${j}]=${dp[j]}`] : undefined,
             })),
           },
           auxiliaryState: {
@@ -245,15 +294,15 @@ export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): Algo
     stepIndex: stepIndex++,
     codeLine: 12,
     explanation: {
-      what: `Final result max(dp) = ${maxLis}`,
-      why: `The length of the overall longest strictly increasing subsequence in the array is ${maxLis}.`,
+      what: `Return max(dp) = ${maxLis}`,
+      why: `The length of the overall longest strictly increasing subsequence across all ending indices is ${maxLis}.`,
     },
     primarySnapshot: {
       kind: "array",
       elements: dp.map((v, idx) => ({
         id: `dp-${idx}`,
         value: v,
-        state: v === maxLis ? "sorted" : "default",
+        state: v === maxLis ? ("sorted" as const) : ("default" as const),
         pointers: v === maxLis ? [`max: ${v}`] : undefined,
       })),
     },
@@ -287,8 +336,7 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
   {
     id: "longest-increasing-subsequence",
     title: "Longest Increasing Subsequence (LIS)",
-    category: "dp_1d",
-    categories: ["dp_1d"],
+    topicIds: ["dp_1d"],
     difficulty: "Medium",
     description: `The **Longest Increasing Subsequence (LIS)** problem (LeetCode #300) asks for the length of the longest subsequence in an array where elements appear in strictly ascending order. Subsequences do not need to be contiguous.
 
@@ -399,4 +447,3 @@ The base case is $dp[i] = 1$ for all $i$, because an element alone forms a valid
     defaultInput: DEFAULT_LIS_INPUT,
     generateSteps: generateLisSteps,
   };
-

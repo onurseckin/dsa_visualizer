@@ -5,14 +5,16 @@ import {
   generateFusedFfnGemmOnlineSoftmaxSteps,
   FUSEDFFNGEMMONLINESOFTMAX_CODE,
 } from "./fusedFfnGemmOnlineSoftmax";
+import { requireLineExplanations } from "../specs/assertions";
 
 describe("fused-ffn-gemm-online-softmax (Fused FFN GEMM & Online Softmax Kernel)", () => {
   it("should have correct metadata", () => {
     expect(fusedFfnGemmOnlineSoftmax.id).toBe("fused-ffn-gemm-online-softmax");
-    expect(fusedFfnGemmOnlineSoftmax.isMlInfra).toBe(true);
-    expect(fusedFfnGemmOnlineSoftmax.mlInfraLevel).toBe(2);
-    expect(fusedFfnGemmOnlineSoftmax.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(fusedFfnGemmOnlineSoftmax.categories).toContain("ml_gemm_roofline");
+    expect(fusedFfnGemmOnlineSoftmax.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(fusedFfnGemmOnlineSoftmax.topicIds).toContain("ml_gemm_roofline");
+    expect(fusedFfnGemmOnlineSoftmax.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {
@@ -27,14 +29,12 @@ describe("fused-ffn-gemm-online-softmax (Fused FFN GEMM & Online Softmax Kernel)
 
   it("should map every line of code in lineExplanations", () => {
     const codeLines = FUSEDFFNGEMMONLINESOFTMAX_CODE.split("\n");
-    const trivia = fusedFfnGemmOnlineSoftmax.trivia;
-    expect(trivia).toBeDefined();
-    if (!trivia) return;
+    const explanations = requireLineExplanations(fusedFfnGemmOnlineSoftmax);
 
     for (let i = 1; i <= codeLines.length; i++) {
-      expect(trivia.lineExplanations[i]).toBeDefined();
-      expect(typeof trivia.lineExplanations[i]).toBe("string");
-      expect(trivia.lineExplanations[i].length).toBeGreaterThan(0);
+      expect(explanations[i]).toBeDefined();
+      expect(typeof explanations[i]).toBe("string");
+      expect(explanations[i].length).toBeGreaterThan(0);
     }
   });
 });

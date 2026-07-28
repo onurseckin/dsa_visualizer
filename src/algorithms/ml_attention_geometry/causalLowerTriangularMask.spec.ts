@@ -9,10 +9,11 @@ import {
 describe("causal-lower-triangular-mask (Causal Lower-Triangular Mask Generator)", () => {
   it("should have correct metadata", () => {
     expect(causalLowerTriangularMask.id).toBe("causal-lower-triangular-mask");
-    expect(causalLowerTriangularMask.isMlInfra).toBe(true);
-    expect(causalLowerTriangularMask.mlInfraLevel).toBe(7);
-    expect(causalLowerTriangularMask.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(causalLowerTriangularMask.categories).toContain("ml_attention_geometry");
+    expect(causalLowerTriangularMask.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(causalLowerTriangularMask.topicIds).toContain("ml_attention_geometry");
+    expect(causalLowerTriangularMask.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

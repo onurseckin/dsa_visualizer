@@ -10,7 +10,7 @@ import type { GraphVisualSnapshot } from "../../../types/dsa";
 describe("polygonArea spec logic", () => {
   it("has category geometry_and_sweep_line and valid metadata", () => {
     expect(polygonArea.id).toBe("polygon-area");
-    expect(polygonArea.category).toBe("geometry_and_sweep_line");
+    expect(polygonArea.topicIds).toContain("geometry_and_sweep_line");
     expect(polygonArea.defaultInput).toEqual(DEFAULT_POLYGON_AREA_INPUT);
     expect(polygonArea.code).toBe(PYTHON_POLYGON_AREA_CODE);
   });

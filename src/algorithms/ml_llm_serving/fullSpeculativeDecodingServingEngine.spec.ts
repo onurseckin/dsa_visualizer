@@ -10,10 +10,11 @@ describe("full-speculative-decoding-serving-engine (Full Speculative Decoding Pr
     expect(fullSpeculativeDecodingServingEngine.id).toBe(
       "full-speculative-decoding-serving-engine",
     );
-    expect(fullSpeculativeDecodingServingEngine.isMlInfra).toBe(true);
-    expect(fullSpeculativeDecodingServingEngine.mlInfraLevel).toBe(12);
-    expect(fullSpeculativeDecodingServingEngine.mlInfraCategory).toBe("ml_llm_serving");
-    expect(fullSpeculativeDecodingServingEngine.categories).toContain("ml_llm_serving");
+    expect(
+      fullSpeculativeDecodingServingEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(fullSpeculativeDecodingServingEngine.topicIds).toContain("ml_llm_serving");
+    expect(fullSpeculativeDecodingServingEngine.topicIds).toContain("ml_llm_serving");
     expect(fullSpeculativeDecodingServingEngine.defaultInput).toEqual(
       DEFAULT_FULLSPECULATIVEDECODINGSERVINGENGINE_INPUT,
     );
@@ -34,6 +35,6 @@ describe("full-speculative-decoding-serving-engine (Full Speculative Decoding Pr
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(24);
+    expect(steps[steps.length - 1].codeLine).toBe(14);
   });
 });

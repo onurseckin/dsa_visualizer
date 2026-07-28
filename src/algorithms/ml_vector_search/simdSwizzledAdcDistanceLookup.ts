@@ -1,4 +1,4 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem } from "../../types/dsa";
 
 export interface SimdSwizzledAdcDistanceLookupInput {
   queryLut: number[][]; // M subvectors -> 16 quantized centroids (4-bit PQ)
@@ -19,17 +19,11 @@ export const DEFAULT_SIMD_SWIZZLED_ADC_INPUT: SimdSwizzledAdcDistanceLookupInput
 };
 
 export const SIMD_SWIZZLED_ADC_CODE = `def simd_swizzled_adc_lookup(query_lut: list[list[float]], quantized_codes: list[list[int]]) -> list[float]:
-    """
-    SIMD-accelerated ADC Look-Up Table distance evaluation.
-    Simulates hardware AVX-512 / ARM Neon 4-bit nibble shuffle lookups (pshufb).
-    Processes batches of quantized subvector codes using swizzled L1 registers.
-    """
     accumulated_distances = []
 
     for vec_idx, codes in enumerate(quantized_codes):
         total_dist = 0.0
         for m, sub_code in enumerate(codes):
-            # SIMD byte shuffle lookup: LUT[m][sub_code]
             dist_val = query_lut[m][sub_code]
             total_dist += dist_val
 
@@ -44,112 +38,271 @@ export const generateSimdSwizzledAdcSteps = (
   const { queryLut, quantizedCodes } = input;
   let stepIndex = 0;
 
+  const numSubvectors = queryLut.length;
+  const numVectors = quantizedCodes.length;
+  const numCols = numSubvectors + 1; // Subvector columns + Total Distance column
+
+  const rowHeaders = quantizedCodes.map((_, idx) => `Vec ${idx}`);
+  const colHeaders = [...queryLut.map((_, m) => `Subvec ${m}`), "Total Dist"];
+
+  const buildMatrixCells = (
+    activeRow: number | null,
+    activeCol: number | null,
+    stepStage: "init" | "init_vector" | "lookup" | "accumulate" | "appended" | "complete",
+    computedDists: (number | null)[],
+    runningTotals: (number | null)[],
+  ): MatrixCellItem[] => {
+    const cells: MatrixCellItem[] = [];
+
+    for (let r = 0; r < numVectors; r++) {
+      const codes = quantizedCodes[r];
+      const isPastRow = activeRow !== null && r < activeRow;
+      const isCurrentRow = activeRow === r;
+
+      for (let m = 0; m < numSubvectors; m++) {
+        const subCode = codes[m];
+        const lutVal = queryLut[m][subCode];
+        let cellState: MatrixCellItem["state"] = "default";
+
+        if (stepStage === "complete" || isPastRow) {
+          cellState = "sorted";
+        } else if (isCurrentRow) {
+          if (m === activeCol) {
+            cellState = "active";
+          } else if (activeCol !== null && m < activeCol) {
+            cellState = "compared";
+          } else {
+            cellState = "default";
+          }
+        }
+
+        cells.push({
+          row: r,
+          col: m,
+          value: `${subCode} (L=${lutVal.toFixed(2)})`,
+          label: `LUT[${m}][${subCode}]`,
+          state: cellState,
+        });
+      }
+
+      const totalCellCol = numSubvectors;
+      const computed = computedDists[r];
+      const running = runningTotals[r];
+      let totalState: MatrixCellItem["state"] = "default";
+      let displayValue: string | number = "?";
+
+      if (stepStage === "complete" || (computed !== null && computed !== undefined)) {
+        totalState = "sorted";
+        displayValue = computed !== null && computed !== undefined ? computed.toFixed(4) : "?";
+      } else if (isCurrentRow) {
+        if (stepStage === "accumulate" || stepStage === "lookup") {
+          totalState = "active";
+        } else if (stepStage === "init_vector") {
+          totalState = "compared";
+        }
+        displayValue = running !== null && running !== undefined ? running.toFixed(4) : "0.0000";
+      }
+
+      cells.push({
+        row: r,
+        col: totalCellCol,
+        value: displayValue,
+        label: `Vector ${r} Total`,
+        state: totalState,
+      });
+    }
+
+    return cells;
+  };
+
+  const completedDists: (number | null)[] = new Array(numVectors).fill(null);
+  const runningTotals: (number | null)[] = new Array(numVectors).fill(null);
+
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: "Initialize SIMD Swizzled ADC Distance Lookup Kernel",
-      why: `Evaluating batch of ${quantizedCodes.length} vectors over M = ${queryLut.length} 4-bit PQ subvector codebooks via SIMD register shuffles.`,
+      why: `Preparing batch evaluation for ${numVectors} quantized vectors across M = ${numSubvectors} 4-bit PQ subvector codebooks via SIMD register shuffles.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: quantizedCodes.map((codes, idx) => ({
-        id: `v-${idx}`,
-        value: idx,
-        label: `Vector ${idx} codes:[${codes.join(",")}]`,
-        state: "default" as ElementState,
-      })),
+      kind: "matrix",
+      rows: numVectors,
+      cols: numCols,
+      rowHeaders,
+      colHeaders,
+      title: "SIMD Swizzled ADC Register Lookups",
+      cells: buildMatrixCells(null, null, "init", completedDists, runningTotals),
     },
     auxiliaryState: {
       customState: {
-        numSubvectors: String(queryLut.length),
-        batchSize: String(quantizedCodes.length),
+        numSubvectors: String(numSubvectors),
+        batchSize: String(numVectors),
         simdMode: "AVX-512 pshufb SIMD Lane",
         status: "Initialized",
       },
     },
-    variables: { batchSize: quantizedCodes.length, numSubvectors: queryLut.length },
+    variables: { batchSize: numVectors, numSubvectors },
   });
 
   const accumulatedDists: number[] = [];
 
-  for (let vIdx = 0; vIdx < quantizedCodes.length; vIdx++) {
+  for (let vIdx = 0; vIdx < numVectors; vIdx++) {
     const codes = quantizedCodes[vIdx];
-    let totalDist = 0;
-    const lookupDetails: string[] = [];
+    let totalDist = 0.0;
+    runningTotals[vIdx] = 0.0;
 
-    for (let m = 0; m < codes.length; m++) {
-      const nibbleCode = codes[m];
-      const distVal = queryLut[m][nibbleCode];
-      totalDist += distVal;
-      lookupDetails.push(`LUT[${m}][${nibbleCode}] (${distVal.toFixed(2)})`);
-    }
-
-    accumulatedDists.push(totalDist);
-
+    // Step: Init vector accum
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
+      codeLine: 5,
       explanation: {
-        what: `SIMD Shuffle Lookup for Vector ${vIdx} (codes: [${codes.join(", ")}])`,
-        why: `Hardware register shuffle sum: ${lookupDetails.join(" + ")} = ${totalDist.toFixed(
-          3,
-        )}. Performed in parallel SIMD lanes.`,
+        what: `Initialize Accumulator for Vector ${vIdx} (codes: [${codes.join(", ")}])`,
+        why: `Set total_dist = 0.0 for Vector ${vIdx}. Preparing inner loop over ${codes.length} subvectors.`,
       },
       primarySnapshot: {
-        kind: "array",
-        elements: quantizedCodes.map((_, idx) => ({
-          id: `v-${idx}`,
-          value: idx === vIdx ? Math.round(totalDist * 100) : idx,
-          label: `Vector ${idx} (${idx <= vIdx ? accumulatedDists[idx].toFixed(2) : "?"})`,
-          state:
-            idx === vIdx
-              ? ("active" as ElementState)
-              : idx < vIdx
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === vIdx ? [`dist=${totalDist.toFixed(2)}`] : [],
-        })),
+        kind: "matrix",
+        rows: numVectors,
+        cols: numCols,
+        rowHeaders,
+        colHeaders,
+        title: `Processing Vector ${vIdx}`,
+        cells: buildMatrixCells(vIdx, null, "init_vector", completedDists, runningTotals),
       },
       auxiliaryState: {
         customState: {
           activeVector: `Vector ${vIdx}`,
           codes: `[${codes.join(", ")}]`,
-          simdLookupDetails: lookupDetails.join(" + "),
-          accumulatedDistance: totalDist.toFixed(3),
+          currentTotal: "0.0000",
         },
       },
-      variables: { vIdx, totalDist: Math.round(totalDist * 100) / 100 },
+      variables: { vIdx, totalDist: 0 },
+    });
+
+    for (let m = 0; m < codes.length; m++) {
+      const subCode = codes[m];
+      const distVal = queryLut[m][subCode];
+
+      // Step: Lookup
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 7,
+        explanation: {
+          what: `Vector ${vIdx}, Subvector ${m}: Fetch LUT[${m}][${subCode}]`,
+          why: `SIMD byte shuffle (pshufb) retrieves query LUT distance ${distVal.toFixed(4)} for nibble code ${subCode}.`,
+        },
+        primarySnapshot: {
+          kind: "matrix",
+          rows: numVectors,
+          cols: numCols,
+          rowHeaders,
+          colHeaders,
+          title: `Vector ${vIdx} Subvector ${m} SIMD Shuffle`,
+          cells: buildMatrixCells(vIdx, m, "lookup", completedDists, runningTotals),
+        },
+        auxiliaryState: {
+          customState: {
+            activeVector: `Vector ${vIdx}`,
+            subvector: String(m),
+            subCode: String(subCode),
+            distVal: distVal.toFixed(4),
+            currentTotal: totalDist.toFixed(4),
+          },
+        },
+        variables: { vIdx, m, subCode, distVal: Math.round(distVal * 10000) / 10000 },
+      });
+
+      totalDist += distVal;
+      runningTotals[vIdx] = totalDist;
+
+      // Step: Accumulate
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 8,
+        explanation: {
+          what: `Vector ${vIdx}, Subvector ${m}: Accumulate distance +${distVal.toFixed(4)}`,
+          why: `Added subvector ${m} distance to running total. New total distance: ${totalDist.toFixed(4)}.`,
+        },
+        primarySnapshot: {
+          kind: "matrix",
+          rows: numVectors,
+          cols: numCols,
+          rowHeaders,
+          colHeaders,
+          title: `Vector ${vIdx} Subvector ${m} Accumulated`,
+          cells: buildMatrixCells(vIdx, m, "accumulate", completedDists, runningTotals),
+        },
+        auxiliaryState: {
+          customState: {
+            activeVector: `Vector ${vIdx}`,
+            subvector: String(m),
+            subCode: String(subCode),
+            accumulatedTotal: totalDist.toFixed(4),
+          },
+        },
+        variables: { vIdx, m, totalDist: Math.round(totalDist * 10000) / 10000 },
+      });
+    }
+
+    const roundedDist = Math.round(totalDist * 10000) / 10000;
+    accumulatedDists.push(roundedDist);
+    completedDists[vIdx] = roundedDist;
+
+    // Step: Append
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 10,
+      explanation: {
+        what: `Store Final Distance ${roundedDist.toFixed(4)} for Vector ${vIdx}`,
+        why: `Appended accumulated SIMD distance ${roundedDist.toFixed(4)} for Vector ${vIdx} into batch result array.`,
+      },
+      primarySnapshot: {
+        kind: "matrix",
+        rows: numVectors,
+        cols: numCols,
+        rowHeaders,
+        colHeaders,
+        title: `Vector ${vIdx} Completed`,
+        cells: buildMatrixCells(vIdx, null, "appended", completedDists, runningTotals),
+      },
+      auxiliaryState: {
+        customState: {
+          activeVector: `Vector ${vIdx}`,
+          finalDistance: roundedDist.toFixed(4),
+          batchProgress: `${vIdx + 1}/${numVectors}`,
+        },
+      },
+      variables: { vIdx, finalDist: roundedDist },
     });
   }
 
   // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 16,
+    codeLine: 12,
     explanation: {
-      what: "SIMD Swizzled ADC Lookup Complete for Batch",
+      what: "SIMD Swizzled ADC Distance Lookup Complete for Batch",
       why: `Batch accumulated distances: [${accumulatedDists
-        .map((d) => d.toFixed(3))
-        .join(", ")}]. Ultra-fast SIMD throughput achieved.`,
+        .map((d) => d.toFixed(4))
+        .join(", ")}]. Microsecond SIMD throughput achieved across all vectors.`,
     },
     primarySnapshot: {
-      kind: "array",
-      elements: accumulatedDists.map((d, idx) => ({
-        id: `res-${idx}`,
-        value: Math.round(d * 100),
-        label: `Vector ${idx}: ${d.toFixed(3)}`,
-        state: "sorted" as ElementState,
-      })),
+      kind: "matrix",
+      rows: numVectors,
+      cols: numCols,
+      rowHeaders,
+      colHeaders,
+      title: "SIMD Swizzled ADC Lookup Batch Completed",
+      cells: buildMatrixCells(null, null, "complete", completedDists, runningTotals),
     },
     auxiliaryState: {
       customState: {
-        batchDistances: accumulatedDists.map((d) => d.toFixed(3)).join(", "),
+        batchDistances: accumulatedDists.map((d) => d.toFixed(4)).join(", "),
         status: "Completed",
       },
     },
-    variables: { batchSize: quantizedCodes.length, complete: true },
+    variables: { batchSize: numVectors, complete: true },
   });
 
   return steps;
@@ -157,14 +310,10 @@ export const generateSimdSwizzledAdcSteps = (
 
 export const simdSwizzledAdcDistanceLookup: AlgorithmDefinition<SimdSwizzledAdcDistanceLookupInput> =
   {
-    id: "simdSwizzledAdcDistanceLookup",
+    id: "simd-swizzled-adc-distance-lookup",
     title: "SIMD Swizzled ADC Distance Lookup",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search", "ml_hardware_kernels"],
+    topicIds: ["ml_vector_search", "ml_hardware_kernels"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "SIMD-accelerated Asymmetric Distance Computation (ADC) using swizzled 4-bit Product Quantization (PQ) codebooks. By fitting 16 sub-centroid distance values into 128-bit SIMD registers, hardware shuffle instructions (`pshufb` on x86, `vtbl` on ARM Neon) perform 16 parallel subvector distance lookups per CPU instruction cycle.\n\nInput Format:\n- queryLut: Precomputed distance Look-Up Table for M subvectors, each with 16 sub-centroids.\n- quantizedCodes: Batch of vectors stored as M 4-bit nibbles.\n\nOutput Format:\n- Returns array of float distances for input vector batch.\n\nEdge Cases & Constraints:\n- 4-bit quantization limits sub-centroid count K_sub to 16 per subvector.",
     constraints: ["queryLut[m].length == 16 for 4-bit PQ swizzling."],

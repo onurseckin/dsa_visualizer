@@ -11,10 +11,6 @@ export const DEFAULT_SINGLE_PASS_BPE_MERGER_INPUT: SinglePassBpeMergerInput = {
 };
 
 export const SINGLE_PASS_BPE_MERGER_CODE = `def single_pass_bpe_merge(tokens: list[str], pair_to_merge: tuple[str, str]) -> list[str]:
-    """
-    Executes a single pass BPE merge operation across a list of token strings.
-    Replaces all non-overlapping occurrences of adjacent pair (A, B) with merged token 'AB'.
-    """
     p1, p2 = pair_to_merge
     merged_tokens = []
     i = 0
@@ -43,7 +39,7 @@ export const generateSinglePassBpeMergerSteps = (
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: `Initialize Single-Pass BPE Merger for Pair ${targetPairStr}`,
       why: `Scanning ${tokens.length} tokens [${tokens.map((t) => `"${t}"`).join(", ")}] to merge occurrences of adjacent pair ${targetPairStr} into "${mergedSymbol}".`,
@@ -77,7 +73,7 @@ export const generateSinglePassBpeMergerSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 12,
+        codeLine: 8,
         explanation: {
           what: `Match & Merge Pair at Index ${i} and ${i + 1}: ("${tokens[i]}", "${tokens[i + 1]}") -> "${mergedSymbol}"`,
           why: `Found target pair ${targetPairStr} at positions [${i}, ${i + 1}]. Replaced with combined token "${mergedSymbol}".`,
@@ -113,10 +109,13 @@ export const generateSinglePassBpeMergerSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 15,
+        codeLine: 11,
         explanation: {
           what: `Pass Token at Index ${i}: "${tokens[i]}"`,
-          why: `Adjacent pair ("${tokens[i]}", "${tokens[i + 1] ?? ""}") does not match ${targetPairStr}. Passing token through unchanged.`,
+          why:
+            i < tokens.length - 1
+              ? `Adjacent pair ("${tokens[i]}", "${tokens[i + 1]}") does not match ${targetPairStr}. Passing token through unchanged.`
+              : `Single token "${tokens[i]}" at index ${i} has no adjacent pair to merge. Passing token through unchanged.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -126,7 +125,7 @@ export const generateSinglePassBpeMergerSteps = (
             label: `"${tok}"`,
             state:
               idx === i
-                ? ("highlighted" as ElementState)
+                ? ("compare" as ElementState)
                 : idx < i
                   ? ("visited" as ElementState)
                   : ("default" as ElementState),
@@ -148,7 +147,7 @@ export const generateSinglePassBpeMergerSteps = (
   // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 14,
     explanation: {
       what: `Single-Pass BPE Merge Complete: Result [${mergedTokens.map((t) => `"${t}"`).join(", ")}]`,
       why: `Reduced token sequence from ${tokens.length} to ${mergedTokens.length} tokens.`,
@@ -177,14 +176,10 @@ export const generateSinglePassBpeMergerSteps = (
 };
 
 export const singlePassBpeMerger: AlgorithmDefinition<SinglePassBpeMergerInput> = {
-  id: "singlePassBpeMerger",
+  id: "single-pass-bpe-merger",
   title: "Single-Pass BPE Token Merger",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization"],
+  topicIds: ["ml_tokenization"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Executes a single-pass BPE pair substitution pass over a token sequence. Replaces all non-overlapping occurrences of adjacent token symbol pair (A, B) with combined subword token 'AB' in linear O(N) time.\n\nInput Format:\n- tokens: Array of initial token strings.\n- pairToMerge: Tuple [p1, p2] representing target adjacent pair.\n\nOutput Format:\n- Returns array of merged token strings.\n\nEdge Cases & Constraints:\n- Overlapping triplets (A, A, A) with pair (A, A): Left-to-right non-overlapping merge produces ('AA', 'A').",
   constraints: ["tokens.length >= 1."],

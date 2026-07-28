@@ -11,10 +11,6 @@ export const DEFAULT_NGRAM_COUNTER_INPUT: CharacterFrequencyNgramCounterInput = 
 };
 
 export const CHARACTER_FREQUENCY_NGRAM_CODE = `def count_character_ngrams(text: str, n: int) -> tuple[dict[str, int], list[tuple[str, int]]]:
-    """
-    Computes character-level N-gram frequency counts for building subword tokenization vocabularies.
-    Extracts sliding windows of length N across input text string.
-    """
     ngram_counts = {}
     for i in range(len(text) - n + 1):
         ngram = text[i : i + n]
@@ -30,13 +26,13 @@ export const generateCharacterNgramSteps = (
   const { text, n } = input;
   let stepIndex = 0;
 
-  // Step 0: Init
+  // Line 2: Initialize ngram_counts dictionary
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
       what: `Initialize Character-Level ${n}-Gram Counter`,
-      why: `Extracting sliding windows of size N = ${n} across input text "${text}" (length ${text.length}).`,
+      why: `Preparing empty dictionary 'ngram_counts' to tally frequency of size N = ${n} sliding windows across input text "${text}" (length ${text.length}).`,
     },
     primarySnapshot: {
       kind: "array",
@@ -51,25 +47,25 @@ export const generateCharacterNgramSteps = (
       customState: {
         text: `"${text}"`,
         n: String(n),
-        totalNgrams: String(Math.max(0, text.length - n + 1)),
+        maxNgramsPossible: String(Math.max(0, text.length - n + 1)),
         status: "Initialized",
       },
     },
-    variables: { n, textLen: text.length },
+    variables: { n, textLen: text.length, counts: {} },
   });
 
   const counts: Record<string, number> = {};
 
   for (let i = 0; i <= text.length - n; i++) {
     const ngram = text.substring(i, i + n);
-    counts[ngram] = (counts[ngram] || 0) + 1;
 
+    // Line 4: Extract sliding window N-gram
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 8,
+      codeLine: 4,
       explanation: {
-        what: `Slide Window at Position ${i}: Extracted ${n}-Gram "${ngram}"`,
-        why: `Tallying frequency count for "${ngram}". Updated count = ${counts[ngram]}.`,
+        what: `Extract ${n}-Gram Substring at Index ${i}`,
+        why: `Sliding window spanning indices ${i}..${i + n - 1} yields candidate ${n}-gram "${ngram}".`,
       },
       primarySnapshot: {
         kind: "array",
@@ -89,42 +85,132 @@ export const generateCharacterNgramSteps = (
       auxiliaryState: {
         customState: {
           currentNgram: `"${ngram}"`,
-          count: String(counts[ngram]),
+          currentCount: String(counts[ngram] || 0),
           uniqueNgramsSoFar: String(Object.keys(counts).length),
         },
       },
-      variables: { i, ngram, count: counts[ngram] },
+      variables: { i, ngram, currentCount: counts[ngram] || 0 },
+    });
+
+    counts[ngram] = (counts[ngram] || 0) + 1;
+
+    // Line 5: Tally count in hash table
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 5,
+      explanation: {
+        what: `Update Frequency Tally for "${ngram}"`,
+        why: `Incremented count of N-gram "${ngram}" to ${counts[ngram]}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: text.split("").map((ch, idx) => ({
+          id: `c-${idx}`,
+          value: idx,
+          label: `'${ch}'`,
+          state:
+            idx >= i && idx < i + n
+              ? ("active" as ElementState)
+              : idx < i
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === i ? [`Count: ${counts[ngram]}`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          currentNgram: `"${ngram}"`,
+          updatedCount: String(counts[ngram]),
+          uniqueNgramsSoFar: String(Object.keys(counts).length),
+        },
+      },
+      variables: { i, ngram, updatedCount: counts[ngram] },
     });
   }
 
-  // Step Final: Complete
+  // Line 7: Sort N-grams by frequency descending
   const sortedNgrams = Object.entries(counts).sort((a, b) => b[1] - a[1]);
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 7,
     explanation: {
-      what: `${n}-Gram Frequency Counting Complete: Identified ${sortedNgrams.length} Unique ${n}-Grams`,
-      why: `Top N-gram: "${sortedNgrams[0]?.[0]}" with frequency ${sortedNgrams[0]?.[1]}.`,
+      what: `Sort N-Grams by Frequency`,
+      why: `Sorting ${sortedNgrams.length} unique N-gram entries in descending order of frequency.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: sortedNgrams.map(([ng, cnt], rank) => ({
-        id: `ng-${rank}`,
-        value: cnt,
-        label: `"${ng}": ${cnt}`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-        pointers: rank === 0 ? ["Most Frequent"] : [],
-      })),
+      elements:
+        sortedNgrams.length > 0
+          ? sortedNgrams.map(([ng, cnt], rank) => ({
+              id: `ng-${rank}`,
+              value: cnt,
+              label: `"${ng}": ${cnt}`,
+              state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+              pointers: rank === 0 ? ["Top N-gram"] : [],
+            }))
+          : [
+              {
+                id: "empty",
+                value: 0,
+                label: "No N-grams (n > text length)",
+                state: "default" as ElementState,
+              },
+            ],
     },
     auxiliaryState: {
       customState: {
-        topNgram: `"${sortedNgrams[0]?.[0]}" (${sortedNgrams[0]?.[1]})`,
+        totalUniqueNgrams: String(sortedNgrams.length),
+        status: "Sorting Complete",
+      },
+    },
+    variables: { totalUnique: sortedNgrams.length },
+  });
+
+  // Line 8: Return ngram_counts and sorted_ngrams
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 8,
+    explanation: {
+      what: `${n}-Gram Frequency Counting Complete: ${sortedNgrams.length} Unique N-Grams Identified`,
+      why:
+        sortedNgrams.length > 0
+          ? `Top N-gram is "${sortedNgrams[0][0]}" with frequency ${sortedNgrams[0][1]}.`
+          : `Window size n=${n} exceeded input text length ${text.length}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements:
+        sortedNgrams.length > 0
+          ? sortedNgrams.map(([ng, cnt], rank) => ({
+              id: `ng-${rank}`,
+              value: cnt,
+              label: `"${ng}": ${cnt}`,
+              state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+              pointers: rank === 0 ? ["Top N-gram"] : [],
+            }))
+          : [
+              {
+                id: "empty",
+                value: 0,
+                label: "No N-grams",
+                state: "default" as ElementState,
+              },
+            ],
+    },
+    auxiliaryState: {
+      customState: {
+        topNgram:
+          sortedNgrams.length > 0 ? `"${sortedNgrams[0][0]}" (${sortedNgrams[0][1]})` : "None",
         totalUniqueNgrams: String(sortedNgrams.length),
         status: "Completed",
       },
     },
-    variables: { topNgram: sortedNgrams[0]?.[0], topCount: sortedNgrams[0]?.[1], complete: true },
+    variables: {
+      topNgram: sortedNgrams[0]?.[0] ?? null,
+      topCount: sortedNgrams[0]?.[1] ?? 0,
+      complete: true,
+    },
   });
 
   return steps;
@@ -132,14 +218,10 @@ export const generateCharacterNgramSteps = (
 
 export const characterFrequencyNgramCounter: AlgorithmDefinition<CharacterFrequencyNgramCounterInput> =
   {
-    id: "characterFrequencyNgramCounter",
+    id: "character-frequency-ngram-counter",
     title: "Character Frequency & N-Gram Counter",
-    category: "ml_tokenization",
-    categories: ["ml_tokenization", "tries_and_strings"],
+    topicIds: ["ml_tokenization", "tries_and_strings"],
     difficulty: "Easy",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_tokenization",
     description:
       "Extracts sliding character N-gram frequencies across text corpora. Computes character frequency distributions used for seed vocabulary generation in Unigram LM and WordPiece tokenization trainers.\n\nInput Format:\n- text: Input text string.\n- n: N-gram sliding window size.\n\nOutput Format:\n- Returns tuple (ngramCountsMap, sortedNgramsList).\n\nEdge Cases & Constraints:\n- n > text.length: Returns empty N-gram frequency dictionary.",
     constraints: ["1 <= n <= 10."],

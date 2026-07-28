@@ -7,11 +7,12 @@ import {
 
 describe("fftFrequencyDomainConvolution2d (2D Fast Fourier Transform (FFT) Convolution Engine)", () => {
   it("should have correct metadata", () => {
-    expect(fftFrequencyDomainConvolution2d.id).toBe("fftFrequencyDomainConvolution2d");
-    expect(fftFrequencyDomainConvolution2d.isMlInfra).toBe(true);
-    expect(fftFrequencyDomainConvolution2d.mlInfraLevel).toBe(8);
-    expect(fftFrequencyDomainConvolution2d.mlInfraCategory).toBe("ml_convolutions");
-    expect(fftFrequencyDomainConvolution2d.categories).toContain("ml_convolutions");
+    expect(fftFrequencyDomainConvolution2d.id).toBe("fft-frequency-domain-convolution-2d");
+    expect(
+      fftFrequencyDomainConvolution2d.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(fftFrequencyDomainConvolution2d.topicIds).toContain("ml_convolutions");
+    expect(fftFrequencyDomainConvolution2d.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

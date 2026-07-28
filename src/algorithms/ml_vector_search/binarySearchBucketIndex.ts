@@ -11,10 +11,6 @@ export const DEFAULT_BINARY_SEARCH_BUCKET_INDEX_INPUT: BinarySearchBucketIndexIn
 };
 
 export const BINARY_SEARCH_BUCKET_INDEX_CODE = `def binary_search_bucket_index(query_val: float, boundaries: list[float]) -> int:
-    """
-    Finds the bucket index for a query value using binary search over sorted boundaries.
-    Returns index i such that boundaries[i-1] <= query_val < boundaries[i].
-    """
     low = 0
     high = len(boundaries) - 1
     target_bucket = len(boundaries)
@@ -44,7 +40,7 @@ export const generateBinarySearchBucketIndexSteps = (
   // Step 0: Initial state setup
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 2,
     explanation: {
       what: "Initialize Binary Search Bucket Locator",
       why: `Searching for bucket containing query_value = ${queryValue} within ${N} sorted partition boundaries [${bucketBoundaries.join(
@@ -78,7 +74,7 @@ export const generateBinarySearchBucketIndexSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 11,
+      codeLine: 7,
       explanation: {
         what: `Calculate midpoint index mid = ${mid}`,
         why: `Evaluating boundary value boundaries[${mid}] = ${midVal} against queryValue = ${queryValue}.`,
@@ -119,24 +115,31 @@ export const generateBinarySearchBucketIndexSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 13,
+        codeLine: 9,
         explanation: {
           what: `Boundary boundaries[${mid}] (${midVal}) > queryValue (${queryValue})`,
-          why: `Query falls to the left of index ${mid}. Update potential target bucket to ${mid} and contract high to ${high}.`,
+          why: `Query falls to the left of boundary index ${mid}. Set target_bucket = ${mid} and shrink high to ${high}.`,
         },
         primarySnapshot: {
           kind: "array",
-          elements: bucketBoundaries.map((val, idx) => ({
-            id: `b-${idx}`,
-            value: val,
-            state:
-              idx === mid
-                ? ("active" as const)
-                : idx >= low && idx <= high
-                  ? ("compare" as const)
-                  : ("visited" as const),
-            pointers: idx === targetBucket ? [`target=${targetBucket}`] : [],
-          })),
+          elements: bucketBoundaries.map((val, idx) => {
+            const ptrs: string[] = [];
+            if (idx === low) ptrs.push("low");
+            if (idx === high) ptrs.push("high");
+            if (idx === targetBucket) ptrs.push(`target=${targetBucket}`);
+
+            return {
+              id: `b-${idx}`,
+              value: val,
+              state:
+                idx === mid
+                  ? ("active" as const)
+                  : idx >= low && idx <= high
+                    ? ("compare" as const)
+                    : ("visited" as const),
+              pointers: ptrs,
+            };
+          }),
         },
         auxiliaryState: {
           customState: {
@@ -154,24 +157,31 @@ export const generateBinarySearchBucketIndexSteps = (
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 16,
+        codeLine: 12,
         explanation: {
           what: `Boundary boundaries[${mid}] (${midVal}) <= queryValue (${queryValue})`,
-          why: `Query falls to the right of index ${mid}. Advance low pointer to ${low}.`,
+          why: `Query falls to the right of boundary index ${mid}. Advance low pointer to ${low}.`,
         },
         primarySnapshot: {
           kind: "array",
-          elements: bucketBoundaries.map((val, idx) => ({
-            id: `b-${idx}`,
-            value: val,
-            state:
-              idx === mid
-                ? ("active" as const)
-                : idx >= low && idx <= high
-                  ? ("compare" as const)
-                  : ("visited" as const),
-            pointers: idx === low ? ["low"] : idx === high ? ["high"] : [],
-          })),
+          elements: bucketBoundaries.map((val, idx) => {
+            const ptrs: string[] = [];
+            if (idx === low) ptrs.push("low");
+            if (idx === high) ptrs.push("high");
+            if (targetBucket < N && idx === targetBucket) ptrs.push(`target=${targetBucket}`);
+
+            return {
+              id: `b-${idx}`,
+              value: val,
+              state:
+                idx === mid
+                  ? ("active" as const)
+                  : idx >= low && idx <= high
+                    ? ("compare" as const)
+                    : ("visited" as const),
+              pointers: ptrs,
+            };
+          }),
         },
         auxiliaryState: {
           customState: {
@@ -193,19 +203,37 @@ export const generateBinarySearchBucketIndexSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 14,
     explanation: {
       what: `Binary Search Complete: Assigned to Bucket ${targetBucket}`,
       why: `Query value ${queryValue} lies in range [${lowerBound}, ${upperBound}), corresponding to Bucket ${targetBucket}.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: bucketBoundaries.map((val, idx) => ({
-        id: `b-${idx}`,
-        value: val,
-        state: idx === targetBucket || idx === targetBucket - 1 ? "sorted" : "visited",
-        pointers: idx === targetBucket ? [`Bucket ${targetBucket}`] : [],
-      })),
+      elements: bucketBoundaries.map((val, idx) => {
+        const ptrs: string[] = [];
+        if (targetBucket < N && idx === targetBucket) {
+          ptrs.push(`Bucket ${targetBucket}`);
+        } else if (targetBucket === N && idx === N - 1) {
+          ptrs.push(`Bucket ${targetBucket}`);
+        }
+
+        let state: "sorted" | "visited" = "visited";
+        if (targetBucket === 0 && idx === 0) {
+          state = "sorted";
+        } else if (targetBucket === N && idx === N - 1) {
+          state = "sorted";
+        } else if (idx === targetBucket || idx === targetBucket - 1) {
+          state = "sorted";
+        }
+
+        return {
+          id: `b-${idx}`,
+          value: val,
+          state,
+          pointers: ptrs,
+        };
+      }),
     },
     auxiliaryState: {
       customState: {
@@ -222,14 +250,10 @@ export const generateBinarySearchBucketIndexSteps = (
 };
 
 export const binarySearchBucketIndex: AlgorithmDefinition<BinarySearchBucketIndexInput> = {
-  id: "binarySearchBucketIndex",
+  id: "binary-search-bucket-index",
   title: "Binary Search Bucket Indexing",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search", "binary_search"],
+  topicIds: ["ml_vector_search", "binary_search"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "In high-dimensional vector search infrastructure and quantized spatial index engines (such as FAISS, ScaNN, Milvus, and Qdrant), binary search bucket indexing is used to locate target quantization bins or IVF (Inverted File) cluster boundaries in logarithmic O(log K) time.\n\nInput Format:\n- queryValue: Scalar numerical query projection or distance metric value.\n- bucketBoundaries: Monotonically sorted list of scalar partition thresholds.\n\nOutput Format:\n- Returns integer index `b` such that `boundaries[b-1] <= queryValue < boundaries[b]`.\n\nEdge Cases & Constraints:\n- Value below minimum boundary: Maps to bucket 0.\n- Value exceeding maximum boundary: Maps to bucket K.\n- Equal boundary values: Consistently resolves to upper bucket index.",
   constraints: [

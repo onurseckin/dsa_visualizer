@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { exactGreedySplitSearch } from "./exactGreedySplitSearch";
 
-describe("exactGreedySplitSearch", () => {
+describe("exact-greedy-split-search", () => {
   it("should have valid metadata", () => {
     expect(exactGreedySplitSearch.id).toBeDefined();
     expect(exactGreedySplitSearch.title).toBeDefined();

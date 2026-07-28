@@ -5,7 +5,7 @@ describe("dfsGraph spec logic", () => {
   it("has category graph_traversal and valid metadata", () => {
     expect(dfsGraph.id).toBe("dfs-graph");
     expect(dfsGraph.title).toBe("DFS Graph Traversal");
-    expect(dfsGraph.category).toBe("graph_traversal");
+    expect(dfsGraph.topicIds).toContain("graph_traversal");
     expect(dfsGraph.defaultInput).toEqual(DEFAULT_DFS_GRAPH_INPUT);
     expect(dfsGraph.difficulty).toBe("Easy");
   });

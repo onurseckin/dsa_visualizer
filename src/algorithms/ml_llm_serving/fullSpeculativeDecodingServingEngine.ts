@@ -10,31 +10,19 @@ export interface fullSpeculativeDecodingServingEngineInput {
 }
 
 export const FULLSPECULATIVEDECODINGSERVINGENGINE_CODE = `def full_speculative_decoding_serving_engine(draft_tokens, draft_probs, target_probs, recovery_token, target_next_token):
-    """
-    Executes one iteration of end-to-end Speculative Decoding verification & KV cache state update.
-    Evaluates candidate tokens against target probabilities p(x) / q(x).
-    On rejection: emits recovery token, rolls back KV cache for remaining draft positions.
-    On full acceptance: appends target model's bonus token.
-    """
     accepted_tokens = []
     gamma = len(draft_tokens)
-
     for i in range(gamma):
         x_i = draft_tokens[i]
         q_i = draft_probs[i]
         p_i = target_probs[i]
-        
-        # Speculative rejection sampling threshold check p_i / q_i
         ratio = p_i / max(q_i, 1e-7)
         if ratio >= 1.0:
             accepted_tokens.append(x_i)
         else:
-            # Rejection occurs at step i: append recovery token and terminate draft loop
             accepted_tokens.append(recovery_token)
             kv_commit_count = i + 1
             return accepted_tokens, kv_commit_count, "REJECTED"
-
-    # All gamma tokens accepted! Append target model's next bonus token x_{gamma+1}
     accepted_tokens.append(target_next_token)
     kv_commit_count = gamma + 1
     return accepted_tokens, kv_commit_count, "ALL_ACCEPTED"`;
@@ -111,7 +99,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
   // Step 2: init accepted_tokens
   addStep(
-    8,
+    2,
     "Initialize accepted_tokens = []",
     "Empty array to accumulate verified accepted tokens and recovery token.",
     { accepted_tokens: "[]" },
@@ -119,7 +107,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
   // Step 3: init gamma
   addStep(
-    9,
+    3,
     `Initialize gamma = len(draft_tokens) -> ${gamma}`,
     "Speculative lookahead depth count.",
     { gamma },
@@ -131,7 +119,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
   for (let i = 0; i < gamma; i++) {
     // For loop check
     addStep(
-      11,
+      4,
       `Loop step i=${i} of gamma=${gamma}`,
       `Beginning evaluation of candidate token index ${i + 1}.`,
       { i, gamma },
@@ -141,7 +129,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
     const x_i = draft_tokens[i];
     addStep(
-      12,
+      5,
       `Step ${i + 1}: Read x_i = draft_tokens[${i}] -> token ${x_i}`,
       `Draft candidate token index ${x_i}.`,
       { i, x_i },
@@ -150,7 +138,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
     const q_i = draft_probs[i];
     addStep(
-      13,
+      6,
       `Step ${i + 1}: Read q_i = draft_probs[${i}] -> ${q_i.toFixed(2)}`,
       `Draft model proposal probability $q(x_{${i + 1}}) = ${q_i.toFixed(2)}$.`,
       { i, q_i: Number(q_i.toFixed(2)) },
@@ -159,7 +147,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
     const p_i = target_probs[i];
     addStep(
-      14,
+      7,
       `Step ${i + 1}: Read p_i = target_probs[${i}] -> ${p_i.toFixed(2)}`,
       `Target model verification probability $p(x_{${i + 1}}) = ${p_i.toFixed(2)}$.`,
       { i, p_i: Number(p_i.toFixed(2)) },
@@ -168,7 +156,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
     const ratio = p_i / Math.max(q_i, 1e-7);
     addStep(
-      17,
+      8,
       `Step ${i + 1}: Compute ratio = p_i / max(q_i, 1e-7) -> ${ratio.toFixed(2)}`,
       `Rejection sampling acceptance ratio $p_i / q_i = ${p_i.toFixed(2)} / ${q_i.toFixed(2)} = ${ratio.toFixed(2)}$.`,
       { i, ratio: Number(ratio.toFixed(2)) },
@@ -177,7 +165,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
     const isAccepted = ratio >= 1.0;
     addStep(
-      18,
+      9,
       `Step ${i + 1}: Check if ratio (${ratio.toFixed(2)}) >= 1.0 -> ${isAccepted}`,
       isAccepted
         ? `Ratio ${ratio.toFixed(2)} >= 1.0: token ${x_i} is accepted unconditionally.`
@@ -190,7 +178,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
     if (isAccepted) {
       acceptedTokens.push(x_i);
       addStep(
-        19,
+        10,
         `Step ${i + 1}: Branch True: accepted_tokens.append(${x_i}) -> [${acceptedTokens.join(", ")}]`,
         `Draft token ${x_i} accepted into final token sequence.`,
         { i, x_i, accepted_tokens: acceptedTokens.join(", ") },
@@ -200,7 +188,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
     } else {
       rejected = true;
       addStep(
-        22,
+        12,
         `Step ${i + 1}: Branch False: accepted_tokens.append(recovery_token=${recovery_token})`,
         `Rejection at draft index ${i}! Appended recovery token ${recovery_token} sampled from residual distribution.`,
         { i, recovery_token, accepted_tokens: acceptedTokens.join(", ") },
@@ -211,7 +199,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
       acceptedTokens.push(recovery_token);
       const kv_commit_count = i + 1;
       addStep(
-        23,
+        13,
         `Step ${i + 1}: Set kv_commit_count = i + 1 -> ${kv_commit_count}`,
         `Rolling back KV cache for uncommitted draft positions ${i + 1}..${gamma - 1}. Retaining ${kv_commit_count} committed KV slots.`,
         { i, kv_commit_count },
@@ -219,7 +207,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
       );
 
       addStep(
-        24,
+        14,
         `Step ${i + 1}: Return (accepted_tokens=[${acceptedTokens.join(", ")}], kv_commit_count=${kv_commit_count}, "REJECTED")`,
         `Speculative iteration terminated on rejection at index ${i}. Emitted ${acceptedTokens.length} tokens.`,
         {
@@ -235,7 +223,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
   if (!rejected) {
     addStep(
-      27,
+      15,
       `All ${gamma} draft tokens accepted! Appending target_next_token = ${target_next_token}`,
       `100% draft acceptance! Appending target model's bonus token ${target_next_token} for position ${gamma + 1}.`,
       { target_next_token },
@@ -244,14 +232,14 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 
     const kv_commit_count = gamma + 1;
     addStep(
-      28,
+      16,
       `Set kv_commit_count = gamma + 1 -> ${kv_commit_count}`,
       `Committed all ${gamma} draft KV slots plus ${1} bonus token slot = ${kv_commit_count} total KV positions.`,
       { kv_commit_count },
     );
 
     addStep(
-      29,
+      17,
       `Return (accepted_tokens=[${acceptedTokens.join(", ")}], kv_commit_count=${kv_commit_count}, "ALL_ACCEPTED")`,
       `Full speculative iteration completed with 100% acceptance! Generated ${acceptedTokens.length} tokens in 1 target pass.`,
       {
@@ -266,7 +254,7 @@ export const generateFullSpeculativeDecodingServingEngineSteps = (
 };
 
 const FULLSPECULATIVEDECODINGSERVINGENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 10, 15, 16, 21, 25, 26],
+  skipLines: [],
   distractors: [
     "accepted_tokens = list(draft_tokens)",
     "ratio = q_i / p_i",
@@ -274,40 +262,34 @@ const FULLSPECULATIVEDECODINGSERVINGENGINE_TRIVIA: TriviaMeta = {
     "if ratio < 1.0: accepted_tokens.append(x_i)",
   ],
   hints: [
-    { line: 17, hint: "Compute ratio = p_i / max(q_i, 1e-7) with epsilon guard against division by zero." },
-    { line: 22, hint: "On rejection, append recovery token and set kv_commit_count = i + 1." },
-    { line: 27, hint: "On 100% acceptance, append target_next_token bonus token and set kv_commit_count = gamma + 1." },
+    {
+      line: 8,
+      hint: "Compute ratio = p_i / max(q_i, 1e-7) with epsilon guard against division by zero.",
+    },
+    { line: 12, hint: "On rejection, append recovery token and set kv_commit_count = i + 1." },
+    {
+      line: 15,
+      hint: "On 100% acceptance, append target_next_token bonus token and set kv_commit_count = gamma + 1.",
+    },
   ],
   lineExplanations: {
     1: "Function signature for Full Speculative Decoding Production Serving Engine taking draft_tokens, draft_probs, target_probs, recovery_token, and target_next_token.",
-    2: "Begin docstring describing end-to-end Speculative Decoding verification cycle.",
-    3: "Docstring line detailing candidate token evaluation against target model probabilities.",
-    4: "Docstring line detailing p(x) / q(x) ratio check.",
-    5: "Docstring line detailing rejection recovery and KV cache rollback.",
-    6: "Docstring line detailing bonus token addition on full acceptance.",
-    7: "End docstring.",
-    8: "Initialize empty list accepted_tokens to collect verified tokens.",
-    9: "Compute speculative lookahead depth gamma = len(draft_tokens).",
-    10: "Blank line before candidate evaluation loop.",
-    11: "Loop over each speculative draft token candidate index i from 0 to gamma - 1.",
-    12: "Extract draft candidate token x_i at position i.",
-    13: "Extract draft model probability q_i for token x_i.",
-    14: "Extract target model probability p_i for token x_i.",
-    15: "Blank line before ratio calculation.",
-    16: "Comment describing rejection sampling ratio check.",
-    17: "Compute acceptance ratio = p_i / max(q_i, 1e-7) with epsilon zero-guard.",
-    18: "Check if acceptance ratio is greater than or equal to 1.0.",
-    19: "If ratio >= 1.0, accept draft token x_i and append to accepted_tokens.",
-    20: "Else branch for speculative rejection at position i.",
-    21: "Comment detailing rejection handling, recovery token emission, and KV rollback.",
-    22: "Append recovery_token sampled from residual distribution to accepted_tokens.",
-    23: "Set kv_commit_count = i + 1 to retain KV cache up to accepted recovery position.",
-    24: "Return tuple of accepted_tokens, kv_commit_count, and status 'REJECTED'.",
-    25: "Blank line before 100% acceptance fallback.",
-    26: "Comment detailing 100% acceptance scenario and target model bonus token.",
-    27: "Append target_next_token (bonus token x_{gamma+1}) to accepted_tokens.",
-    28: "Set kv_commit_count = gamma + 1 to commit all draft KV slots plus bonus token.",
-    29: "Return tuple of accepted_tokens, kv_commit_count, and status 'ALL_ACCEPTED'.",
+    2: "Initialize empty list accepted_tokens to collect verified tokens.",
+    3: "Compute speculative lookahead depth gamma = len(draft_tokens).",
+    4: "Loop over each speculative draft token candidate index i from 0 to gamma - 1.",
+    5: "Extract draft candidate token x_i at position i.",
+    6: "Extract draft model probability q_i for token x_i.",
+    7: "Extract target model probability p_i for token x_i.",
+    8: "Compute acceptance ratio = p_i / max(q_i, 1e-7) with epsilon zero-guard.",
+    9: "Check if acceptance ratio is greater than or equal to 1.0.",
+    10: "If ratio >= 1.0, accept draft token x_i and append to accepted_tokens.",
+    11: "Else branch for speculative rejection at position i.",
+    12: "Append recovery_token sampled from residual distribution to accepted_tokens.",
+    13: "Set kv_commit_count = i + 1 to retain KV cache up to accepted recovery position.",
+    14: "Return tuple of accepted_tokens, kv_commit_count, and status 'REJECTED'.",
+    15: "Append target_next_token (bonus token x_{gamma+1}) to accepted_tokens.",
+    16: "Set kv_commit_count = gamma + 1 to commit all draft KV slots plus bonus token.",
+    17: "Return tuple of accepted_tokens, kv_commit_count, and status 'ALL_ACCEPTED'.",
   },
 };
 
@@ -315,12 +297,8 @@ export const fullSpeculativeDecodingServingEngine: AlgorithmDefinition<fullSpecu
   {
     id: "full-speculative-decoding-serving-engine",
     title: "Full Speculative Decoding Production Serving Engine",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_attention_geometry"],
+    topicIds: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "Production LLM serving engines (vLLM, TensorRT-LLM, SGLang) leverage end-to-end Speculative Decoding engines to accelerate autoregressive token generation. By coupling a fast draft model $M_{\\text{draft}}$ with a high-capacity target model $M_{\\text{target}}$, speculative serving replaces $\\gamma$ sequential, memory-bandwidth bound target forward passes with 1 draft generation phase followed by 1 parallel target verification pass.\n\n### Speculative Acceptance & KV Commitment Math\nAt position $i \\in \\{0, \\dots, \\gamma-1\\}$:\n- Acceptance Ratio: $r_i = \\frac{p_i(x_i)}{\\max(q_i(x_i), \\epsilon)}$\n- **If $r_i \\ge 1.0$**: Token $x_i$ is accepted.\n- **If $r_i < 1.0$**: Token $x_i$ is rejected; emit `recovery_token`, set $\\text{kv\\_commit\\_count} = i + 1$, and truncate uncommitted KV slots $i+1 \\dots \\gamma-1$.\n- **If all $\\gamma$ tokens accepted**: Append `target_next_token` (bonus token $x_{\\gamma+1}$), setting $\\text{kv\\_commit\\_count} = \\gamma + 1$.\n\n### Input Parameters\n- `draft_tokens`: Array of $\\gamma$ draft token candidates.\n- `draft_probs`: Array of draft candidate probabilities $q(x_i)$.\n- `target_probs`: Array of target candidate probabilities $p(x_i)$.\n- `recovery_token`: Token index sampled from residual distribution $p'(x)$ if rejected.\n- `target_next_token`: Bonus token index from target model if all $\\gamma$ accepted.\n\n### Output\n- Returns tuple `(accepted_tokens, kv_commit_count, status)`.",
     constraints: ["1 <= draft_tokens.length <= 16", "draft_probs[i] > 0", "target_probs[i] >= 0"],
@@ -364,7 +342,8 @@ export const fullSpeculativeDecodingServingEngine: AlgorithmDefinition<fullSpecu
     spaceComplexity: "O(gamma)",
     complexityAnalysis: {
       time: "$O(\\gamma)$ linear scan across $\\gamma$ draft tokens to evaluate acceptance and slice token buffers.",
-      space: "$O(\\gamma)$ memory space to store accepted token output arrays and KV commit pointers.",
+      space:
+        "$O(\\gamma)$ memory space to store accepted token output arrays and KV commit pointers.",
     },
     topicGuide: {
       overview:

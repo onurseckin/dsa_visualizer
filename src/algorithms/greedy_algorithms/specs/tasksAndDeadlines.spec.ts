@@ -30,7 +30,7 @@ describe("tasksAndDeadlines logic spec", () => {
 
   it("verifies algorithm definition metadata and complete lineExplanations mapping", () => {
     expect(tasksAndDeadlines.id).toBe("tasks-and-deadlines");
-    expect(tasksAndDeadlines.category).toBe("greedy_algorithms");
+    expect(tasksAndDeadlines.topicIds).toContain("heap_and_priority_queue");
     expect(tasksAndDeadlines.difficulty).toBe("Medium");
     expect(tasksAndDeadlines.code).toContain("def tasks_and_deadlines");
 
@@ -44,7 +44,11 @@ describe("tasksAndDeadlines logic spec", () => {
 
   it("provides 3 typed examples (basic, complex, negative) that generate steps without errors", () => {
     expect(tasksAndDeadlines.examples).toHaveLength(3);
-    expect(tasksAndDeadlines.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
+    expect(tasksAndDeadlines.examples?.map((ex) => ex.kind)).toEqual([
+      "basic",
+      "complex",
+      "negative",
+    ]);
 
     for (const example of tasksAndDeadlines.examples!) {
       const steps = tasksAndDeadlines.generateSteps(

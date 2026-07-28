@@ -9,7 +9,7 @@ describe("Min Max Range Clipping", () => {
   it("should have correct metadata", () => {
     expect(minMaxRangeClipping.id).toBe("min-max-range-clipping");
     expect(minMaxRangeClipping.title).toBe("Min Max Range Clipping");
-    expect(minMaxRangeClipping.category).toBe("ml_precision_quantization");
+    expect(minMaxRangeClipping.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

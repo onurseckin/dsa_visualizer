@@ -32,9 +32,6 @@ def on_segment(p: tuple[float, float], q: tuple[float, float], r: tuple[float, f
 
 def line_segment_intersection(seg1: tuple[tuple[float, float], tuple[float, float]],
                                seg2: tuple[tuple[float, float], tuple[float, float]]) -> bool:
-    """
-    Determines if two line segments seg1=(p1, q1) and seg2=(p2, q2) intersect.
-    """
     p1, q1 = seg1
     p2, q2 = seg2
 
@@ -122,13 +119,13 @@ export const generateLineSegmentIntersectionSteps = (
     return { nodes, edges };
   };
 
-  // Step 0: Entry
+  // Step 0: Entry into line_segment_intersection
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 9,
     explanation: {
-      what: `Initializing 2D line segment intersection test.`,
-      why: "We will compute four 2D cross product orientation tests to determine if segments straddle each other's supporting lines.",
+      what: `Initializing line segment intersection test for Segment 1: (${p1.x},${p1.y})->(${q1.x},${q1.y}) and Segment 2: (${p2.x},${p2.y})->(${q2.x},${q2.y}).`,
+      why: "We will compute four 2D cross product orientation tests to determine if the segments straddle each other's supporting lines.",
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
@@ -140,61 +137,48 @@ export const generateLineSegmentIntersectionSteps = (
     variables: {},
   });
 
-  // Step 1: Unpack seg1
+  // Step 1: Unpack seg1 (line 11)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 14,
+    codeLine: 11,
     explanation: {
       what: `Unpacking Segment 1 endpoints: P1(${p1.x}, ${p1.y}), Q1(${q1.x}, ${q1.y}).`,
-      why: "Segment 1 defined by vector Q1 - P1.",
+      why: "Segment 1 is defined by vector from P1 to Q1.",
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: { "P1": `(${p1.x},${p1.y})`, "Q1": `(${q1.x},${q1.y})` },
+      hashMap: { P1: `(${p1.x},${p1.y})`, Q1: `(${q1.x},${q1.y})` },
     },
     variables: { p1_x: p1.x, p1_y: p1.y, q1_x: q1.x, q1_y: q1.y },
   });
 
-  // Step 2: Unpack seg2
+  // Step 2: Unpack seg2 (line 12)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 15,
+    codeLine: 12,
     explanation: {
       what: `Unpacking Segment 2 endpoints: P2(${p2.x}, ${p2.y}), Q2(${q2.x}, ${q2.y}).`,
-      why: "Segment 2 defined by vector Q2 - P2.",
+      why: "Segment 2 is defined by vector from P2 to Q2.",
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: { "P2": `(${p2.x},${p2.y})`, "Q2": `(${q2.x},${q2.y})` },
+      hashMap: { P2: `(${p2.x},${p2.y})`, Q2: `(${q2.x},${q2.y})` },
     },
     variables: { p2_x: p2.x, p2_y: p2.y, q2_x: q2.x, q2_y: q2.y },
   });
 
-  // Step 3: Compute d1 step 1
-  const dx2 = q2.x - p2.x;
-  const dy2 = q2.y - p2.y;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 17,
-    explanation: {
-      what: `Evaluating direction vector for Segment 2: (Q2 - P2) = (${dx2}, ${dy2}).`,
-      why: "Preparing base vector for orientation tests d1 and d2.",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Vector Q2-P2": `(${dx2}, ${dy2})` },
-    },
-    variables: { dx2, dy2 },
-  });
-
-  // Step 4: Compute d1 step 2
   const d1 = crossProduct(p2, q2, p1);
+  const d2 = crossProduct(p2, q2, q1);
+  const d3 = crossProduct(p1, q1, p2);
+  const d4 = crossProduct(p1, q1, q2);
+
+  // Step 3: Compute d1 (line 14)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 17,
+    codeLine: 14,
     explanation: {
       what: `Computed d1 = cross(P2, Q2, P1) = ${d1}.`,
-      why: `Sign of d1 (${d1 > 0 ? "positive / left" : d1 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P2, Q2) to P1.`,
+      why: `Sign of d1 (${d1 > 0 ? "positive / counter-clockwise turn" : d1 < 0 ? "negative / clockwise turn" : "zero / collinear"}) indicates orientation of P1 relative to directed line P2->Q2.`,
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
@@ -203,257 +187,256 @@ export const generateLineSegmentIntersectionSteps = (
     variables: { d1 },
   });
 
-  // Step 5: Compute d2
-  const d2 = crossProduct(p2, q2, q1);
+  // Step 4: Compute d2 (line 15)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
+    codeLine: 15,
     explanation: {
       what: `Computed d2 = cross(P2, Q2, Q1) = ${d2}.`,
-      why: `Sign of d2 (${d2 > 0 ? "positive / left" : d2 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P2, Q2) to Q1.`,
+      why: `Sign of d2 (${d2 > 0 ? "positive / counter-clockwise turn" : d2 < 0 ? "negative / clockwise turn" : "zero / collinear"}) indicates orientation of Q1 relative to directed line P2->Q2.`,
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: { "d1": d1, "d2 = cross(P2, Q2, Q1)": d2 },
+      hashMap: { d1: d1, "d2 = cross(P2, Q2, Q1)": d2 },
     },
     variables: { d1, d2 },
   });
 
-  // Step 6: Test straddle of Seg1 across Line2
-  const straddle1 = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0);
+  // Step 5: Compute d3 (line 16)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 18,
-    explanation: {
-      what: `Check Segment 1 straddle: d1 * d2 < 0 is ${straddle1 ? "TRUE" : "FALSE"}.`,
-      why: straddle1
-        ? "Endpoints P1 and Q1 lie on opposite sides of Line(P2, Q2)."
-        : "Endpoints P1 and Q1 lie on the same side of Line(P2, Q2).",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Straddle Seg1 across Line2": straddle1 ? "YES" : "NO" },
-    },
-    variables: { d1, d2, straddle1 },
-  });
-
-  // Step 7: Compute d3 vector
-  const dx1 = q1.x - p1.x;
-  const dy1 = q1.y - p1.y;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 19,
-    explanation: {
-      what: `Evaluating direction vector for Segment 1: (Q1 - P1) = (${dx1}, ${dy1}).`,
-      why: "Preparing base vector for orientation tests d3 and d4.",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Vector Q1-P1": `(${dx1}, ${dy1})` },
-    },
-    variables: { dx1, dy1 },
-  });
-
-  // Step 8: Compute d3
-  const d3 = crossProduct(p1, q1, p2);
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 19,
+    codeLine: 16,
     explanation: {
       what: `Computed d3 = cross(P1, Q1, P2) = ${d3}.`,
-      why: `Sign of d3 (${d3 > 0 ? "positive / left" : d3 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P1, Q1) to P2.`,
+      why: `Sign of d3 (${d3 > 0 ? "positive / counter-clockwise turn" : d3 < 0 ? "negative / clockwise turn" : "zero / collinear"}) indicates orientation of P2 relative to directed line P1->Q1.`,
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: { "d1": d1, "d2": d2, "d3 = cross(P1, Q1, P2)": d3 },
+      hashMap: { d1: d1, d2: d2, "d3 = cross(P1, Q1, P2)": d3 },
     },
     variables: { d1, d2, d3 },
   });
 
-  // Step 9: Compute d4
-  const d4 = crossProduct(p1, q1, q2);
+  // Step 6: Compute d4 (line 17)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 20,
+    codeLine: 17,
     explanation: {
       what: `Computed d4 = cross(P1, Q1, Q2) = ${d4}.`,
-      why: `Sign of d4 (${d4 > 0 ? "positive / left" : d4 < 0 ? "negative / right" : "collinear"}) indicates turn direction from Line(P1, Q1) to Q2.`,
+      why: `Sign of d4 (${d4 > 0 ? "positive / counter-clockwise turn" : d4 < 0 ? "negative / clockwise turn" : "zero / collinear"}) indicates orientation of Q2 relative to directed line P1->Q1.`,
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: { "d1": d1, "d2": d2, "d3": d3, "d4 = cross(P1, Q1, Q2)": d4 },
+      hashMap: { d1: d1, d2: d2, d3: d3, "d4 = cross(P1, Q1, Q2)": d4 },
     },
     variables: { d1, d2, d3, d4 },
   });
 
-  // Step 10: Test straddle of Seg2 across Line1
+  const straddle1 = (d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0);
   const straddle2 = (d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0);
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 20,
-    explanation: {
-      what: `Check Segment 2 straddle: d3 * d4 < 0 is ${straddle2 ? "TRUE" : "FALSE"}.`,
-      why: straddle2
-        ? "Endpoints P2 and Q2 lie on opposite sides of Line(P1, Q1)."
-        : "Endpoints P2 and Q2 lie on the same side of Line(P1, Q1).",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Straddle Seg2 across Line1": straddle2 ? "YES" : "NO" },
-    },
-    variables: { d3, d4, straddle2 },
-  });
-
-  // Step 11: Evaluate general intersection condition
   const generalIntersect = straddle1 && straddle2;
+
+  // Step 7: Check general straddle condition (line 19)
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 19,
     explanation: {
-      what: `Evaluating general straddle condition: (straddle1 && straddle2) is ${generalIntersect ? "TRUE" : "FALSE"}.`,
+      what: `Evaluating general straddle condition: straddle1 (${straddle1}) && straddle2 (${straddle2}) -> ${generalIntersect ? "TRUE" : "FALSE"}.`,
       why: generalIntersect
-        ? "Both segments mutually straddle each other's supporting lines — segments intersect!"
-        : "General straddle condition not satisfied. Checking collinear boundary cases.",
+        ? "Both segments mutually straddle each other's supporting lines! General intersection confirmed."
+        : "General straddle condition not satisfied. Checking collinear boundary conditions.",
     },
     primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
-      hashMap: { "General Intersection": generalIntersect ? "YES" : "NO" },
+      hashMap: {
+        "Straddle Seg1 across Line2": straddle1 ? "YES" : "NO",
+        "Straddle Seg2 across Line1": straddle2 ? "YES" : "NO",
+        "General Intersect": generalIntersect ? "YES" : "NO",
+      },
     },
-    variables: { generalIntersect },
+    variables: { d1, d2, d3, d4, straddle1, straddle2, generalIntersect },
   });
 
-  // Step 12: Collinear check d1 == 0
+  if (generalIntersect) {
+    const intPoint = computeIntersectionPoint();
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 20,
+      explanation: {
+        what: `Line segments intersect in general position! Returning True.${intPoint ? ` Intersection point: (${intPoint.x}, ${intPoint.y}).` : ""}`,
+        why: "Both pairs of endpoints straddle opposite sides of the opposite segment's supporting line.",
+      },
+      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(true) },
+      auxiliaryState: {
+        hashMap: {
+          Result: "INTERSECT",
+          "Intersection Point": intPoint ? `(${intPoint.x}, ${intPoint.y})` : "N/A",
+        },
+      },
+      variables: {
+        intersects: true,
+        d1,
+        d2,
+        d3,
+        d4,
+        intersectionX: intPoint?.x ?? -1,
+        intersectionY: intPoint?.y ?? -1,
+      },
+    });
+    return steps;
+  }
+
+  // Collinear checks:
   const c1 = d1 === 0 && onSegment(p2, p1, q2);
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 24,
+    codeLine: 21,
     explanation: {
       what: `Checking collinear case 1: d1 == 0 && on_segment(P2, P1, Q2) -> ${c1 ? "TRUE" : "FALSE"}.`,
-      why: "P1 is collinear with Segment 2 and lies within its bounding box.",
+      why: c1
+        ? "P1 is collinear with P2->Q2 and lies on Segment 2."
+        : "P1 is not collinear with P2->Q2 or does not lie on Segment 2.",
     },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(c1) },
     auxiliaryState: {
-      hashMap: { "Collinear Case 1": c1 ? "YES" : "NO" },
+      hashMap: { "d1 == 0 & P1 on Seg2": c1 ? "YES" : "NO" },
     },
-    variables: { c1 },
+    variables: { d1, c1 },
   });
 
-  // Step 13: Collinear check d2 == 0
+  if (c1) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 21,
+      explanation: {
+        what: `Collinear overlap detected at P1 (${p1.x}, ${p1.y})! Returning True.`,
+        why: "Endpoint P1 lies directly on Segment 2.",
+      },
+      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(true) },
+      auxiliaryState: {
+        hashMap: { Result: "INTERSECT (Collinear P1)" },
+      },
+      variables: { intersects: true, d1, d2, d3, d4 },
+    });
+    return steps;
+  }
+
   const c2 = d2 === 0 && onSegment(p2, q1, q2);
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 25,
-    explanation: {
-      what: `Checking collinear case 2: d2 == 0 && on_segment(P2, Q1, Q2) -> ${c2 ? "TRUE" : "FALSE"}.`,
-      why: "Q1 is collinear with Segment 2 and lies within its bounding box.",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Collinear Case 2": c2 ? "YES" : "NO" },
-    },
-    variables: { c2 },
-  });
-
-  // Step 14: Collinear check d3 == 0
-  const c3 = d3 === 0 && onSegment(p1, p2, q1);
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 26,
-    explanation: {
-      what: `Checking collinear case 3: d3 == 0 && on_segment(P1, P2, Q1) -> ${c3 ? "TRUE" : "FALSE"}.`,
-      why: "P2 is collinear with Segment 1 and lies within its bounding box.",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Collinear Case 3": c3 ? "YES" : "NO" },
-    },
-    variables: { c3 },
-  });
-
-  // Step 15: Collinear check d4 == 0
-  const c4 = d4 === 0 && onSegment(p1, q2, q1);
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 27,
-    explanation: {
-      what: `Checking collinear case 4: d4 == 0 && on_segment(P1, Q2, Q1) -> ${c4 ? "TRUE" : "FALSE"}.`,
-      why: "Q2 is collinear with Segment 1 and lies within its bounding box.",
-    },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-    auxiliaryState: {
-      hashMap: { "Collinear Case 4": c4 ? "YES" : "NO" },
-    },
-    variables: { c4 },
-  });
-
-  const intersects = generalIntersect || c1 || c2 || c3 || c4;
-  const intPoint = intersects ? computeIntersectionPoint() : null;
-
-  // Step 16: Parametric t computation
-  const denom = (p1.x - q1.x) * (p2.y - q2.y) - (p1.y - q1.y) * (p2.x - q2.x);
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 22,
     explanation: {
-      what: `Evaluating parametric system determinant: denom = ${denom}.`,
-      why: "Parametric ray equations yield non-zero denominator when lines are not parallel.",
+      what: `Checking collinear case 2: d2 == 0 && on_segment(P2, Q1, Q2) -> ${c2 ? "TRUE" : "FALSE"}.`,
+      why: c2
+        ? "Q1 is collinear with P2->Q2 and lies on Segment 2."
+        : "Q1 is not collinear with P2->Q2 or does not lie on Segment 2.",
     },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(c2) },
     auxiliaryState: {
-      hashMap: { "Determinant Denom": denom },
+      hashMap: { "d2 == 0 & Q1 on Seg2": c2 ? "YES" : "NO" },
     },
-    variables: { denom },
+    variables: { d2, c2 },
   });
 
-  // Step 17: Solve intersection coordinates
-  if (intPoint) {
+  if (c2) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 22,
+      explanation: {
+        what: `Collinear overlap detected at Q1 (${q1.x}, ${q1.y})! Returning True.`,
+        why: "Endpoint Q1 lies directly on Segment 2.",
+      },
+      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(true) },
+      auxiliaryState: {
+        hashMap: { Result: "INTERSECT (Collinear Q1)" },
+      },
+      variables: { intersects: true, d1, d2, d3, d4 },
+    });
+    return steps;
+  }
+
+  const c3 = d3 === 0 && onSegment(p1, p2, q1);
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 23,
+    explanation: {
+      what: `Checking collinear case 3: d3 == 0 && on_segment(P1, P2, Q1) -> ${c3 ? "TRUE" : "FALSE"}.`,
+      why: c3
+        ? "P2 is collinear with P1->Q1 and lies on Segment 1."
+        : "P2 is not collinear with P1->Q1 or does not lie on Segment 1.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(c3) },
+    auxiliaryState: {
+      hashMap: { "d3 == 0 & P2 on Seg1": c3 ? "YES" : "NO" },
+    },
+    variables: { d3, c3 },
+  });
+
+  if (c3) {
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 23,
       explanation: {
-        what: `Solved parametric intersection coordinates: (${intPoint.x}, ${intPoint.y}).`,
-        why: "Point of intersection calculated via vector interpolation P1 + t*(Q1 - P1).",
+        what: `Collinear overlap detected at P2 (${p2.x}, ${p2.y})! Returning True.`,
+        why: "Endpoint P2 lies directly on Segment 1.",
       },
       primarySnapshot: { kind: "graph", ...makeGraphSnapshot(true) },
       auxiliaryState: {
-        hashMap: { "Intersection Point": `(${intPoint.x}, ${intPoint.y})` },
+        hashMap: { Result: "INTERSECT (Collinear P2)" },
       },
-      variables: { intX: intPoint.x, intY: intPoint.y },
+      variables: { intersects: true, d1, d2, d3, d4 },
     });
-  } else {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 28,
-      explanation: {
-        what: "No intersection point found.",
-        why: "Segments are disjoint or parallel with no overlap.",
-      },
-      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
-      auxiliaryState: {
-        hashMap: { "Intersection Point": "None" },
-      },
-      variables: {},
-    });
+    return steps;
   }
 
-  // Step 18: Final result
+  const c4 = d4 === 0 && onSegment(p1, q2, q1);
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: intersects ? 23 : 28,
+    codeLine: 24,
     explanation: {
-      what: `Final Result: Line segments ${intersects ? "INTERSECT" : "DO NOT INTERSECT"}.`,
-      why: intersects
-        ? "Line segment intersection confirmed by exact orientation tests."
-        : "Segments fail both general straddle condition and collinear boundary checks.",
+      what: `Checking collinear case 4: d4 == 0 && on_segment(P1, Q2, Q1) -> ${c4 ? "TRUE" : "FALSE"}.`,
+      why: c4
+        ? "Q2 is collinear with P1->Q1 and lies on Segment 1."
+        : "Q2 is not collinear with P1->Q1 or does not lie on Segment 1.",
     },
-    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(intersects) },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(c4) },
+    auxiliaryState: {
+      hashMap: { "d4 == 0 & Q2 on Seg1": c4 ? "YES" : "NO" },
+    },
+    variables: { d4, c4 },
+  });
+
+  if (c4) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 24,
+      explanation: {
+        what: `Collinear overlap detected at Q2 (${q2.x}, ${q2.y})! Returning True.`,
+        why: "Endpoint Q2 lies directly on Segment 1.",
+      },
+      primarySnapshot: { kind: "graph", ...makeGraphSnapshot(true) },
+      auxiliaryState: {
+        hashMap: { Result: "INTERSECT (Collinear Q2)" },
+      },
+      variables: { intersects: true, d1, d2, d3, d4 },
+    });
+    return steps;
+  }
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 25,
+    explanation: {
+      what: "Final Result: Line segments DO NOT intersect. Returning False.",
+      why: "Segments fail both general straddle condition and all collinear boundary overlap tests.",
+    },
+    primarySnapshot: { kind: "graph", ...makeGraphSnapshot(false) },
     auxiliaryState: {
       hashMap: {
-        Result: intersects ? "INTERSECT" : "NO INTERSECTION",
-        "Point": intPoint ? `(${intPoint.x}, ${intPoint.y})` : "N/A",
+        Result: "NO INTERSECTION",
       },
     },
-    variables: { intersects, intersectionX: intPoint?.x ?? -1, intersectionY: intPoint?.y ?? -1 },
+    variables: { intersects: false, d1, d2, d3, d4 },
   });
 
   return steps;
@@ -473,7 +456,7 @@ export const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
     },
     {
       heading: "Handling Collinear Degeneracies",
-      body: "When cross product equals zero, the points are collinear. Two collinear segments intersect if and only if their 1D bounding box projections along both $X$ and $Y$ axes overlap ($\text{on\\_segment}$).",
+      body: "When cross product equals zero, the points are collinear. Two collinear segments intersect if and only if their 1D bounding box projections along both $X$ and $Y$ axes overlap.",
     },
     {
       heading: "Parametric Intersection Point Computation",
@@ -481,7 +464,7 @@ export const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
     },
     {
       heading: "Robust Exact Arithmetic Engine",
-      body: "Testing signs of integer cross products avoids floating-point precision drift and epsilon tolerances, forming the core primitive of computational geometry engines (CGAL, GEOS).",
+      body: "Testing signs of integer cross products avoids floating-point precision drift and epsilon tolerances, forming the core primitive of computational geometry engines.",
     },
   ],
   keyTerms: [
@@ -502,8 +485,7 @@ export const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Orientation Primitive",
-      definition:
-        "Basic geometric operation returning left, right, or collinear turn direction.",
+      definition: "Basic geometric operation returning left, right, or collinear turn direction.",
     },
   ],
 };
@@ -511,7 +493,7 @@ export const LINE_SEGMENT_INTERSECTION_TOPIC_GUIDE: TopicGuide = {
 export const LINE_SEGMENT_INTERSECTION_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Empty leading line for code formatting.",
-    2: "Defines cross_product helper function calculating (b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x).",
+    2: "Defines cross_product helper function calculating (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0]).",
     3: "Returns 2D cross product scalar.",
     4: "Empty line for formatting.",
     5: "Defines on_segment helper function for 1D bounding box containment check.",
@@ -520,33 +502,29 @@ export const LINE_SEGMENT_INTERSECTION_TRIVIA: TriviaMeta = {
     8: "Empty line for formatting.",
     9: "Defines line_segment_intersection function signature taking two segments.",
     10: "Function signature continued.",
-    11: "Opening docstring tag.",
-    12: "Docstring describing line segment intersection algorithm.",
-    13: "Closing docstring tag.",
-    14: "Unpacks endpoints p1, q1 from first segment.",
-    15: "Unpacks endpoints p2, q2 from second segment.",
-    16: "Empty line for formatting.",
-    17: "Computes orientation d1 of p1 relative to Line(p2, q2).",
-    18: "Computes orientation d2 of q1 relative to Line(p2, q2).",
-    19: "Computes orientation d3 of p2 relative to Line(p1, q1).",
-    20: "Computes orientation d4 of q2 relative to Line(p1, q1).",
-    21: "Empty line for formatting.",
-    22: "Checks general straddle condition: opposite signs for both pairs.",
-    23: "Returns True if general straddle condition is met.",
-    24: "Checks collinear case for p1 on segment (p2, q2).",
-    25: "Checks collinear case for q1 on segment (p2, q2).",
-    26: "Checks collinear case for p2 on segment (p1, q1).",
-    27: "Checks collinear case for q2 on segment (p1, q1).",
-    28: "Returns False if segments do not intersect.",
-    29: "Empty trailing line for code formatting.",
+    11: "Unpacks endpoints p1, q1 from first segment.",
+    12: "Unpacks endpoints p2, q2 from second segment.",
+    13: "Empty line for formatting.",
+    14: "Computes orientation d1 of p1 relative to Line(p2, q2).",
+    15: "Computes orientation d2 of q1 relative to Line(p2, q2).",
+    16: "Computes orientation d3 of p2 relative to Line(p1, q1).",
+    17: "Computes orientation d4 of q2 relative to Line(p1, q1).",
+    18: "Empty line for formatting.",
+    19: "Checks general straddle condition: opposite signs for both pairs.",
+    20: "Returns True if general straddle condition is met.",
+    21: "Checks collinear case for p1 on segment (p2, q2).",
+    22: "Checks collinear case for q1 on segment (p2, q2).",
+    23: "Checks collinear case for p2 on segment (p1, q1).",
+    24: "Checks collinear case for q2 on segment (p1, q1).",
+    25: "Returns False if segments do not intersect.",
+    26: "Empty trailing line for code formatting.",
   },
 };
 
 export const lineSegmentIntersection: AlgorithmDefinition<LineSegmentIntersectionInput> = {
   id: "line-segment-intersection",
   title: "Line Segment Intersection & Cross Product",
-  category: "geometry_and_sweep_line",
-  categories: ["geometry_and_sweep_line"],
+  topicIds: ["geometry_and_sweep_line"],
   difficulty: "Easy",
   description:
     "Determine whether two 2D line segments $S_1 = (P_1, Q_1)$ and $S_2 = (P_2, Q_2)$ intersect in $\\mathcal{O}(1)$ time using vector cross-product orientation tests:\n\n$$\\text{cross}(\\mathbf{a}, \\mathbf{b}, \\mathbf{c}) = (b_x - a_x)(c_y - a_y) - (b_y - a_y)(c_x - a_x)$$\n\n### Graph Snapshot Representation\nThe line segments and active orientation vectors are rendered on a 2D graph coordinate plane.\n\n### Input Parameters\n- `segment1` (`LineSegment`): First 2D line segment $(P_1, Q_1)$.\n- `segment2` (`LineSegment`): Second 2D line segment $(P_2, Q_2)$.\n\n### Output\n- `bool`: `true` if segments intersect, `false` otherwise.\n\n### Edge Cases & Constraints\n- Collinear Overlap: Handled via bounding box interval tests.\n- Parallel Disjoint Segments: Return `false`.",

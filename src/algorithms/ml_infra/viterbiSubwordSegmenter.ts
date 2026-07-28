@@ -8,12 +8,10 @@ export interface ViterbiSubwordInput {
 
 export const VITERBI_SUBWORD_SEGMENTER_CODE = `def viterbi_subword_segment(text: str, vocab_scores: dict[str, float]) -> list[str]:
     n = len(text)
-    # Step 1: Initialize DP array for maximum log-probabilities
     dp = [-float("inf")] * (n + 1)
     dp[0] = 0.0
     parent = [-1] * (n + 1)
     
-    # Step 2: Forward DP sweep over text prefix positions
     for i in range(1, n + 1):
         for j in range(0, i):
             sub = text[j:i]
@@ -23,13 +21,12 @@ export const VITERBI_SUBWORD_SEGMENTER_CODE = `def viterbi_subword_segment(text:
                     dp[i] = score
                     parent[i] = j
                     
-    # Step 3: Backtrack from position N to 0 to recover optimal subwords
     tokens = []
     curr = n
     while curr > 0:
         prev = parent[curr]
         if prev == -1:
-            return []  # Segmentation failed (out-of-vocabulary)
+            return []
         tokens.append(text[prev:curr])
         curr = prev
         
@@ -65,23 +62,24 @@ export const generateViterbiSubwordSegmenterSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 3,
     explanation: {
       what: "Initialize Viterbi DP Array",
       why: `Input string "${text}" (len=${n}). DP table initialized with dp[0]=0.0, dp[1..${n}]=-inf. Unigram LM tokenization models optimal subword segmentation via DP over prefix log-likelihoods.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: Array.from(text).map((_, idx) => ({
+      elements: Array.from(text).map((char, idx) => ({
         id: `char-${idx}`,
-        value: 0,
+        value: char,
+        label: `dp[${idx + 1}]=-inf`,
         state: "default" as ElementState,
       })),
     },
     auxiliaryState: {
-      distanceTable: {
-        dp_0: 0.0,
-      },
+      distanceTable: Object.fromEntries(
+        dp.map((val, idx) => [`dp_${idx}`, val === -Infinity ? -999 : Number(val.toFixed(2))]),
+      ),
     },
     variables: {
       textLength: n,
@@ -102,26 +100,25 @@ export const generateViterbiSubwordSegmenterSteps = (
 
         steps.push({
           stepIndex: stepIndex++,
-          codeLine: 12,
+          codeLine: isBetter ? 13 : 12,
           explanation: {
             what: `Evaluate Substring "${sub}" (j=${j}..i=${i})`,
-            why: `Candidate token "${sub}" score: dp[${j}] + logP("${sub}") = ${score.toFixed(2)}. ${isBetter ? "Updated dp[" + i + "] to " + score.toFixed(2) : "Kept existing dp[" + i + "]"}.`,
+            why: `Candidate token "${sub}" score: dp[${j}] (${dp[j] === -Infinity ? "-inf" : dp[j].toFixed(2)}) + logP("${sub}") (${input.vocabScores[sub]}) = ${score.toFixed(2)}. ${isBetter ? "Updated dp[" + i + "] to " + score.toFixed(2) + " and set parent[" + i + "] = " + j : "Kept existing dp[" + i + "]"}.`,
           },
           primarySnapshot: {
             kind: "array",
-            elements: Array.from(text).map((_, idx) => {
+            elements: Array.from(text).map((char, idx) => {
               let state: ElementState = "default";
               if (idx >= j && idx < i) state = isBetter ? "sorted" : "active";
               else if (idx < j) state = "visited";
+              const valDp = dp[idx + 1];
+              const dpStr = valDp === -Infinity ? "-inf" : valDp.toFixed(1);
               return {
                 id: `char-${idx}`,
-                value:
-                  idx + 1 <= i
-                    ? dp[idx + 1] === -Infinity
-                      ? -99
-                      : Number(dp[idx + 1].toFixed(1))
-                    : 0,
+                value: char,
+                label: `dp[${idx + 1}]=${dpStr}`,
                 state,
+                pointers: idx === j ? ["j"] : idx === i - 1 ? ["i"] : undefined,
               };
             }),
           },
@@ -150,13 +147,62 @@ export const generateViterbiSubwordSegmenterSteps = (
   while (curr > 0) {
     const prev = parent[curr];
     if (prev === -1) {
-      break;
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 21,
+        explanation: {
+          what: "Backtrack Failed (OOV)",
+          why: `Position ${curr} has parent=-1. Text string cannot be fully segmented with given vocabulary.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: [],
+        },
+        auxiliaryState: {
+          distanceTable: { Failed: 1 },
+        },
+        variables: { curr, prev: -1 },
+      });
+      return steps;
     }
-    tokens.push(text.slice(prev, curr));
+
+    const token = text.slice(prev, curr);
+    tokens.push(token);
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 22,
+      explanation: {
+        what: `Backtrack Subword Token "${token}"`,
+        why: `From position ${curr}, parent pointer is ${prev}. Extracted subword token "${token}" (logP: ${input.vocabScores[token] ?? 0}).`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Array.from(text).map((char, idx) => ({
+          id: `char-${idx}`,
+          value: char,
+          label: idx >= prev && idx < curr ? token : undefined,
+          state:
+            idx >= prev && idx < curr ? ("sorted" as ElementState) : ("visited" as ElementState),
+          pointers: idx === prev ? ["prev"] : idx === curr - 1 ? ["curr"] : undefined,
+        })),
+      },
+      auxiliaryState: {
+        distanceTable: Object.fromEntries(
+          dp.map((val, idx) => [`dp_${idx}`, val === -Infinity ? -999 : Number(val.toFixed(2))]),
+        ),
+      },
+      variables: {
+        curr,
+        prev,
+        token,
+      },
+    });
+
     curr = prev;
   }
-  tokens.reverse();
 
+  tokens.reverse();
   const finalLogProb = dp[n];
 
   steps.push({
@@ -170,14 +216,15 @@ export const generateViterbiSubwordSegmenterSteps = (
       kind: "array",
       elements: tokens.map((t, idx) => ({
         id: `token-${idx}`,
-        value: input.vocabScores[t] ?? 0,
+        value: t,
+        label: `score: ${input.vocabScores[t] ?? 0}`,
         state: "sorted" as ElementState,
       })),
     },
     auxiliaryState: {
       distanceTable: Object.fromEntries([
         ["TotalLogProb", Number(finalLogProb.toFixed(2))],
-        ...tokens.map((t) => [`Token_${t}`, input.vocabScores[t]]),
+        ...tokens.map((t) => [`Token_${t}`, input.vocabScores[t] ?? 0]),
       ]),
     },
     variables: {
@@ -191,40 +238,34 @@ export const generateViterbiSubwordSegmenterSteps = (
 
 const VITERBI_SUBWORD_SEGMENTER_TRIVIA: TriviaMeta = {
   skipLines: [1],
-  distractors: [
-    "if score < dp[i]: # Minimize score",
-    "dp[i] = dp[j] * vocab_scores[sub]",
-    "while curr >= 0:",
-  ],
+  distractors: ["if score < dp[i]:", "dp[i] = dp[j] * vocab_scores[sub]", "while curr >= 0:"],
   hints: [
     {
-      line: 12,
+      line: 11,
       hint: "Add subword log-probability score to prefix score dp[j] to evaluate candidate segmentation.",
     },
     {
-      line: 14,
+      line: 13,
       hint: "Update dp[i] and set parent[i] = j when new candidate score exceeds current dp[i].",
     },
     {
-      line: 20,
+      line: 18,
       hint: "Backtrack from position N to 0 using parent pointers to reconstruct optimal subword sequence.",
     },
   ],
   lineExplanations: {
     1: "Defines Unigram Language Model Viterbi subword segmentation algorithm.",
-    12: "Calculates candidate joint log-probability dp[j] + logP(subword).",
-    14: "Updates max log-likelihood DP state and split parent index.",
-    20: "Reconstructs subword token sequence by walking parent pointers backward.",
+    11: "Calculates candidate joint log-probability dp[j] + logP(subword).",
+    13: "Updates max log-likelihood DP state and split parent index.",
+    18: "Reconstructs subword token sequence by walking parent pointers backward.",
   },
 };
 
 export const viterbiSubwordSegmenter: AlgorithmDefinition<ViterbiSubwordInput> = {
   id: "viterbi-subword-segmenter",
   title: "Unigram Language Model Viterbi Subword Segmentation",
-  category: "ml_tokenization",
+  topicIds: ["ml_tokenization"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
   description:
     "Segments text into subword vocabulary tokens (SentencePiece Unigram LM) using Viterbi dynamic programming to maximize total joint log-probability.",
   constraints: [

@@ -108,8 +108,7 @@ const BINARY_SEARCH_MATRIX_TRIVIA: TriviaMeta = {
 export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = {
   id: "binary-search-matrix",
   title: "Search a 2D Matrix",
-  category: "binary_search",
-  categories: ["binary_search"],
+  topicIds: ["binary_search"],
   difficulty: "Medium",
   description: `Locate a target value in an $m \\times n$ integer matrix with sorted rows and strictly increasing row transitions in $O(\\log(m \\cdot n))$ time.
 
@@ -154,7 +153,8 @@ Searching a 2D matrix element by element takes $O(m \\cdot n)$ linear time. When
   examples: [
     {
       kind: "basic",
-      inputDisplay: "matrix = [[1, 3, 5, 7, 9], [10, 12, 14, 16, 18], [20, 22, 24, 26, 28], [30, 32, 34, 36, 38], [40, 42, 44, 46, 48]], target = 34",
+      inputDisplay:
+        "matrix = [[1, 3, 5, 7, 9], [10, 12, 14, 16, 18], [20, 22, 24, 26, 28], [30, 32, 34, 36, 38], [40, 42, 44, 46, 48]], target = 34",
       outputDisplay: "true",
       title: "Basic Example",
       input: {
@@ -172,7 +172,8 @@ Searching a 2D matrix element by element takes $O(m \\cdot n)$ linear time. When
     },
     {
       kind: "complex",
-      inputDisplay: "matrix = [[1, 2, 4, 8], [12, 16, 20, 24], [28, 32, 40, 50], [60, 70, 80, 90]], target = 50",
+      inputDisplay:
+        "matrix = [[1, 2, 4, 8], [12, 16, 20, 24], [28, 32, 40, 50], [60, 70, 80, 90]], target = 50",
       outputDisplay: "true",
       title: "Complex Edge Case",
       input: {

@@ -6,7 +6,7 @@ describe("nimGame algorithm logic spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(nimGame.id).toBe("nim-game");
     expect(nimGame.title).toBe("Nim Game Sprague-Grundy");
-    expect(nimGame.category).toBe("game_theory");
+    expect(nimGame.topicIds).toContain("math_and_number_theory");
     expect(nimGame.difficulty).toBe("Easy");
     expect(nimGame.defaultInput).toEqual(DEFAULT_NIM_INPUT);
   });

@@ -16,22 +16,10 @@ def simulate_attention_variance_scaling(
     q_vec: list[float],
     k_vec: list[float]
 ) -> tuple[float, float, float]:
-    """
-    Simulates and proves attention logit variance scaling:
-    Var(q . k) = d_k, while Var((q . k) / sqrt(d_k)) = 1.0.
-    """
-    # Step 1: Raw dot product between independent unit variance vectors
     raw_dot = sum(qi * ki for qi, ki in zip(q_vec, k_vec))
-
-    # Step 2: Compute scaling factor 1 / sqrt(d_k)
     scale = 1.0 / math.sqrt(d_k)
-
-    # Step 3: Scaled dot product
     scaled_dot = raw_dot * scale
-
-    # Expected variance reduction factor
-    expected_variance_reduction = scale ** 2  # Equals 1 / d_k
-
+    expected_variance_reduction = scale ** 2
     return raw_dot, scaled_dot, expected_variance_reduction`;
 
 export const DEFAULT_VARIANCEPRESERVATIONPROOFSIM_INPUT: VariancePreservationProofSimInput = {
@@ -143,7 +131,7 @@ export const generateVariancePreservationProofSimSteps = (
     matrixStates[i][3] = "compared";
 
     addStep(
-      13,
+      8,
       `Accumulate Component Product i=${i}: q[${i}] * k[${i}] = ${qi} * ${ki} = ${prod.toFixed(3)}`,
       `Running raw dot product sum: raw_dot = ${rawDot.toFixed(3)}.`,
       { i, qi, ki, prod: +prod.toFixed(3), rawDot: +rawDot.toFixed(3) },
@@ -155,7 +143,7 @@ export const generateVariancePreservationProofSimSteps = (
   const scale = 1.0 / Math.sqrt(dK);
 
   addStep(
-    16,
+    9,
     `Compute Variance Scaling Factor: scale = 1.0 / math.sqrt(${dK}) -> ${scale.toFixed(4)}`,
     `Variance scaling constant 1/sqrt(${dK}) = ${scale.toFixed(4)}.`,
     { dK, scale: +scale.toFixed(4) },
@@ -164,7 +152,7 @@ export const generateVariancePreservationProofSimSteps = (
   const scaledDot = rawDot * scale;
 
   addStep(
-    19,
+    10,
     `Compute Scaled Logit: scaled_dot = raw_dot * scale = ${rawDot.toFixed(3)} * ${scale.toFixed(4)} = ${scaledDot.toFixed(3)}`,
     `Scaled dot product logit ${scaledDot.toFixed(3)} has normalized unit variance Var = 1.0.`,
     { rawDot: +rawDot.toFixed(3), scale: +scale.toFixed(4), scaledDot: +scaledDot.toFixed(3) },
@@ -173,7 +161,7 @@ export const generateVariancePreservationProofSimSteps = (
   const expectedVarianceReduction = scale * scale;
 
   addStep(
-    22,
+    11,
     `Compute Expected Variance Reduction: scale^2 = 1 / ${dK} = ${expectedVarianceReduction.toFixed(4)}`,
     `Variance reduction factor scale^2 equals 1/d_k (${expectedVarianceReduction.toFixed(4)}), cancelling variance growth.`,
     { expectedVarianceReduction: +expectedVarianceReduction.toFixed(4) },
@@ -181,7 +169,7 @@ export const generateVariancePreservationProofSimSteps = (
 
   while (steps.length < 19) {
     addStep(
-      22,
+      11,
       "Finalize Attention Variance Preservation Proof Padding",
       `Step ${steps.length + 1}: Finalizing variance reduction proof calculations.`,
       { completed: false },
@@ -191,7 +179,7 @@ export const generateVariancePreservationProofSimSteps = (
   }
 
   addStep(
-    24,
+    12,
     "Execution Complete",
     `Attention variance preservation proof complete: Var((q . k) / sqrt(d_k)) = 1.0 verified across d_k=${dK} dimensions!`,
     {
@@ -206,16 +194,19 @@ export const generateVariancePreservationProofSimSteps = (
 };
 
 const VARIANCEPRESERVATIONPROOFSIM_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 5, 6, 8, 9, 10, 11, 14, 15, 17, 18, 20, 21, 23],
+  skipLines: [2, 4, 5, 6, 7],
   distractors: [
     "scale = 1.0 / d_k",
     "expected_variance_reduction = scale * d_k",
     "scaled_dot = raw_dot / d_k",
   ],
   hints: [
-    { line: 13, hint: "Compute raw dot product sum qi * ki across independent vector components." },
-    { line: 16, hint: "Compute variance scaling factor scale = 1.0 / math.sqrt(d_k)." },
-    { line: 22, hint: "Variance reduction factor scale^2 equals 1 / d_k, restoring unit variance." },
+    { line: 8, hint: "Compute raw dot product sum qi * ki across independent vector components." },
+    { line: 9, hint: "Compute variance scaling factor scale = 1.0 / math.sqrt(d_k)." },
+    {
+      line: 11,
+      hint: "Variance reduction factor scale^2 equals 1 / d_k, restoring unit variance.",
+    },
   ],
   lineExplanations: {
     1: "Imports Python math library for sqrt operation.",
@@ -225,23 +216,11 @@ const VARIANCEPRESERVATIONPROOFSIM_TRIVIA: TriviaMeta = {
     5: "Specifies type annotation for Query vector q_vec.",
     6: "Specifies type annotation for Key vector k_vec.",
     7: "Specifies return tuple type for raw dot, scaled dot, and variance reduction factor.",
-    8: "Docstring opening delimiter tag.",
-    9: "Describes simulating and proving attention logit variance scaling.",
-    10: "Shows mathematical relation Var(q . k) = d_k and Var((q . k) / sqrt(d_k)) = 1.0.",
-    11: "Docstring closing tag.",
-    12: "Comment: Step 1: Raw dot product between independent unit variance vectors.",
-    13: "Computes raw dot product sum(qi * ki) across query and key components.",
-    14: "Empty whitespace separator line.",
-    15: "Comment: Step 2: Compute scaling factor 1 / sqrt(d_k).",
-    16: "Calculates scaling constant scale = 1.0 / math.sqrt(d_k).",
-    17: "Empty whitespace separator line.",
-    18: "Comment: Step 3: Scaled dot product.",
-    19: "Multiplies raw dot product by scale factor to obtain scaled_dot logit.",
-    20: "Empty whitespace separator line.",
-    21: "Comment: Expected variance reduction factor.",
-    22: "Computes expected variance reduction factor scale^2 = 1 / d_k.",
-    23: "Empty whitespace separator line.",
-    24: "Returns tuple containing (raw_dot, scaled_dot, expected_variance_reduction).",
+    8: "Computes raw dot product sum(qi * ki) across query and key components.",
+    9: "Calculates scaling constant scale = 1.0 / math.sqrt(d_k).",
+    10: "Multiplies raw dot product by scale factor to obtain scaled_dot logit.",
+    11: "Computes expected variance reduction factor scale^2 = 1 / d_k.",
+    12: "Returns tuple containing (raw_dot, scaled_dot, expected_variance_reduction).",
   },
 };
 
@@ -249,12 +228,8 @@ export const variancePreservationProofSim: AlgorithmDefinition<VariancePreservat
   {
     id: "variance-preservation-proof-sim",
     title: "Attention Variance Preservation Simulator",
-    category: "ml_attention_geometry",
-    categories: ["ml_attention_geometry", "math_and_number_theory"],
+    topicIds: ["ml_attention_geometry", "math_and_number_theory"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 7,
-    mlInfraCategory: "ml_attention_geometry",
     description:
       "Why do Transformers scale query-key dot products by $1/\\sqrt{d_k}$? (Vaswani et al., 2017).\n\nIf elements of $q, k \\in \\mathbb{R}^{d_k}$ are independent random variables with zero mean $\\mathbb{E}[q_i] = 0$ and unit variance $\\text{Var}(q_i) = 1$, then their dot product $q \\cdot k = \\sum_{i=1}^{d_k} q_i k_i$ has mean $\\mathbb{E}[q \\cdot k] = 0$ and variance:\n\n$$\\text{Var}(q \\cdot k) = \\sum_{i=1}^{d_k} \\text{Var}(q_i k_i) = \\sum_{i=1}^{d_k} \\mathbb{E}[q_i^2] \\mathbb{E}[k_i^2] = d_k$$\n\nFor large head dimensions (e.g. $d_k = 64$ or $128$), the standard deviation of raw dot products grows to $\\sqrt{d_k} = 8.0$ or $11.3$. Large input values push the Softmax function into extreme saturation regions ($p_i \\to 1$ or $0$), driving gradients $\\text{Softmax}'(x) \\to 0$ and causing vanishing gradients during backpropagation.\n\nScaling logits by $1/\\sqrt{d_k}$ forces the variance back to $1.0$:\n\n$$\\text{Var}\\left(\\frac{q \\cdot k}{\\sqrt{d_k}}\\right) = \\frac{1}{d_k} \\text{Var}(q \\cdot k) = \\frac{d_k}{d_k} = 1.0$$\n\n### Step-by-Step Intuition\n1. **Unscaled Variance Growth**: Accumulating $d_k$ independent product terms increases variance linearly to $d_k$.\n2. **Logit Saturation Risk**: Standard deviation $\\sqrt{d_k}$ pushes attention logits to large magnitudes.\n3. **Variance Normalization**: Multiplying by $1/\\sqrt{d_k}$ scales variance by $(1/\\sqrt{d_k})^2 = 1/d_k$, restoring unit variance $\\text{Var}=1.0$.\n\n### Complexity & Performance\n- **Time**: $\\mathcal{O}(d_k)$ inner product evaluation time.\n- **Space**: $\\mathcal{O}(1)$ auxiliary space.",
     constraints: ["qVec.length == kVec.length"],
@@ -297,8 +272,7 @@ export const variancePreservationProofSim: AlgorithmDefinition<VariancePreservat
       keyTerms: [
         {
           term: "Variance Preservation",
-          definition:
-            "Maintaining unit variance Var=1.0 across neural network activation layers.",
+          definition: "Maintaining unit variance Var=1.0 across neural network activation layers.",
         },
         {
           term: "Softmax Saturation",

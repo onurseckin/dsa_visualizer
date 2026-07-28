@@ -7,11 +7,10 @@ import {
 
 describe("col2imGradAccumulator (col2im Gradient Accumulator)", () => {
   it("should have correct metadata", () => {
-    expect(col2imGradAccumulator.id).toBe("col2imGradAccumulator");
-    expect(col2imGradAccumulator.isMlInfra).toBe(true);
-    expect(col2imGradAccumulator.mlInfraLevel).toBe(8);
-    expect(col2imGradAccumulator.mlInfraCategory).toBe("ml_convolutions");
-    expect(col2imGradAccumulator.categories).toContain("ml_convolutions");
+    expect(col2imGradAccumulator.id).toBe("col2im-grad-accumulator");
+    expect(col2imGradAccumulator.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(col2imGradAccumulator.topicIds).toContain("ml_convolutions");
+    expect(col2imGradAccumulator.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

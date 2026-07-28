@@ -8,10 +8,11 @@ import {
 describe("flash-decoding-split-k-kv-cache-gather (FlashDecoding Split-K KV Cache Gather Engine)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(flashDecodingSplitKKvCacheGather.id).toBe("flash-decoding-split-k-kv-cache-gather");
-    expect(flashDecodingSplitKKvCacheGather.isMlInfra).toBe(true);
-    expect(flashDecodingSplitKKvCacheGather.mlInfraLevel).toBe(12);
-    expect(flashDecodingSplitKKvCacheGather.mlInfraCategory).toBe("ml_llm_serving");
-    expect(flashDecodingSplitKKvCacheGather.categories).toContain("ml_llm_serving");
+    expect(
+      flashDecodingSplitKKvCacheGather.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(flashDecodingSplitKKvCacheGather.topicIds).toContain("ml_llm_serving");
+    expect(flashDecodingSplitKKvCacheGather.topicIds).toContain("ml_llm_serving");
     expect(flashDecodingSplitKKvCacheGather.defaultInput).toEqual(
       DEFAULT_FLASHDECODINGSPLITKKVCACHEGATHER_INPUT,
     );
@@ -32,6 +33,8 @@ describe("flash-decoding-split-k-kv-cache-gather (FlashDecoding Split-K KV Cache
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(32);
+    expect(steps[steps.length - 1].codeLine).toBe(
+      flashDecodingSplitKKvCacheGather.code.trim().split("\n").length,
+    );
   });
 });

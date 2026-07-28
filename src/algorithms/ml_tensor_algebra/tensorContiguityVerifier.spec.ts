@@ -9,10 +9,11 @@ import {
 describe("tensor-contiguity-verifier (PyTorch-Style Tensor Contiguity Verifier)", () => {
   it("should have correct metadata", () => {
     expect(tensorContiguityVerifier.id).toBe("tensor-contiguity-verifier");
-    expect(tensorContiguityVerifier.isMlInfra).toBe(true);
-    expect(tensorContiguityVerifier.mlInfraLevel).toBe(1);
-    expect(tensorContiguityVerifier.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(tensorContiguityVerifier.categories).toContain("ml_tensor_algebra");
+    expect(tensorContiguityVerifier.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(tensorContiguityVerifier.topicIds).toContain("ml_tensor_algebra");
+    expect(tensorContiguityVerifier.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 steps with matrix primarySnapshot for default input", () => {
@@ -26,7 +27,7 @@ describe("tensor-contiguity-verifier (PyTorch-Style Tensor Contiguity Verifier)"
   it("should map every line of code in lineExplanations", () => {
     const codeLines = TENSORCONTIGUITYVERIFIER_CODE.trim().split("\n");
     const totalLines = codeLines.length;
-    expect(totalLines).toBe(16);
+    expect(totalLines).toBe(13);
 
     const lineExplanations = tensorContiguityVerifier.trivia?.lineExplanations || {};
     for (let lineNum = 1; lineNum <= totalLines; lineNum++) {

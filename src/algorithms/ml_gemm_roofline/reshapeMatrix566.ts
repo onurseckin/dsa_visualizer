@@ -8,9 +8,6 @@ export interface reshapeMatrix566Input {
 }
 
 export const RESHAPEMATRIX566_CODE = `def reshape_matrix(matrix, new_shape):
-    """
-    Reshapes 2D matrix into new_shape (new_rows, new_cols) without data copy.
-    """
     orig_rows = len(matrix)
     orig_cols = len(matrix[0]) if orig_rows > 0 else 0
     new_r, new_c = new_shape
@@ -31,9 +28,7 @@ export const DEFAULT_RESHAPEMATRIX566_INPUT: reshapeMatrix566Input = {
   newShape: [3, 4],
 };
 
-export const generateReshapeMatrix566Steps = (
-  input: reshapeMatrix566Input,
-): AlgorithmStep[] => {
+export const generateReshapeMatrix566Steps = (input: reshapeMatrix566Input): AlgorithmStep[] => {
   const matrix = input.matrix ?? [
     [1, 2, 3, 4, 5, 6],
     [7, 8, 9, 10, 11, 12],
@@ -45,9 +40,7 @@ export const generateReshapeMatrix566Steps = (
   const origCols = matrix[0]?.length ?? 0;
   const totalElements = origRows * origCols;
 
-  const reshaped: (number | string)[][] = Array.from({ length: newR }, () =>
-    Array(newC).fill("?"),
-  );
+  const reshaped: (number | string)[][] = Array.from({ length: newR }, () => Array(newC).fill("?"));
 
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -122,7 +115,7 @@ export const generateReshapeMatrix566Steps = (
     });
   };
 
-  // Step 1: Definition
+  // Line 1: Definition
   addStep(
     1,
     "Initialize Reshape Matrix Coordinates Engine",
@@ -130,66 +123,48 @@ export const generateReshapeMatrix566Steps = (
     { origRows, origCols, newR, newC },
   );
 
-  // Step 2: Docstring start
+  // Line 2: Original rows
   addStep(
     2,
-    "Inspect Tensor Reshape Operational Constraints",
-    "Zero-copy reshaping preserves row-major memory layout order while mapping linear indices.",
-    { origRows, origCols, newR, newC },
-  );
-
-  // Step 3: Docstring description
-  addStep(
-    3,
-    "Verify Volume Conservation (Total Elements M*N == R*C)",
-    `Original elements (${origRows} * ${origCols} = ${totalElements}) == Target elements (${newR} * ${newC} = ${newR * newC}).`,
-    { totalOriginal: totalElements, totalTarget: newR * newC, isValid: totalElements === newR * newC },
-  );
-
-  // Step 4: Docstring end
-  addStep(
-    4,
-    "Prepare Coordinate Translation Engine",
-    "Initializing index mapping pointers and memory allocation containers.",
-    { totalElements },
-  );
-
-  // Step 5: Original rows
-  addStep(
-    5,
     `Inspect Original Row Dimension (orig_rows = ${origRows})`,
     "Reading original matrix row count M.",
     { origRows },
   );
 
-  // Step 6: Original cols
+  // Line 3: Original cols
   addStep(
-    6,
+    3,
     `Inspect Original Column Dimension (orig_cols = ${origCols})`,
     "Reading original matrix column count N.",
     { origCols },
   );
 
-  // Step 7: Target new shape
+  // Line 4: Target new shape
   addStep(
-    7,
+    4,
     `Unpack Target Reshape Dimensions: new_r=${newR}, new_c=${newC}`,
-    "Setting target spatial shape dimensions R and C.",
-    { newR, newC },
+    `Setting target spatial shape R=${newR}, C=${newC}. Verifying volume conservation (${origRows} * ${origCols} == ${newR} * ${newC}).`,
+    {
+      newR,
+      newC,
+      totalOriginal: totalElements,
+      totalTarget: newR * newC,
+      isValid: totalElements === newR * newC,
+    },
   );
 
-  // Step 8: Allocate reshaped grid
+  // Line 5: Allocate reshaped grid
   addStep(
-    8,
+    5,
     `Allocate ${newR} x ${newC} Output Grid`,
     "Zero-initializing target shape matrix storage.",
     { newR, newC, totalCells: newR * newC },
   );
 
   for (let idx = 0; idx < totalElements; idx++) {
-    // Step 10: Flat index loop
+    // Line 7: Flat index loop
     addStep(
-      10,
+      7,
       `Flat Memory Index Loop idx=${idx} of ${totalElements - 1}`,
       `Iterating through 1D linear memory offset index idx=${idx}.`,
       { idx, totalElements },
@@ -198,9 +173,9 @@ export const generateReshapeMatrix566Steps = (
     const rOld = Math.floor(idx / origCols);
     const cOld = idx % origCols;
 
-    // Step 11: Map to old coordinates
+    // Line 8: Map to old coordinates
     addStep(
-      11,
+      8,
       `Map idx=${idx} to Original Coordinates: (${rOld}, ${cOld})`,
       `r_old = ${idx} // ${origCols} = ${rOld}, c_old = ${idx} % ${origCols} = ${cOld}`,
       { idx, rOld, cOld },
@@ -209,9 +184,9 @@ export const generateReshapeMatrix566Steps = (
     const rNew = Math.floor(idx / newC);
     const cNew = idx % newC;
 
-    // Step 12: Map to new coordinates
+    // Line 9: Map to new coordinates
     addStep(
-      12,
+      9,
       `Map idx=${idx} to New Target Coordinates: (${rNew}, ${cNew})`,
       `r_new = ${idx} // ${newC} = ${rNew}, c_new = ${idx} % ${newC} = ${cNew}`,
       { idx, rNew, cNew },
@@ -222,9 +197,9 @@ export const generateReshapeMatrix566Steps = (
     const val = matrix[rOld][cOld];
     reshaped[rNew][cNew] = val;
 
-    // Step 13: Write value
+    // Line 10: Write value
     addStep(
-      13,
+      10,
       `Write Value ${val} to Reshaped[${rNew}][${cNew}]`,
       `Copied element matrix[${rOld}][${cOld}] (${val}) into target position reshaped[${rNew}][${cNew}].`,
       { idx, rOld, cOld, rNew, cNew, val },
@@ -233,9 +208,9 @@ export const generateReshapeMatrix566Steps = (
     );
   }
 
-  // Step 15: Return reshaped matrix
+  // Line 12: Return reshaped matrix
   addStep(
-    15,
+    12,
     "Execution Complete: Return Reshaped Matrix",
     `Successfully reshaped ${origRows}x${origCols} matrix into ${newR}x${newC} shape.`,
     { completed: true, finalShape: `${newR}x${newC}` },
@@ -245,7 +220,7 @@ export const generateReshapeMatrix566Steps = (
 };
 
 const RESHAPEMATRIX566_TRIVIA: TriviaMeta = {
-  skipLines: [9, 14],
+  skipLines: [6, 11],
   distractors: [
     "r_old, c_old = idx % orig_rows, idx // orig_rows",
     "r_new, c_new = idx % new_c, idx // new_c",
@@ -253,38 +228,32 @@ const RESHAPEMATRIX566_TRIVIA: TriviaMeta = {
     "return matrix.flatten()",
   ],
   hints: [
-    { line: 10, hint: "Flat index idx ranges from 0 to M*N - 1." },
-    { line: 11, hint: "r_old = idx // orig_cols and c_old = idx % orig_cols." },
-    { line: 12, hint: "r_new = idx // new_c and c_new = idx % new_c." },
+    { line: 7, hint: "Flat index idx ranges from 0 to M*N - 1." },
+    { line: 8, hint: "r_old = idx // orig_cols and c_old = idx % orig_cols." },
+    { line: 9, hint: "r_new = idx // new_c and c_new = idx % new_c." },
+    { line: 10, hint: "reshaped[r_new][c_new] = matrix[r_old][c_old]." },
   ],
   lineExplanations: {
     1: "Defines matrix coordinate reshape function signature.",
-    2: "Start of docstring explaining tensor shape transformation.",
-    3: "Describes reshaping 2D matrix into new_shape (new_r, new_c).",
-    4: "End of docstring.",
-    5: "Gets original matrix row count M.",
-    6: "Gets original matrix column count N.",
-    7: "Unpacks target reshape dimensions new_r and new_c.",
-    8: "Allocates output grid reshaped of shape new_r x new_c initialized to zero.",
-    9: "Blank line separating allocation and index mapping loop.",
-    10: "Loops through flat element index idx from 0 to M*N - 1.",
-    11: "Calculates original row r_old = idx // orig_cols and column c_old = idx % orig_cols.",
-    12: "Calculates new row r_new = idx // new_c and column c_new = idx % new_c.",
-    13: "Copies matrix element matrix[r_old][c_old] to target reshaped[r_new][c_new].",
-    14: "Blank line prior to returning reshaped matrix.",
-    15: "Returns completed reshaped 2D matrix of shape new_r x new_c.",
+    2: "Gets original matrix row count M.",
+    3: "Gets original matrix column count N.",
+    4: "Unpacks target reshape dimensions new_r and new_c.",
+    5: "Allocates output grid reshaped of shape new_r x new_c initialized to zero.",
+    6: "Blank line separating allocation and index mapping loop.",
+    7: "Loops through flat element index idx from 0 to M*N - 1.",
+    8: "Calculates original row r_old = idx // orig_cols and column c_old = idx % orig_cols.",
+    9: "Calculates new row r_new = idx // new_c and column c_new = idx % new_c.",
+    10: "Copies matrix element matrix[r_old][c_old] to target reshaped[r_new][c_new].",
+    11: "Blank line prior to returning reshaped matrix.",
+    12: "Returns completed reshaped 2D matrix of shape new_r x new_c.",
   },
 };
 
 export const reshapeMatrix566: AlgorithmDefinition<reshapeMatrix566Input> = {
   id: "reshape-matrix-566",
   title: "Reshape Matrix Coordinates Engine",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "In deep learning frameworks (PyTorch `torch.reshape()`, `tensor.view()`, NumPy `np.reshape()`, LeetCode 566), re-interpreting a matrix of shape $(M, N)$ into a new shape $(R, C)$ requires total element volume conservation ($M \\cdot N = R \\cdot C$). Reshaping preserves row-major memory order without reallocating physical data buffers.\n\nEach element's linear memory offset index $\\text{idx}$ relates spatial coordinates via division and modulo operations:\n- Original coordinates: $r_{\\text{old}} = \\lfloor \\text{idx} / N \\rfloor$, $c_{\\text{old}} = \\text{idx} \\bmod N$.\n- New target coordinates: $r_{\\text{new}} = \\lfloor \\text{idx} / C \\rfloor$, $c_{\\text{new}} = \\text{idx} \\bmod C$.\n\nIn zero-copy execution engines (e.g. PyTorch Strided Tensors), reshaping simply modifies metadata stride and shape vectors, achieving $O(1)$ constant-time execution without copying DRAM buffer memory.\n\nInput Format:\n- matrix: M x N input matrix.\n- newShape: Tuple [R, C] specifying target shape.\n\nOutput Format:\n- Returns R x C reshaped output matrix.\n\nEdge Cases & Constraints:\n- Invalid reshape request ($M \\cdot N \\ne R \\cdot C$).\n- Reshaping matrix to 1D vector (1 x MN or MN x 1).\n- Identity reshape ($R = M, C = N$).",
   constraints: ["1 <= matrix.length <= 100", "orig_rows * orig_cols == new_r * new_c"],
@@ -349,8 +318,7 @@ export const reshapeMatrix566: AlgorithmDefinition<reshapeMatrix566Input> = {
       },
       {
         term: "Row-Major Layout",
-        definition:
-          "Memory layout storing elements of each row in contiguous memory addresses.",
+        definition: "Memory layout storing elements of each row in contiguous memory addresses.",
       },
     ],
   },

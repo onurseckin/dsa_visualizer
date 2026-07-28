@@ -465,8 +465,7 @@ const DIJKSTRA_TRIVIA: TriviaMeta = {
 export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   id: "dijkstra-shortest-path",
   title: "Dijkstra's Shortest Path Algorithm",
-  category: "graph_shortest_paths",
-  categories: ["graph_shortest_paths"],
+  topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
     "Dijkstra's algorithm computes the Single-Source Shortest Path (SSSP) from a source vertex $s \\in V$ to all other vertices in a directed or undirected graph $G=(V, E)$ with non-negative edge weights ($w(u,v) \\ge 0$). Using a min-priority queue $Q$, it greedily extracts the vertex $u$ with the minimum tentative distance $d[u]$ and relaxes its incident edges. It runs in $\\mathcal{O}((|V| + |E|) \\log |V|)$ time using a binary min-heap and $\\mathcal{O}(|V| + |E|)$ space.",
@@ -481,7 +480,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     {
       kind: "basic",
       inputDisplay: 'graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = "A"',
-      outputDisplay: "{A: 0, B: 3, C: 2, D: 8, E: 10}",
+      outputDisplay: "{A: 0, B: 4, C: 2, D: 9, E: 11}",
       title: "Basic Example",
       input: {
         startNode: "A",
@@ -502,9 +501,8 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     },
     {
       kind: "complex",
-      inputDisplay:
-        'graph = {S-A:7, S-C:9, S-F:14, A-B:10, A-C:15, B-D:15, C-D:11, C-F:2, D-E:6, F-E:9}, start = "S"',
-      outputDisplay: "{S: 0, A: 7, B: 17, C: 9, D: 20, E: 20, F: 11}",
+      inputDisplay: 'graph = {A-B:2, B-C:3, A-C:10, C-D:1}, start = "A"',
+      outputDisplay: "{A: 0, B: 2, C: 5, D: 6}",
       title: "Complex Edge Case",
       input: {
         startNode: "A",
@@ -522,8 +520,8 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: 'graph = {A: [], B: []}, start = "A"',
-      outputDisplay: "{A: 0, B: ∞}",
+      inputDisplay: 'graph = {A-B:5, C:isolated}, start = "A"',
+      outputDisplay: "{A: 0, B: 5, C: ∞}",
       title: "Failing / Boundary Case",
       input: {
         startNode: "A",
@@ -544,7 +542,8 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
     time: "Extracting minimum distance nodes takes $\\mathcal{O}(|V| \\log |V|)$ and edge relaxations take up to $\\mathcal{O}(|E| \\log |V|)$ time, for a total time complexity of $\\mathcal{O}((|V| + |E|) \\log |V|)$.",
-    space: "The distance map, visited set, and min-heap priority queue store up to $\\mathcal{O}(|V| + |E|)$ elements.",
+    space:
+      "The distance map, visited set, and min-heap priority queue store up to $\\mathcal{O}(|V| + |E|)$ elements.",
   },
   topicGuide: DIJKSTRA_TOPIC_GUIDE,
   trivia: DIJKSTRA_TRIVIA,

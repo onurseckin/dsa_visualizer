@@ -78,8 +78,7 @@ const QUICK_SORT_TRIVIA: TriviaMeta = {
 export const quickSort: AlgorithmDefinition<number[]> = {
   id: "quick-sort",
   title: "Quick Sort",
-  category: "two_pointers",
-  categories: ["two_pointers"],
+  topicIds: ["two_pointers"],
   difficulty: "Medium",
   description:
     "Quick Sort is an efficient divide-and-conquer sorting algorithm that selects a pivot element, partitions the array so smaller elements sit to its left and larger ones to its right, and recursively sorts each half.\n\n### Why It Exists & What It Solves\nDeveloped by Tony Hoare, Quick Sort solves in-place array sorting without allocating auxiliary arrays ($O(1)$ extra memory beyond call stack). It delivers superior CPU cache locality compared to Merge Sort and Heap Sort.\n\n### Step-by-Step Intuition\n1. **Pivot Selection**: Choose a pivot element (typically $arr[high]$).\n2. **Lomuto Partitioning**: Maintain boundary pointer $i = low - 1$. Scan $j$ from $low$ to $high - 1$. If $arr[j] \\le pivot$, increment $i$ and swap $arr[i]$ with $arr[j]$.\n3. **Pivot Placement**: Swap $arr[i + 1]$ with $arr[high]$. The pivot lands at $pivot\\_idx = i + 1$.\n4. **Recursion**: Recurse on $[low..pivot\\_idx - 1]$ and $[pivot\\_idx + 1..high]$.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), unsorted array of numbers.\n- **Output**: `list[int]`, sorted array in non-decreasing order.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: Average/Best $\\mathcal{O}(N \\log N)$, Worst $\\mathcal{O}(N^2)$ for unbalanced pivots.\n- **Space Complexity**: $\\mathcal{O}(\\log N)$ auxiliary space for call stack frames.\n\n### Edge Cases & Constraints\n- **Base Cases**: Subarrays with $N \\le 1$ return immediately.\n- **Duplicates**: Handled non-stably by Lomuto partitioning.",

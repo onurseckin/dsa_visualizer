@@ -9,10 +9,11 @@ import {
 describe("vector-inner-product-scaling (Vector Inner Product Scaling)", () => {
   it("should have correct metadata", () => {
     expect(vectorInnerProductScaling.id).toBe("vector-inner-product-scaling");
-    expect(vectorInnerProductScaling.isMlInfra).toBe(true);
-    expect(vectorInnerProductScaling.mlInfraLevel).toBe(7);
-    expect(vectorInnerProductScaling.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(vectorInnerProductScaling.categories).toContain("ml_attention_geometry");
+    expect(vectorInnerProductScaling.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(vectorInnerProductScaling.topicIds).toContain("ml_attention_geometry");
+    expect(vectorInnerProductScaling.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
@@ -34,5 +35,16 @@ describe("vector-inner-product-scaling (Vector Inner Product Scaling)", () => {
       expect(lineExplanations[i]).toBeDefined();
       expect(lineExplanations[i].length).toBeGreaterThan(0);
     }
+  });
+
+  it("should handle custom short input vector sizes without NaN", () => {
+    const steps = generateVectorInnerProductScalingSteps({
+      q: [1.0, 2.0, 3.0],
+      k: [4.0, 5.0, 6.0],
+      scaleFactor: 0.5,
+    });
+    expect(steps.length).toBeGreaterThan(0);
+    const lastStep = steps[steps.length - 1];
+    expect(lastStep.variables.scaledScore).toBe(16);
   });
 });

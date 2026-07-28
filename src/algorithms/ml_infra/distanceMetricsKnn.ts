@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorItem,
+  VectorVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface DistanceMetricsKnnInput {
@@ -15,7 +20,7 @@ export const DISTANCE_METRICS_KNN_CODE = `def knn_distance_search(query: list[fl
             dist = math.sqrt(sum((q - v) ** 2 for q, v in zip(query, vec)))
         elif metric == "manhattan":
             dist = sum(abs(q - v) for q, v in zip(query, vec))
-        else:  # cosine distance = 1 - cosine similarity
+        else:
             dot = sum(q * v for q, v in zip(query, vec))
             norm_q = math.sqrt(sum(q ** 2 for q in query))
             norm_v = math.sqrt(sum(v ** 2 for v in vec))
@@ -37,6 +42,73 @@ export const DEFAULT_DISTANCE_METRICS_KNN_INPUT: DistanceMetricsKnnInput = {
   metric: "euclidean",
 };
 
+const createVectorSnapshot = (
+  query: number[],
+  dataset: number[][],
+  activeIdx: number | null,
+  computedDistances: { idx: number; dist: number }[],
+  topKIndices: Set<number>,
+  metric: string,
+): VectorVisualSnapshot => {
+  const is3D = query.length >= 3;
+  const vectors: VectorItem[] = [];
+
+  // Query vector
+  vectors.push({
+    id: "query",
+    label: "Query",
+    x: query[0] ?? 0,
+    y: query[1] ?? 0,
+    z: is3D ? query[2] : undefined,
+    color: "#ef4444",
+    state: "active",
+    subText: `Query [${query.join(", ")}]`,
+  });
+
+  // Dataset vectors
+  dataset.forEach((vec, idx) => {
+    const match = computedDistances.find((d) => d.idx === idx);
+    const isTop = topKIndices.has(idx);
+    const isActive = idx === activeIdx;
+
+    let state: VectorItem["state"] = "default";
+    let color = "#94a3b8";
+    let subText = `[${vec.join(", ")}]`;
+
+    if (isActive) {
+      state = "active";
+      color = "#f59e0b";
+      if (match) subText = `d = ${match.dist.toFixed(4)}`;
+    } else if (isTop) {
+      state = "result";
+      color = "#22c55e";
+      if (match) subText = `Top-K (d = ${match.dist.toFixed(4)})`;
+    } else if (match) {
+      state = "compared";
+      color = "#3b82f6";
+      subText = `d = ${match.dist.toFixed(4)}`;
+    }
+
+    vectors.push({
+      id: `vec-${idx}`,
+      label: `Vec ${idx}`,
+      x: vec[0] ?? 0,
+      y: vec[1] ?? 0,
+      z: is3D ? vec[2] : undefined,
+      color,
+      state,
+      subText,
+    });
+  });
+
+  return {
+    kind: "vector",
+    vectors,
+    dimensions: is3D ? "3d" : "2d",
+    planeTitle: `KNN Vector Space (${metric.toUpperCase()})`,
+  };
+};
+
 export const generateDistanceMetricsKnnSteps = (
   input: DistanceMetricsKnnInput,
 ): AlgorithmStep[] => {
@@ -53,7 +125,6 @@ export const generateDistanceMetricsKnnSteps = (
     } else if (m === "manhattan") {
       return q.reduce((acc, val, i) => acc + Math.abs(val - (v[i] || 0)), 0);
     } else {
-      // cosine distance
       const dot = q.reduce((acc, val, i) => acc + val * (v[i] || 0), 0);
       const normQ = Math.sqrt(q.reduce((acc, val) => acc + val ** 2, 0));
       const normV = Math.sqrt(v.reduce((acc, val) => acc + val ** 2, 0));
@@ -68,30 +139,14 @@ export const generateDistanceMetricsKnnSteps = (
     why: string,
     activeIdx: number | null,
     distList: { idx: number; dist: number }[],
+    topKSet: Set<number>,
     vars: Record<string, string | number | boolean>,
   ) => {
-    const elements: ArrayElement[] = dataset.map((vec, i) => {
-      const match = distList.find((d) => d.idx === i);
-      let state: ArrayElement["state"] = "default";
-      if (i === activeIdx) state = "active";
-      else if (match) state = "visited";
-
-      return {
-        id: `vec-${i}`,
-        value: match ? Math.round(match.dist * 100) / 100 : i,
-        state,
-        pointers: match ? [`Vec${i}: d=${match.dist.toFixed(2)}`] : [`Vec${i}: [${vec.join(",")}]`],
-      };
-    });
-
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements,
-      },
+      primarySnapshot: createVectorSnapshot(query, dataset, activeIdx, distList, topKSet, metric),
       auxiliaryState: {
         customState: {
           metric,
@@ -105,22 +160,30 @@ export const generateDistanceMetricsKnnSteps = (
   };
 
   if (n === 0 || k <= 0) {
-    addStep(2, "Empty dataset or invalid k", "Dataset is empty or k is not positive.", null, [], {
-      valid: false,
-    });
+    addStep(
+      2,
+      "Empty dataset or invalid k",
+      "Dataset is empty or k is not positive.",
+      null,
+      [],
+      new Set(),
+      { valid: false },
+    );
     return steps;
   }
 
   addStep(
-    3,
+    2,
     `Initialize k-NN Distance Search (${metric}, k=${k})`,
-    `Query vector: [${query.join(", ")}]. Computing ${metric} distance to ${n} dataset vectors.`,
+    `Query vector: [${query.join(", ")}]. Preparing distance calculations for ${n} dataset vectors.`,
     null,
     [],
+    new Set(),
     { n, k, metric },
   );
 
   const distances: { idx: number; dist: number }[] = [];
+  const calcLine = metric === "euclidean" ? 5 : metric === "manhattan" ? 7 : 12;
 
   for (let idx = 0; idx < n; idx++) {
     const vec = dataset[idx];
@@ -129,11 +192,12 @@ export const generateDistanceMetricsKnnSteps = (
     distances.push({ idx, dist });
 
     addStep(
-      13,
+      calcLine,
       `Compute ${metric} distance to Vec ${idx} [${vec.join(", ")}]: d = ${dist}`,
-      `Distance between Query and Vec ${idx} is ${dist}. Appended to candidate distance pool.`,
+      `Distance between Query [${query.join(", ")}] and Vec ${idx} [${vec.join(", ")}] using ${metric} metric is ${dist}. Appended to candidate distances.`,
       idx,
       [...distances],
+      new Set(),
       { idx, dist, poolSize: distances.length },
     );
   }
@@ -142,46 +206,28 @@ export const generateDistanceMetricsKnnSteps = (
 
   addStep(
     15,
-    `Sort candidates by distance ascending`,
-    `Sorted distances: ${sortedDistances.map((d) => `V${d.idx}: ${d.dist}`).join(", ")}.`,
+    `Sort candidate distances ascending`,
+    `Sorted distances: ${sortedDistances.map((d) => `Vec ${d.idx}: ${d.dist}`).join(", ")}.`,
     null,
     sortedDistances,
+    new Set(),
     { poolSize: sortedDistances.length },
   );
 
   const topK = sortedDistances.slice(0, Math.min(k, n));
+  const topKSet = new Set(topK.map((d) => d.idx));
 
-  const finalElements: ArrayElement[] = dataset.map((_, i) => {
-    const rank = topK.findIndex((d) => d.idx === i);
-    const isTop = rank !== -1;
-    return {
-      id: `vec-${i}`,
-      value: isTop ? topK[rank].dist : 99,
-      state: isTop ? "sorted" : "default",
-      pointers: isTop ? [`Rank #${rank + 1} (d=${topK[rank].dist})`] : undefined,
-    };
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 16,
-    explanation: {
-      what: `Top-${k} Nearest Neighbors Selected`,
-      why: `Selected nearest vectors: ${topK
-        .map((d, r) => `#${r + 1}: Vec ${d.idx} (dist=${d.dist})`)
-        .join(", ")}.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: finalElements,
-    },
-    auxiliaryState: {
-      customState: {
-        topK: topK.map((d) => `V${d.idx}:${d.dist}`).join(", "),
-      },
-    },
-    variables: { k, topKCount: topK.length, complete: true },
-  });
+  addStep(
+    16,
+    `Top-${k} Nearest Neighbors Selected`,
+    `Selected nearest vectors: ${topK
+      .map((d, r) => `#${r + 1}: Vec ${d.idx} (dist=${d.dist})`)
+      .join(", ")}.`,
+    null,
+    sortedDistances,
+    topKSet,
+    { k, topKCount: topK.length, complete: true },
+  );
 
   return steps;
 };
@@ -191,7 +237,7 @@ export const DISTANCE_METRICS_KNN_TRIVIA: TriviaMeta = {
   hints: [
     { line: 5, hint: "Euclidean distance uses sqrt of sum of squared differences" },
     { line: 7, hint: "Manhattan distance uses sum of absolute differences" },
-    { line: 11, hint: "Cosine distance equals 1 - Cosine Similarity" },
+    { line: 12, hint: "Cosine distance equals 1 - Cosine Similarity" },
   ],
   distractors: [
     "dist = sum((q + v) ** 2 for q, v in zip(query, vec))",
@@ -203,10 +249,8 @@ export const DISTANCE_METRICS_KNN_TRIVIA: TriviaMeta = {
 export const distanceMetricsKnn: AlgorithmDefinition<DistanceMetricsKnnInput> = {
   id: "distance-metrics-knn",
   title: "Distance Metrics & K-Nearest Neighbors",
-  category: "ml_vector_search",
+  topicIds: ["ml_vector_search"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 4,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Evaluate vector distances (Euclidean L2, Manhattan L1, Cosine) and select top-k nearest neighbors.",

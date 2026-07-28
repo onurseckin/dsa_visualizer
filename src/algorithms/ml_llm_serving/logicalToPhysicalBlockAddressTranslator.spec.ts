@@ -10,10 +10,11 @@ describe("logical-to-physical-block-address-translator (PagedAttention Logical t
     expect(logicalToPhysicalBlockAddressTranslator.id).toBe(
       "logical-to-physical-block-address-translator",
     );
-    expect(logicalToPhysicalBlockAddressTranslator.isMlInfra).toBe(true);
-    expect(logicalToPhysicalBlockAddressTranslator.mlInfraLevel).toBe(12);
-    expect(logicalToPhysicalBlockAddressTranslator.mlInfraCategory).toBe("ml_llm_serving");
-    expect(logicalToPhysicalBlockAddressTranslator.categories).toContain("ml_llm_serving");
+    expect(
+      logicalToPhysicalBlockAddressTranslator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(logicalToPhysicalBlockAddressTranslator.topicIds).toContain("ml_llm_serving");
+    expect(logicalToPhysicalBlockAddressTranslator.topicIds).toContain("ml_llm_serving");
     expect(logicalToPhysicalBlockAddressTranslator.defaultInput).toEqual(
       DEFAULT_LOGICALTOPHYSICALBLOCKADDRESSTRANSLATOR_INPUT,
     );
@@ -24,9 +25,7 @@ describe("logical-to-physical-block-address-translator (PagedAttention Logical t
     ).map(Number);
     expect(explanationKeys.length).toBe(codeLines);
     for (let i = 1; i <= codeLines; i++) {
-      expect(
-        logicalToPhysicalBlockAddressTranslator.trivia?.lineExplanations?.[i],
-      ).toBeDefined();
+      expect(logicalToPhysicalBlockAddressTranslator.trivia?.lineExplanations?.[i]).toBeDefined();
     }
   });
 
@@ -36,6 +35,6 @@ describe("logical-to-physical-block-address-translator (PagedAttention Logical t
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(23);
+    expect(steps[steps.length - 1].codeLine).toBe(20);
   });
 });

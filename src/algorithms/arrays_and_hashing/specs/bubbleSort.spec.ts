@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { bubbleSort, generateBubbleSortSteps } from "../bubbleSort";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("bubbleSort algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(bubbleSort.id).toBe("bubble-sort");
     expect(bubbleSort.title).toBe("Bubble Sort");
-    expect(bubbleSort.category).toBe("arrays_and_hashing");
+    expect(bubbleSort.topicIds).toContain("arrays_and_hashing");
     expect(bubbleSort.defaultInput).toEqual([5, 2, 8, 1, 4]);
   });
 
@@ -60,7 +61,12 @@ describe("bubbleSort algorithm spec", () => {
   it("ensures codeLine is 1-indexed (1..7) for defaultInput and all examples", () => {
     const totalLines = bubbleSort.code.split("\n").length;
     expect(totalLines).toBe(7);
-    const inputs = [bubbleSort.defaultInput, ...bubbleSort.examples.map((e) => e.input)];
+    const inputs = [
+      bubbleSort.defaultInput,
+      ...requireExampleInputs(bubbleSort, (input): input is typeof bubbleSort.defaultInput =>
+        Array.isArray(input),
+      ),
+    ];
     for (const input of inputs) {
       const steps = generateBubbleSortSteps(input);
       expect(steps.length).toBeGreaterThan(0);
@@ -110,4 +116,3 @@ describe("bubbleSort trivia metadata", () => {
     });
   });
 });
-

@@ -9,20 +9,17 @@ import {
 describe("paged-kv-cache-block-mapping (Paged KV-Cache Block Table Mapper)", () => {
   it("should have correct metadata", () => {
     expect(pagedKvCacheBlockMapping.id).toBe("paged-kv-cache-block-mapping");
-    expect(pagedKvCacheBlockMapping.isMlInfra).toBe(true);
-    expect(pagedKvCacheBlockMapping.mlInfraLevel).toBe(7);
-    expect(pagedKvCacheBlockMapping.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(pagedKvCacheBlockMapping.categories).toContain("ml_attention_geometry");
+    expect(pagedKvCacheBlockMapping.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(pagedKvCacheBlockMapping.topicIds).toContain("ml_attention_geometry");
+    expect(pagedKvCacheBlockMapping.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
-    const steps = generatePagedKvCacheBlockMappingSteps(
-      DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT,
-    );
+    const steps = generatePagedKvCacheBlockMappingSteps(DEFAULT_PAGEDKVCACHEBLOCKMAPPING_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    expect(steps[0].explanation.what).toContain(
-      "Initialize Paged KV-Cache Block Table Mapper",
-    );
+    expect(steps[0].explanation.what).toContain("Initialize Paged KV-Cache Block Table Mapper");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
 
     steps.forEach((step) => {

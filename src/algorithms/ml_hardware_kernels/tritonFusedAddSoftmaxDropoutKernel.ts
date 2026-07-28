@@ -12,7 +12,6 @@ export interface tritonFusedAddSoftmaxDropoutKernelInput {
 }
 
 export const TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_CODE = `def triton_fused_add_softmax_dropout(x_matrix: list[list[float]], residual_matrix: list[list[float]], dropout_p: float = 0.1, seed: int = 42) -> tuple[list[list[float]], list[list[float]]]:
-    """Simulates a fused Triton GPU kernel executing Elementwise Add + Online Softmax + Dropout in SRAM."""
     import math
 
     rows = len(x_matrix)
@@ -44,22 +43,23 @@ export const TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_CODE = `def triton_fused_add_sof
 
     return output, masks`;
 
-export const DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT: tritonFusedAddSoftmaxDropoutKernelInput = {
-  x_matrix: [
-    [1.0, 2.0, 3.0],
-    [2.0, 0.0, 1.0],
-    [0.5, 1.5, 2.5],
-  ],
-  residual_matrix: [
-    [0.5, 0.5, 0.5],
-    [1.0, 1.0, 1.0],
-    [0.5, 0.5, 0.5],
-  ],
-  dropout_p: 0.1,
-  seed: 42,
-  data: [1, 2, 3, 2, 0, 1, 0.5, 1.5, 2.5],
-  target: 0,
-};
+export const DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT: tritonFusedAddSoftmaxDropoutKernelInput =
+  {
+    x_matrix: [
+      [1.0, 2.0, 3.0],
+      [2.0, 0.0, 1.0],
+      [0.5, 1.5, 2.5],
+    ],
+    residual_matrix: [
+      [0.5, 0.5, 0.5],
+      [1.0, 1.0, 1.0],
+      [0.5, 0.5, 0.5],
+    ],
+    dropout_p: 0.1,
+    seed: 42,
+    data: [1, 2, 3, 2, 0, 1, 0.5, 1.5, 2.5],
+    target: 0,
+  };
 
 export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
   input: tritonFusedAddSoftmaxDropoutKernelInput,
@@ -68,7 +68,8 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
   let stepIndex = 0;
 
   const xMat = input.x_matrix || DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT.x_matrix!;
-  const resMat = input.residual_matrix || DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT.residual_matrix!;
+  const resMat =
+    input.residual_matrix || DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT.residual_matrix!;
   const dropoutP = input.dropout_p !== undefined ? input.dropout_p : 0.1;
   const seed = input.seed !== undefined ? input.seed : 42;
 
@@ -79,10 +80,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
   const output: number[][] = [];
   const masks: number[][] = [];
 
-  const getSnapshot = (
-    activeRow: number = -1,
-    activeCol: number = -1,
-  ) => {
+  const getSnapshot = (activeRow: number = -1, activeCol: number = -1) => {
     const cells: MatrixCellItem[] = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -92,7 +90,15 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
         const isCurrent = r === activeRow && c === activeCol;
         const isInActiveRow = r === activeRow;
-        const state = isCurrent ? "active" : isInActiveRow ? "compare" : hasVal ? (isKept ? "sorted" : "default") : "default";
+        const state = isCurrent
+          ? "active"
+          : isInActiveRow
+            ? "compare"
+            : hasVal
+              ? isKept
+                ? "sorted"
+                : "default"
+              : "default";
 
         cells.push({
           row: r,
@@ -130,7 +136,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
       primarySnapshot: getSnapshot(activeRow, activeCol),
       auxiliaryState: {
         customState: {
-          "Algorithm": "Triton Fused Add + Softmax + Dropout Kernel",
+          Algorithm: "Triton Fused Add + Softmax + Dropout Kernel",
           "Matrix Size": `${rows} x ${cols}`,
           "Dropout Probability p": String(dropoutP),
           "Inverted Dropout Scale": scale.toFixed(4),
@@ -149,56 +155,45 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
     { rows, cols, dropoutP, seed },
   );
 
-  // Step 2: Import math (3)
-  addStep(
-    3,
-    "Import Python math Module",
-    "Imported math module for exponential math.exp().",
-    { imported: true },
-  );
+  // Step 2: Import math (2)
+  addStep(2, "Import Python math Module", "Imported math module for exponential math.exp().", {
+    imported: true,
+  });
 
-  // Step 3: Measure rows & cols (5, 6)
-  addStep(
-    5,
-    `Measure Matrix Rows: rows = ${rows}`,
-    `Matrix row count rows = ${rows}.`,
-    { rows },
-  );
+  // Step 3: Measure rows & cols (4, 5)
+  addStep(4, `Measure Matrix Rows: rows = ${rows}`, `Matrix row count rows = ${rows}.`, { rows });
 
+  addStep(5, `Measure Matrix Cols: cols = ${cols}`, `Matrix column count cols = ${cols}.`, {
+    cols,
+  });
+
+  // Step 4: Allocate output & masks (6, 7)
   addStep(
     6,
-    `Measure Matrix Cols: cols = ${cols}`,
-    `Matrix column count cols = ${cols}.`,
-    { cols },
-  );
-
-  // Step 4: Allocate output & masks (7, 8)
-  addStep(
-    7,
     "Allocate output [] List in DRAM HBM",
     "Allocated list to store fused kernel output matrix.",
     { output_len: 0 },
   );
 
   addStep(
-    8,
+    7,
     "Allocate masks [] List in DRAM HBM",
     "Allocated list to store inverted dropout boolean mask matrix.",
     { masks_len: 0 },
   );
 
-  // Step 5: Compute scale (10)
+  // Step 5: Compute scale (9)
   addStep(
-    10,
+    9,
     `Calculate Inverted Dropout Scale Factor: scale = 1 / (1 - p) = ${scale.toFixed(4)}`,
     `Evaluated inverted dropout scale multiplier = ${scale.toFixed(4)} to preserve expected tensor activations during training.`,
     { scale },
   );
 
-  // Loop over rows (12..30)
+  // Loop over rows (11..29)
   for (let r = 0; r < rows; r++) {
     addStep(
-      12,
+      11,
       `Outer Row Loop: Process Row r = ${r}`,
       `Processing row ${r} of ${rows - 1}. Fusing Add + Softmax + Dropout in SRAM registers.`,
       { r },
@@ -207,7 +202,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     const rowY = xMat[r].map((xVal, c) => xVal + resMat[r][c]);
     addStep(
-      13,
+      12,
       `Fused Step 1 (Elementwise Add): row_y = x_matrix[${r}] + residual_matrix[${r}]`,
       `Evaluated SRAM elementwise residual sum: [${rowY.map((v) => v.toFixed(2)).join(", ")}].`,
       { r, row_y: JSON.stringify(rowY.map((v) => v.toFixed(2))) },
@@ -216,7 +211,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     const rowMax = Math.max(...rowY);
     addStep(
-      15,
+      14,
       `Fused Step 2a (Softmax Max): row_max = max(row_y) = ${rowMax.toFixed(4)}`,
       `Evaluated row maximum score row_max = ${rowMax.toFixed(4)} for zero-overflow numerical stability.`,
       { r, rowMax },
@@ -225,7 +220,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     const expVals = rowY.map((val) => Math.exp(val - rowMax));
     addStep(
-      16,
+      15,
       `Fused Step 2b (Softmax Exponentiation): exp_vals = exp(row_y - row_max)`,
       `Evaluated exponentiated terms: [${expVals.map((v) => v.toFixed(4)).join(", ")}].`,
       { r, expVals: JSON.stringify(expVals.map((v) => v.toFixed(4))) },
@@ -234,7 +229,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     const sumExp = expVals.reduce((a, b) => a + b, 0);
     addStep(
-      17,
+      16,
       `Fused Step 2c (Softmax Normalizer): sum_exp = ${sumExp.toFixed(4)}`,
       `Summed exponentiated terms sum_exp = ${sumExp.toFixed(4)}.`,
       { r, sumExp },
@@ -243,7 +238,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     const softmaxProbs = expVals.map((ev) => ev / sumExp);
     addStep(
-      18,
+      17,
       `Fused Step 2d (Softmax Probabilities): softmax_probs`,
       `Evaluated exact row probability vector: [${softmaxProbs.map((v) => v.toFixed(4)).join(", ")}].`,
       { r, softmaxProbs: JSON.stringify(softmaxProbs.map((v) => v.toFixed(4))) },
@@ -254,18 +249,26 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
     const maskRow: number[] = [];
 
     addStep(
+      19,
+      `Allocate out_row [] for Row ${r}`,
+      `Initialised empty register array for row ${r} output values.`,
+      { r },
+      r,
+    );
+
+    addStep(
       20,
-      `Allocate out_row [] and mask_row [] for Row ${r}`,
-      `Initialised empty registers for row ${r} output and dropout mask.`,
+      `Allocate mask_row [] for Row ${r}`,
+      `Initialised empty register array for row ${r} dropout boolean masks.`,
       { r },
       r,
     );
 
     for (let c = 0; c < cols; c++) {
       addStep(
-        22,
-        `Fused Step 3 (Dropout): Process Cell [${r}, ${c}]`,
-        `Applying Philox PRNG and inverted dropout to Softmax probability cell [${r}, ${c}].`,
+        21,
+        `Inner Column Loop: Process Cell [${r}, ${c}]`,
+        `Iterating over column index c = ${c} of row ${r}.`,
         { r, c },
         r,
         c,
@@ -273,7 +276,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
       const pseudoRand = ((r * 13 + c * 37 + seed * 97) % 100) / 100.0;
       addStep(
-        23,
+        22,
         `Generate Philox PRNG Pseudo-Random Value: pseudo_rand = ${pseudoRand.toFixed(2)}`,
         `Evaluated GPU Philox PRNG value = ${pseudoRand.toFixed(2)}.`,
         { r, c, pseudoRand },
@@ -283,7 +286,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
       const keep = pseudoRand >= dropoutP ? 1.0 : 0.0;
       addStep(
-        24,
+        23,
         `Evaluate Dropout Keep Condition: ${pseudoRand.toFixed(2)} >= ${dropoutP}`,
         keep === 1.0
           ? `True (${pseudoRand.toFixed(2)} >= ${dropoutP}) -> KEEP neuron activation!`
@@ -295,7 +298,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
       const dropoutVal = Math.round(softmaxProbs[c] * keep * scale * 10000) / 10000;
       addStep(
-        25,
+        24,
         `Calculate Final Inverted Dropout Cell: dropout_val = ${dropoutVal.toFixed(4)}`,
         `Evaluated final cell value = ${softmaxProbs[c].toFixed(4)} * ${keep} * ${scale.toFixed(4)} = ${dropoutVal.toFixed(4)}.`,
         { r, c, dropoutVal },
@@ -305,7 +308,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
       outRow.push(dropoutVal);
       addStep(
-        26,
+        25,
         `Append ${dropoutVal.toFixed(4)} to out_row`,
         `Recorded cell value into out_row.`,
         { dropoutVal },
@@ -315,7 +318,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
       maskRow.push(keep);
       addStep(
-        27,
+        26,
         `Append ${keep} to mask_row`,
         `Recorded keep mask into mask_row.`,
         { keep },
@@ -326,7 +329,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     output.push(outRow);
     addStep(
-      29,
+      28,
       `Write Fused Output Row ${r} to DRAM HBM`,
       `Wrote finalized output row ${r} into DRAM HBM.`,
       { r },
@@ -335,7 +338,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 
     masks.push(maskRow);
     addStep(
-      30,
+      29,
       `Write Dropout Mask Row ${r} to DRAM HBM`,
       `Wrote boolean mask row ${r} into DRAM HBM for backward pass autograd.`,
       { r },
@@ -343,9 +346,9 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
     );
   }
 
-  // Return step (32)
+  // Return step (31)
   addStep(
-    32,
+    31,
     "Execution Complete: Return (output, masks)",
     `Completed Triton fused kernel execution. Fused 3 operations into 1 single GPU kernel call with zero intermediate HBM DRAM materialization!`,
     { rows, cols, completed: true },
@@ -355,7 +358,7 @@ export const generateTRITONFUSEDADDSOFTMAXDROPOUTKERNELSteps = (
 };
 
 const TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 9, 11, 14, 21, 28, 31],
+  skipLines: [3, 8, 10, 13, 18, 27, 30],
   distractors: [
     "scale = 1.0 / dropout_p",
     "keep = 1.0 if pseudo_rand < dropout_p else 0.0",
@@ -363,62 +366,53 @@ const TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_TRIVIA: TriviaMeta = {
     "return output",
   ],
   hints: [
-    { line: 10, hint: "Inverted dropout scaling factor formula: scale = 1.0 / (1.0 - dropout_p)." },
-    { line: 25, hint: "Inverted dropout cell value equation: softmax_probs[c] * keep * scale." },
+    { line: 9, hint: "Inverted dropout scaling factor formula: scale = 1.0 / (1.0 - dropout_p)." },
+    { line: 24, hint: "Inverted dropout cell value equation: softmax_probs[c] * keep * scale." },
   ],
   lineExplanations: {
     1: "Defines entry point for triton_fused_add_softmax_dropout function.",
-    2: "Docstring describing fused Triton GPU kernel executing Elementwise Add + Online Softmax + Dropout in SRAM.",
-    3: "Imports Python math module for exponential math.exp().",
-    4: "Blank line before measuring matrix dimensions.",
-    5: "Measures matrix row count rows = len(x_matrix).",
-    6: "Measures matrix column count cols = len(x_matrix[0]).",
-    7: "Initializes empty list output for fused result matrix.",
-    8: "Initializes empty list masks for dropout boolean mask matrix.",
-    9: "Blank line before inverted dropout scale calculation.",
-    10: "Calculates inverted dropout scaling factor scale = 1.0 / (1.0 - dropout_p) if dropout_p < 1.0 else 0.0.",
-    11: "Blank line before row processing loop.",
-    12: "Iterates over matrix row index r from 0 to rows - 1.",
-    13: "Performs Fused Step 1: Elementwise residual addition row_y = [x_matrix[r][c] + residual_matrix[r][c]].",
-    14: "Blank line before Softmax computation.",
-    15: "Calculates row maximum score row_max = max(row_y) for numerical stability.",
-    16: "Calculates exponentiated scores exp_vals = [exp(val - row_max) for val in row_y].",
-    17: "Summation of exponentiated scores sum_exp = sum(exp_vals).",
-    18: "Normalizes softmax probabilities softmax_probs = [ev / sum_exp for ev in exp_vals].",
-    19: "Blank line before dropout application loop.",
-    20: "Initializes empty list out_row for row r.",
-    21: "Initializes empty list mask_row for row r.",
-    22: "Iterates over matrix column index c from 0 to cols - 1.",
-    23: "Generates Philox pseudo-random value pseudo_rand in [0, 1) range.",
-    24: "Evaluates dropout keep flag keep = 1.0 if pseudo_rand >= dropout_p else 0.0.",
-    25: "Calculates inverted dropout cell value dropout_val = softmax_probs[c] * keep * scale.",
-    26: "Appends rounded dropout_val to out_row.",
-    27: "Appends keep flag to mask_row.",
-    28: "Blank line before row appending.",
-    29: "Appends out_row to output matrix.",
-    30: "Appends mask_row to masks matrix.",
-    31: "Blank line separating row loop from return statement.",
-    32: "Returns tuple of (output, masks).",
+    2: "Imports Python math module for exponential math.exp().",
+    3: "Blank line before measuring matrix dimensions.",
+    4: "Measures matrix row count rows = len(x_matrix).",
+    5: "Measures matrix column count cols = len(x_matrix[0]).",
+    6: "Initializes empty list output for fused result matrix.",
+    7: "Initializes empty list masks for dropout boolean mask matrix.",
+    8: "Blank line before inverted dropout scale calculation.",
+    9: "Calculates inverted dropout scaling factor scale = 1.0 / (1.0 - dropout_p) if dropout_p < 1.0 else 0.0.",
+    10: "Blank line before row processing loop.",
+    11: "Iterates over matrix row index r from 0 to rows - 1.",
+    12: "Performs Fused Step 1: Elementwise residual addition row_y = [x_matrix[r][c] + residual_matrix[r][c]].",
+    13: "Blank line before Softmax computation.",
+    14: "Calculates row maximum score row_max = max(row_y) for numerical stability.",
+    15: "Calculates exponentiated scores exp_vals = [exp(val - row_max) for val in row_y].",
+    16: "Summation of exponentiated scores sum_exp = sum(exp_vals).",
+    17: "Normalizes softmax probabilities softmax_probs = [ev / sum_exp for ev in exp_vals].",
+    18: "Blank line before dropout application loop.",
+    19: "Initializes empty list out_row for row r.",
+    20: "Initializes empty list mask_row for row r.",
+    21: "Iterates over matrix column index c from 0 to cols - 1.",
+    22: "Generates Philox pseudo-random value pseudo_rand in [0, 1) range.",
+    23: "Evaluates dropout keep flag keep = 1.0 if pseudo_rand >= dropout_p else 0.0.",
+    24: "Calculates inverted dropout cell value dropout_val = softmax_probs[c] * keep * scale.",
+    25: "Appends rounded dropout_val to out_row.",
+    26: "Appends keep flag to mask_row.",
+    27: "Blank line before row appending.",
+    28: "Appends out_row to output matrix.",
+    29: "Appends mask_row to masks matrix.",
+    30: "Blank line separating row loop from return statement.",
+    31: "Returns tuple of (output, masks).",
   },
 };
 
 export const tritonFusedAddSoftmaxDropoutKernel: AlgorithmDefinition<tritonFusedAddSoftmaxDropoutKernelInput> =
   {
-    id: "tritonFusedAddSoftmaxDropoutKernel",
+    id: "triton-fused-add-softmax-dropout-kernel",
     title: "Triton Fused Add + Softmax + Dropout Kernel",
-    category: "ml_hardware_kernels",
-    categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+    topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 8,
-    mlInfraCategory: "ml_hardware_kernels",
     description:
       "The Triton Fused Add + Softmax + Dropout Kernel simulates OpenAI Triton's C-like GPU programming paradigm for **Kernel Fusion**. In standard PyTorch, executing residual addition (`y = x + res`), Softmax (`p = softmax(y)`), and Inverted Dropout (`out = dropout(p)`) requires **3 separate GPU kernel launches** and **2 intermediate DRAM roundtrips**. Triton fuses all 3 operations into a single C-like kernel where intermediate tensors reside entirely in fast **GPU SRAM registers**, achieving **3x higher memory bandwidth efficiency**.\n\n### Why It Exists\nElementwise and reduction kernels are memory-bandwidth bound ($I \\le 2 \\text{ FLOPs/B}$). Launching separate kernels forces the GPU to write intermediate matrices to DRAM ($3.35 \\text{ TB/s}$) only to immediately read them back into SRAM. Fusing operators in Triton eliminates DRAM intermediate writes completely.\n\n### Mathematical Formulation\nFor input tensor row $x$, residual vector $r$, dropout probability $p$, and Philox PRNG seed $S$:\n\n$$1. \\quad y_c = x_c + r_c \\quad (\\text{SRAM Fused Residual Addition})$$\n\n$$2. \\quad m = \\max_c(y_c), \\quad p_c = \\frac{e^{y_c - m}}{\\sum_k e^{y_k - m}} \\quad (\\text{SRAM Online Softmax})$$\n\n$$3. \\quad k_c = \\mathbb{I}(\\text{Philox}(r, c, S) \\ge p) \\in \\{0, 1\\} \\quad (\\text{Dropout Keep Mask})$$\n\n$$4. \\quad \\text{Out}_c = p_c \\cdot k_c \\cdot \\frac{1}{1 - p} \\quad (\\text{Inverted Dropout Scaling})$$\n\n### Step-by-Step Intuition\n1. **Thread Block Loading**: Load row $r$ of $x$ and $r$ of $residual$ directly into SRAM registers.\n2. **Fused Elementwise Add**: Compute $y = x + residual$ in GPU register file without DRAM write.\n3. **SRAM Online Softmax**: Compute row max $m = \\max(y)$, exponentiate $e^{y - m}$, sum, and normalize probabilities $p_c$.\n4. **Philox PRNG & Inverted Dropout**: Generate deterministic pseudo-random number $\\text{rand} \\in [0, 1)$ using Philox 4x32. Multiply by scale $\\frac{1}{1 - p}$ for kept elements.\n5. **Single DRAM Store**: Write final fused output row $\\text{Out}$ directly into global DRAM memory.\n\n### Key Trade-Offs & Hardware Execution\n- **Inverted Dropout Scaling ($\\frac{1}{1 - p}$)**: Scaling by $\\frac{1}{1 - p}$ during training ensures expected activation magnitude equals 1.0, eliminating scaling overhead during evaluation (inference).\n- **Compilation in OpenAI Triton**: `@triton.jit` compiles Python-like loop code directly into high-performance C++/PTX CUDA assembly.",
-    constraints: [
-      "1 <= rows <= 128",
-      "1 <= cols <= 128",
-      "0.0 <= dropout_p < 1.0",
-    ],
+    constraints: ["1 <= rows <= 128", "1 <= cols <= 128", "0.0 <= dropout_p < 1.0"],
     examples: [
       {
         kind: "basic",
@@ -427,7 +421,8 @@ export const tritonFusedAddSoftmaxDropoutKernel: AlgorithmDefinition<tritonFused
         outputDisplay: "Fused Output Matrix & Boolean Dropout Mask",
         input: DEFAULT_TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_INPUT,
         output: "(output_matrix, boolean_mask_matrix)",
-        explanation: "Fuses Add, Softmax, and Inverted Dropout in 1 SRAM kernel call. Eliminates DRAM intermediate materialization.",
+        explanation:
+          "Fuses Add, Softmax, and Inverted Dropout in 1 SRAM kernel call. Eliminates DRAM intermediate materialization.",
       },
     ],
     code: TRITONFUSEDADDSOFTMAXDROPOUTKERNEL_CODE,
@@ -465,19 +460,23 @@ export const tritonFusedAddSoftmaxDropoutKernel: AlgorithmDefinition<tritonFused
       keyTerms: [
         {
           term: "Kernel Fusion",
-          definition: "Combining multiple neural network layers into a single GPU kernel to eliminate DRAM reads/writes.",
+          definition:
+            "Combining multiple neural network layers into a single GPU kernel to eliminate DRAM reads/writes.",
         },
         {
           term: "OpenAI Triton",
-          definition: "Python-based C-like GPU programming language and compiler for high-performance deep learning kernels.",
+          definition:
+            "Python-based C-like GPU programming language and compiler for high-performance deep learning kernels.",
         },
         {
           term: "Inverted Dropout",
-          definition: "Scaling kept activations by 1 / (1 - p) during training so inference requires zero modifications.",
+          definition:
+            "Scaling kept activations by 1 / (1 - p) during training so inference requires zero modifications.",
         },
         {
           term: "Philox PRNG",
-          definition: "High-speed counter-based pseudo-random number generator designed for GPU parallel threads.",
+          definition:
+            "High-speed counter-based pseudo-random number generator designed for GPU parallel threads.",
         },
       ],
     },

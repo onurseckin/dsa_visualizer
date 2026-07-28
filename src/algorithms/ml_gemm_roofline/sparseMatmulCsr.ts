@@ -9,9 +9,6 @@ export interface sparseMatmulCsrInput {
 }
 
 export const SPARSEMATMULCSR_CODE = `def sparse_matmul_csr(values, col_indices, row_ptr, vector):
-    """
-    Computes SpMV sparse matrix-vector product y = A_csr @ x.
-    """
     num_rows = len(row_ptr) - 1
     result = []
 
@@ -139,40 +136,19 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
     { num_rows: numRows, num_nonzeros: values.length },
   );
 
+  // Line 2: num_rows calculation
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Computes SpMV sparse matrix-vector product y = A_csr @ x.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: num_rows calculation
-  addStep(
-    5,
     `Calculate Row Count: num_rows = ${numRows}`,
     `Extract matrix row count from row_ptr length (${row_ptr.length} - 1 = ${numRows}).`,
     { num_rows: numRows },
   );
 
-  // Line 6: result initialization
+  // Line 3: result initialization
   const result: number[] = [];
   const completedRows: number[] = [];
   addStep(
-    6,
+    3,
     "Initialize Output Result Vector",
     "Allocate empty list 'result' to hold dot products for each row.",
     { result: "[]" },
@@ -181,7 +157,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
   // Loop over rows
   for (let r = 0; r < numRows; r++) {
     addStep(
-      8,
+      5,
       `Start Processing Row ${r}`,
       `Iterate outer loop for row index r = ${r}.`,
       { r, num_rows: numRows },
@@ -192,7 +168,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
     const rowEnd = row_ptr[r + 1];
 
     addStep(
-      9,
+      6,
       `Get row_start = row_ptr[${r}] (${rowStart})`,
       `Fetch starting offset in values array for row ${r}.`,
       { r, row_start: rowStart },
@@ -200,7 +176,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
     );
 
     addStep(
-      10,
+      7,
       `Get row_end = row_ptr[${r + 1}] (${rowEnd})`,
       `Fetch ending offset in values array for row ${r}. Non-zero count for row is ${rowEnd - rowStart}.`,
       { r, row_start: rowStart, row_end: rowEnd },
@@ -209,7 +185,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
 
     let dot = 0;
     addStep(
-      11,
+      8,
       `Initialize Row Accumulator: dot = 0`,
       `Reset dot product accumulator for row ${r}.`,
       { r, dot },
@@ -218,7 +194,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
 
     for (let i = rowStart; i < rowEnd; i++) {
       addStep(
-        12,
+        9,
         `Loop non-zero index i = ${i} (range ${rowStart}..${rowEnd})`,
         `Iterate over non-zero entry at index ${i}.`,
         { r, i, row_start: rowStart, row_end: rowEnd },
@@ -227,7 +203,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
 
       const val = values[i];
       addStep(
-        13,
+        10,
         `Fetch val = values[${i}] (${val})`,
         `Read non-zero coefficient value at index ${i}.`,
         { i, val },
@@ -237,7 +213,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
 
       const col = col_indices[i];
       addStep(
-        14,
+        11,
         `Fetch col = col_indices[${i}] (${col})`,
         `Read column index for non-zero coefficient: col = ${col}.`,
         { i, val, col },
@@ -248,7 +224,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
       const prod = val * vector[col];
       dot += prod;
       addStep(
-        15,
+        12,
         `Accumulate Product: dot += ${val} * ${vector[col]} (${prod}) -> dot = ${dot}`,
         `Multiply non-zero val by vector[${col}] and add to row dot product total.`,
         { r, i, val, col, "vector[col]": vector[col], prod, dot },
@@ -260,7 +236,7 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
     result.push(dot);
     completedRows.push(r);
     addStep(
-      16,
+      13,
       `Append Row Total: result.append(${dot})`,
       `Store finished dot product for row ${r} into result vector: [${result.join(", ")}].`,
       { r, dot, result: `[${result.join(", ")}]` },
@@ -270,9 +246,9 @@ export const generateSparseMatmulCsrSteps = (input: sparseMatmulCsrInput): Algor
     );
   }
 
-  // Line 18: Return result
+  // Line 15: Return result
   addStep(
-    18,
+    15,
     `SpMV Complete: Return result = [${result.join(", ")}]`,
     "Successfully computed sparse matrix-vector product for all rows.",
     { completed: true, result: `[${result.join(", ")}]` },
@@ -293,42 +269,35 @@ export const SPARSEMATMULCSR_TRIVIA: TriviaMeta = {
     "dot += values[col] * vector[i]",
   ],
   hints: [
-    { line: 5, hint: "Row count is given by len(row_ptr) - 1." },
-    { line: 8, hint: "Iterate over each row index r in range(num_rows)." },
-    { line: 12, hint: "Iterate non-zero entries from row_start to row_end." },
-    { line: 15, hint: "Multiply non-zero value by vector[col] and accumulate into dot." },
+    { line: 2, hint: "Row count is given by len(row_ptr) - 1." },
+    { line: 5, hint: "Iterate over each row index r in range(num_rows)." },
+    { line: 9, hint: "Iterate non-zero entries from row_start to row_end." },
+    { line: 12, hint: "Multiply non-zero value by vector[col] and accumulate into dot." },
   ],
   lineExplanations: {
     1: "Defines SpMV sparse matrix-vector multiplication function in CSR format.",
-    2: "Starts docstring explaining SpMV kernel computation.",
-    3: "Describes mathematical contract: y = A_csr @ x.",
-    4: "Ends function docstring.",
-    5: "Calculates total rows M = len(row_ptr) - 1 from offset pointer array.",
-    6: "Initializes empty list 'result' to store computed output dot products.",
-    7: "Blank line separating initialization from row processing loop.",
-    8: "Iterates through row indices r from 0 up to num_rows - 1.",
-    9: "Extracts row start offset pointer row_start = row_ptr[r].",
-    10: "Extracts row end offset pointer row_end = row_ptr[r + 1].",
-    11: "Resets scalar row dot product accumulator 'dot' to zero.",
-    12: "Iterates non-zero entry index i from row_start to row_end - 1.",
-    13: "Fetches non-zero coefficient value val = values[i].",
-    14: "Fetches column index col = col_indices[i] for non-zero entry.",
-    15: "Accumulates product val * vector[col] into row dot product total.",
-    16: "Appends finalized row dot product 'dot' to output result vector.",
-    17: "Blank line separating row processing loop from return statement.",
-    18: "Returns output result vector containing SpMV matrix-vector product.",
+    2: "Calculates total rows M = len(row_ptr) - 1 from offset pointer array.",
+    3: "Initializes empty list 'result' to store computed output dot products.",
+    4: "Blank line separating initialization from row processing loop.",
+    5: "Iterates through row indices r from 0 up to num_rows - 1.",
+    6: "Extracts row start offset pointer row_start = row_ptr[r].",
+    7: "Extracts row end offset pointer row_end = row_ptr[r + 1].",
+    8: "Resets scalar row dot product accumulator 'dot' to zero.",
+    9: "Iterates non-zero entry index i from row_start to row_end - 1.",
+    10: "Fetches non-zero coefficient value val = values[i].",
+    11: "Fetches column index col = col_indices[i] for non-zero entry.",
+    12: "Accumulates product val * vector[col] into row dot product total.",
+    13: "Appends finalized row dot product 'dot' to output result vector.",
+    14: "Blank line separating row processing loop from return statement.",
+    15: "Returns output result vector containing SpMV matrix-vector product.",
   },
 };
 
 export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
   id: "sparse-matmul-csr",
   title: "Sparse Matrix Multiplication (CSR Format)",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "In Graph Neural Networks (GNNs, e.g., PyTorch Geometric, DGL) and heavily pruned modern LLMs (e.g. 50-80% sparse weights), dense matrix storage wastes memory and compute on zero elements. Compressed Sparse Row (CSR) format compresses an $M \\times N$ sparse matrix into three 1D arrays: `values` (length $\\text{NNZ}$), `col_indices` (length $\\text{NNZ}$), and `row_ptr` (length $M + 1$).\n\nSparse Matrix-Vector Multiplication (SpMV) computes $\\mathbf{y} = A_{\\text{CSR}} \\mathbf{x}$ by iterating only over non-zero entries:\n$$y[r] = \\sum_{i=\\text{row\\_ptr}[r]}^{\\text{row\\_ptr}[r+1]-1} \\text{values}[i] \\times x[\\text{col\\_indices}[i]]$$\nIn CUDA/Triton kernels, SpMV presents high arithmetic intensity challenges because indirect memory accesses via `col_indices[i]` cause memory bandwidth bottlenecks and non-coalesced DRAM reads.",
   constraints: [
@@ -341,7 +310,8 @@ export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
     {
       kind: "basic",
       title: "Standard CSR SpMV",
-      inputDisplay: "values = [3, 4, 1, 5, 2, 6, 7, 8], row_ptr = [0, 2, 4, 6, 8], vector = [2, 1, 4, 3]",
+      inputDisplay:
+        "values = [3, 4, 1, 5, 2, 6, 7, 8], row_ptr = [0, 2, 4, 6, 8], vector = [2, 1, 4, 3]",
       outputDisplay: "[22, 16, 28, 31]",
       input: DEFAULT_SPARSEMATMULCSR_INPUT,
       output: "[22, 16, 28, 31]",
@@ -350,7 +320,8 @@ export const sparseMatmulCsr: AlgorithmDefinition<sparseMatmulCsrInput> = {
     {
       kind: "complex",
       title: "Sparse Matrix with Empty Row",
-      inputDisplay: "values = [5, 9], col_indices = [0, 2], row_ptr = [0, 1, 1, 2], vector = [3, 1, 2]",
+      inputDisplay:
+        "values = [5, 9], col_indices = [0, 2], row_ptr = [0, 1, 1, 2], vector = [3, 1, 2]",
       outputDisplay: "[15, 0, 18]",
       input: {
         values: [5, 9],

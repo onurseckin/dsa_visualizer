@@ -42,9 +42,6 @@ def do_intersect(p1: tuple[float, float], q1: tuple[float, float],
     return False
 
 def sweep_line_intersections(segments: list[dict]) -> list[tuple[str, str]]:
-    """
-    Finds 2D segment intersections using a vertical sweep line algorithm.
-    """
     events = []
     for s in segments:
         p1 = (s["p1"]["x"], s["p1"]["y"])
@@ -220,7 +217,7 @@ export const generateSweepLineIntersectionsSteps = (
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 48,
+    codeLine: 25,
     explanation: {
       what: `Initializing Sweep Line algorithm for ${segments.length} segments.`,
       why: "A vertical line sweeps left-to-right across the plane, maintaining a status structure of active segments intersecting the sweep line.",
@@ -232,7 +229,7 @@ export const generateSweepLineIntersectionsSteps = (
     auxiliaryState: {
       hashMap: {
         "Total Segments": segments.length,
-        "Status": "Initializing Event Queue",
+        Status: "Initializing Event Queue",
       },
     },
     variables: { totalSegments: segments.length },
@@ -242,7 +239,7 @@ export const generateSweepLineIntersectionsSteps = (
   for (const seg of segments) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 54,
+      codeLine: 31,
       explanation: {
         what: `Segment ${seg.id}: Created LEFT event at X=${seg.p1.x} and RIGHT event at X=${seg.p2.x}.`,
         why: "Endpoints mark when a segment enters and leaves the active sweep line status structure.",
@@ -253,7 +250,7 @@ export const generateSweepLineIntersectionsSteps = (
       },
       auxiliaryState: {
         hashMap: {
-          "Segment": seg.id,
+          Segment: seg.id,
           "LEFT Event": `X=${seg.p1.x}`,
           "RIGHT Event": `X=${seg.p2.x}`,
         },
@@ -265,7 +262,7 @@ export const generateSweepLineIntersectionsSteps = (
   // Step 2: Sort events
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 57,
+    codeLine: 34,
     explanation: {
       what: `Sorted ${events.length} endpoint events by X-coordinate.`,
       why: "Event queue ordering guarantees sweep line processes events in left-to-right spatial order.",
@@ -291,19 +288,23 @@ export const generateSweepLineIntersectionsSteps = (
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 61,
+      codeLine: 38,
       explanation: {
         what: `Advancing Sweep Line to X=${sweepX} (Event: ${ev.type} for Segment ${ev.seg.id}).`,
         why: "Sweep line pauses at discrete endpoint event positions.",
       },
       primarySnapshot: {
         kind: "graph",
-        ...makeGraphSnapshot(sweepX, activeSegments.map((s) => s.id), intersectionsFound),
+        ...makeGraphSnapshot(
+          sweepX,
+          activeSegments.map((s) => s.id),
+          intersectionsFound,
+        ),
       },
       auxiliaryState: {
         hashMap: {
           "Sweep X": sweepX,
-          "Event": `${ev.type} ${ev.seg.id}`,
+          Event: `${ev.type} ${ev.seg.id}`,
           "Active Count": activeSegments.length,
         },
       },
@@ -321,19 +322,23 @@ export const generateSweepLineIntersectionsSteps = (
 
             steps.push({
               stepIndex: stepIndex++,
-              codeLine: 64,
+              codeLine: 41,
               explanation: {
                 what: `Testing intersection between Segment ${ev.seg.id} and Active Segment ${other.id}: ${res.intersects ? "INTERSECTS!" : "No Intersection"}.`,
                 why: "When a new segment inserts into active set, test for intersection against existing active neighbors.",
               },
               primarySnapshot: {
                 kind: "graph",
-                ...makeGraphSnapshot(sweepX, [...activeSegments.map((s) => s.id), ev.seg.id], intersectionsFound),
+                ...makeGraphSnapshot(
+                  sweepX,
+                  [...activeSegments.map((s) => s.id), ev.seg.id],
+                  intersectionsFound,
+                ),
               },
               auxiliaryState: {
                 hashMap: {
                   "Tested Pair": `${ev.seg.id} vs ${other.id}`,
-                  "Intersects": res.intersects ? "YES" : "NO",
+                  Intersects: res.intersects ? "YES" : "NO",
                   "Intersection Point": res.point ? `(${res.point.x},${res.point.y})` : "None",
                 },
               },
@@ -344,14 +349,18 @@ export const generateSweepLineIntersectionsSteps = (
               intersectionsFound.push(res.point);
               steps.push({
                 stepIndex: stepIndex++,
-                codeLine: 65,
+                codeLine: 42,
                 explanation: {
                   what: `Recorded intersection point (${res.point.x}, ${res.point.y}) between ${ev.seg.id} and ${other.id}.`,
                   why: "Found segment crossing in 2D plane.",
                 },
                 primarySnapshot: {
                   kind: "graph",
-                  ...makeGraphSnapshot(sweepX, [...activeSegments.map((s) => s.id), ev.seg.id], intersectionsFound),
+                  ...makeGraphSnapshot(
+                    sweepX,
+                    [...activeSegments.map((s) => s.id), ev.seg.id],
+                    intersectionsFound,
+                  ),
                 },
                 auxiliaryState: {
                   hashMap: {
@@ -369,14 +378,18 @@ export const generateSweepLineIntersectionsSteps = (
       activeSegments.push(ev.seg);
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 66,
+        codeLine: 43,
         explanation: {
           what: `Added Segment ${ev.seg.id} to Active Status Structure.`,
           why: "Segment is currently intersected by vertical sweep line.",
         },
         primarySnapshot: {
           kind: "graph",
-          ...makeGraphSnapshot(sweepX, activeSegments.map((s) => s.id), intersectionsFound),
+          ...makeGraphSnapshot(
+            sweepX,
+            activeSegments.map((s) => s.id),
+            intersectionsFound,
+          ),
         },
         auxiliaryState: {
           hashMap: {
@@ -392,14 +405,18 @@ export const generateSweepLineIntersectionsSteps = (
       }
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 68,
+        codeLine: 45,
         explanation: {
           what: `Removed Segment ${ev.seg.id} from Active Status Structure at RIGHT endpoint X=${sweepX}.`,
           why: "Sweep line has moved past the right endpoint of this segment.",
         },
         primarySnapshot: {
           kind: "graph",
-          ...makeGraphSnapshot(sweepX, activeSegments.map((s) => s.id), intersectionsFound),
+          ...makeGraphSnapshot(
+            sweepX,
+            activeSegments.map((s) => s.id),
+            intersectionsFound,
+          ),
         },
         auxiliaryState: {
           hashMap: {
@@ -414,7 +431,7 @@ export const generateSweepLineIntersectionsSteps = (
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 70,
+    codeLine: 47,
     explanation: {
       what: `Sweep Line algorithm complete. Total intersections found: ${intersectionsFound.length}.`,
       why: "The sweep line approach restricts intersection tests to active spatial neighbors.",
@@ -513,41 +530,37 @@ export const SWEEP_LINE_INTERSECTIONS_TRIVIA: TriviaMeta = {
     22: "Returns False for no intersection.",
     23: "Empty line for formatting.",
     24: "Defines main sweep_line_intersections function signature taking segment array.",
-    25: "Opening docstring tag.",
-    26: "Docstring describing vertical sweep line algorithm.",
-    27: "Closing docstring tag.",
-    28: "Initializes event queue array.",
-    29: "Iterates through each input segment.",
-    30: "Unpacks left endpoint p1.",
-    31: "Unpacks right endpoint p2.",
-    32: "Ensures p1 has smaller x-coordinate (p1.x <= p2.x).",
-    33: "Swaps endpoints if p1.x > p2.x.",
-    34: "Appends LEFT endpoint event to event queue.",
-    35: "Appends RIGHT endpoint event to event queue.",
-    36: "Empty line for formatting.",
-    37: "Sorts event queue primarily by x-coordinate, breaking ties with LEFT < RIGHT.",
-    38: "Initializes active segment status list.",
-    39: "Initializes intersections list.",
-    40: "Empty line for formatting.",
-    41: "Sweeps event queue sequentially by x-coordinate.",
-    42: "Checks if current event is LEFT endpoint insertion.",
-    43: "Iterates through existing active segments to test intersection.",
-    44: "Tests intersection using do_intersect cross-product primitive.",
-    45: "Appends pair to intersections list when crossing occurs.",
-    46: "Appends segment to active status list.",
-    47: "Else branch for RIGHT endpoint removal event.",
-    48: "Removes segment from active status list.",
-    49: "Empty line for formatting.",
-    50: "Returns final list of discovered segment intersection pairs.",
-    51: "Empty trailing line for code formatting.",
+    25: "Initializes event queue array.",
+    26: "Iterates through each input segment.",
+    27: "Unpacks left endpoint p1.",
+    28: "Unpacks right endpoint p2.",
+    29: "Ensures p1 has smaller x-coordinate (p1.x <= p2.x).",
+    30: "Swaps endpoints if p1.x > p2.x.",
+    31: "Appends LEFT endpoint event to event queue.",
+    32: "Appends RIGHT endpoint event to event queue.",
+    33: "Empty line for formatting.",
+    34: "Sorts event queue primarily by x-coordinate, breaking ties with LEFT < RIGHT.",
+    35: "Initializes active segment status list.",
+    36: "Initializes intersections list.",
+    37: "Empty line for formatting.",
+    38: "Sweeps event queue sequentially by x-coordinate.",
+    39: "Checks if current event is LEFT endpoint insertion.",
+    40: "Iterates through existing active segments to test intersection.",
+    41: "Tests intersection using do_intersect cross-product primitive.",
+    42: "Appends pair to intersections list when crossing occurs.",
+    43: "Appends segment to active status list.",
+    44: "Else branch for RIGHT endpoint removal event.",
+    45: "Removes segment from active status list.",
+    46: "Empty line for formatting.",
+    47: "Returns final list of discovered segment intersection pairs.",
+    48: "Empty trailing line for code formatting.",
   },
 };
 
 export const sweepLineIntersections: AlgorithmDefinition<SweepLineIntersectionsInput> = {
   id: "sweep-line-intersections",
   title: "Sweep Line Segment Intersections",
-  category: "geometry_and_sweep_line",
-  categories: ["geometry_and_sweep_line"],
+  topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
     "Find segment intersections using a vertical sweep line algorithm (Shamos-Hoey / Bentley-Ottmann) processing start, end, and event points sorted by $X$ in $\\mathcal{O}((N + K) \\log N)$ time:\n\n$$\\text{cross}(\\mathbf{a}, \\mathbf{b}, \\mathbf{c}) = (b_x - a_x)(c_y - a_y) - (b_y - a_y)(c_x - a_x)$$\n\n### Graph Snapshot Representation\nThe 2D segments, active status structure, and vertical sweep line are visualized dynamically on a 2D coordinate plane.\n\n### Input Parameters\n- `segments` (`SegmentItem[]`): Array of 2D line segments.\n\n### Output\n- `tuple[string, string][]`: Pairs of segment IDs that intersect.\n\n### Edge Cases & Constraints\n- Vertical Segments ($x_1 = x_2$): Sorted properly by tie-breaker.\n- Parallel Segments: No false intersection reported.",
@@ -602,7 +615,8 @@ export const sweepLineIntersections: AlgorithmDefinition<SweepLineIntersectionsI
   spaceComplexity: "O(N + K)",
   complexityAnalysis: {
     time: "Sorting $N$ segment endpoints takes $\\mathcal{O}(N \\log N)$ time. Maintaining the active status structure with $K$ intersections takes $\\mathcal{O}((N + K) \\log N)$ time.",
-    space: "Requires $\\mathcal{O}(N + K)$ auxiliary space for the event queue and active status structure.",
+    space:
+      "Requires $\\mathcal{O}(N + K)$ auxiliary space for the event queue and active status structure.",
   },
   topicGuide: SWEEP_LINE_INTERSECTIONS_TOPIC_GUIDE,
   trivia: SWEEP_LINE_INTERSECTIONS_TRIVIA,

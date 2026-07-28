@@ -116,8 +116,7 @@ const NUMBER_OF_ISLANDS_TRIVIA: TriviaMeta = {
 export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   id: "number-of-islands",
   title: "Number of Islands",
-  category: "graph_traversal",
-  categories: ["graph_traversal"],
+  topicIds: ["graph_traversal"],
   difficulty: "Medium",
   description:
     "Given an $m \\times n$ 2D binary grid `grid` where `'1'` represents land and `'0'` represents water, return the total number of connected islands. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional adjacency: $(r \\pm 1, c)$ and $(r, c \\pm 1)$). The algorithm sweeps every cell $(r, c)$ in $\\mathcal{O}(m \\times n)$ time and triggers a BFS/DFS flood fill upon encountering an unvisited land cell, marking all connected land cells in that component as visited.",
@@ -186,7 +185,8 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   spaceComplexity: "O(M * N)",
   complexityAnalysis: {
     time: "Every cell in the $m \\times n$ grid is visited once by the outer loop, and each land cell is enqueued/dequeued at most once by BFS, taking $\\mathcal{O}(m \\times n)$ time.",
-    space: "The visited lookup set and the BFS queue store at most $\\mathcal{O}(m \\times n)$ cell coordinates in the worst case when the grid is filled with land.",
+    space:
+      "The visited lookup set and the BFS queue store at most $\\mathcal{O}(m \\times n)$ cell coordinates in the worst case when the grid is filled with land.",
   },
   topicGuide: NUMBER_OF_ISLANDS_TOPIC_GUIDE,
   trivia: NUMBER_OF_ISLANDS_TRIVIA,

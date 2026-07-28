@@ -9,10 +9,11 @@ import {
 describe("column-parallel-linear-reshaper (Megatron-LM Column Parallel Linear Layer Reshaper)", () => {
   it("should have correct metadata", () => {
     expect(columnParallelLinearReshaper.id).toBe("column-parallel-linear-reshaper");
-    expect(columnParallelLinearReshaper.isMlInfra).toBe(true);
-    expect(columnParallelLinearReshaper.mlInfraLevel).toBe(11);
-    expect(columnParallelLinearReshaper.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(columnParallelLinearReshaper.categories).toContain("ml_distributed_systems");
+    expect(columnParallelLinearReshaper.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(columnParallelLinearReshaper.topicIds).toContain("ml_distributed_systems");
+    expect(columnParallelLinearReshaper.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {
@@ -33,4 +34,3 @@ describe("column-parallel-linear-reshaper (Megatron-LM Column Parallel Linear La
     }
   });
 });
-

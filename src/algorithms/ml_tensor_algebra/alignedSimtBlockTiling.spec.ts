@@ -8,10 +8,9 @@ import {
 describe("aligned-simt-block-tiling (SIMD/SIMT Aligned Memory Tiling Engine)", () => {
   it("should have correct metadata", () => {
     expect(alignedSimtBlockTiling.id).toBe("aligned-simt-block-tiling");
-    expect(alignedSimtBlockTiling.isMlInfra).toBe(true);
-    expect(alignedSimtBlockTiling.mlInfraLevel).toBe(1);
-    expect(alignedSimtBlockTiling.mlInfraCategory).toBe("ml_tensor_algebra");
-    expect(alignedSimtBlockTiling.categories).toContain("ml_tensor_algebra");
+    expect(alignedSimtBlockTiling.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(alignedSimtBlockTiling.topicIds).toContain("ml_tensor_algebra");
+    expect(alignedSimtBlockTiling.topicIds).toContain("ml_tensor_algebra");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {

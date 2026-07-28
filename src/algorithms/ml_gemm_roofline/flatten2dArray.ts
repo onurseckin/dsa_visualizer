@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface flatten2dArrayInput {
@@ -8,9 +13,6 @@ export interface flatten2dArrayInput {
 }
 
 export const FLATTEN2DARRAY_CODE = `def flatten_2d_array(matrix):
-    """
-    Linearizes 2D row-major matrix into contiguous 1D memory array.
-    """
     flat = []
     for row in matrix:
         for val in row:
@@ -53,7 +55,7 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
   ): MatrixVisualSnapshot => {
     const cells: MatrixCellItem[] = [];
 
-    // Rows 0..m-1: Input 2D Matrix
+    // Rows 0..m-1: Input 2D Matrix Grid
     for (let r = 0; r < m; r++) {
       for (let c = 0; c < n; c++) {
         const isCurrent = r === currentR && c === currentC;
@@ -79,27 +81,41 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
       }
     }
 
-    // Row m: Linearized 1D Buffer Preview
-    for (let c = 0; c < n; c++) {
-      const showVal = c < flat.length ? flat[c] : "-";
-      cells.push({
-        row: m,
-        col: c,
-        value: showVal,
-        label: `Flat[${c}]`,
-        state: c < flat.length ? "sorted" : "inactive",
-      });
+    // Rows m..2m-1: Linearized 1D Buffer Memory Layout
+    for (let fr = 0; fr < m; fr++) {
+      for (let fc = 0; fc < n; fc++) {
+        const flatIdx = fr * n + fc;
+        const isFilled = flatIdx < flat.length;
+        const isJustAppended = isFilled && flatIdx === flat.length - 1 && phase === "val_append";
+
+        let state: MatrixCellItem["state"] = "inactive";
+        if (isJustAppended) {
+          state = "active";
+        } else if (isFilled || phase === "complete") {
+          state = "sorted";
+        }
+
+        cells.push({
+          row: m + fr,
+          col: fc,
+          value: isFilled ? flat[flatIdx] : "-",
+          label: `Flat[${flatIdx}]`,
+          state,
+        });
+      }
     }
+
+    const rowHeaders = [
+      ...Array.from({ length: m }, (_, idx) => `Grid Row ${idx}`),
+      ...Array.from({ length: m }, (_, idx) => `Flat Offset ${idx * n}..${(idx + 1) * n - 1}`),
+    ];
 
     return {
       kind: "matrix",
-      rows: m + 1,
+      rows: 2 * m,
       cols: n,
       title: `1D Memory Linearization (${m}x${n} Grid -> Flat Buffer [${flat.length}/${m * n}])`,
-      rowHeaders: [
-        ...Array.from({ length: m }, (_, idx) => `Grid Row ${idx}`),
-        "1D Flat Buffer",
-      ],
+      rowHeaders,
       colHeaders: Array.from({ length: n }, (_, idx) => `Col ${idx}`),
       cells,
     };
@@ -139,39 +155,18 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
     { m, n },
   );
 
+  // Line 2: Allocate flat array
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Linearizes 2D row-major matrix into contiguous 1D memory array.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: Allocate flat array
-  addStep(
-    5,
     "Initialize 1D Linear Output Array",
     "Allocated flat list for contiguous 1D memory layout.",
     { flat: "[]" },
   );
 
-  // Lines 6-8: Row and Val iteration
+  // Lines 3-5: Row and Val iteration
   for (let r = 0; r < m; r++) {
     addStep(
-      6,
+      3,
       `Iterate Matrix Row r=${r}`,
       `Traversing row ${r} of 2D matrix [${matrix[r].join(", ")}].`,
       { r, row_data: `[${matrix[r].join(", ")}]` },
@@ -183,7 +178,7 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
     for (let c = 0; c < n; c++) {
       const val = matrix[r][c];
       addStep(
-        7,
+        4,
         `Read Scalar Value matrix[${r}][${c}] = ${val}`,
         `Fetched element ${val} at 2D grid position (${r}, ${c}).`,
         { r, c, val },
@@ -195,7 +190,7 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
       flat.push(val);
       const flatIndex = flat.length - 1;
       addStep(
-        8,
+        5,
         `Append Value ${val} to 1D Buffer Index ${flatIndex}`,
         `Serialized grid element (${r}, ${c}) into 1D memory offset ${flatIndex} (Index = ${r}*${n} + ${c} = ${flatIndex}).`,
         { r, c, val, flat_index: flatIndex, flat: `[${flat.join(", ")}]` },
@@ -206,9 +201,9 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
     }
   }
 
-  // Line 9: Return
+  // Line 6: Return
   addStep(
-    9,
+    6,
     "Matrix Linearization Complete",
     `Successfully flattened ${m}x${n} 2D matrix into ${flat.length}-element 1D contiguous memory buffer.`,
     { completed: true, total_elements: flat.length },
@@ -222,37 +217,26 @@ export const generateFlatten2dArraySteps = (input: flatten2dArrayInput): Algorit
 
 const FLATTEN2DARRAY_TRIVIA: TriviaMeta = {
   skipLines: [],
-  distractors: [
-    "flat.extend(row[::-1])  # Reversing row elements breaking row-major order",
-    "flat.append(row)  # Appending 1D rows resulting in 2D list instead of flat array",
-    "return matrix[::-1]",
-  ],
+  distractors: ["flat.extend(row[::-1])", "flat.append(row)", "return matrix[::-1]"],
   hints: [
-    { line: 6, hint: "Iterate row-by-row to preserve row-major memory order." },
-    { line: 8, hint: "Append scalar elements to build contiguous 1D memory buffer." },
+    { line: 3, hint: "Iterate row-by-row to preserve row-major memory order." },
+    { line: 5, hint: "Append scalar elements to build contiguous 1D memory buffer." },
   ],
   lineExplanations: {
     1: "Defines flatten_2d_array function accepting a 2D matrix parameter.",
-    2: "Starts docstring detailing 2D row-major matrix linearization into 1D memory.",
-    3: "Explains serializing 2D grid structures into contiguous 1D memory buffers.",
-    4: "Closes function docstring.",
-    5: "Initializes empty flat list to store linear 1D memory elements.",
-    6: "Iterates through each 1D row array in the 2D matrix grid.",
-    7: "Iterates through each scalar value entry val in the current row.",
-    8: "Appends scalar value entry val into the 1D flat memory array.",
-    9: "Returns linearized 1D contiguous memory array.",
+    2: "Initializes empty flat list to store linear 1D memory elements.",
+    3: "Iterates through each 1D row array in the 2D matrix grid.",
+    4: "Iterates through each scalar value entry val in the current row.",
+    5: "Appends scalar value entry val into the 1D flat memory array.",
+    6: "Returns linearized 1D contiguous memory array.",
   },
 };
 
 export const flatten2dArray: AlgorithmDefinition<flatten2dArrayInput> = {
   id: "flatten-2d-array",
   title: "1D Buffer Matrix Flattening",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description: `High-performance linear algebra libraries (such as cuBLAS \`sgemm\`, PyTorch C++ ATen, NumPy C API, and C++ SIMD vector routines) require matrix data to be stored as 1D contiguous memory buffers in physical RAM/VRAM.
 
 While human software abstractions represent matrices as 2D grids (rows and columns), physical memory chips (DRAM/SRAM) are strictly 1D arrays of bytes addressed linearly. Flattening (linearizing) an $M \\times N$ matrix into a 1D contiguous array using Row-Major Order maps element $(r, c)$ to 1D linear memory address offset:
@@ -268,7 +252,8 @@ This algorithm simulates 1D Buffer Matrix Flattening step-by-step, visualizing r
       outputDisplay: "Flat Array [10, 20, 30, ..., 160]",
       input: DEFAULT_FLATTEN2DARRAY_INPUT,
       output: "Flat Array [10, 20, 30, ..., 160]",
-      explanation: "Serializes 4x4 matrix into a 16-element contiguous 1D linear array in row-major order.",
+      explanation:
+        "Serializes 4x4 matrix into a 16-element contiguous 1D linear array in row-major order.",
     },
     {
       kind: "complex",
@@ -325,8 +310,7 @@ This algorithm simulates 1D Buffer Matrix Flattening step-by-step, visualizing r
       },
       {
         term: "Buffer Linearization",
-        definition:
-          "Converting multi-dimensional matrix grid structures into a 1D flat array.",
+        definition: "Converting multi-dimensional matrix grid structures into a 1D flat array.",
       },
       {
         term: "Memory Stride",

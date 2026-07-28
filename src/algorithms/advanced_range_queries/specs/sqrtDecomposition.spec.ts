@@ -6,7 +6,7 @@ describe("sqrtDecomposition algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(sqrtDecomposition.id).toBe("sqrt-decomposition");
     expect(sqrtDecomposition.title).toContain("SQRT Decomposition");
-    expect(sqrtDecomposition.category).toBe("advanced_range_queries");
+    expect(sqrtDecomposition.topicIds).toContain("advanced_range_queries");
     expect(sqrtDecomposition.timeComplexity.average).toBe("O(sqrt n)");
     expect(sqrtDecomposition.spaceComplexity).toBe("O(n)");
   });

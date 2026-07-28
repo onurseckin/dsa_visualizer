@@ -3,23 +3,30 @@ import { describe, expect, it } from "vitest";
 import { ProblemHeader } from "../ProblemHeader";
 
 describe("ProblemHeader", () => {
-  it("renders problem title, difficulty level badge, and category tag", () => {
-    render(<ProblemHeader title="Merge Intervals" category="intervals" difficulty="Medium" />);
+  it("renders problem title, difficulty level badge, and every topic tag", () => {
+    render(
+      <ProblemHeader
+        title="Merge Intervals"
+        topicIds={["intervals", "two_pointers"]}
+        difficulty="Medium"
+      />,
+    );
 
     expect(screen.getByText("Merge Intervals")).toBeInTheDocument();
     const difficultyBadge = screen.getByText("Medium");
-    const categoryBadge = screen.getByText("Intervals");
+    const topicBadge = screen.getByText("Intervals");
+    expect(screen.getByText("Two Pointers")).toBeInTheDocument();
     expect(difficultyBadge).toBeInTheDocument();
-    expect(categoryBadge).toBeInTheDocument();
+    expect(topicBadge).toBeInTheDocument();
     expect(difficultyBadge).toHaveClass("ui-badge--md");
-    expect(categoryBadge).toHaveClass("ui-badge--md");
+    expect(topicBadge).toHaveClass("ui-badge--md");
   });
 
   it("applies className and style when provided", () => {
     render(
       <ProblemHeader
         title="Merge Intervals"
-        category="intervals"
+        topicIds={["intervals"]}
         difficulty="Medium"
         className="custom-class"
         style={{ opacity: 0.5 }}
@@ -32,7 +39,7 @@ describe("ProblemHeader", () => {
   });
 
   it("does not render any toggle buttons", () => {
-    render(<ProblemHeader title="Merge Intervals" category="intervals" difficulty="Medium" />);
+    render(<ProblemHeader title="Merge Intervals" topicIds={["intervals"]} difficulty="Medium" />);
 
     expect(screen.queryByRole("button")).toBeNull();
   });
@@ -41,7 +48,7 @@ describe("ProblemHeader", () => {
     render(
       <ProblemHeader
         title="Two Sum"
-        category="arrays_and_hashing"
+        topicIds={["arrays_and_hashing"]}
         difficulty="Easy"
         leetcode={{ id: 1, url: "https://leetcode.com/problems/two-sum/" }}
       />,

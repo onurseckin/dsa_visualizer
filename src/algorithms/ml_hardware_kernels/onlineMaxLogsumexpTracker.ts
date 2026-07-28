@@ -16,7 +16,6 @@ export interface onlineMaxLogsumexpTrackerInput {
 }
 
 export const ONLINEMAXLOGSUMEXPTRACKER_CODE = `def update_online_max_lse(m_prev: float, lse_prev: float, new_chunk_scores: list[float]) -> tuple[float, float, float]:
-    """Updates running max m and running log-sum-exp lse for streaming online Softmax."""
     if not new_chunk_scores:
         return m_prev, lse_prev, 1.0
 
@@ -67,14 +66,18 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
     lseNew: number;
   }[] = [];
 
-  const getSnapshot = (
-    activeChunkIdx: number = -1,
-  ) => {
+  const getSnapshot = (activeChunkIdx: number = -1) => {
     const rows = n + 1;
     const cols = 5;
     const cells: MatrixCellItem[] = [];
 
-    const headers = ["Stream Chunk", "Previous m_prev", "Chunk Max m_curr", "Updated m_new", "Accumulated lse_new"];
+    const headers = [
+      "Stream Chunk",
+      "Previous m_prev",
+      "Chunk Max m_curr",
+      "Updated m_new",
+      "Accumulated lse_new",
+    ];
     for (let c = 0; c < 5; c++) {
       cells.push({ row: 0, col: c, value: headers[c], label: "Header", state: "default" });
     }
@@ -88,7 +91,12 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
       cells.push(
         { row: rowIdx, col: 0, value: chunk.name, state },
-        { row: rowIdx, col: 1, value: rec ? (rec.mPrev === -Infinity ? "-inf" : rec.mPrev.toFixed(1)) : "-", state },
+        {
+          row: rowIdx,
+          col: 1,
+          value: rec ? (rec.mPrev === -Infinity ? "-inf" : rec.mPrev.toFixed(1)) : "-",
+          state,
+        },
         { row: rowIdx, col: 2, value: rec ? rec.mCurr.toFixed(1) : "-", state },
         { row: rowIdx, col: 3, value: rec ? rec.mNew.toFixed(1) : "-", state },
         { row: rowIdx, col: 4, value: rec ? rec.lseNew.toFixed(2) : "-", state },
@@ -118,7 +126,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
       primarySnapshot: getSnapshot(activeChunkIdx),
       auxiliaryState: {
         customState: {
-          "Algorithm": "Online Softmax Streaming Max & Logsumexp Tracker (Milakov & Gimelshein 2018)",
+          Algorithm: "Online Softmax Streaming Max & Logsumexp Tracker (Milakov & Gimelshein 2018)",
           "Stream Chunks Count": String(n),
           "Running Max m": runningM === -Infinity ? "-inf" : runningM.toFixed(4),
           "Running Logsumexp lse": runningLse.toFixed(4),
@@ -142,16 +150,16 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
     const mPrev = runningM;
 
     addStep(
-      1,
+      2,
       `Stream Chunk ${idx + 1}/${n}: Process Tile "${chunk.name}"`,
       `Loading attention tile "${chunk.name}": scores = [${chunk.scores.join(", ")}]. Current running max m_prev = ${mPrev === -Infinity ? "-inf" : mPrev.toFixed(4)}.`,
       { chunkIdx: idx, name: chunk.name, scores: JSON.stringify(chunk.scores) },
       idx,
     );
 
-    // Empty check (3)
+    // Empty check (2)
     addStep(
-      3,
+      2,
       "Check Empty Score Vector Condition: if not new_chunk_scores",
       `Verified new_chunk_scores list is non-empty (${chunk.scores.length} scores).`,
       { isEmpty: false },
@@ -160,7 +168,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
     const mCurr = Math.max(...chunk.scores);
     addStep(
-      6,
+      5,
       `Calculate Chunk Maximum Score: m_curr = max(new_chunk_scores) = ${mCurr.toFixed(4)}`,
       `Evaluated maximum attention score in tile: m_curr = ${mCurr.toFixed(4)}.`,
       { m_curr: mCurr },
@@ -169,7 +177,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
     const mNew = Math.max(mPrev, mCurr);
     addStep(
-      7,
+      6,
       `Update Global Running Max Score: m_new = max(${mPrev === -Infinity ? "-inf" : mPrev.toFixed(4)}, ${mCurr.toFixed(4)}) = ${mNew.toFixed(4)}`,
       `Updated running maximum score m_new = ${mNew.toFixed(4)}.`,
       { m_prev: mPrev === -Infinity ? -999 : mPrev, m_curr: mCurr, m_new: mNew },
@@ -178,7 +186,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
     const scalePrev = mPrev === -Infinity ? 0.0 : Math.exp(mPrev - mNew);
     addStep(
-      9,
+      8,
       `Calculate Rescaling Multiplier: scale_prev = exp(m_prev - m_new) = ${scalePrev.toFixed(4)}`,
       `Evaluated output & denominator correction multiplier scale_prev = ${scalePrev.toFixed(4)}.`,
       { scale_prev: scalePrev },
@@ -187,7 +195,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
     const expChunk = chunk.scores.map((s) => Math.exp(s - mNew));
     addStep(
-      11,
+      10,
       "Exponentiate Tile Scores: exp(S - m_new)",
       `Evaluated exponentiated score terms: [${expChunk.map((e) => e.toFixed(4)).join(", ")}].`,
       { expChunk: JSON.stringify(expChunk.map((e) => e.toFixed(4))) },
@@ -196,7 +204,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
     const lseChunk = expChunk.reduce((a, b) => a + b, 0);
     addStep(
-      12,
+      11,
       `Sum Chunk Exponentiated Scores: lse_chunk = ${lseChunk.toFixed(4)}`,
       `Summed chunk exponentiated terms lse_chunk = ${lseChunk.toFixed(4)}.`,
       { lse_chunk: lseChunk },
@@ -205,7 +213,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
     const lseNew = runningLse * scalePrev + lseChunk;
     addStep(
-      14,
+      13,
       `Update Online Running Logsumexp: lse_new = lse_prev * scale_prev + lse_chunk = ${lseNew.toFixed(4)}`,
       `Rescaled previous normalizer lse_prev by scale_prev (${scalePrev.toFixed(4)}) and added lse_chunk (${lseChunk.toFixed(4)}): lse_new = ${lseNew.toFixed(4)}.`,
       { lse_prev: runningLse, scale_prev: scalePrev, lse_chunk: lseChunk, lse_new: lseNew },
@@ -226,7 +234,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
     });
 
     addStep(
-      16,
+      15,
       `Execution Complete for Chunk ${idx + 1}: Return (m_new=${mNew.toFixed(4)}, lse_new=${lseNew.toFixed(4)}, scale_prev=${scalePrev.toFixed(4)})`,
       `Persisted online max m = ${mNew.toFixed(4)} and normalizer lse = ${lseNew.toFixed(4)} for tile "${chunk.name}".`,
       { m_new: mNew, lse_new: lseNew, scale_prev: scalePrev },
@@ -236,7 +244,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 
   // Final step
   addStep(
-    16,
+    15,
     "Execution Complete: Return Final Online Softmax Trackers",
     `Completed streaming online Softmax tracking across all ${n} tiles. Final global max m = ${runningM.toFixed(4)}, Final normalizer lse = ${runningLse.toFixed(4)}.`,
     { runningM, runningLse, completed: true },
@@ -246,7 +254,7 @@ export const generateONLINEMAXLOGSUMEXPTRACKERSteps = (
 };
 
 const ONLINEMAXLOGSUMEXPTRACKER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 5, 8, 10, 13, 15],
+  skipLines: [4, 7, 9, 12, 14],
   distractors: [
     "m_new = m_prev + m_curr",
     "scale_prev = exp(m_new - m_prev)",
@@ -254,39 +262,37 @@ const ONLINEMAXLOGSUMEXPTRACKER_TRIVIA: TriviaMeta = {
     "return m_curr, lse_chunk",
   ],
   hints: [
-    { line: 7, hint: "Online max updating equation: m_new = max(m_prev, m_curr)." },
-    { line: 9, hint: "Softmax output rescaling factor: scale_prev = exp(m_prev - m_new)." },
-    { line: 14, hint: "Online logsumexp updating equation: lse_new = lse_prev * scale_prev + lse_chunk." },
+    { line: 6, hint: "Online max updating equation: m_new = max(m_prev, m_curr)." },
+    { line: 8, hint: "Softmax output rescaling factor: scale_prev = exp(m_prev - m_new)." },
+    {
+      line: 13,
+      hint: "Online logsumexp updating equation: lse_new = lse_prev * scale_prev + lse_chunk.",
+    },
   ],
   lineExplanations: {
     1: "Defines entry point for update_online_max_lse function implementing online Softmax (Milakov & Gimelshein 2018).",
-    2: "Docstring describing online Softmax streaming max m and logsumexp lse updating logic.",
-    3: "Checks if new_chunk_scores input list is empty.",
-    4: "Returns unchanged m_prev, lse_prev, and scale=1.0 for empty chunk.",
-    5: "Blank line before score max calculation.",
-    6: "Calculates maximum score in current tile chunk m_curr = max(new_chunk_scores).",
-    7: "Updates running global maximum score m_new = max(m_prev, m_curr).",
-    8: "Blank line before rescaling multiplier calculation.",
-    9: "Calculates previous output correction multiplier scale_prev = exp(m_prev - m_new) if m_prev != -inf else 0.0.",
-    10: "Blank line before exponentiated score calculations.",
-    11: "Calculates exponentiated scores for current chunk exp_chunk = [exp(s - m_new) for s in scores].",
-    12: "Sums current chunk exponentiated terms lse_chunk = sum(exp_chunk).",
-    13: "Blank line before online logsumexp update.",
-    14: "Rescales previous normalizer and adds current chunk sum: lse_new = lse_prev * scale_prev + lse_chunk.",
-    15: "Blank line separating update logic from return statement.",
-    16: "Returns tuple of (m_new, lse_new, scale_prev).",
+    2: "Checks if new_chunk_scores input list is empty.",
+    3: "Returns unchanged m_prev, lse_prev, and scale=1.0 for empty chunk.",
+    4: "Blank line before score max calculation.",
+    5: "Calculates maximum score in current tile chunk m_curr = max(new_chunk_scores).",
+    6: "Updates running global maximum score m_new = max(m_prev, m_curr).",
+    7: "Blank line before rescaling multiplier calculation.",
+    8: "Calculates previous output correction multiplier scale_prev = exp(m_prev - m_new) if m_prev != -inf else 0.0.",
+    9: "Blank line before exponentiated score calculations.",
+    10: "Calculates exponentiated scores for current chunk exp_chunk = [exp(s - m_new) for s in scores].",
+    11: "Sums current chunk exponentiated terms lse_chunk = sum(exp_chunk).",
+    12: "Blank line before online logsumexp update.",
+    13: "Rescales previous normalizer and adds current chunk sum: lse_new = lse_prev * scale_prev + lse_chunk.",
+    14: "Blank line separating update logic from return statement.",
+    15: "Returns tuple of (m_new, lse_new, scale_prev).",
   },
 };
 
 export const onlineMaxLogsumexpTracker: AlgorithmDefinition<onlineMaxLogsumexpTrackerInput> = {
-  id: "onlineMaxLogsumexpTracker",
+  id: "online-max-logsumexp-tracker",
   title: "Online Softmax Streaming Max & Logsumexp Tracker",
-  category: "ml_hardware_kernels",
-  categories: ["ml_hardware_kernels", "ml_gemm_roofline"],
+  topicIds: ["ml_hardware_kernels", "ml_gemm_roofline"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_hardware_kernels",
   description:
     "The Online Softmax Streaming Max & Logsumexp Tracker implements the online Softmax algorithm introduced by **Milakov & Gimelshein (2018)** and adopted in **FlashAttention (Dao et al. 2022)**. Standard Softmax requires two full passes over sequence data: Pass 1 calculates global max $m = \\max(x_i)$ and sum $L = \\sum e^{x_i - m}$, while Pass 2 divides each exponent by $L$. Online Softmax updates running max $m$ and running normalizer $L$ incrementally over streaming tile blocks in a **single pass**, guaranteeing zero numerical overflow or underflow.\n\n### Why It Exists\nIn long-sequence transformer attention, streaming attention scores $S_{i,j}$ arrive block-by-block from SRAM tiles. Standard 2-pass Softmax would require storing all $N$ intermediate scores in HBM DRAM. Online Softmax updates running statistics $(m, L)$ on-the-fly, allowing GPU kernels to compute exact attention outputs in a single fused pass.\n\n### Mathematical Formulation\nFor pre-existing running max $m_{old}$, running normalizer $L_{old}$, new tile scores $S_{chunk}$, and new tile max $m_{chunk} = \\max(S_{chunk})$:\n\n$$1. \\quad m_{new} = \\max(m_{old}, m_{chunk}) \\quad (\\text{Running Max Update})$$\n\n$$2. \\quad \\text{scale}_{prev} = e^{m_{old} - m_{new}} \\quad (\\text{Rescaling Multiplier for Previous Accumulators})$$\n\n$$3. \\quad L_{chunk} = \\sum_{s \\in S_{chunk}} e^{s - m_{new}} \\quad (\\text{New Tile Exponentiated Sum})$$\n\n$$4. \\quad L_{new} = L_{old} \\cdot \\text{scale}_{prev} + L_{chunk} \\quad (\\text{Online Normalizer Update})$$\n\n$$5. \\quad O_{new} = \\frac{O_{old} \\cdot L_{old} \\cdot \\text{scale}_{prev} + P_{chunk} V_{chunk}}{L_{new}} \\quad (\\text{Online Softmax Output Rescaling})$$\n\n### Step-by-Step Intuition\n1. **Local Tile Max**: Find maximum score $m_{chunk}$ in newly loaded SRAM tile scores.\n2. **Global Max Update**: Compare previous global max $m_{old}$ with $m_{chunk}$: $m_{new} = \\max(m_{old}, m_{chunk})$.\n3. **Rescaling Multiplier**: Evaluate correction factor $\\text{scale}_{prev} = e^{m_{old} - m_{new}} \\le 1.0$. If $m_{new} > m_{old}$, $\\text{scale}_{prev} < 1.0$ downscales pre-existing sums to account for the new larger maximum.\n4. **Tile Exponentiated Sum**: Exponentiate tile scores relative to $m_{new}$: $L_{chunk} = \\sum e^{s - m_{new}}$.\n5. **Running Normalizer Update**: Rescale $L_{old}$ and add $L_{chunk}$: $L_{new} = L_{old} \\cdot \\text{scale}_{prev} + L_{chunk}$.\n\n### Key Trade-Offs & Hardware Execution\n- **Numerical Stability (Zero Overflow)**: Subtracting $m_{new}$ before exponentiating guarantees $s - m_{new} \\le 0$, ensuring $e^{s - m_{new}} \\in (0, 1]$ and preventing FP16/BF16 numerical overflow.\n- **FlashAttention Core Building Block**: Powers FlashAttention-1, FlashAttention-2, and FlashAttention-3 forward and backward passes.",
   constraints: [
@@ -302,7 +308,8 @@ export const onlineMaxLogsumexpTracker: AlgorithmDefinition<onlineMaxLogsumexpTr
       outputDisplay: "Final Max m = 40.0, Final Normalizer lse = 1.135",
       input: DEFAULT_ONLINEMAXLOGSUMEXPTRACKER_INPUT,
       output: "(40.0, 1.1353, 0.1353)",
-      explanation: "Streams 5 score tiles. Dynamically rescales running max m and normalizer lse at each tile step with zero numerical overflow.",
+      explanation:
+        "Streams 5 score tiles. Dynamically rescales running max m and normalizer lse at each tile step with zero numerical overflow.",
     },
   ],
   code: ONLINEMAXLOGSUMEXPTRACKER_CODE,
@@ -336,19 +343,23 @@ export const onlineMaxLogsumexpTracker: AlgorithmDefinition<onlineMaxLogsumexpTr
     keyTerms: [
       {
         term: "Online Softmax",
-        definition: "Incremental single-pass Softmax algorithm updating running max m and normalizer L dynamically.",
+        definition:
+          "Incremental single-pass Softmax algorithm updating running max m and normalizer L dynamically.",
       },
       {
         term: "Rescaling Multiplier",
-        definition: "Correction factor scale_prev = exp(m_prev - m_new) downscaling previous accumulators when max increases.",
+        definition:
+          "Correction factor scale_prev = exp(m_prev - m_new) downscaling previous accumulators when max increases.",
       },
       {
         term: "Running Logsumexp (L)",
-        definition: "Incremental sum of exponentiated scores L_new = L_prev * scale_prev + sum(exp(S - m_new)).",
+        definition:
+          "Incremental sum of exponentiated scores L_new = L_prev * scale_prev + sum(exp(S - m_new)).",
       },
       {
         term: "Numerical Overflow",
-        definition: "Floating point hardware exception when exp(x) exceeds maximum representable float value (e.g. exp(89) in FP16).",
+        definition:
+          "Floating point hardware exception when exp(x) exceeds maximum representable float value (e.g. exp(89) in FP16).",
       },
     ],
   },

@@ -10,7 +10,7 @@ describe("segmentTreeLazy algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(segmentTreeLazy.id).toBe("segment-tree-lazy");
     expect(segmentTreeLazy.title).toBe("Segment Tree (Lazy Propagation)");
-    expect(segmentTreeLazy.category).toBe("advanced_range_queries");
+    expect(segmentTreeLazy.topicIds).toContain("advanced_range_queries");
     expect(segmentTreeLazy.difficulty).toBe("Hard");
     expect(segmentTreeLazy.code).toContain("class SegmentTreeLazy");
     expect(segmentTreeLazy.timeComplexity.average).toBe("O(log n)");

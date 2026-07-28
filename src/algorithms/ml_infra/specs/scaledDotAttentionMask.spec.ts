@@ -4,14 +4,13 @@ import {
   DEFAULT_SCALED_DOT_ATTENTION_INPUT,
   generateScaledDotAttentionMaskSteps,
 } from "../scaledDotAttentionMask";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { MatrixVisualSnapshot } from "../../../types/dsa";
 
 describe("scaledDotAttentionMask algorithm spec", () => {
   it("should have correct ML Infra Level 7 metadata", () => {
     expect(scaledDotAttentionMask.id).toBe("scaled-dot-attention-mask");
-    expect(scaledDotAttentionMask.isMlInfra).toBe(true);
-    expect(scaledDotAttentionMask.mlInfraLevel).toBe(7);
-    expect(scaledDotAttentionMask.category).toBe("ml_attention_geometry");
+    expect(scaledDotAttentionMask.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(scaledDotAttentionMask.topicIds).toContain("ml_attention_geometry");
     expect(scaledDotAttentionMask.defaultInput).toEqual(DEFAULT_SCALED_DOT_ATTENTION_INPUT);
     expect(scaledDotAttentionMask.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 7" },
@@ -23,16 +22,16 @@ describe("scaledDotAttentionMask algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(31);
+    expect(lastStep.codeLine).toBe(38);
 
     const distTable = lastStep.auxiliaryState.distanceTable;
     expect(distTable).toBeDefined();
     expect(distTable?.["O_q0_d0"]).toBe(10.0);
     expect(distTable?.["O_q0_d1"]).toBe(0.0);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    expect(snap.elements.length).toBe(6);
+    const snap = lastStep.primarySnapshot as MatrixVisualSnapshot;
+    expect(snap.kind).toBe("matrix");
+    expect(snap.cells.length).toBe(6);
   });
 
   it("should support unmasked bidirectional attention when maskType is 'none'", () => {
@@ -41,7 +40,7 @@ describe("scaledDotAttentionMask algorithm spec", () => {
       maskType: "none" as const,
     };
     const steps = generateScaledDotAttentionMaskSteps(inputUnmasked);
-    const maskStep = steps[1];
+    const maskStep = steps.find((s) => s.explanation.what.includes("Masking")) || steps[4];
     const distTable = maskStep.auxiliaryState.distanceTable;
     expect(distTable?.["Masked_S_q0_k1"]).not.toBe(-999);
   });

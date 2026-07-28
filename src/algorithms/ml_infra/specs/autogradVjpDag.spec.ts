@@ -9,9 +9,8 @@ import type { GraphVisualSnapshot } from "../../../types/dsa";
 describe("autogradVjpDag algorithm spec", () => {
   it("should have correct ML Infra Level 2 metadata", () => {
     expect(autogradVjpDag.id).toBe("autograd-vjp-dag");
-    expect(autogradVjpDag.isMlInfra).toBe(true);
-    expect(autogradVjpDag.mlInfraLevel).toBe(2);
-    expect(autogradVjpDag.category).toBe("ml_autograd_dags");
+    expect(autogradVjpDag.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(autogradVjpDag.topicIds).toContain("ml_autograd_dags");
     expect(autogradVjpDag.defaultInput).toEqual(DEFAULT_AUTOGRAD_VJP_INPUT);
     expect(autogradVjpDag.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 2" },
@@ -23,7 +22,7 @@ describe("autogradVjpDag algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(22);
+    expect(lastStep.codeLine).toBe(24);
 
     const distanceTable = lastStep.auxiliaryState.distanceTable;
     expect(distanceTable).toBeDefined();

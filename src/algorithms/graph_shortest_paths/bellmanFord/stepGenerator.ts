@@ -18,8 +18,13 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
   const getGraphNodes = (activeNodeId?: string): GraphNodeItem[] =>
     rawNodes.map((id) => ({
       id,
-      label: `${id} (${dist[id] === Infinity ? "∞" : dist[id]})`,
-      state: id === activeNodeId ? "active" : dist[id] !== Infinity ? "visited" : "default",
+      label: `${id} (${dist[id] === undefined || dist[id] === Infinity ? "∞" : dist[id]})`,
+      state:
+        id === activeNodeId
+          ? "active"
+          : dist[id] !== undefined && dist[id] !== Infinity
+            ? "visited"
+            : "default",
     }));
 
   const getGraphEdges = (activeEdge?: { from: string; to: string }): GraphEdgeItem[] =>
@@ -29,7 +34,9 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       weight: e.weight,
       isTraversed: activeEdge?.from === e.from && activeEdge?.to === e.to,
       isPath:
+        dist[e.to] !== undefined &&
         dist[e.to] !== Infinity &&
+        dist[e.from] !== undefined &&
         dist[e.from] !== Infinity &&
         dist[e.from] + e.weight === dist[e.to],
     }));
@@ -58,7 +65,7 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       },
       auxiliaryState: {
         distanceTable: distTableFormatted,
-        visited: rawNodes.filter((n) => dist[n] !== Infinity),
+        visited: rawNodes.filter((n) => dist[n] !== undefined && dist[n] !== Infinity),
         customState: {
           "Start Node": startNode,
           "Node Count": rawNodes.length,
@@ -120,21 +127,42 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       addStep(
         6,
         `Examine edge ${u} → ${v} (weight ${weight})`,
-        `In pass ${pass + 1} we check every edge. If going through '${u}' gives '${v}' a shorter path, we update it — this is the Bellman-Ford relaxation step.`,
+        `In pass ${pass + 1}, we inspect edge ${u} → ${v} to test if routing through '${u}' improves the shortest path to '${v}'.`,
         { pass: pass + 1, u, v, weight },
         u,
         { from: u, to: v },
       );
 
-      if (dist[u] !== Infinity && dist[u] + weight < dist[v]) {
+      const uDist = dist[u];
+      const vDist = dist[v];
+      const isUReachable = uDist !== undefined && uDist !== Infinity;
+      const canRelax = isUReachable && uDist + weight < vDist;
+
+      if (canRelax) {
+        addStep(
+          7,
+          `Condition met: dist[${u}] + ${weight} < dist[${v}]`,
+          `Node '${u}' is reachable (${uDist}) and ${uDist} + ${weight} = ${uDist + weight} is strictly less than current dist['${v}'] (${vDist === Infinity ? "∞" : vDist}). Relaxation condition is true!`,
+          {
+            pass: pass + 1,
+            u,
+            v,
+            weight,
+            candidateDist: uDist + weight,
+            currentDist: vDist === Infinity ? "∞" : vDist,
+          },
+          u,
+          { from: u, to: v },
+        );
+
         const oldDist = dist[v];
-        dist[v] = dist[u] + weight;
+        dist[v] = uDist + weight;
         anyRelaxedInPass = true;
 
         addStep(
           8,
-          `Relax edge ${u} → ${v}`,
-          `Going through '${u}' reaches '${v}' at cost ${dist[v] - weight} + ${weight} = ${dist[v]}, which beats the previous ${oldDist === Infinity ? "∞" : oldDist}. We take the cheaper route and keep sweeping.`,
+          `Relax edge ${u} → ${v}: update dist[${v}] = ${dist[v]}`,
+          `Going through '${u}' reaches '${v}' at cost ${uDist} + ${weight} = ${dist[v]}, beating the previous ${oldDist === Infinity ? "∞" : oldDist}. We update dist['${v}'] to ${dist[v]}.`,
           { pass: pass + 1, u, v, weight, newDist: dist[v] },
           v,
           { from: u, to: v },
@@ -143,10 +171,17 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
         addStep(
           7,
           `Skip edge ${u} → ${v}`,
-          dist[u] === Infinity
-            ? `We haven't found any path to '${u}' yet — its distance is still ∞ — so this edge can't offer '${v}' a real route this pass.`
-            : `The best known route to '${v}' (${dist[v]}) is already at least as good as going through '${u}' (${dist[u]} + ${weight} = ${dist[u] + weight}), so we leave it alone.`,
-          { pass: pass + 1, u, v, weight },
+          !isUReachable
+            ? `Node '${u}' is unreachable (dist['${u}'] = ∞), so this edge cannot offer '${v}' a valid path in this pass.`
+            : `The route through '${u}' (${uDist} + ${weight} = ${uDist + weight}) is not shorter than current dist['${v}'] (${vDist}). No update made.`,
+          {
+            pass: pass + 1,
+            u,
+            v,
+            weight,
+            uDist: uDist === Infinity ? "∞" : uDist,
+            vDist: vDist === Infinity ? "∞" : vDist,
+          },
           u,
           { from: u, to: v },
         );
@@ -157,7 +192,7 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       addStep(
         5,
         `Stop early after pass ${pass + 1}`,
-        "An entire sweep changed nothing, so every distance has already settled. Running the remaining passes would only re-confirm what we know.",
+        "An entire sweep changed nothing, so every distance has already settled. Running remaining passes would produce no further changes.",
         { convergedEarly: true, pass: pass + 1 },
       );
       break;
@@ -183,20 +218,39 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     const v = edge.to;
     const weight = edge.weight;
 
-    if (dist[u] !== Infinity && dist[u] + weight < dist[v]) {
+    addStep(
+      11,
+      `Examine edge ${u} → ${v} for negative cycle`,
+      `Testing edge ${u} → ${v} in the extra validation pass to check for ongoing relaxations.`,
+      { u, v, weight },
+      u,
+      { from: u, to: v },
+    );
+
+    const uDist = dist[u];
+    const vDist = dist[v];
+    const canRelax = uDist !== undefined && uDist !== Infinity && uDist + weight < vDist;
+
+    if (canRelax) {
       hasNegativeCycle = true;
       addStep(
         12,
-        `Negative cycle condition: dist[${u}] + ${weight} < dist[${v}]`,
-        `${dist[u]} + ${weight} = ${dist[u] + weight} is still less than ${dist[v]}. Distances should be stable after V-1 passes — further improvement means a negative cycle exists.`,
-        { u, v, weight, hasNegativeCycle: true },
+        `Negative cycle condition met: dist[${u}] + ${weight} < dist[${v}]`,
+        `${uDist} + ${weight} = ${uDist + weight} is less than dist['${v}'] (${vDist === Infinity ? "∞" : vDist}). Distances should be stable after V-1 passes — further improvement proves a negative cycle exists.`,
+        {
+          u,
+          v,
+          weight,
+          candidateDist: uDist + weight,
+          currentDist: vDist === Infinity ? "∞" : vDist,
+        },
         v,
         { from: u, to: v },
       );
       addStep(
         13,
-        `Mark negative cycle found`,
-        `Setting has_negative_cycle = True to signal that shortest paths are undefined — the graph has a reachable negative-weight cycle.`,
+        `Mark negative cycle found: has_negative_cycle = True`,
+        `Setting has_negative_cycle = True to signal that shortest paths are undefined — the graph contains a reachable negative-weight cycle.`,
         { u, v, weight, hasNegativeCycle: true },
         v,
         { from: u, to: v },
@@ -204,7 +258,7 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
       addStep(
         14,
         `Break out of validation loop`,
-        `One confirmed negative cycle is enough evidence. We stop scanning further edges and report the result immediately.`,
+        `One confirmed negative cycle is sufficient. We terminate the validation sweep immediately.`,
         { hasNegativeCycle: true },
       );
       break;
@@ -215,14 +269,14 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     addStep(
       16,
       "Bellman-Ford complete",
-      `No edge can improve any distance, so the table now holds the true shortest path from '${startNode}' to every reachable vertex. In the end we did up to V - 1 sweeps over all E edges — that's the O(V * E) bound.`,
+      `No edge can improve any distance, so the table now holds the true shortest path from '${startNode}' to every reachable vertex. In total we ran up to V - 1 passes over all E edges — completing in O(V * E) time.`,
       { hasNegativeCycle: false, completed: true },
     );
   } else {
     addStep(
       16,
       "Bellman-Ford complete: negative cycle found",
-      'Because a reachable cycle has negative total weight, "shortest path" stops being well-defined — we could loop around that cycle forever, driving the cost down without bound.',
+      'Because a reachable cycle has negative total weight, "shortest path" is not well-defined — looping around that cycle infinitely lowers the cost without bound.',
       { hasNegativeCycle: true, completed: true },
     );
   }

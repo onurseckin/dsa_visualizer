@@ -1,14 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { missingValueDefaultDirectionSplitter } from "./missingValueDefaultDirectionSplitter";
 
-describe("missingValueDefaultDirectionSplitter", () => {
+describe("missing-value-default-direction-splitter", () => {
   it("should have valid metadata", () => {
     expect(missingValueDefaultDirectionSplitter.id).toBeDefined();
     expect(missingValueDefaultDirectionSplitter.title).toBeDefined();
     expect(missingValueDefaultDirectionSplitter.code).toBeDefined();
     expect(missingValueDefaultDirectionSplitter.examples?.length).toBeGreaterThan(0);
     expect(missingValueDefaultDirectionSplitter.description.length).toBeGreaterThan(200);
-    expect(missingValueDefaultDirectionSplitter.topicGuide.sections.length).toBeGreaterThanOrEqual(4);
+    expect(missingValueDefaultDirectionSplitter.topicGuide.sections.length).toBeGreaterThanOrEqual(
+      4,
+    );
   });
 
   it("should generate at least 20 steps", () => {

@@ -7,35 +7,22 @@ export interface ringAllgatherVectorReconstructorInput {
 }
 
 export const RINGALLGATHERVECTORRECONSTRUCTOR_CODE = `def ring_allgather_vector_reconstructor(local_shards: list[list[float]]) -> list[list[float]]:
-    """
-    Reconstructs a full contiguous parameter vector from distributed per-rank shards via Ring All-Gather collective communication.
-    Simulates N-1 ring shift steps broadcasting local shards across all GPU ranks so every GPU holds the complete reconstructed tensor.
-
-    Input:
-        local_shards: List of tensor parameter shard arrays for each GPU rank.
-
-    Output:
-        List of fully reconstructed global parameter tensor arrays for each GPU rank.
-    """
     num_ranks = len(local_shards)
     if num_ranks == 0:
         return []
 
-    # Initialize each rank's memory buffer with its own local shard
     rank_buffers = []
     for rank in range(num_ranks):
         buf = [None] * num_ranks
         buf[rank] = list(local_shards[rank])
         rank_buffers.append(buf)
 
-    # Execute N-1 Ring All-Gather steps
     for step in range(num_ranks - 1):
         for rank in range(num_ranks):
             send_chunk_idx = (rank - step) % num_ranks
             recv_rank = (rank + 1) % num_ranks
             rank_buffers[recv_rank][send_chunk_idx] = list(rank_buffers[rank][send_chunk_idx])
 
-    # Flatten reconstructed vector for each rank
     reconstructed = []
     for rank in range(num_ranks):
         full_vector = []
@@ -153,16 +140,13 @@ export const generateRingAllgatherVectorReconstructorSteps = (
   );
 
   // Step 2: Read num_ranks
-  addStep(
-    12,
-    "Compute Number of Ranks",
-    `Calculated num_ranks = len(local_shards) = ${numRanks}.`,
-    { num_ranks: numRanks },
-  );
+  addStep(2, "Compute Number of Ranks", `Calculated num_ranks = len(local_shards) = ${numRanks}.`, {
+    num_ranks: numRanks,
+  });
 
   // Step 3: Input check
   addStep(
-    13,
+    3,
     "Validate Rank Shard List",
     `Checking if num_ranks (${numRanks}) == 0. Validation passed.`,
     { num_ranks: numRanks, valid: true },
@@ -170,7 +154,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
   // Step 4: Initialize rank_buffers
   addStep(
-    17,
+    6,
     "Initialize Rank Memory Buffers Table",
     "Created empty rank_buffers array to store per-rank gathered chunk slots.",
     { rank_buffers_size: 0 },
@@ -179,7 +163,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
   // Step 5: Populate local shards
   for (let rank = 0; rank < numRanks; rank++) {
     addStep(
-      18,
+      7,
       `Initialize Rank ${rank} Buffer with Local Shard`,
       `Setting buf[${rank}] = [${localShardsInput[rank].join(",")}] into Rank ${rank} memory slot.`,
       { rank, local_shard: `[${localShardsInput[rank].join(",")}]` },
@@ -190,7 +174,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
     rankBuffers[rank][rank] = [...localShardsInput[rank]];
 
     addStep(
-      21,
+      9,
       `Register Rank ${rank} Initial Local Slot in Memory Table`,
       `Rank ${rank} memory slot ${rank} initialized.`,
       { rank, slot: rank },
@@ -201,7 +185,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
   // Phase: Ring All-Gather loops (N-1 steps)
   addStep(
-    24,
+    12,
     "Begin N-1 Ring All-Gather Shift Steps",
     `Starting loop for ${numRanks - 1} ring shift steps broadcasting local shards across all GPU ranks.`,
     { total_shift_steps: numRanks - 1 },
@@ -209,7 +193,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
   for (let step = 0; step < numRanks - 1; step++) {
     addStep(
-      24,
+      12,
       `Ring Shift Step ${step + 1}/${numRanks - 1}: Loop Entry`,
       `Executing ring shift pass for step = ${step}.`,
       { step: step + 1, total_steps: numRanks - 1 },
@@ -220,7 +204,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
       const recvRank = (rank + 1) % numRanks;
 
       addStep(
-        26,
+        14,
         `Shift Step ${step + 1}, Rank ${rank}: Calculate Send Chunk Index`,
         `send_chunk_idx = (${rank} - ${step}) % ${numRanks} = Chunk ${sendChunkIdx}.`,
         { rank, send_chunk_idx: sendChunkIdx, step: step + 1 },
@@ -229,7 +213,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
       );
 
       addStep(
-        27,
+        15,
         `Shift Step ${step + 1}, Rank ${rank}: Calculate Recv Neighbor Rank`,
         `recv_rank = (${rank} + 1) % ${numRanks} = Rank ${recvRank}.`,
         { rank, recv_rank: recvRank, step: step + 1 },
@@ -243,7 +227,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
       }
 
       addStep(
-        28,
+        16,
         `Shift Step ${step + 1}: Rank ${rank} -> Rank ${recvRank} Transmit Chunk ${sendChunkIdx}`,
         `Rank ${recvRank} received Chunk ${sendChunkIdx} ([${chunkToTransfer ? chunkToTransfer.join(",") : ""}]) from Rank ${rank}.`,
         { rank, recv_rank: recvRank, send_chunk_idx: sendChunkIdx },
@@ -255,7 +239,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
   // Flattening phase
   addStep(
-    31,
+    18,
     "Begin Vector Flattening Phase",
     "Created empty reconstructed array to flatten gathered chunks for each GPU rank.",
     { num_ranks: numRanks },
@@ -266,7 +250,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
   for (let rank = 0; rank < numRanks; rank++) {
     addStep(
-      32,
+      19,
       `Flatten Reconstructed Vector for Rank ${rank}`,
       `Concatenating all ${numRanks} gathered chunks for GPU Rank ${rank}.`,
       { rank },
@@ -282,7 +266,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
     }
 
     addStep(
-      36,
+      24,
       `Rank ${rank} Global Vector Reconstructed: [${fullVec.join(",")}]`,
       `Successfully flattened global parameter vector for Rank ${rank}.`,
       { rank, vector_length: fullVec.length },
@@ -294,7 +278,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 
   // Return step
   addStep(
-    39,
+    26,
     "Return Reconstructed Global Vectors List",
     `Completed Ring All-Gather vector reconstruction. All ${numRanks} GPU ranks hold identical complete parameter tensors.`,
     { completed: true, num_ranks: numRanks },
@@ -307,7 +291,7 @@ export const generateRingAllgatherVectorReconstructorSteps = (
 };
 
 const RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+  skipLines: [5, 11, 17, 25],
   distractors: [
     "torch.distributed.all_reduce(shard, op=torch.distributed.ReduceOp.SUM)",
     "rank_buffers.clear()",
@@ -315,50 +299,37 @@ const RINGALLGATHERVECTORRECONSTRUCTOR_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 24,
+      line: 12,
       hint: "All-Gather takes N-1 ring shift steps to copy each GPU's shard to all other N-1 ranks.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for Ring All-Gather vector reconstructor function.",
-    2: "Starts docstring documenting function purpose.",
-    3: "Describes reconstructing full contiguous parameter vector from distributed per-rank shards.",
-    4: "Notes simulating N-1 ring shift steps broadcasting local shards across all GPU ranks.",
-    5: "Blank line in docstring.",
-    6: "Docstring section header for input arguments.",
-    7: "Docstring describing local_shards parameter as list of tensor parameter shard arrays.",
-    8: "Blank line in docstring.",
-    9: "Docstring section header for return value.",
-    10: "Docstring describing return format of fully reconstructed global parameter vectors.",
-    11: "Closes docstring block.",
-    12: "Calculates total number of GPU ranks from local_shards length.",
-    13: "Validates positive rank count.",
-    14: "Returns empty list immediately if local_shards is empty.",
-    15: "Blank line before buffer initialization.",
-    16: "Comment documenting rank memory buffer initialization with local shards.",
-    17: "Initializes empty rank_buffers list.",
-    18: "Loop iterating through each GPU rank ID.",
-    19: "Creates empty buffer slot array for current rank.",
-    20: "Copies local shard into current rank's own memory slot.",
-    21: "Appends buffer slot array to rank_buffers.",
-    22: "Blank line before Ring All-Gather loop.",
-    23: "Comment documenting N-1 Ring All-Gather shift steps.",
-    24: "Outer loop executing N-1 ring communication shift passes.",
-    25: "Inner loop iterating through each GPU rank 0 to N-1.",
-    26: "Calculates send chunk index (rank - step) % num_ranks.",
-    27: "Calculates downstream receiving neighbor rank (rank + 1) % num_ranks.",
-    28: "Copies chunk buffer to receiving neighbor's corresponding memory slot.",
-    29: "Blank line before vector flattening phase.",
-    30: "Comment documenting vector flattening phase for each rank.",
-    31: "Initializes empty reconstructed array.",
-    32: "Loop iterating through each GPU rank 0 to N-1.",
-    33: "Initializes empty full_vector array for current rank.",
-    34: "Inner loop iterating through gathered chunks in rank_buffers[rank].",
-    35: "Checks if chunk is non-None.",
-    36: "Extends full_vector with chunk elements.",
-    37: "Appends flattened full_vector to reconstructed list.",
-    38: "Blank line before returning reconstructed.",
-    39: "Returns final list of fully reconstructed global parameter vectors.",
+    2: "Calculates total number of GPU ranks from local_shards length.",
+    3: "Validates positive rank count.",
+    4: "Returns empty list immediately if local_shards is empty.",
+    5: "Blank line before buffer initialization.",
+    6: "Initializes empty rank_buffers list.",
+    7: "Loop iterating through each GPU rank ID.",
+    8: "Creates empty buffer slot array initialized with None.",
+    9: "Copies local shard into current rank's own memory slot.",
+    10: "Appends buffer slot array to rank_buffers.",
+    11: "Blank line before Ring All-Gather loop.",
+    12: "Outer loop executing N-1 ring communication shift passes.",
+    13: "Inner loop iterating through each GPU rank 0 to N-1.",
+    14: "Calculates send chunk index (rank - step) % num_ranks.",
+    15: "Calculates downstream receiving neighbor rank (rank + 1) % num_ranks.",
+    16: "Copies chunk buffer to receiving neighbor's corresponding memory slot.",
+    17: "Blank line before vector flattening phase.",
+    18: "Initializes empty reconstructed array.",
+    19: "Loop iterating through each GPU rank 0 to N-1.",
+    20: "Initializes empty full_vector array for current rank.",
+    21: "Inner loop iterating through gathered chunks in rank_buffers[rank].",
+    22: "Checks if chunk is non-None.",
+    23: "Extends full_vector with chunk elements.",
+    24: "Appends flattened full_vector to reconstructed list.",
+    25: "Blank line before returning reconstructed.",
+    26: "Returns final list of fully reconstructed global parameter vectors.",
   },
 };
 
@@ -366,12 +337,8 @@ export const ringAllgatherVectorReconstructor: AlgorithmDefinition<ringAllgather
   {
     id: "ring-allgather-vector-reconstructor",
     title: "Ring All-Gather Phase Vector Reconstructor",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_tensor_algebra"],
+    topicIds: ["ml_distributed_systems", "ml_tensor_algebra"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "Ring All-Gather is a core collective communication primitive used in distributed Deep Learning frameworks (e.g. PyTorch FSDP, DeepSpeed ZeRO-3, and Megatron-LM Tensor Parallelism) to reconstruct a full global tensor from sharded per-rank slices.\n\n### Why It Exists & Problem Solved\nIn ZeRO-3 parameter sharding, model weights are split across $N$ GPUs to save VRAM ($1/N$ weight memory per GPU). Before executing forward or backward passes on a layer, each GPU invokes Ring All-Gather across $N-1$ communication steps to dynamically reconstruct the full weight tensor in local VRAM.\n\n### Step-by-Step Intuition\n1. **Initialization**: Each GPU rank $r$ begins with its own local parameter shard $W_r$.\n2. **Phase 1 Ring Shift**: GPU $r$ sends chunk $(r - \text{step}) \\% N$ to GPU $(r+1) \\% N$ while receiving chunk $(r - \text{step} - 1) \\% N$ from GPU $(r-1) \\% N$.\n3. **After $N-1$ Steps**: Every GPU has gathered all $N$ parameter shards into its local memory table, reconstructing the complete global tensor.\n4. **Dynamic Cleanup**: Right after GEMM computation finishes, ZeRO-3 immediately discards the full tensor, restoring the $1/N$ VRAM memory bound.\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(N)$ communication steps ($N-1$ total steps).\n- **Bandwidth Consumption**: Each GPU transfers $\\frac{N-1}{N} S$ bytes during All-Gather, where $S$ is full tensor byte size.\n- **Overlapping Compute & Comm**: Dual CUDA streams allow overlapping Ring All-Gather transfers for layer $l+1$ while executing GEMM on layer $l$.",
     constraints: ["2 <= target (num_ranks) <= 128", "1 <= data.length <= 1000"],
@@ -462,4 +429,3 @@ export const ringAllgatherVectorReconstructor: AlgorithmDefinition<ringAllgather
     defaultInput: DEFAULT_RINGALLGATHERVECTORRECONSTRUCTOR_INPUT,
     generateSteps: generateRingAllgatherVectorReconstructorSteps,
   };
-

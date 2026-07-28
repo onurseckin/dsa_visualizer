@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { CategoryType, getAlgorithmSources, getSourceKind } from "../../../types/dsa";
+import { TopicId, getAlgorithmSources, getSourceKind } from "../../../types/dsa";
 import { getAllAlgorithms } from "../../../algorithms/registry";
 import {
-  CATEGORY_LABELS,
-  getAlgorithmCategories,
-  getAlgorithmPrimaryCategory,
-} from "../../../app/categories";
+  getAlgorithmTopicLabels,
+  getAlgorithmTopics,
+  isMlInfraAlgorithm,
+} from "../../../app/topics";
 import {
   ProblemListDifficulty,
   ProblemListSource,
@@ -20,13 +20,13 @@ import {
 } from "../problemListUtils";
 
 interface UseProblemListStateProps {
-  category?: CategoryType | "All";
-  onCategoryChange?: (category: CategoryType | "All") => void;
+  topic?: TopicId | "All";
+  onTopicChange?: (topic: TopicId | "All") => void;
 }
 
 export function useProblemListState({
-  category = "All",
-  onCategoryChange,
+  topic = "All",
+  onTopicChange,
 }: UseProblemListStateProps = {}) {
   const [selectedDifficulty, setSelectedDifficultyState] = useState<ProblemListDifficulty>(() =>
     readStoredProblemListValue("difficulty", "All", isProblemListDifficulty),
@@ -45,12 +45,12 @@ export function useProblemListState({
     writeStoredProblemListValue("source", next);
   };
 
-  const [internalCategory, setInternalCategory] = useState<CategoryType | "All">(category ?? "All");
-  const selectedCategory = onCategoryChange ? (category ?? "All") : internalCategory;
-  const setSelectedCategory = (next: CategoryType | "All") => {
-    setInternalCategory(next);
-    if (onCategoryChange) {
-      onCategoryChange(next);
+  const [internalTopic, setInternalTopic] = useState<TopicId | "All">(topic ?? "All");
+  const selectedTopic = onTopicChange ? (topic ?? "All") : internalTopic;
+  const setSelectedTopic = (next: TopicId | "All") => {
+    setInternalTopic(next);
+    if (onTopicChange) {
+      onTopicChange(next);
     }
   };
 
@@ -89,36 +89,26 @@ export function useProblemListState({
   const filteredAlgorithms = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
 
-    // First filter by category
-    const categoryFiltered = algorithms.filter((alg) => {
-      const cats = getAlgorithmCategories(alg);
-      const isMlAlg = Boolean(alg.isMlInfra) || cats.some((c) => c.startsWith("ml_"));
-
-      if (selectedCategory !== "All") {
-        const isMlGroupCategory =
-          selectedCategory === "ml_infra" || selectedCategory === "ml_infrastructure";
-        if (isMlGroupCategory) {
-          if (!isMlAlg) return false;
-        } else {
-          if (!cats.includes(selectedCategory)) return false;
-        }
+    // First filter by topic.
+    const topicFiltered = algorithms.filter((alg) => {
+      const topics = getAlgorithmTopics(alg);
+      if (selectedTopic !== "All") {
+        if (!topics.includes(selectedTopic)) return false;
       }
       return true;
     });
 
-    // When a specific category is requested (e.g., navigating from a Knowledge Tree node),
+    // When a specific topic is requested (e.g., navigating from a Knowledge Tree node),
     // default effective source & difficulty filters to "All" so the problem list view
-    // matches the full category problem count promised by the Knowledge Tree node badge.
-    const isCategoryScoped = selectedCategory !== "All";
-    const effectiveSource = isCategoryScoped ? "All" : selectedSource;
-    const effectiveDifficulty = isCategoryScoped ? "All" : selectedDifficulty;
+    // matches the full topic problem count promised by the Knowledge Tree node badge.
+    const isTopicScoped = selectedTopic !== "All";
+    const effectiveSource = isTopicScoped ? "All" : selectedSource;
+    const effectiveDifficulty = isTopicScoped ? "All" : selectedDifficulty;
 
-    const filtered = categoryFiltered.filter((alg) => {
+    const filtered = topicFiltered.filter((alg) => {
       if (effectiveDifficulty !== "All" && alg.difficulty !== effectiveDifficulty) return false;
 
-      const cats = getAlgorithmCategories(alg);
-      const primaryCat = getAlgorithmPrimaryCategory(alg);
-      const isMlAlg = Boolean(alg.isMlInfra) || cats.some((c) => c.startsWith("ml_"));
+      const isMlAlg = isMlInfraAlgorithm(alg);
 
       if (effectiveSource !== "All") {
         const sources = getAlgorithmSources(alg);
@@ -130,8 +120,8 @@ export function useProblemListState({
 
       if (!q) return true;
       if (alg.title.toLowerCase().includes(q)) return true;
-      const catLabel = (CATEGORY_LABELS[primaryCat] || primaryCat).toLowerCase();
-      if (catLabel.includes(q)) return true;
+      if (getAlgorithmTopicLabels(alg).some((label) => label.toLowerCase().includes(q)))
+        return true;
       return alg.description.toLowerCase().includes(q);
     });
 
@@ -139,10 +129,10 @@ export function useProblemListState({
       let comp = 0;
       if (sortBy === "title") {
         comp = a.title.localeCompare(b.title);
-      } else if (sortBy === "category") {
-        const aCat = getAlgorithmPrimaryCategory(a);
-        const bCat = getAlgorithmPrimaryCategory(b);
-        comp = (CATEGORY_LABELS[aCat] || aCat).localeCompare(CATEGORY_LABELS[bCat] || bCat);
+      } else if (sortBy === "topic") {
+        comp = getAlgorithmTopicLabels(a)
+          .join("\u0000")
+          .localeCompare(getAlgorithmTopicLabels(b).join("\u0000"));
       } else if (sortBy === "difficulty") {
         const order: Record<string, number | undefined> = { Easy: 1, Medium: 2, Hard: 3 };
         comp = (order[a.difficulty ?? ""] ?? 1) - (order[b.difficulty ?? ""] ?? 1);
@@ -153,7 +143,7 @@ export function useProblemListState({
     algorithms,
     searchTerm,
     selectedDifficulty,
-    selectedCategory,
+    selectedTopic,
     selectedSource,
     sortBy,
     sortOrder,
@@ -181,8 +171,8 @@ export function useProblemListState({
     setCurrentPageState(1);
   };
 
-  const handleCategorySelectWithReset = (next: CategoryType | "All") => {
-    setSelectedCategory(next);
+  const handleTopicSelectWithReset = (next: TopicId | "All") => {
+    setSelectedTopic(next);
     setCurrentPageState(1);
   };
 
@@ -207,9 +197,9 @@ export function useProblemListState({
   return {
     searchTerm,
     setSearchTerm: handleSearchTermChange,
-    selectedCategory,
-    setSelectedCategory: handleCategorySelectWithReset,
-    handleCategorySelect: handleCategorySelectWithReset,
+    selectedTopic,
+    setSelectedTopic: handleTopicSelectWithReset,
+    handleTopicSelect: handleTopicSelectWithReset,
     selectedDifficulty,
     setSelectedDifficulty: handleDifficultyChange,
     selectedSource,

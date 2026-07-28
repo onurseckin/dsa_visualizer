@@ -43,7 +43,7 @@ const N_QUEENS_TRIVIA: TriviaMeta = {
 export const nQueens: AlgorithmDefinition<NQueensInput> = {
   id: "n-queens",
   title: "N-Queens Backtracking",
-  category: "backtracking",
+  topicIds: ["backtracking"],
   difficulty: "Hard",
   description:
     "The N-Queens puzzle requires placing N chess queens on an N×N chessboard so that no two queens threaten each other. Using recursive backtracking, queens are placed row by row while maintaining lookup sets for occupied columns and diagonals (row - col and row + col). Invalid placement branches are pruned early.",

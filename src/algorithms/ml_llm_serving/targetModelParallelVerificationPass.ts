@@ -9,10 +9,6 @@ export interface targetModelParallelVerificationPassInput {
 export const TARGETMODELPARALLELVERIFICATIONPASS_CODE = `def target_model_parallel_verification_pass(
     draft_tokens: list[int], target_threshold: int = 30
 ) -> list[bool]:
-    """
-    Executes a single parallel target model forward pass verifying all gamma draft tokens
-    concurrently, evaluating acceptance criteria sequentially up to first rejection.
-    """
     verification_results = []
     for pos, token in enumerate(draft_tokens):
         if token <= target_threshold:
@@ -64,7 +60,7 @@ export const generateTargetModelParallelVerificationPassSteps = (
       auxiliaryState: {
         customState: {
           data: `[${input.data.join(", ")}]`,
-          target: String(targetThreshold),
+          target_threshold: String(targetThreshold),
         },
       },
       variables,
@@ -74,73 +70,37 @@ export const generateTargetModelParallelVerificationPassSteps = (
   addStep(
     1,
     "Initialize Speculative Decoding Target Model Parallel Verification Pass",
-    `Setting up target model parallel forward pass layout to verify ${input.data.length} candidate draft tokens in batch with threshold ${targetThreshold}.`,
-    { n: input.data.length, target: targetThreshold },
+    `Setting up target model parallel forward pass to verify ${input.data.length} candidate draft tokens in batch with threshold ${targetThreshold}.`,
+    { n: input.data.length, target_threshold: targetThreshold },
     [...elements],
   );
 
   const verificationResults: boolean[] = [];
-    addStep(
-    2,
-    "Docstring body: algorithm description",
-    "draft_tokens: list[int], target_threshold: int = 30",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    ") -> list[bool]:",
-    {},
-  );
 
   addStep(
     4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  addStep(
-    5,
-    "Docstring body: algorithm description",
-    "Executes a single parallel target model forward pass verifying all gamma dr",
-    {},
-  );
-
-  addStep(
-    6,
-    "Docstring body: algorithm description",
-    "concurrently, evaluating acceptance criteria sequentially up to first rejec",
-    {},
-  );
-
-  addStep(
-    7,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    8,
     "Initialize verification_results = []",
     "Empty array to accumulate boolean verification outcomes for candidate draft tokens.",
     { verification_results: "[]" },
     [...elements],
   );
 
-  let breakTriggered = false;
   for (let idx = 0; idx < input.data.length; idx++) {
     const val = input.data[idx];
     const isAccepted = val <= targetThreshold;
 
     addStep(
-      9,
+      5,
       `Iteration ${idx + 1}/${input.data.length}: Inspect draft candidate token pos=${idx}, token=${val}`,
       `Evaluating target model verification for draft token ${val} at position ${idx}.`,
       { pos: idx, token: val, target_threshold: targetThreshold, isAccepted },
-      elements.map((el, i) => i === idx ? { ...el, state: "compare" as const, pointers: [`pos_${idx}`] } : i < idx ? { ...el, state: "visited" as const } : el),
+      elements.map((el, i) =>
+        i === idx
+          ? { ...el, state: "compare" as const, pointers: [`pos_${idx}`] }
+          : i < idx
+            ? { ...el, state: "visited" as const }
+            : el,
+      ),
     );
 
     if (isAccepted) {
@@ -148,12 +108,12 @@ addStep(
       const currentElements: ArrayElement[] = elements.map((el, i) => {
         if (i === idx)
           return { ...el, state: "active" as const, pointers: [`pos_${idx}`, "ACCEPTED"] };
-        if (i < idx) return { ...el, state: "visited" as const };
+        if (i < idx) return { ...el, state: "visited" as const, pointers: ["ACCEPTED"] };
         return el;
       });
 
       addStep(
-        10,
+        6,
         `Check Condition: token (${val}) <= target_threshold (${targetThreshold}) -> TRUE`,
         `Draft token ${val} meets target model acceptance criteria.`,
         { pos: idx, token: val, isAccepted: true },
@@ -161,7 +121,7 @@ addStep(
       );
 
       addStep(
-        11,
+        7,
         `Append True to verification_results -> [${verificationResults.join(", ")}]`,
         `Accepted candidate token ${val} at position ${idx}.`,
         { pos: idx, token: val, verification_results: verificationResults.join(", ") },
@@ -172,12 +132,12 @@ addStep(
       const currentElements: ArrayElement[] = elements.map((el, i) => {
         if (i === idx)
           return { ...el, state: "compare" as const, pointers: [`pos_${idx}`, "REJECTED"] };
-        if (i < idx) return { ...el, state: "visited" as const };
+        if (i < idx) return { ...el, state: "visited" as const, pointers: ["ACCEPTED"] };
         return el;
       });
 
       addStep(
-        10,
+        6,
         `Check Condition: token (${val}) <= target_threshold (${targetThreshold}) -> FALSE`,
         `Draft token ${val} failed target model verification at position ${idx}!`,
         { pos: idx, token: val, isAccepted: false },
@@ -185,7 +145,7 @@ addStep(
       );
 
       addStep(
-        13,
+        9,
         `Append False to verification_results -> [${verificationResults.join(", ")}]`,
         `Rejected candidate token ${val} at position ${idx}.`,
         { pos: idx, token: val, verification_results: verificationResults.join(", ") },
@@ -193,28 +153,41 @@ addStep(
       );
 
       addStep(
-        14,
+        10,
         "Break loop: speculative verification terminates early on first rejection",
         `Truncating remaining draft candidate tokens from position ${idx + 1} onward.`,
         { pos: idx, token: val, break: true },
         currentElements,
       );
-      breakTriggered = true;
       break;
     }
   }
 
   const finalElements: ArrayElement[] = elements.map((el, i) => ({
     ...el,
-    state: i < verificationResults.length ? (verificationResults[i] ? ("sorted" as const) : ("compare" as const)) : ("default" as const),
-    pointers: i < verificationResults.length ? (verificationResults[i] ? ["VERIFIED"] : ["REJECTED_BOUND"]) : ["DISCARDED"],
+    state:
+      i < verificationResults.length
+        ? verificationResults[i]
+          ? ("sorted" as const)
+          : ("compare" as const)
+        : ("default" as const),
+    pointers:
+      i < verificationResults.length
+        ? verificationResults[i]
+          ? ["VERIFIED"]
+          : ["REJECTED_BOUND"]
+        : ["DISCARDED"],
   }));
 
   addStep(
-    16,
+    12,
     "Return verification_results boolean mask",
     `Completed target model parallel verification pass. Accepted ${verificationResults.filter(Boolean).length} draft tokens.`,
-    { completed: true, accepted_count: verificationResults.filter(Boolean).length, total_evaluated: verificationResults.length },
+    {
+      completed: true,
+      accepted_count: verificationResults.filter(Boolean).length,
+      total_evaluated: verificationResults.length,
+    },
     finalElements,
   );
 
@@ -226,19 +199,15 @@ const TARGETMODELPARALLELVERIFICATIONPASS_TRIVIA: TriviaMeta = {
     1: "Function signature for target_model_parallel_verification_pass taking draft_tokens and target_threshold.",
     2: "Parameter declaration specifying draft_tokens list and default target_threshold = 30.",
     3: "Return type hint specifying list[bool].",
-    4: "Begin docstring describing target model parallel verification pass.",
-    5: "Docstring line detailing batched parallel forward pass across all gamma draft tokens.",
-    6: "Docstring line detailing sequential acceptance evaluation up to first rejection.",
-    7: "End docstring.",
-    8: "Initialize empty list verification_results to store boolean acceptance flags.",
-    9: "Iterate over draft tokens in parallel forward pass output using enumerate(draft_tokens).",
-    10: "Check if candidate draft token is less than or equal to target_threshold.",
-    11: "Append True to verification_results when candidate token is accepted.",
-    12: "Else branch for candidate tokens failing target model verification.",
-    13: "Append False to verification_results when candidate token is rejected.",
-    14: "Break loop immediately upon first rejection to halt further draft lookahead.",
-    15: "Blank line before return statement.",
-    16: "Return verification_results boolean mask array to caller.",
+    4: "Initialize empty list verification_results to store boolean acceptance flags.",
+    5: "Iterate over draft tokens in parallel forward pass output using enumerate(draft_tokens).",
+    6: "Check if candidate draft token is less than or equal to target_threshold.",
+    7: "Append True to verification_results when candidate token is accepted.",
+    8: "Else branch for candidate tokens failing target model verification.",
+    9: "Append False to verification_results when candidate token is rejected.",
+    10: "Break loop immediately upon first rejection to halt further draft lookahead.",
+    11: "Blank line before return statement.",
+    12: "Return verification_results boolean mask array to caller.",
   },
 };
 
@@ -246,12 +215,8 @@ export const targetModelParallelVerificationPass: AlgorithmDefinition<targetMode
   {
     id: "target-model-parallel-verification-pass",
     title: "Speculative Decoding Target Model Parallel Verification Pass",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_distributed_systems"],
+    topicIds: ["ml_llm_serving", "ml_distributed_systems"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "Speculative decoding speeds up LLM generation by replacing $\\gamma$ sequential forward passes of a large target model with $\\gamma$ fast forward passes of a small draft model, followed by a single parallel forward pass of the target model. During this parallel verification pass, the target model receives all $\\gamma$ candidate draft tokens in a single batched sequence, computing logits for every token position concurrently in parallel. The engine then inspects acceptance criteria sequentially, accepting tokens up to the first rejection point.\n\n### Parallel Target GEMM Math\nInstead of evaluating 1 token at a time with matrix shape $[1, D]$, the parallel verification pass evaluates $\\gamma$ candidate tokens simultaneously with matrix shape $[\\gamma, D]$:\n$$\\text{Logits}_{1 \\dots \\gamma} = \\text{GEMM}\\left(X_{1 \\dots \\gamma}, W_{\\text{target}}\\right)$$\nThis converts memory-bandwidth-bound vector-matrix operations into compute-bound matrix-matrix multiplications.\n\nInput Format:\n- `data`: Array of draft token IDs generated by the draft model during speculative lookahead.\n- `target`: Target verification threshold or rank index for parallel verification.\n\nOutput Format:\n- Returns boolean array indicating token acceptance up to first rejection boundary.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
@@ -263,8 +228,7 @@ export const targetModelParallelVerificationPass: AlgorithmDefinition<targetMode
         outputDisplay: "Verification boolean mask returned",
         input: DEFAULT_TARGETMODELPARALLELVERIFICATIONPASS_INPUT,
         output: "Verification booleans array returned",
-        explanation:
-          "Verifies 16 candidate tokens concurrently in 1 parallel target forward pass.",
+        explanation: "Verifies 16 candidate tokens concurrently in 1 parallel target forward pass.",
       },
       {
         kind: "complex",

@@ -21,34 +21,21 @@ def yarn_rope_frequency_scaling(
     beta_fast: float = 32.0,
     beta_slow: float = 1.0
 ) -> list[float]:
-    """
-    Computes YaRN (Yet Another RoPE N-extrapolation) scaled inverse frequencies.
-    Interpolates between high-frequency (unscaled) and low-frequency (fully scaled) bands.
-    """
     scaled_inv_freqs = []
-
-    # 1. Compute wavelength thresholds for frequency band partition
     low_rot = orig_max_position / (beta_fast * 2 * math.pi)
     high_rot = orig_max_position / (beta_slow * 2 * math.pi)
-
     for i in range(0, dim, 2):
         inv_freq = 1.0 / (base_theta ** (i / dim))
         wavelength = 2 * math.pi / inv_freq
-
-        # 2. Smooth ramp interpolation factor gamma(i)
         if wavelength < low_rot:
-            gamma = 0.0  # High frequency: no scaling (preserve local attention)
+            gamma = 0.0
         elif wavelength > high_rot:
-            gamma = 1.0  # Low frequency: full linear scaling by 1/scale_factor
+            gamma = 1.0
         else:
-            # Linear ramp transition in mid frequencies
             gamma = (orig_max_position / wavelength - beta_slow) / (beta_fast - beta_slow)
             gamma = max(0.0, min(1.0, gamma))
-
-        # 3. Blend unscaled and scaled inverse frequencies
         scaled_inv_freq = (1.0 - gamma) * inv_freq + gamma * (inv_freq / scale_factor)
         scaled_inv_freqs.append(scaled_inv_freq)
-
     return scaled_inv_freqs`;
 
 export const DEFAULT_ROPEFREQUENCYSCALINGYARN_INPUT: ropeFrequencyScalingYarnInput = {
@@ -70,6 +57,8 @@ export const generateRopeFrequencyScalingYarnSteps = (
   const scaleFactor = input.scaleFactor ?? 4.0;
   const origMaxPos = input.origMaxPosition ?? 4096;
   const baseTheta = input.baseTheta ?? 10000.0;
+  const betaFast = 32.0;
+  const betaSlow = 1.0;
   const numPairs = Math.floor(dim / 2);
 
   const matrixValues: string[][] = Array.from({ length: numPairs }, () =>
@@ -147,24 +136,24 @@ export const generateRopeFrequencyScalingYarnSteps = (
   );
 
   addStep(
-    15,
+    11,
     "Initialize Scaled Inverse Frequencies Container",
     "Allocated list to store modified inverse frequency scalars across all dimension pairs.",
     { scaled_inv_freqs: "[]" },
   );
 
-  const lowRot = +(origMaxPos / (32.0 * 2 * Math.PI)).toFixed(3);
-  const highRot = +(origMaxPos / (1.0 * 2 * Math.PI)).toFixed(3);
+  const lowRot = +(origMaxPos / (betaFast * 2 * Math.PI)).toFixed(3);
+  const highRot = +(origMaxPos / (betaSlow * 2 * Math.PI)).toFixed(3);
 
   addStep(
-    18,
+    12,
     `Compute Low Wavelength Threshold low_rot = ${lowRot}`,
     "Calculated high-frequency threshold bound (no scaling below this wavelength).",
     { lowRot },
   );
 
   addStep(
-    19,
+    13,
     `Compute High Wavelength Threshold high_rot = ${highRot}`,
     "Calculated low-frequency threshold bound (full linear scaling above this wavelength).",
     { highRot },
@@ -174,7 +163,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     const i = pairIdx * 2;
 
     addStep(
-      21,
+      14,
       `Process Dimension Pair (${i}, ${i + 1})`,
       `Calculating YaRN ramp factor and scaled inverse frequency for dimension pair index ${i}.`,
       { i, pairIdx },
@@ -186,7 +175,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     matrixStates[pairIdx][0] = "pivot";
 
     addStep(
-      22,
+      15,
       `Compute Unscaled Base Inv Freq: inv_freq = 1.0 / (${baseTheta}^(${i}/${dim})) = ${invFreq.toExponential(2)}`,
       `Base RoPE inverse frequency for dimension index ${i}.`,
       { i, invFreq: invFreq.toExponential(2) },
@@ -199,7 +188,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     matrixStates[pairIdx][1] = "pivot";
 
     addStep(
-      23,
+      16,
       `Compute Wavelength: wavelength = 2*pi / inv_freq = ${wavelength.toFixed(1)}`,
       `Positional wavelength for current dimension pair.`,
       { wavelength: +wavelength.toFixed(1) },
@@ -214,7 +203,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
       gamma = 0.0;
       band = "High (Unscaled)";
       addStep(
-        27,
+        18,
         `Wavelength ${wavelength.toFixed(1)} < ${lowRot}: High Frequency -> gamma = 0.0`,
         "High frequency band: unscaled to preserve local token attention precision.",
         { gamma: 0.0, band },
@@ -225,7 +214,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
       gamma = 1.0;
       band = "Low (Full 1/s)";
       addStep(
-        29,
+        20,
         `Wavelength ${wavelength.toFixed(1)} > ${highRot}: Low Frequency -> gamma = 1.0`,
         "Low frequency band: fully scaled by 1/scale_factor for long context extension.",
         { gamma: 1.0, band },
@@ -235,12 +224,12 @@ export const generateRopeFrequencyScalingYarnSteps = (
     } else {
       gamma = Math.max(
         0.0,
-        Math.min(1.0, (origMaxPos / wavelength - 1.0) / (32.0 - 1.0)),
+        Math.min(1.0, (origMaxPos / wavelength - betaSlow) / (betaFast - betaSlow)),
       );
       gamma = +gamma.toFixed(3);
       band = "Mid (Ramp Blend)";
       addStep(
-        32,
+        22,
         `Wavelength in Mid Range [${lowRot}, ${highRot}]: Mid Frequency -> gamma = ${gamma}`,
         `Smooth linear ramp interpolation factor gamma = ${gamma}.`,
         { gamma, band },
@@ -259,7 +248,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     matrixStates[pairIdx][3] = "sorted";
 
     addStep(
-      36,
+      24,
       `Blend Base and Scaled Frequencies: scaled_inv_freq = ${scaledInvFreq.toExponential(2)}`,
       `Calculated blended inverse frequency: (1 - ${gamma})*inv_freq + ${gamma}*(inv_freq / ${scaleFactor}).`,
       { scaledInvFreq: scaledInvFreq.toExponential(2) },
@@ -268,7 +257,7 @@ export const generateRopeFrequencyScalingYarnSteps = (
     );
 
     addStep(
-      37,
+      25,
       `Append Scaled Frequency to Results`,
       `Stored YaRN scaled inverse frequency for dimension pair ${pairIdx}.`,
       { pairIdx },
@@ -277,19 +266,8 @@ export const generateRopeFrequencyScalingYarnSteps = (
     );
   }
 
-  while (steps.length < 19) {
-    addStep(
-      37,
-      "Finalize YaRN Frequency Scaling Tensor Padding",
-      `Step ${steps.length + 1}: Finalizing YaRN scaled inverse frequency calculation.`,
-      { completed: false },
-      numPairs - 1,
-      3,
-    );
-  }
-
   addStep(
-    39,
+    26,
     "Execution Complete",
     `YaRN frequency scaling complete across all ${numPairs} dimension pairs for ${scaleFactor}x context expansion!`,
     { completed: true, numPairs, scaleFactor },
@@ -299,69 +277,52 @@ export const generateRopeFrequencyScalingYarnSteps = (
 };
 
 const ROPEFREQUENCYSCALINGYARN_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 20, 24, 25, 30, 31, 34, 38],
+  skipLines: [2, 4, 5, 6, 7, 8, 9, 10, 21],
   distractors: [
     "scaled_inv_freq = inv_freq * scale_factor",
     "gamma = wavelength / orig_max_position",
     "low_rot = beta_fast * orig_max_position",
   ],
   hints: [
-    { line: 23, hint: "Compute wavelength = 2 * pi / inv_freq for current frequency dimension." },
-    { line: 27, hint: "Set gamma = 0.0 for high frequency dimensions (wavelength < low_rot)." },
-    { line: 29, hint: "Set gamma = 1.0 for low frequency dimensions (wavelength > high_rot)." },
+    { line: 16, hint: "Compute wavelength = 2 * pi / inv_freq for current frequency dimension." },
+    { line: 18, hint: "Set gamma = 0.0 for high frequency dimensions (wavelength < low_rot)." },
+    { line: 20, hint: "Set gamma = 1.0 for low frequency dimensions (wavelength > high_rot)." },
   ],
   lineExplanations: {
-    1: "Imports Python math library for trigonometric and pi constants.",
-    2: "Empty whitespace separator line.",
+    1: "Imports Python math library for trigonometric functions and mathematical constants.",
+    2: "Empty line separating imports from function definition.",
     3: "Defines entry point for YaRN RoPE frequency scaling function.",
-    4: "Specifies type annotation for vector dimension d.",
-    5: "Specifies type annotation for context expansion scale factor s.",
-    6: "Specifies type annotation for original pre-training max position length.",
-    7: "Specifies type annotation for base rotation theta constant.",
-    8: "Specifies type annotation for fast frequency threshold parameter beta_fast.",
-    9: "Specifies type annotation for slow frequency threshold parameter beta_slow.",
-    10: "Specifies return type annotation for list of scaled inverse frequencies.",
-    11: "Docstring opening delimiter tag.",
-    12: "Describes YaRN scaled inverse frequency computation.",
-    13: "Explains interpolation between high-frequency and low-frequency bands.",
-    14: "Docstring closing tag.",
-    15: "Initializes list container for collecting scaled inverse frequencies.",
-    16: "Empty whitespace separator line.",
-    17: "Comment indicating wavelength threshold calculation for band partition.",
-    18: "Calculates low wavelength rotation threshold low_rot.",
-    19: "Calculates high wavelength rotation threshold high_rot.",
-    20: "Empty whitespace separator line.",
-    21: "Iterates over dimension pair starting index i from 0 to dim-2 in steps of 2.",
-    22: "Calculates unscaled base inverse frequency for dimension index i.",
-    23: "Calculates wavelength = 2 * pi / inv_freq for current dimension.",
-    24: "Empty whitespace separator line.",
-    25: "Comment indicating smooth ramp interpolation factor gamma(i) calculation.",
-    26: "Checks if wavelength is in high-frequency band (< low_rot).",
-    27: "Sets gamma = 0.0 for high frequencies (no scaling, preserves local attention).",
-    28: "Checks if wavelength is in low-frequency band (> high_rot).",
-    29: "Sets gamma = 1.0 for low frequencies (full linear scaling by 1/scale_factor).",
-    30: "Branch for mid-frequency transition ramp.",
-    31: "Comment indicating linear ramp transition in mid frequencies.",
-    32: "Computes linear ramp interpolation factor gamma.",
-    33: "Clamps gamma value to valid range [0.0, 1.0].",
-    34: "Empty whitespace separator line.",
-    35: "Comment indicating blending of unscaled and scaled inverse frequencies.",
-    36: "Blends unscaled and scaled inverse frequencies using interpolation factor gamma.",
-    37: "Appends computed scaled inverse frequency to output list.",
-    38: "Empty whitespace separator line.",
-    39: "Returns list of YaRN scaled inverse frequencies across all dimensions.",
+    4: "Specifies parameter type for vector dimension length.",
+    5: "Specifies parameter type for context extension scale factor.",
+    6: "Specifies parameter type for original pre-training max position length.",
+    7: "Specifies default base rotation theta constant.",
+    8: "Specifies fast frequency threshold parameter beta_fast.",
+    9: "Specifies slow frequency threshold parameter beta_slow.",
+    10: "Specifies function return type annotation list[float].",
+    11: "Initializes empty list to collect scaled inverse frequencies across dimensions.",
+    12: "Calculates low wavelength rotation threshold low_rot for high-frequency bound.",
+    13: "Calculates high wavelength rotation threshold high_rot for low-frequency bound.",
+    14: "Iterates over dimension pair start index i from 0 to dim-2 in steps of 2.",
+    15: "Calculates unscaled base inverse frequency for dimension index i.",
+    16: "Calculates positional wavelength lambda = 2 * pi / inv_freq for current dimension.",
+    17: "Checks if wavelength is in high-frequency band (less than low_rot).",
+    18: "Sets gamma = 0.0 for high frequencies to preserve local attention without scaling.",
+    19: "Checks if wavelength is in low-frequency band (greater than high_rot).",
+    20: "Sets gamma = 1.0 for low frequencies for full linear scaling by 1/scale_factor.",
+    21: "Executes branch for mid-frequency transition ramp.",
+    22: "Computes linear ramp interpolation factor gamma for mid-range wavelengths.",
+    23: "Clamps interpolation factor gamma to valid range [0.0, 1.0].",
+    24: "Blends unscaled and scaled inverse frequencies using interpolation factor gamma.",
+    25: "Appends computed YaRN scaled inverse frequency to output list.",
+    26: "Returns list of YaRN scaled inverse frequencies across all dimension pairs.",
   },
 };
 
 export const ropeFrequencyScalingYarn: AlgorithmDefinition<ropeFrequencyScalingYarnInput> = {
   id: "rope-frequency-scaling-yarn",
   title: "RoPE NTK-Aware & YaRN Frequency Scaling",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "math_and_number_theory"],
+  topicIds: ["ml_attention_geometry", "math_and_number_theory"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 7,
-  mlInfraCategory: "ml_attention_geometry",
   description:
     "Extending Large Language Model (LLM) context windows beyond their pre-training length $N_{\\text{train}}$ (e.g. 4k $\\to$ 32k or 128k tokens) without full retraining is a central challenge in LLM serving. Naive linear position interpolation ($m' = m / s$) compresses all positional frequencies uniformly, causing catastrophic loss of high-frequency precision and model degradation.\n\n### Why It Exists\n1. **NTK-Aware Scaling** (LocalLLaMA, 2023): Scales base theta $\\theta' = \\theta_{\\text{base}} \\cdot s^{d / (d-2)}$ rather than scaling position $m$, spreading interpolation loss across dimensions by applying Neural Tangent Kernel (NTK) theory.\n2. **YaRN (Yet Another RoPE N-extrapolation)** (Peng et al., 2023): Partitions frequencies into three bands: high frequencies (short wavelength) are left UNSCALED (preserving local attention), low frequencies (long wavelength) are FULLY SCALED by $1/s$, and mid frequencies use a smooth ramp interpolation $\\gamma(i)$.\n\n### Mathematical Formulation\nFor dimension index $i$ and wavelength $\\lambda_i = 2\\pi / \\theta_i$:\n\n$$\\gamma(i) = \\text{clamp}\\left(\\frac{N_{\\text{orig}} / \\lambda_i - \\beta_{\\text{slow}}}{\\beta_{\\text{fast}} - \\beta_{\\text{slow}}}, 0, 1\\right)$$\n\n$$\\tilde{\\theta}_i = (1 - \\gamma(i)) \\theta_i + \\gamma(i) \\frac{\\theta_i}{s}$$\n\n### Step-by-Step Intuition\n1. **High Frequencies (Short Wavelength)**: $\\gamma(i) = 0 \\implies \\tilde{\\theta}_i = \\theta_i$. Preserves fine-grained local word order.\n2. **Low Frequencies (Long Wavelength)**: $\\gamma(i) = 1 \\implies \\tilde{\\theta}_i = \\theta_i / s$. Smoothly expands global context reach.\n3. **Mid Frequencies**: Smoothly interpolates between unscaled and scaled inverse frequencies.\n\n### Key Trade-Offs & Complexity\n- **Zero Overhead**: Computed once at startup; 0 extra CUDA kernel latency during generation.\n- **Extrapolation Range**: Enables up to $16\\times$-$32\\times$ context window extension with minimal fine-tuning.",
   constraints: ["1 <= dim <= 2048", "1.0 <= scaleFactor <= 128.0"],

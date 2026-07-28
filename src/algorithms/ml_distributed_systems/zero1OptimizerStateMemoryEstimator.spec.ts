@@ -8,10 +8,11 @@ import {
 describe("zero1-optimizer-state-memory-estimator", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(zero1OptimizerStateMemoryEstimator.id).toBe("zero1-optimizer-state-memory-estimator");
-    expect(zero1OptimizerStateMemoryEstimator.isMlInfra).toBe(true);
-    expect(zero1OptimizerStateMemoryEstimator.mlInfraLevel).toBe(11);
-    expect(zero1OptimizerStateMemoryEstimator.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(zero1OptimizerStateMemoryEstimator.categories).toContain("ml_distributed_systems");
+    expect(
+      zero1OptimizerStateMemoryEstimator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(zero1OptimizerStateMemoryEstimator.topicIds).toContain("ml_distributed_systems");
+    expect(zero1OptimizerStateMemoryEstimator.topicIds).toContain("ml_distributed_systems");
     expect(zero1OptimizerStateMemoryEstimator.defaultInput).toEqual(
       DEFAULT_ZERO1OPTIMIZERSTATEMEMORYESTIMATOR_INPUT,
     );

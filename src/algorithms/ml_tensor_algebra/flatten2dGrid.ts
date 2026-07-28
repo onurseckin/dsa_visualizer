@@ -9,9 +9,6 @@ export interface flatten2dGridInput {
 }
 
 export const FLATTEN2DGRID_CODE = `def flatten_2d_grid(grid):
-    """
-    Flattens a 2D matrix into a 1D contiguous row-major memory buffer.
-    """
     rows = len(grid)
     cols = len(grid[0]) if rows > 0 else 0
     flat_buffer = []
@@ -105,6 +102,9 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
           rows: String(numRows),
           cols: String(numCols),
           totalElements: String(totalElements),
+          flatBuffer: JSON.stringify(
+            completedCells.map((cell) => `(${cell.r * numCols + cell.c}: ${grid[cell.r][cell.c]})`),
+          ),
         },
       },
       variables,
@@ -119,46 +119,15 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
     { rows: numRows, cols: numCols },
   );
 
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Flattens a 2D matrix into a 1D contiguous row-major memory buffer.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
   // Step 2: Extract rows
-  addStep(
-    5,
-    "Extract Matrix Row Count",
-    `Measured rows = ${numRows}.`,
-    { rows: numRows },
-  );
+  addStep(2, "Extract Matrix Row Count", `Measured rows = ${numRows}.`, { rows: numRows });
 
   // Step 3: Extract cols
-  addStep(
-    6,
-    "Extract Matrix Column Count",
-    `Measured cols = ${numCols}.`,
-    { cols: numCols },
-  );
+  addStep(3, "Extract Matrix Column Count", `Measured cols = ${numCols}.`, { cols: numCols });
 
   // Step 4: Init flat_buffer
   addStep(
-    7,
+    4,
     "Initialize Flat Buffer Container",
     "Created empty list flat_buffer to store linearized index tuples.",
     { flat_buffer_len: 0 },
@@ -168,7 +137,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
 
   for (let r = 0; r < numRows; r++) {
     addStep(
-      9,
+      6,
       `Begin Row Iteration r = ${r}`,
       `Iterating outer loop for row index r = ${r} of ${numRows}.`,
       { r, total_rows: numRows },
@@ -180,7 +149,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
       const flatIdx = r * numCols + c;
 
       addStep(
-        10,
+        7,
         `Evaluate Column Index c = ${c} in Row ${r}`,
         `Iterating inner loop for column index c = ${c} of ${numCols}.`,
         { r, c, total_cols: numCols },
@@ -190,7 +159,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
       );
 
       addStep(
-        11,
+        8,
         `Calculate Row-Major Linear Index flat_idx = ${r} * ${numCols} + ${c} = ${flatIdx}`,
         `Mapped 2D coordinate (${r}, ${c}) to 1D physical memory offset flat_idx = ${flatIdx}.`,
         { r, c, flat_idx: flatIdx, cols: numCols },
@@ -201,7 +170,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
 
       completedCells.push({ r, c });
       addStep(
-        12,
+        9,
         `Append Tuple (${flatIdx}, ${val}) to Flat Buffer`,
         `Stored serialized element value ${val} at physical offset ${flatIdx}.`,
         { flat_idx: flatIdx, val, total_flattened: completedCells.length },
@@ -214,7 +183,7 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
 
   // Return step
   addStep(
-    14,
+    11,
     "Return Serialized 1D Contiguous Buffer",
     `Successfully linearized ${numRows}x${numCols} matrix (${completedCells.length} total elements) into 1D row-major buffer.`,
     { completed: true, total_flattened: completedCells.length },
@@ -227,49 +196,38 @@ export const generateFlatten2dGridSteps = (input: flatten2dGridInput): Algorithm
 };
 
 const FLATTEN2DGRID_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
-  distractors: [
-    "flat_idx = c * rows + r",
-    "flat_buffer = grid.T",
-    "return grid[0]",
-  ],
+  skipLines: [5, 10],
+  distractors: ["flat_idx = c * rows + r", "flat_buffer = grid.T", "return grid[0]"],
   hints: [
     {
-      line: 11,
+      line: 8,
       hint: "The row-major indexing formula flat_idx = r * cols + c maps 2D grid coordinates to physical 1D memory offsets.",
     },
     {
-      line: 12,
+      line: 9,
       hint: "Appending (flat_idx, val) tuples preserves physical sequence order for ML tensor serializations.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for 2D grid flattening function.",
-    2: "Starts docstring for 2D grid flattening function.",
-    3: "Explains serialization of 2D matrix into contiguous 1D row-major memory buffer.",
-    4: "Closes docstring for 2D grid flattening function.",
-    5: "Measures total row count M in input 2D grid.",
-    6: "Measures column count N from first row, defaulting to 0 for empty grid.",
-    7: "Initializes empty list flat_buffer to accumulate linearized element tuples.",
-    8: "Blank line before row-major iteration loops.",
-    9: "Iterates through row index r from 0 to rows - 1.",
-    10: "Iterates through column index c from 0 to cols - 1.",
-    11: "Calculates physical 1D linear memory index flat_idx = r * cols + c.",
-    12: "Appends tuple (flat_idx, grid[r][c]) into flat_buffer container.",
-    13: "Blank line before return statement.",
-    14: "Returns final flattened contiguous 1D memory buffer array.",
+    2: "Measures total row count M in input 2D grid.",
+    3: "Measures column count N from first row, defaulting to 0 for empty grid.",
+    4: "Initializes empty list flat_buffer to accumulate linearized element tuples.",
+    5: "Blank line before row-major iteration loops.",
+    6: "Iterates through row index r from 0 to rows - 1.",
+    7: "Iterates through column index c from 0 to cols - 1.",
+    8: "Calculates physical 1D linear memory index flat_idx = r * cols + c.",
+    9: "Appends tuple (flat_idx, grid[r][c]) into flat_buffer container.",
+    10: "Blank line before return statement.",
+    11: "Returns final flattened contiguous 1D memory buffer array.",
   },
 };
 
 export const flatten2dGrid: AlgorithmDefinition<flatten2dGridInput> = {
   id: "flatten-2d-grid",
   title: "Flatten 2D Grid into 1D Contiguous Buffer",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "Deep learning frameworks (PyTorch, TensorFlow, JAX) store multi-dimensional tensors as contiguous 1D memory buffers on CPU and GPU DRAM. Translating 2D grid coordinates $(r, c)$ into 1D physical addresses $\\text{flat\\_idx} = r \\cdot \\text{cols} + c$ is the standard row-major (C-style) memory layout convention.\n\nThis algorithm serializes 2D matrix elements into a flat linear memory buffer while recording row-major index calculations, converting spatial grid structures into contiguous memory layouts.\n\n### Problem Solved & ML Compiler Relevance\nGPU memory controllers issue coalesced 128-bit memory transactions when adjacent SIMT threads access adjacent 1D physical memory addresses. By serializing 2D image patches, activation matrices, or attention weight grids in row-major order, ML kernels ensure maximum memory bandwidth utilization during forward and backward passes.\n\n### Step-by-Step Execution\n1. **Dimension Extraction**: Read row count $M$ and column count $N$.\n2. **Buffer Allocation**: Initialize empty list `flat_buffer` for linearized entries.\n3. **Nested Traversal**: Loop row $r$ from 0 to $M-1$ and column $c$ from 0 to $N-1$.\n4. **Linear Address Calculation**: Compute $\\text{flat\\_idx} = r \\cdot N + c$ and append $(\\text{flat\\_idx}, grid[r][c])$.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],

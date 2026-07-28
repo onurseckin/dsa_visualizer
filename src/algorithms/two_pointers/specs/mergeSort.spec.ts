@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { mergeSort, generateMergeSortSteps } from "../mergeSort";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("mergeSort algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(mergeSort.id).toBe("merge-sort");
     expect(mergeSort.title).toContain("Merge Sort");
-    expect(mergeSort.category).toBe("two_pointers");
+    expect(mergeSort.topicIds).toContain("two_pointers");
     expect(mergeSort.timeComplexity.average).toBe("O(n log n)");
     expect(mergeSort.spaceComplexity).toBe("O(n)");
   });
@@ -44,8 +45,12 @@ describe("mergeSort algorithm spec", () => {
     expect(mergeSort.examples).toHaveLength(3);
     expect(mergeSort.examples?.map((ex) => ex.kind)).toEqual(["basic", "complex", "negative"]);
 
-    for (const example of mergeSort.examples!) {
-      const steps = mergeSort.generateSteps(example.input as { array: number[] });
+    for (const input of requireExampleInputs(
+      mergeSort,
+      (value): value is typeof mergeSort.defaultInput =>
+        typeof value === "object" && value !== null,
+    )) {
+      const steps = mergeSort.generateSteps(input);
       expect(steps.length).toBeGreaterThanOrEqual(20);
     }
   });
@@ -65,7 +70,11 @@ describe("mergeSort algorithm spec", () => {
     const N = mergeSort.code.split("\n").length;
     const inputs = [
       mergeSort.defaultInput,
-      ...(mergeSort.examples?.map((e) => e.input) ?? []),
+      ...requireExampleInputs(
+        mergeSort,
+        (input): input is typeof mergeSort.defaultInput =>
+          typeof input === "object" && input !== null,
+      ),
     ];
 
     for (const inp of inputs) {

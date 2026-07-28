@@ -8,10 +8,11 @@ import {
 describe("row-parallel-linear-allreducer (Megatron-LM Row Parallel Linear All-Reduce Engine)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(rowParallelLinearAllreducer.id).toBe("row-parallel-linear-allreducer");
-    expect(rowParallelLinearAllreducer.isMlInfra).toBe(true);
-    expect(rowParallelLinearAllreducer.mlInfraLevel).toBe(11);
-    expect(rowParallelLinearAllreducer.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(rowParallelLinearAllreducer.categories).toContain("ml_distributed_systems");
+    expect(rowParallelLinearAllreducer.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(rowParallelLinearAllreducer.topicIds).toContain("ml_distributed_systems");
+    expect(rowParallelLinearAllreducer.topicIds).toContain("ml_distributed_systems");
     expect(rowParallelLinearAllreducer.defaultInput).toEqual(
       DEFAULT_ROWPARALLELLINEARALLREDUCER_INPUT,
     );
@@ -33,5 +34,15 @@ describe("row-parallel-linear-allreducer (Megatron-LM Row Parallel Linear All-Re
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Initialize");
     expect(steps[steps.length - 1].explanation.what).toContain("Broadcast");
+  });
+
+  it("should handle edge cases (single rank and empty data) gracefully", () => {
+    const singleSteps = generateRowParallelLinearAllreducerSteps({ data: [42], target: 42 });
+    expect(singleSteps.length).toBe(3);
+    expect(singleSteps[2].codeLine).toBe(3);
+
+    const emptySteps = generateRowParallelLinearAllreducerSteps({ data: [] });
+    expect(emptySteps.length).toBe(3);
+    expect(emptySteps[2].codeLine).toBe(3);
   });
 });

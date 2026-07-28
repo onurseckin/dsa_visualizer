@@ -3,5 +3,7 @@ dist
 .DS_Store
 *.log
 coverage
+coverage_dir/
+.tmp/
 data/
 *.sqlite

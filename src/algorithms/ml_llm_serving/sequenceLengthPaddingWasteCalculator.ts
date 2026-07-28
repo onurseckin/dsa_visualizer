@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface sequenceLengthPaddingWasteCalculatorInput {
@@ -7,10 +12,6 @@ export interface sequenceLengthPaddingWasteCalculatorInput {
 }
 
 export const SEQUENCELENGTHPADDINGWASTECALCULATOR_CODE = `def sequence_length_padding_waste_calculator(sequence_lengths: list[int]) -> dict:
-    """
-    Calculates VRAM padding waste and compute overhead when variable-length
-    sequences are padded to max_seq_len under traditional static batching.
-    """
     if not sequence_lengths:
         return {"max_len": 0, "useful_tokens": 0, "padded_tokens": 0, "waste_pct": 0.0}
 
@@ -35,6 +36,45 @@ export const DEFAULT_SEQUENCELENGTHPADDINGWASTECALCULATOR_INPUT: sequenceLengthP
     target: 85,
   };
 
+const buildMatrixSnapshot = (
+  sequenceLengths: number[],
+  activeIdx: number = -1,
+  computedMaxLen?: number,
+): MatrixVisualSnapshot => {
+  const maxLen = computedMaxLen ?? (sequenceLengths.length > 0 ? Math.max(...sequenceLengths) : 0);
+  const colHeaders = ["Request", "Useful Seq Len", "Padded Target", "Wasted Padding", "Waste %"];
+  const cells: MatrixCellItem[] = [];
+
+  sequenceLengths.forEach((len, idx) => {
+    let state: MatrixCellItem["state"] = "default";
+    if (idx === activeIdx) {
+      state = "active";
+    } else if (activeIdx >= 0 && idx < activeIdx) {
+      state = "sorted";
+    }
+
+    const wasted = maxLen > 0 ? maxLen - len : 0;
+    const wastePct = maxLen > 0 ? ((wasted / maxLen) * 100).toFixed(1) + "%" : "0.0%";
+
+    cells.push(
+      { row: idx, col: 0, value: `Req ${idx + 1}`, state },
+      { row: idx, col: 1, value: `${len} tok`, state },
+      { row: idx, col: 2, value: `${maxLen} tok`, state },
+      { row: idx, col: 3, value: `${wasted} tok`, state },
+      { row: idx, col: 4, value: wastePct, state },
+    );
+  });
+
+  return {
+    kind: "matrix",
+    rows: sequenceLengths.length,
+    cols: 5,
+    colHeaders,
+    cells,
+    title: `Static Batching VRAM Allocation Matrix (Batch Size: ${sequenceLengths.length}, Max Len: ${maxLen})`,
+  };
+};
+
 export const generateSequenceLengthPaddingWasteCalculatorSteps = (
   input: sequenceLengthPaddingWasteCalculatorInput,
 ): AlgorithmStep[] => {
@@ -42,11 +82,6 @@ export const generateSequenceLengthPaddingWasteCalculatorSteps = (
   let stepIndex = 0;
 
   const sequenceLengths = input.data;
-  const elements: ArrayElement[] = sequenceLengths.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: `Req ${idx + 1}: ${val} tok`,
-    state: "default",
-  }));
 
   const addStep = (
     codeLine: number,
@@ -54,27 +89,13 @@ export const generateSequenceLengthPaddingWasteCalculatorSteps = (
     why: string,
     variables: Record<string, string | number | boolean>,
     activeIdx: number = -1,
-    pointersMap: Record<number, string[]> = {},
+    computedMaxLen?: number,
   ) => {
-    const updatedElements: ArrayElement[] = elements.map((el, idx) => {
-      let state: ArrayElement["state"] = "default";
-      if (idx === activeIdx) state = "active";
-      else if (activeIdx >= 0 && idx < activeIdx) state = "visited";
-      return {
-        ...el,
-        state,
-        pointers: pointersMap[idx] || undefined,
-      };
-    });
-
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: updatedElements,
-      },
+      primarySnapshot: buildMatrixSnapshot(sequenceLengths, activeIdx, computedMaxLen),
       auxiliaryState: {
         customState: {
           sequence_lengths: `[${sequenceLengths.join(", ")}]`,
@@ -92,44 +113,16 @@ export const generateSequenceLengthPaddingWasteCalculatorSteps = (
     { batch_size: sequenceLengths.length },
   );
 
-    addStep(
+  addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "Calculates VRAM padding waste and compute overhead when variable-length",
-    {},
-  );
-
-  addStep(
-    4,
-    "Docstring body: algorithm description",
-    "sequences are padded to max_seq_len under traditional static batching.",
-    {},
-  );
-
-  addStep(
-    5,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    6,
     `Check if not sequence_lengths (len = ${sequenceLengths.length})`,
-    "Verifying batch is non-empty.",
+    "Verifying batch is non-empty before computing static batch allocation matrix.",
     { is_empty: sequenceLengths.length === 0 },
   );
 
   if (sequenceLengths.length === 0) {
     addStep(
-      7,
+      3,
       "Return zeroed metrics dictionary for empty input",
       "Empty batch has 0 padding waste.",
       { max_len: 0, useful_tokens: 0, padded_tokens: 0, waste_pct: 0 },
@@ -139,76 +132,85 @@ addStep(
 
   const maxLen = Math.max(...sequenceLengths);
   addStep(
-    9,
+    5,
     `Compute max_len = max(sequence_lengths) -> ${maxLen}`,
-    `Longest sequence in batch is ${maxLen} tokens. All other sequences will be padded to ${maxLen}.`,
+    `Longest sequence in batch is ${maxLen} tokens. Under static batching, all ${sequenceLengths.length} requests are padded to ${maxLen} tokens.`,
     { max_len: maxLen },
+    -1,
+    maxLen,
   );
 
   const batchSize = sequenceLengths.length;
   addStep(
-    10,
+    6,
     `Compute batch_size = len(sequence_lengths) -> ${batchSize}`,
     `Batch contains ${batchSize} parallel requests.`,
     { batch_size: batchSize },
+    -1,
+    maxLen,
   );
 
   const paddedTokens = maxLen * batchSize;
   addStep(
-    11,
+    7,
     `Compute padded_tokens = max_len * batch_size -> ${maxLen} * ${batchSize} = ${paddedTokens}`,
-    `Static batching allocates a rectangular matrix of shape [${batchSize}, ${maxLen}] = ${paddedTokens} total token slots.`,
+    `Static batching allocates a rectangular matrix of shape [${batchSize}, ${maxLen}] = ${paddedTokens} total token slots in GPU VRAM.`,
     { max_len: maxLen, batch_size: batchSize, padded_tokens: paddedTokens },
+    -1,
+    maxLen,
   );
 
   let sumUseful = 0;
   sequenceLengths.forEach((len, idx) => {
     sumUseful += len;
     addStep(
-      12,
-      `Step ${idx + 1}/${batchSize}: Inspect req ${idx + 1} len = ${len}. Running useful_tokens sum -> ${sumUseful}`,
-      `Accumulating useful unpadded token counts: +${len} tokens.`,
+      8,
+      `Step ${idx + 1}/${batchSize}: Inspect Req ${idx + 1} len = ${len}. Running useful_tokens sum -> ${sumUseful}`,
+      `Accumulating useful unpadded token counts: +${len} tokens. (Wasted padding for Req ${idx + 1}: ${maxLen - len} tokens).`,
       { idx: idx + 1, req_len: len, running_useful_tokens: sumUseful },
       idx,
-      { [idx]: [`len=${len}`, `sum=${sumUseful}`] },
+      maxLen,
     );
   });
 
   const usefulTokens = sumUseful;
   addStep(
-    12,
+    8,
     `Compute useful_tokens = sum(sequence_lengths) -> ${usefulTokens}`,
-    `Total useful token payload generated across all requests: ${usefulTokens} tokens.`,
+    `Total useful token payload generated across all ${batchSize} requests: ${usefulTokens} tokens.`,
     { useful_tokens: usefulTokens },
+    -1,
+    maxLen,
   );
 
   const wastedTokens = paddedTokens - usefulTokens;
   addStep(
-    13,
+    9,
     `Compute wasted_tokens = padded_tokens - useful_tokens -> ${paddedTokens} - ${usefulTokens} = ${wastedTokens}`,
-    `Total dummy padding token slots allocated in GPU VRAM: ${wastedTokens} wasted tokens.`,
+    `Total dummy padding token slots allocated in GPU VRAM: ${wastedTokens} wasted tokens out of ${paddedTokens} allocated slots.`,
     { padded_tokens: paddedTokens, useful_tokens: usefulTokens, wasted_tokens: wastedTokens },
+    -1,
+    maxLen,
   );
 
   const wastePct = paddedTokens > 0 ? (wastedTokens / paddedTokens) * 100 : 0;
   addStep(
-    14,
+    10,
     `Compute waste_pct = (wasted_tokens / padded_tokens) * 100.0 -> ${wastePct.toFixed(1)}%`,
-    `VRAM and HBM memory bandwidth waste ratio: $${wastedTokens} / ${paddedTokens} = ${wastePct.toFixed(1)}\\%$.`,
-    { wasted_tokens: wastedTokens, padded_tokens: paddedTokens, waste_pct: Number(wastePct.toFixed(1)) },
+    `VRAM memory capacity & HBM memory bandwidth waste ratio: ${wastedTokens} / ${paddedTokens} = ${wastePct.toFixed(1)}%.`,
+    {
+      wasted_tokens: wastedTokens,
+      padded_tokens: paddedTokens,
+      waste_pct: Number(wastePct.toFixed(1)),
+    },
+    -1,
+    maxLen,
   );
 
   addStep(
-    16,
-    "Construct return dictionary with computed metrics",
-    "Packaging padding waste metrics for reporting.",
-    { max_len: maxLen, useful_tokens: usefulTokens, padded_tokens: paddedTokens, wasted_tokens: wastedTokens, waste_pct: Number(wastePct.toFixed(1)) },
-  );
-
-  addStep(
-    22,
-    `Return {max_len: ${maxLen}, useful: ${usefulTokens}, padded: ${paddedTokens}, wasted: ${wastedTokens}, waste_pct: ${wastePct.toFixed(1)}%}`,
-    `Completed static batch padding waste calculation: ${wastePct.toFixed(1)}% of allocated VRAM is wasted padding!`,
+    12,
+    "Construct return dictionary with computed static batching VRAM waste metrics",
+    "Packaging metrics (max_len, useful_tokens, padded_tokens, wasted_tokens, waste_pct) into return object.",
     {
       max_len: maxLen,
       useful_tokens: usefulTokens,
@@ -216,13 +218,30 @@ addStep(
       wasted_tokens: wastedTokens,
       waste_pct: Number(wastePct.toFixed(1)),
     },
+    -1,
+    maxLen,
+  );
+
+  addStep(
+    18,
+    `Return results dict: ${wastePct.toFixed(1)}% VRAM waste`,
+    `Static batching completed: ${wastedTokens} / ${paddedTokens} token slots (${wastePct.toFixed(1)}%) in VRAM are wasted padding tokens!`,
+    {
+      max_len: maxLen,
+      useful_tokens: usefulTokens,
+      padded_tokens: paddedTokens,
+      wasted_tokens: wastedTokens,
+      waste_pct: Number(wastePct.toFixed(1)),
+    },
+    -1,
+    maxLen,
   );
 
   return steps;
 };
 
 const SEQUENCELENGTHPADDINGWASTECALCULATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 8, 15],
+  skipLines: [4, 11],
   distractors: [
     "padded_tokens = sum(sequence_lengths) * batch_size",
     "waste_pct = (useful_tokens / padded_tokens) * 100.0",
@@ -230,33 +249,29 @@ const SEQUENCELENGTHPADDINGWASTECALCULATOR_TRIVIA: TriviaMeta = {
     "return max(sequence_lengths)",
   ],
   hints: [
-    { line: 11, hint: "Compute padded_tokens as max_len * batch_size." },
-    { line: 13, hint: "Subtract useful_tokens from padded_tokens to find wasted_tokens." },
-    { line: 14, hint: "Calculate waste_pct as (wasted_tokens / padded_tokens) * 100.0." },
+    { line: 7, hint: "Compute padded_tokens as max_len * batch_size." },
+    { line: 9, hint: "Subtract useful_tokens from padded_tokens to find wasted_tokens." },
+    { line: 10, hint: "Calculate waste_pct as (wasted_tokens / padded_tokens) * 100.0." },
   ],
   lineExplanations: {
     1: "Function signature for sequence_length_padding_waste_calculator taking list of sequence lengths.",
-    2: "Begin docstring describing static batching VRAM padding waste calculation.",
-    3: "Docstring line detailing VRAM memory waste and compute overhead of padding.",
-    4: "Docstring line detailing traditional static batching vs continuous batching.",
-    5: "End docstring.",
-    6: "Check if sequence_lengths list is empty.",
-    7: "Return zeroed metrics dictionary if input sequence list is empty.",
-    8: "Blank line after empty list check.",
-    9: "Find maximum sequence length in batch: max_len = max(sequence_lengths).",
-    10: "Determine batch size: batch_size = len(sequence_lengths).",
-    11: "Compute total padded token slots: padded_tokens = max_len * batch_size.",
-    12: "Sum useful non-padded token counts across all requests.",
-    13: "Calculate wasted padding token count: wasted_tokens = padded_tokens - useful_tokens.",
-    14: "Compute percentage of VRAM memory wasted: waste_pct = (wasted_tokens / padded_tokens) * 100.0.",
-    15: "Blank line before return dictionary construction.",
-    16: "Begin construction of output metrics dictionary.",
-    17: "Dictionary key max_len storing peak sequence length.",
-    18: "Dictionary key useful_tokens storing sum of actual sequence lengths.",
-    19: "Dictionary key padded_tokens storing total rectangular tensor size.",
-    20: "Dictionary key wasted_tokens storing count of dummy padding tokens.",
-    21: "Dictionary key waste_pct storing floating-point VRAM waste percentage.",
-    22: "Closing brace for metrics dictionary return statement.",
+    2: "Check if sequence_lengths list is empty.",
+    3: "Return zeroed metrics dictionary if input sequence list is empty.",
+    4: "Blank line before computing maximum sequence length.",
+    5: "Find maximum sequence length in batch: max_len = max(sequence_lengths).",
+    6: "Determine batch size: batch_size = len(sequence_lengths).",
+    7: "Compute total padded token slots: padded_tokens = max_len * batch_size.",
+    8: "Sum useful non-padded token counts across all requests.",
+    9: "Calculate wasted padding token count: wasted_tokens = padded_tokens - useful_tokens.",
+    10: "Compute percentage of VRAM memory wasted: waste_pct = (wasted_tokens / padded_tokens) * 100.0.",
+    11: "Blank line before return statement.",
+    12: "Begin construction of output metrics dictionary.",
+    13: "Dictionary key max_len storing peak sequence length.",
+    14: "Dictionary key useful_tokens storing sum of actual sequence lengths.",
+    15: "Dictionary key padded_tokens storing total rectangular tensor size.",
+    16: "Dictionary key wasted_tokens storing count of dummy padding tokens.",
+    17: "Dictionary key waste_pct storing floating-point VRAM waste percentage.",
+    18: "Return dictionary with computed static batching VRAM waste metrics.",
   },
 };
 
@@ -264,12 +279,8 @@ export const sequenceLengthPaddingWasteCalculator: AlgorithmDefinition<sequenceL
   {
     id: "sequence-length-padding-waste-calculator",
     title: "Static Batching VRAM Padding Waste Calculator",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "arrays_and_hashing"],
+    topicIds: ["ml_llm_serving", "arrays_and_hashing"],
     difficulty: "Easy",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "In traditional deep learning serving frameworks, batching variable-length sequences requires padding shorter sequences with dummy tokens up to the maximum sequence length (`max_seq_len`) in the batch. Because transformer attention memory allocation scales linearly with padded sequence length and attention FLOPs scale quadratically $O(N^2)$, static padding wastes tremendous GPU memory bandwidth and VRAM capacity (often 50%-80% wasted memory).\n\n### Analytical Waste Formulas\nFor a batch of $B$ requests with lengths $L_1, L_2, \\dots, L_B$:\n- Padded Tokens: $T_{\\text{padded}} = B \\times \\max_i(L_i)$\n- Useful Tokens: $T_{\\text{useful}} = \\sum_{i=1}^B L_i$\n- Wasted Tokens: $T_{\\text{wasted}} = T_{\\text{padded}} - T_{\\text{useful}}$\n- Waste Percentage: $W = \\left(\\frac{T_{\\text{wasted}}}{T_{\\text{padded}}}\\right) \\times 100\\%$\n\nInput Format:\n- `data`: Array of sequence lengths (token counts) for requests in a batch.\n- `target`: Optional reference sequence length bound.\n\nOutput Format:\n- Returns metrics dictionary detailing `max_len`, `useful_tokens`, `padded_tokens`, `wasted_tokens`, and `waste_pct`.",
     constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],

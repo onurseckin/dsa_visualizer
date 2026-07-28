@@ -104,7 +104,13 @@ export const generateRecurrentUnrollingBpttSteps = (
   };
 
   if (T === 0) {
-    addStep(1, "Empty Input Sequence", "Input sequence length is 0. Returning empty hidden states list.", null, { valid: false, T: 0 });
+    addStep(
+      1,
+      "Empty Input Sequence",
+      "Input sequence length is 0. Returning empty hidden states list.",
+      null,
+      { valid: false, T: 0 },
+    );
     return steps;
   }
 
@@ -264,12 +270,8 @@ export const RECURRENT_UNROLLING_BPTT_TRIVIA: TriviaMeta = {
 export const recurrentUnrollingBptt: AlgorithmDefinition<RecurrentUnrollingBpttInput> = {
   id: "recurrent-unrolling-bptt",
   title: "Recurrent Unrolling & Backpropagation Through Time (BPTT)",
-  category: "ml_attention_geometry",
-  categories: ["ml_attention_geometry", "ml_recurrent_gates"],
+  topicIds: ["ml_attention_geometry", "ml_recurrent_gates"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 6,
-  mlInfraCategory: "ml_attention_geometry",
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description: `### Recurrent Unrolling & Backpropagation Through Time (BPTT)
 

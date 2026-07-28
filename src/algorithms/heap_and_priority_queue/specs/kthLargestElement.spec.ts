@@ -49,7 +49,7 @@ describe("kthLargestElement logic spec", () => {
 
   it("verifies algorithm definition metadata", () => {
     expect(kthLargestElement.id).toBe("kth-largest-element");
-    expect(kthLargestElement.category).toBe("heap_and_priority_queue");
+    expect(kthLargestElement.topicIds).toContain("heap_and_priority_queue");
     expect(kthLargestElement.difficulty).toBe("Medium");
   });
 

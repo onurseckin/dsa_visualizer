@@ -220,7 +220,14 @@ export const generateFakeQuantizedW8a8MatmulSteps = (
         10,
         `Dequantize Cell (${i}, ${j}): output[${i}][${j}] = ${intAcc} * (${scaleA} * ${scaleB}) = ${output[i][j]}`,
         `Scaled INT8 accumulator ${intAcc} by combined scale factor (${scaleA} * ${scaleB} = ${(scaleA * scaleB).toFixed(4)}) to reconstruct FP32 output cell.`,
-        { i, j, intAcc, combinedScale: Number((scaleA * scaleB).toFixed(4)), outputVal: output[i][j], phase: "DEQUANTIZE" },
+        {
+          i,
+          j,
+          intAcc,
+          combinedScale: Number((scaleA * scaleB).toFixed(4)),
+          outputVal: output[i][j],
+          phase: "DEQUANTIZE",
+        },
         dequantVal,
         intAcc,
       );
@@ -258,11 +265,20 @@ const FAKEQUANTIZEDW8A8MATMUL_TRIVIA: TriviaMeta = {
     "output = [[1.0] * n for _ in range(m)]",
   ],
   hints: [
-    { line: 1, hint: "Defines fake quantized matmul function with input matrices and scale factors." },
+    {
+      line: 1,
+      hint: "Defines fake quantized matmul function with input matrices and scale factors.",
+    },
     { line: 4, hint: "Quantize matrix A into INT8 range [-128, 127] using scale_a." },
     { line: 5, hint: "Quantize matrix B into INT8 range [-128, 127] using scale_b." },
-    { line: 9, hint: "Accumulate INT8 dot product sum(q_a[i][k] * q_b[k][j]) across inner dimension K." },
-    { line: 10, hint: "Multiply integer accumulator by combined scale factor (scale_a * scale_b) to restore FP32 scale." },
+    {
+      line: 9,
+      hint: "Accumulate INT8 dot product sum(q_a[i][k] * q_b[k][j]) across inner dimension K.",
+    },
+    {
+      line: 10,
+      hint: "Multiply integer accumulator by combined scale factor (scale_a * scale_b) to restore FP32 scale.",
+    },
   ],
   lineExplanations: {
     1: "Declares function signature fake_quantized_w8a8_matmul accepting matrices A, B and scale factors scale_a, scale_b.",
@@ -282,12 +298,8 @@ const FAKEQUANTIZEDW8A8MATMUL_TRIVIA: TriviaMeta = {
 export const fakeQuantizedW8a8Matmul: AlgorithmDefinition<fakeQuantizedW8a8MatmulInput> = {
   id: "fake-quantized-w8a8-matmul",
   title: "Fake Quantized W8a8 Matmul",
-  category: "ml_precision_quantization",
-  categories: ["ml_precision_quantization", "bit_manipulation"],
+  topicIds: ["ml_precision_quantization", "bit_manipulation"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 4,
-  mlInfraCategory: "ml_precision_quantization",
   description: `### Fake Quantized W8A8 Matrix Multiplication
 
 Fake Quantized W8A8 Matrix Multiplication simulates 8-bit integer weights and 8-bit integer activations (W8A8 INT8 GEMM) during FP32 forward training passes in Quantization-Aware Training (QAT, PyTorch \`torch.ao.quantization\`).
@@ -308,7 +320,12 @@ Post-Training Quantization (PTQ) often degrades deep learning model accuracy due
 - **Time Complexity**: $\\mathcal{O}(M \\cdot N \\cdot K)$ matrix multiplication operations.
 - **Space Complexity**: $\\mathcal{O}(M \\cdot K + K \\cdot N + M \\cdot N)$ memory for INT8 buffers and FP32 output.
 - **Trade-Off**: Simulates exact INT8 hardware quantization noise during training, eliminating post-training quantization accuracy drops on edge TPU and NPU accelerators.`,
-  constraints: ["1 <= matrixA.length <= 100", "1 <= matrixB.length <= 100", "scaleA > 0", "scaleB > 0"],
+  constraints: [
+    "1 <= matrixA.length <= 100",
+    "1 <= matrixB.length <= 100",
+    "scaleA > 0",
+    "scaleB > 0",
+  ],
   examples: [
     {
       kind: "basic",
@@ -400,7 +417,8 @@ Post-Training Quantization (PTQ) often degrades deep learning model accuracy due
       },
       {
         term: "Combined Scale Factor (S_A * S_B)",
-        definition: "The product of activation scale and weight scale used to de-quantize integer GEMM accumulators.",
+        definition:
+          "The product of activation scale and weight scale used to de-quantize integer GEMM accumulators.",
       },
     ],
   },

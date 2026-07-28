@@ -9,7 +9,7 @@ describe("Fp16 Overflow Rescaling Engine", () => {
   it("should have correct metadata", () => {
     expect(fp16OverflowRescalingEngine.id).toBe("fp16-overflow-rescaling-engine");
     expect(fp16OverflowRescalingEngine.title).toBe("Fp16 Overflow Rescaling Engine");
-    expect(fp16OverflowRescalingEngine.category).toBe("ml_precision_quantization");
+    expect(fp16OverflowRescalingEngine.topicIds).toContain("ml_precision_quantization");
   });
 
   it("should generate valid steps (>= 20 steps)", () => {

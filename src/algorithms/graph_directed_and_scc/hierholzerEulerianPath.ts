@@ -123,8 +123,9 @@ export const HIERHOLZER_TRIVIA: TriviaMeta = {
 
 export function generateHierholzerSteps(input: HierholzerEulerianPathInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const inputNodes = input.nodes && input.nodes.length > 0 ? input.nodes : DEFAULT_HIERHOLZER_INPUT.nodes;
-  const inputEdges = input.edges && input.edges.length > 0 ? input.edges : DEFAULT_HIERHOLZER_INPUT.edges;
+  const inputNodes =
+    input?.nodes && input.nodes.length > 0 ? input.nodes : DEFAULT_HIERHOLZER_INPUT.nodes;
+  const inputEdges = input?.edges !== undefined ? input.edges : DEFAULT_HIERHOLZER_INPUT.edges;
 
   const nodes = inputNodes.map((n) => ({ ...n }));
   const edges = inputEdges.map((e) => ({ ...e }));
@@ -140,21 +141,33 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
   }
 
   for (const e of edges) {
+    if (!adj[e.from]) adj[e.from] = [];
+    if (!adj[e.to]) adj[e.to] = [];
+    if (inDeg[e.from] === undefined) inDeg[e.from] = 0;
+    if (outDeg[e.from] === undefined) outDeg[e.from] = 0;
+    if (inDeg[e.to] === undefined) inDeg[e.to] = 0;
+    if (outDeg[e.to] === undefined) outDeg[e.to] = 0;
+
     adj[e.from].push(e.to);
-    outDeg[e.from] = (outDeg[e.from] || 0) + 1;
-    inDeg[e.to] = (inDeg[e.to] || 0) + 1;
+    outDeg[e.from]++;
+    inDeg[e.to]++;
   }
 
   let stepIdx = 0;
 
+  // Step 0: Line 1 - Function Entry & Graph Data Structures Init
   steps.push({
     stepIndex: stepIdx++,
     codeLine: 1,
     explanation: {
       what: `Initialize Hierholzer's Algorithm on graph with ${nodes.length} nodes and ${edges.length} edges.`,
-      why: "Compute in-degrees and out-degrees to determine starting vertex for Eulerian path/circuit.",
+      why: "Create adjacency lists and degree tracking tables to process incoming and outgoing edges.",
     },
-    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((n) => ({ ...n, state: "default" })),
+      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
+    },
     auxiliaryState: {
       visited: [],
       stack: [],
@@ -163,7 +176,33 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
     variables: { totalNodes: nodes.length, totalEdges: edges.length },
   });
 
-  let startNode = input.startNodeId || nodes[0]?.id || "0";
+  // Step 1: Line 6 - Degree Calculation
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 6,
+    explanation: {
+      what: `Populated adjacency lists and computed vertex degrees across ${edges.length} directed edges.`,
+      why: "In a directed Eulerian path, intermediate vertices must have equal in/out degrees, while the start vertex has out_deg - in_deg == 1.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((n) => ({ ...n, state: "default" })),
+      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
+    },
+    auxiliaryState: {
+      visited: [],
+      stack: [],
+      customState: {
+        Circuit: "[]",
+        "Degree Summary": nodes
+          .map((n) => `${n.id}: in=${inDeg[n.id] || 0}, out=${outDeg[n.id] || 0}`)
+          .join(" | "),
+      },
+    },
+    variables: { totalNodes: nodes.length, totalEdges: edges.length },
+  });
+
+  let startNode = input?.startNodeId || (nodes.length > 0 ? nodes[0].id : "0");
   for (const n of nodes) {
     if ((outDeg[n.id] || 0) - (inDeg[n.id] || 0) === 1) {
       startNode = n.id;
@@ -171,16 +210,13 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
     }
   }
 
-  const stack: string[] = [startNode];
-  const circuit: string[] = [];
-  const edgeUsed: Record<string, boolean> = {};
-
+  // Step 2: Line 13 - Start Node Selection
   steps.push({
     stepIndex: stepIdx++,
-    codeLine: 11,
+    codeLine: 13,
     explanation: {
-      what: `Selected start vertex '${startNode}'.`,
-      why: "Vertex selected based on Eulerian path degree condition (out_deg - in_deg == 1) or default start.",
+      what: `Selected starting vertex '${startNode}' based on Eulerian path degree condition (out_deg - in_deg == 1).`,
+      why: "The start vertex of an Eulerian path must have one more outgoing edge than incoming edge (or any vertex with out_degree > 0 for a circuit).",
     },
     primarySnapshot: {
       kind: "graph",
@@ -188,9 +224,38 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
         ...n,
         state: n.id === startNode ? "active" : "default",
       })),
-      edges: [...edges],
+      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
     },
     auxiliaryState: {
+      visited: [],
+      stack: [],
+      customState: { Circuit: "[]", "Start Node": startNode },
+    },
+    variables: { startNode, outDeg: outDeg[startNode] || 0, inDeg: inDeg[startNode] || 0 },
+  });
+
+  const stack: string[] = [startNode];
+  const circuit: string[] = [];
+  const edgeUsed: Record<string, boolean> = {};
+
+  // Step 3: Line 17 - Stack Init
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 17,
+    explanation: {
+      what: `Pushed start vertex '${startNode}' onto traversal stack. Initialized empty post-order circuit list.`,
+      why: "The LIFO stack will track the active path during traversal, pushing unvisited neighbors and popping when reaching dead ends.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((n) => ({
+        ...n,
+        state: n.id === startNode ? "active" : "default",
+      })),
+      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
+    },
+    auxiliaryState: {
+      visited: [],
       stack: [...stack],
       customState: { Circuit: "[]" },
     },
@@ -211,15 +276,24 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
         kind: "graph",
         nodes: nodes.map((n) => ({
           ...n,
-          state: n.id === curr ? "active" : stack.includes(n.id) ? "in-stack" : "default",
+          state:
+            n.id === curr
+              ? "active"
+              : stack.includes(n.id)
+                ? "in-stack"
+                : circuit.includes(n.id)
+                  ? "visited"
+                  : "default",
         })),
         edges: edges.map((e, idx) => ({
           ...e,
           isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
+          isPath: false,
         })),
       },
       auxiliaryState: {
         stack: [...stack],
+        visited: [...circuit],
         customState: { Current: curr, Circuit: `[${circuit.join(", ")}]` },
       },
       variables: { curr, remainingEdges: adj[curr]?.length ?? 0 },
@@ -228,13 +302,17 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
     if (adj[curr] && adj[curr].length > 0) {
       const nxt = adj[curr].pop()!;
 
-      // Mark edge used
-      const edgeObj = edges.find(
-        (e) =>
-          e.from === curr && e.to === nxt && !edgeUsed[`${e.from}->${e.to}-${edges.indexOf(e)}`],
-      );
-      if (edgeObj) {
-        edgeUsed[`${edgeObj.from}->${edgeObj.to}-${edges.indexOf(edgeObj)}`] = true;
+      // Mark exact matching edge instance as used
+      let edgeObjIndex = -1;
+      for (let idx = 0; idx < edges.length; idx++) {
+        const e = edges[idx];
+        if (e.from === curr && e.to === nxt && !edgeUsed[`${e.from}->${e.to}-${idx}`]) {
+          edgeObjIndex = idx;
+          break;
+        }
+      }
+      if (edgeObjIndex !== -1) {
+        edgeUsed[`${edges[edgeObjIndex].from}->${edges[edgeObjIndex].to}-${edgeObjIndex}`] = true;
       }
 
       stack.push(nxt);
@@ -244,23 +322,31 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
         codeLine: 23,
         explanation: {
           what: `Traversed edge '${curr}' -> '${nxt}' and pushed '${nxt}' onto stack.`,
-          why: "Unvisited outgoing edge found. Extending active traversal path.",
+          why: "Unvisited outgoing edge found. Extending active traversal path to neighbor vertex.",
         },
         primarySnapshot: {
           kind: "graph",
           nodes: nodes.map((n) => ({
             ...n,
-            state: n.id === nxt ? "active" : stack.includes(n.id) ? "in-stack" : "default",
+            state:
+              n.id === nxt
+                ? "active"
+                : stack.includes(n.id)
+                  ? "in-stack"
+                  : circuit.includes(n.id)
+                    ? "visited"
+                    : "default",
           })),
           edges: edges.map((e, idx) => ({
             ...e,
             isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
-            isPath: e.from === curr && e.to === nxt,
+            isPath: idx === edgeObjIndex,
           })),
         },
         auxiliaryState: {
           stack: [...stack],
-          customState: { Circuit: `[${circuit.join(", ")}]` },
+          visited: [...circuit],
+          customState: { Current: nxt, Circuit: `[${circuit.join(", ")}]` },
         },
         variables: { current: curr, next: nxt, stackSize: stack.length },
       });
@@ -272,8 +358,8 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
         stepIndex: stepIdx++,
         codeLine: 26,
         explanation: {
-          what: `Vertex '${popped}' has no remaining outgoing edges. Popped to post-order circuit list.`,
-          why: "When a vertex is stuck with no unvisited outgoing edges, append to post-order list and backtrack.",
+          what: `Vertex '${popped}' has no remaining outgoing edges. Popped to post-order circuit list: [${circuit.join(", ")}].`,
+          why: "When a vertex has no unvisited outgoing edges, it forms a dead end in the current sub-circuit and is appended to the post-order circuit.",
         },
         primarySnapshot: {
           kind: "graph",
@@ -288,11 +374,13 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
           edges: edges.map((e, idx) => ({
             ...e,
             isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
+            isPath: false,
           })),
         },
         auxiliaryState: {
           stack: [...stack],
-          customState: { Circuit: `[${circuit.join(", ")}]` },
+          visited: [...circuit],
+          customState: { Popped: popped, Circuit: `[${circuit.join(", ")}]` },
         },
         variables: { popped, circuitLength: circuit.length },
       });
@@ -305,8 +393,8 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
     stepIndex: stepIdx++,
     codeLine: 28,
     explanation: {
-      what: `Reversed post-order circuit -> Final Eulerian Path: [${resultPath.join(" -> ")}].`,
-      why: "Hierholzer's post-order traversal built the circuit backward; reversing it yields the valid forward path.",
+      what: `Reversed post-order circuit list -> Final Eulerian Path: [${resultPath.join(" -> ")}].`,
+      why: "Hierholzer's post-order traversal constructs sub-circuits in reverse. Reversing the post-order array restores the correct forward path sequence.",
     },
     primarySnapshot: {
       kind: "graph",
@@ -314,12 +402,37 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
       edges: edges.map((e) => ({ ...e, isPath: true, isTraversed: true })),
     },
     auxiliaryState: {
+      visited: [...resultPath],
+      stack: [],
+      customState: {
+        "Post-Order": `[${circuit.join(", ")}]`,
+        "Eulerian Path": resultPath.join(" -> "),
+      },
+    },
+    variables: { complete: true, pathLength: resultPath.length },
+  });
+
+  steps.push({
+    stepIndex: stepIdx++,
+    codeLine: 29,
+    explanation: {
+      what: `Returned completed Eulerian Path sequence: [${resultPath.join(" -> ")}].`,
+      why: "Successfully traversed every edge in the directed graph exactly once in O(V + E) time.",
+    },
+    primarySnapshot: {
+      kind: "graph",
+      nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
+      edges: edges.map((e) => ({ ...e, isPath: true, isTraversed: true })),
+    },
+    auxiliaryState: {
+      visited: [...resultPath],
+      stack: [],
       customState: {
         "Eulerian Path": resultPath.join(" -> "),
         "Total Edges Traversed": edges.length,
       },
     },
-    variables: { complete: true, pathLength: resultPath.length },
+    variables: { complete: true, result: resultPath },
   });
 
   return steps;
@@ -328,8 +441,7 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
 export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathInput> = {
   id: "hierholzer-eulerian-path",
   title: "Hierholzer's Eulerian Path Algorithm",
-  category: "graph_directed_and_scc",
-  categories: ["graph_directed_and_scc"],
+  topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
     "Finds an Eulerian path or Eulerian circuit in a directed graph—a trail that visits every directed edge exactly once. An Eulerian path exists if and only if at most one vertex has out-degree - in-degree == 1 (start) and at most one has in-degree - out-degree == 1 (end), with all other vertices having equal in-degree and out-degree. The algorithm uses a post-order DFS stack to traverse sub-circuits and splice them together in O(V + E) time.",
@@ -384,13 +496,11 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
     keyTerms: [
       {
         term: "Eulerian Path",
-        definition:
-          "A trail in a finite graph that visits every edge $e \\in E$ exactly once.",
+        definition: "A trail in a finite graph that visits every edge $e \\in E$ exactly once.",
       },
       {
         term: "Eulerian Circuit",
-        definition:
-          "An Eulerian path that starts and ends at the exact same vertex.",
+        definition: "An Eulerian path that starts and ends at the exact same vertex.",
       },
       {
         term: "In-Degree / Out-Degree Balance",

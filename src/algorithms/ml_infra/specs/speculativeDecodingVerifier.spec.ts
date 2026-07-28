@@ -10,9 +10,10 @@ import {
 describe("speculativeDecodingVerifier (Level 10 ML Infra)", () => {
   it("exports correct algorithm metadata", () => {
     expect(speculativeDecodingVerifier.id).toBe("speculative-decoding-verifier");
-    expect(speculativeDecodingVerifier.isMlInfra).toBe(true);
-    expect(speculativeDecodingVerifier.mlInfraLevel).toBe(10);
-    expect(speculativeDecodingVerifier.category).toBe("ml_llm_serving");
+    expect(speculativeDecodingVerifier.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(speculativeDecodingVerifier.topicIds).toContain("ml_llm_serving");
     expect(speculativeDecodingVerifier.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 10" },
     ]);

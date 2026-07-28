@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { xgboostSplitGainScoreCalculator } from "./xgboostSplitGainScoreCalculator";
 
-describe("xgboostSplitGainScoreCalculator", () => {
+describe("xgboost-split-gain-score-calculator", () => {
   it("should have valid metadata", () => {
     expect(xgboostSplitGainScoreCalculator.id).toBeDefined();
     expect(xgboostSplitGainScoreCalculator.title).toBeDefined();

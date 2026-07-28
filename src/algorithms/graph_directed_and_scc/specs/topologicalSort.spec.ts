@@ -9,7 +9,7 @@ describe("topologicalSort algorithm spec", () => {
   it("should have correct metadata", () => {
     expect(topologicalSort.id).toBe("topological-sort");
     expect(topologicalSort.title).toBe("Topological Sort (Kahn's Algorithm)");
-    expect(topologicalSort.category).toBe("graph_directed_and_scc");
+    expect(topologicalSort.topicIds).toContain("graph_directed_and_scc");
     expect(topologicalSort.defaultInput).toEqual(DEFAULT_TOPO_SORT_INPUT);
   });
 

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface ExtendedEuclideanInput {
@@ -6,18 +11,13 @@ export interface ExtendedEuclideanInput {
   b: number;
 }
 
-export const PYTHON_EXTENDED_EUCLIDEAN_CODE = `
-def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
-    """
-    Computes gcd(a, b) and Bézout coefficients (gcd, x, y) such that a*x + b*y = gcd(a, b).
-    """
+export const PYTHON_EXTENDED_EUCLIDEAN_CODE = `def extended_gcd(a: int, b: int) -> tuple[int, int, int]:
     if b == 0:
         return a, 1, 0
     gcd, x1, y1 = extended_gcd(b, a % b)
     x = y1
     y = x1 - (a // b) * y1
-    return gcd, x, y
-`;
+    return gcd, x, y`;
 
 export const DEFAULT_EXTENDED_EUCLIDEAN_INPUT: ExtendedEuclideanInput = {
   a: 987,
@@ -28,35 +28,47 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const origA = Math.abs(Math.floor(input.a));
-  const origB = Math.abs(Math.floor(input.b));
+  const origA = Math.max(0, Math.abs(Math.floor(input.a || 0)));
+  const origB = Math.max(0, Math.abs(Math.floor(input.b || 0)));
 
   const createMatrixSnapshot = (
     stackData: { a: number; b: number; q: number; r: number; x?: number; y?: number }[],
     activeLevelIdx?: number,
   ) => {
-    const rows = stackData.length + 1;
     const cells: MatrixCellItem[] = [];
 
-    stackData.forEach((item, r) => {
-      const vals = [item.a, item.b, item.q, item.r, item.x ?? "-", item.y ?? "-"];
+    if (stackData.length === 0) {
+      const vals = [origA, 0, 0, 0, 1, 0];
       vals.forEach((val, c) => {
         cells.push({
-          row: r,
+          row: 0,
           col: c,
           value: val,
-          label: `Level ${r}`,
-          state: r === activeLevelIdx ? "active" : item.x !== undefined ? "sorted" : "default",
+          label: "Level 0",
+          state: "active",
         });
       });
-    });
+    } else {
+      stackData.forEach((item, r) => {
+        const vals = [item.a, item.b, item.q, item.r, item.x ?? "-", item.y ?? "-"];
+        vals.forEach((val, c) => {
+          cells.push({
+            row: r,
+            col: c,
+            value: val,
+            label: `Level ${r}`,
+            state: r === activeLevelIdx ? "active" : item.x !== undefined ? "sorted" : "default",
+          });
+        });
+      });
+    }
 
     return {
       kind: "matrix" as const,
       rows: Math.max(1, stackData.length),
       cols: 6,
       cells,
-      rowHeaders: stackData.map((_, idx) => `Step ${idx + 1}`),
+      rowHeaders: stackData.length > 0 ? stackData.map((_, idx) => `Step ${idx + 1}`) : ["Step 1"],
       colHeaders: ["a", "b", "q = a//b", "r = a%b", "x", "y"],
       title: "Extended Euclidean Bézout Coefficient Matrix",
     };
@@ -65,12 +77,22 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   // Step 0: Entry
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 2,
+    codeLine: 1,
     explanation: {
       what: `Starting Extended GCD for a = ${origA}, b = ${origB}.`,
-      why: "The goal is to find gcd(a,b) and linear Bezout coefficients x, y such that a*x + b*y = gcd(a,b).",
+      why: "The goal is to find gcd(a,b) and linear Bézout coefficients x, y such that a*x + b*y = gcd(a,b).",
     },
-    primarySnapshot: createMatrixSnapshot([{ a: origA, b: origB, q: Math.floor(origA / origB), r: origA % origB }], 0),
+    primarySnapshot: createMatrixSnapshot(
+      [
+        {
+          a: origA,
+          b: origB,
+          q: origB === 0 ? 0 : Math.floor(origA / origB),
+          r: origB === 0 ? 0 : origA % origB,
+        },
+      ],
+      0,
+    ),
     auxiliaryState: {
       hashMap: {
         Inputs: `a = ${origA}, b = ${origB}`,
@@ -101,10 +123,10 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 8,
+      codeLine: 4,
       explanation: {
         what: `Divide: ${currentA} = ${q} * ${currentB} + ${r}. Recursively solve extended_gcd(${currentB}, ${r}).`,
-        why: "Quotient q = a // b and remainder r = a % b track state for linear substitution back-tracking.",
+        why: "Quotient q = a // b and remainder r = a % b track reduction state for linear back-substitution.",
       },
       primarySnapshot: createMatrixSnapshot(stack, stack.length - 1),
       auxiliaryState: {
@@ -133,12 +155,16 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   let x = 1;
   let y = 0;
 
+  if (stack.length === 0) {
+    stack.push({ a: origA, b: 0, q: 0, r: 0, x, y });
+  }
+
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 6,
+    codeLine: 3,
     explanation: {
       what: `Base case reached: b = 0. gcd = ${gcd}, base coefficients x = 1, y = 0.`,
-      why: "Base equation: gcd * 1 + 0 * 0 = gcd.",
+      why: `Base equation verified: ${gcd} * 1 + 0 * 0 = ${gcd}.`,
     },
     primarySnapshot: createMatrixSnapshot(stack, stack.length - 1),
     auxiliaryState: {
@@ -162,6 +188,11 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   // Unwind stack & compute coefficients
   for (let i = stack.length - 1; i >= 0; i--) {
     const top = stack[i];
+    if (top.b === 0) {
+      top.x = 1;
+      top.y = 0;
+      continue;
+    }
     const prevX = x;
     const prevY = y;
     x = prevY;
@@ -171,10 +202,10 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 9,
+      codeLine: 6,
       explanation: {
-        what: `Unwind for level a=${top.a}, b=${top.b}: x = y1 = ${x}, y = x1 - q*y1 = ${prevX} - ${top.q}*${prevY} = ${y}.`,
-        why: `Check Bezout identity: ${top.a}*(${x}) + ${top.b}*(${y}) = ${top.a * x + top.b * y} (equals gcd ${gcd}).`,
+        what: `Unwind level a=${top.a}, b=${top.b}: x = y1 = ${x}, y = x1 - q*y1 = ${prevX} - ${top.q}*(${prevY}) = ${y}.`,
+        why: `Verify Bézout identity: ${top.a}*(${x}) + ${top.b}*(${y}) = ${top.a * x + top.b * y} (equals gcd ${gcd}).`,
       },
       primarySnapshot: createMatrixSnapshot(stack, i),
       auxiliaryState: {
@@ -205,10 +236,10 @@ export const generateExtendedEuclideanSteps = (input: ExtendedEuclideanInput): A
   // Final Step
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 7,
     explanation: {
       what: `Finished Extended Euclidean Algorithm! gcd(${origA}, ${origB}) = ${gcd}, x = ${x}, y = ${y}.`,
-      why: `Final Bezout Identity verified: ${origA}*(${x}) + ${origB}*(${y}) = ${gcd}.`,
+      why: `Final Bézout Identity verified: ${origA}*(${x}) + ${origB}*(${y}) = ${gcd}.`,
     },
     primarySnapshot: createMatrixSnapshot(stack, 0),
     auxiliaryState: {
@@ -267,33 +298,28 @@ export const EXTENDED_EUCLIDEAN_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Linear Diophantine Equation",
-      definition: "An equation $a x + b y = c$ seeking integer solutions $(x, y) \\in \\mathbb{Z}^2$.",
+      definition:
+        "An equation $a x + b y = c$ seeking integer solutions $(x, y) \\in \\mathbb{Z}^2$.",
     },
   ],
 };
 
 export const EXTENDED_EUCLIDEAN_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Empty leading line for code formatting.",
-    2: "Defines extended_gcd function signature taking integers $a, b$ and returning tuple $(gcd, x, y)$.",
-    3: "Opening docstring tag.",
-    4: "Docstring describing Bézout identity computation.",
-    5: "Closing docstring tag.",
-    6: "Base case check: when divisor $b = 0$.",
-    7: "Returns base tuple $(a, 1, 0)$ since $a \\cdot 1 + 0 \\cdot 0 = a$.",
-    8: "Recursively calls extended_gcd(b, a % b) to obtain sub-problem solution $(gcd, x_1, y_1)$.",
-    9: "Assigns $x = y_1$ based on substitution derivation.",
-    10: "Assigns $y = x_1 - \\lfloor a / b \\rfloor y_1$ to satisfy $a x + b y = gcd$.",
-    11: "Returns computed tuple $(gcd, x, y)$.",
-    12: "Empty trailing line for code formatting.",
+    1: "Defines extended_gcd function signature taking integers a, b and returning tuple (gcd, x, y).",
+    2: "Base case check: evaluates whether divisor b equals 0.",
+    3: "Returns base tuple (a, 1, 0) since a*1 + 0*0 = a.",
+    4: "Recursively calls extended_gcd(b, a % b) to obtain sub-problem solution (gcd, x1, y1).",
+    5: "Assigns x = y1 according to the back-substitution identity.",
+    6: "Assigns y = x1 - (a // b) * y1 to satisfy a*x + b*y = gcd.",
+    7: "Returns computed tuple (gcd, x, y) satisfying Bézout's identity.",
   },
 };
 
 export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanInput> = {
   id: "extended-euclidean-algorithm",
   title: "Extended Euclidean Algorithm",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
     "Given non-negative integers $a$ and $b$, compute their greatest common divisor $\\gcd(a, b)$ and integer Bézout coefficients $x, y$ satisfying Bézout's identity:\n\n$$a x + b y = \\gcd(a, b)$$\n\n### State Matrix Representation\nThe stack trace of reduction steps is represented as a state matrix $\\mathbf{M} \\in \\mathbb{Z}^{k \\times 6}$ recording $(a_i, b_i, q_i, r_i, x_i, y_i)$ at each level $i$.\n\n### Input Parameters\n- `a` ($a \\in \\mathbb{Z}_{\\ge 0}$): First non-negative integer.\n- `b` ($b \\in \\mathbb{Z}_{\\ge 0}$): Second non-negative integer.\n\n### Output\n- `tuple (gcd, x, y)`: Greatest common divisor and Bézout coefficients $x, y$.\n\n### Edge Cases & Constraints\n- Base Case: $b = 0$ yields $(a, 1, 0)$.\n- Modular Inverse: $x \\bmod m$ yields $a^{-1} \\bmod m$ when $\\gcd(a, m) = 1$.",
@@ -336,7 +362,8 @@ export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanIn
   spaceComplexity: "O(log(min(a, b)))",
   complexityAnalysis: {
     time: "The number of reduction steps is bounded by $2 \\log_2(\\min(a, b))$, executing in $\\mathcal{O}(\\log(\\min(a, b)))$ time.",
-    space: "Requires $\\mathcal{O}(\\log(\\min(a, b)))$ call stack memory for back-tracking Bézout coefficients.",
+    space:
+      "Requires $\\mathcal{O}(\\log(\\min(a, b)))$ call stack memory for back-tracking Bézout coefficients.",
   },
   topicGuide: EXTENDED_EUCLIDEAN_TOPIC_GUIDE,
   trivia: EXTENDED_EUCLIDEAN_TRIVIA,
@@ -352,4 +379,3 @@ export const extendedEuclideanAlgorithm: AlgorithmDefinition<ExtendedEuclideanIn
   defaultInput: DEFAULT_EXTENDED_EUCLIDEAN_INPUT,
   generateSteps: generateExtendedEuclideanSteps,
 };
-

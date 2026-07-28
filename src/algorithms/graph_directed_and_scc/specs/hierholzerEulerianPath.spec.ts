@@ -8,7 +8,7 @@ import {
 describe("hierholzerEulerianPath definition and step generator", () => {
   it("has correct metadata and category", () => {
     expect(hierholzerEulerianPath.id).toBe("hierholzer-eulerian-path");
-    expect(hierholzerEulerianPath.category).toBe("graph_directed_and_scc");
+    expect(hierholzerEulerianPath.topicIds).toContain("graph_directed_and_scc");
   });
 
   it("produces >= 20 steps for default input", () => {

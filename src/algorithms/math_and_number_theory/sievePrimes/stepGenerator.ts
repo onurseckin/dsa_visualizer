@@ -1,4 +1,9 @@
-import type { AlgorithmStep, VectorItem } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  ArrayElement,
+  ArrayVisualSnapshot,
+  ElementState,
+} from "../../../types/dsa";
 
 export interface SieveInput {
   limit: number;
@@ -14,35 +19,38 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
   if (limit >= 0) isPrime[0] = false;
   if (limit >= 1) isPrime[1] = false;
 
-  const getVectorSnapshot = (currentP?: number, activeMultiple?: number) => {
-    const vectors: VectorItem[] = [];
+  const getArraySnapshot = (currentP?: number, activeMultiple?: number): ArrayVisualSnapshot => {
+    const elements: ArrayElement[] = [];
     for (let k = 0; k <= limit; k++) {
-      let state: "default" | "active" | "compared" | "sorted" | "result" = "default";
-      if (k === currentP) {
-        state = "active";
-      } else if (k === activeMultiple) {
-        state = "compared";
-      } else if (!isPrime[k] && k >= 2) {
+      const pointers: string[] = [];
+      if (k === currentP) pointers.push("p");
+      if (k === activeMultiple) pointers.push("i");
+
+      let state: ElementState = "default";
+      if (k === activeMultiple) {
+        state = "compare";
+      } else if (k === currentP) {
+        state = "pivot";
+      } else if (k < 2) {
+        state = "visited";
+      } else if (!isPrime[k]) {
+        state = "visited";
+      } else if (isPrime[k]) {
         state = "sorted";
-      } else if (isPrime[k] && k >= 2) {
-        state = "result";
       }
 
-      vectors.push({
+      elements.push({
         id: `num-${k}`,
+        value: isPrime[k] ? "T" : "F",
         label: `${k}: ${isPrime[k] ? "Prime" : "Composite"}`,
-        x: k * 30,
-        y: isPrime[k] ? 1 : 0,
         state,
-        subText: k < 2 ? "non-prime" : isPrime[k] ? "T" : "F",
+        ...(pointers.length > 0 ? { pointers } : {}),
       });
     }
 
     return {
-      kind: "vector" as const,
-      vectors,
-      planeTitle: `Sieve Primality Status Vector (limit = ${limit})`,
-      dimensions: "2d" as const,
+      kind: "array",
+      elements,
     };
   };
 
@@ -76,7 +84,7 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: getVectorSnapshot(currentP, activeMultiple),
+      primarySnapshot: getArraySnapshot(currentP, activeMultiple),
       auxiliaryState: getAuxiliaryState(currentPrimes),
       variables,
     });
@@ -250,4 +258,3 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
 
   return steps;
 };
-

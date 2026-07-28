@@ -9,7 +9,7 @@ import {
 describe("gridPathsDp algorithm logic spec", () => {
   it("has categories ['dp_2d'] and valid metadata", () => {
     expect(gridPathsDp.id).toBe("grid-paths-dp");
-    expect(gridPathsDp.categories).toEqual(["dp_2d"]);
+    expect(gridPathsDp.topicIds).toEqual(["dp_2d"]);
     expect(gridPathsDp.difficulty).toBe("Medium");
     expect(gridPathsDp.code).toContain("def unique_paths_with_obstacles");
   });

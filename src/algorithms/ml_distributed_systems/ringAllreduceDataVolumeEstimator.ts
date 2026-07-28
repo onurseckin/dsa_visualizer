@@ -7,15 +7,6 @@ export interface ringAllreduceDataVolumeEstimatorInput {
 }
 
 export const RINGALLREDUCEDATAVOLUMEESTIMATOR_CODE = `def estimate_ring_allreduce_volume(tensor_sizes, num_gpus):
-    """
-    Estimates total network communication volume per GPU during Ring-AllReduce collective operation.
-    
-    For N GPUs and total model payload size S bytes:
-    - Scatter-Reduce phase transfers (N-1)/N * S bytes per rank.
-    - All-Gather phase transfers (N-1)/N * S bytes per rank.
-    - Total data transferred per rank = 2 * (N-1)/N * S bytes.
-    - Total network traffic across entire ring = 2 * (N-1) * S bytes.
-    """
     total_tensor_bytes = sum(tensor_sizes)
     if num_gpus <= 1:
         return {
@@ -55,8 +46,9 @@ export const generateRingAllreduceDataVolumeEstimatorSteps = (
   const totalTensorBytes = input.data.reduce((sum, val) => sum + val, 0) * 1_000_000;
 
   const elements: ArrayElement[] = input.data.map((val, idx) => ({
-    id: `el-${idx}`,
+    id: `gpu-${idx}`,
     value: val,
+    label: `GPU ${idx}`,
     state: "default",
   }));
 
@@ -98,136 +90,127 @@ export const generateRingAllreduceDataVolumeEstimatorSteps = (
   );
 
   addStep(
-    11,
+    2,
     `Compute Total Tensor Payload total_tensor_bytes = ${(totalTensorBytes / 1e6).toFixed(1)} MB`,
-    `Summing partition sizes across ${N} tensor blocks.`,
+    `Summing partition sizes across ${N} tensor blocks: ${(totalTensorBytes / 1e6).toFixed(1)} MB total.`,
     { total_tensor_bytes: totalTensorBytes },
-    [...elements],
+    elements.map((el) => ({ ...el, state: "active" as const })),
   );
 
+  if (N <= 1) {
+    addStep(
+      3,
+      "Check Number of GPUs Guard (num_gpus <= 1)",
+      `World size ${N} <= 1: Single GPU detected, no inter-GPU network communication is required.`,
+      { num_gpus: N, is_single_gpu: true },
+      elements.map((el) => ({ ...el, state: "active" as const })),
+    );
+
+    addStep(
+      4,
+      "Return Zero Network Communication Metrics",
+      "Single GPU execution requires zero inter-GPU network transfer bytes.",
+      {
+        scatter_reduce_bytes: 0,
+        allgather_bytes: 0,
+        per_gpu_transferred: 0,
+        total_network_transferred: 0,
+      },
+      elements.map((el) => ({ ...el, state: "sorted" as const, pointers: ["Transferred: 0 MB"] })),
+    );
+
+    return steps;
+  }
+
   addStep(
-    12,
+    3,
     "Check Number of GPUs Guard (num_gpus <= 1)",
-    `Validating world size ${N} > 1. Inter-GPU communication is required.`,
+    `Validating world size ${N} > 1. Inter-GPU ring communication is required.`,
     { num_gpus: N, is_single_gpu: false },
     [...elements],
   );
 
   const chunkSize = totalTensorBytes / N;
   addStep(
-    20,
+    11,
     `Compute Chunk Size Per GPU chunk_size = ${(chunkSize / 1e6).toFixed(2)} MB`,
-    `Partitioning total payload into ${N} equal ring chunks: ${(totalTensorBytes / 1e6).toFixed(1)} MB / ${N} = ${(chunkSize / 1e6).toFixed(2)} MB.`,
+    `Partitioning total payload into ${N} equal ring chunks: ${(totalTensorBytes / 1e6).toFixed(1)} MB / ${N} = ${(chunkSize / 1e6).toFixed(2)} MB per chunk.`,
     { num_gpus: N, total_tensor_bytes: totalTensorBytes, chunk_size: chunkSize },
-    [...elements],
+    elements.map((el) => ({
+      ...el,
+      state: "active" as const,
+      pointers: [`Chunk: ${(chunkSize / 1e6).toFixed(2)} MB`],
+    })),
   );
 
   const scatterReduceBytes = (N - 1) * chunkSize;
   addStep(
-    21,
+    12,
     `Compute Scatter-Reduce Transfer Volume per GPU = ${(scatterReduceBytes / 1e6).toFixed(2)} MB`,
-    `Phase 1 (Scatter-Reduce): (${N} - 1) * ${(chunkSize / 1e6).toFixed(2)} MB = ${(scatterReduceBytes / 1e6).toFixed(2)} MB sent per GPU.`,
+    `Phase 1 (Scatter-Reduce): Each GPU sends (${N} - 1) chunks of ${(chunkSize / 1e6).toFixed(2)} MB = ${(scatterReduceBytes / 1e6).toFixed(2)} MB over ${N - 1} ring steps.`,
     { num_gpus: N, chunk_size: chunkSize, scatter_reduce_bytes: scatterReduceBytes },
-    [...elements],
+    elements.map((el) => ({
+      ...el,
+      state: "compare" as const,
+      pointers: [`Scatter-Reduce: ${(scatterReduceBytes / 1e6).toFixed(2)} MB`],
+    })),
   );
 
   const allgatherBytes = (N - 1) * chunkSize;
   addStep(
-    22,
+    13,
     `Compute All-Gather Transfer Volume per GPU = ${(allgatherBytes / 1e6).toFixed(2)} MB`,
-    `Phase 2 (All-Gather): (${N} - 1) * ${(chunkSize / 1e6).toFixed(2)} MB = ${(allgatherBytes / 1e6).toFixed(2)} MB sent per GPU.`,
+    `Phase 2 (All-Gather): Each GPU sends (${N} - 1) chunks of ${(chunkSize / 1e6).toFixed(2)} MB = ${(allgatherBytes / 1e6).toFixed(2)} MB over ${N - 1} ring steps.`,
     { num_gpus: N, chunk_size: chunkSize, allgather_bytes: allgatherBytes },
-    [...elements],
+    elements.map((el) => ({
+      ...el,
+      state: "swap" as const,
+      pointers: [`All-Gather: ${(allgatherBytes / 1e6).toFixed(2)} MB`],
+    })),
   );
 
   const perGpuTransferred = scatterReduceBytes + allgatherBytes;
   addStep(
-    23,
+    14,
     `Compute Total Transferred Volume per GPU = ${(perGpuTransferred / 1e6).toFixed(2)} MB`,
     `Sum of Scatter-Reduce + All-Gather per GPU: 2 * (${N}-1)/${N} * ${(totalTensorBytes / 1e6).toFixed(1)} MB = ${(perGpuTransferred / 1e6).toFixed(2)} MB.`,
-    { scatter_reduce_bytes: scatterReduceBytes, allgather_bytes: allgatherBytes, per_gpu_transferred: perGpuTransferred },
-    [...elements],
+    {
+      scatter_reduce_bytes: scatterReduceBytes,
+      allgather_bytes: allgatherBytes,
+      per_gpu_transferred: perGpuTransferred,
+    },
+    elements.map((el) => ({
+      ...el,
+      state: "active" as const,
+      pointers: [`Per GPU: ${(perGpuTransferred / 1e6).toFixed(2)} MB`],
+    })),
   );
 
   const totalNetworkTransferred = N * perGpuTransferred;
   addStep(
-    24,
+    15,
     `Compute Total Network Traffic Across Ring = ${(totalNetworkTransferred / 1e6).toFixed(2)} MB`,
-    `Cluster-wide traffic: ${N} GPUs * ${(perGpuTransferred / 1e6).toFixed(2)} MB = ${(totalNetworkTransferred / 1e6).toFixed(2)} MB total network traffic.`,
-    { num_gpus: N, per_gpu_transferred: perGpuTransferred, total_network_transferred: totalNetworkTransferred },
-    [...elements],
+    `Cluster-wide traffic across all ${N} GPUs: ${N} GPUs * ${(perGpuTransferred / 1e6).toFixed(2)} MB = ${(totalNetworkTransferred / 1e6).toFixed(2)} MB total network traffic.`,
+    {
+      num_gpus: N,
+      per_gpu_transferred: perGpuTransferred,
+      total_network_transferred: totalNetworkTransferred,
+    },
+    elements.map((el) => ({
+      ...el,
+      state: "visited" as const,
+      pointers: [`Cluster Vol: ${(totalNetworkTransferred / 1e6).toFixed(2)} MB`],
+    })),
   );
-
-  input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
-    const currentElements: ArrayElement[] = elements.map((el, i) => {
-      if (i === idx)
-        return {
-          ...el,
-          state: isTarget ? ("active" as const) : ("compare" as const),
-          pointers: [`GPU_${idx}`, `Transferred: ${(perGpuTransferred / 1e6).toFixed(1)}MB`],
-        };
-      if (i < idx) return { ...el, state: "visited" as const };
-      return el;
-    });
-
-    addStep(
-      24,
-      `Evaluate GPU Rank ${idx} Shard Traffic (Payload ${val} MB)`,
-      `GPU ${idx} sends ${(perGpuTransferred / 1e6).toFixed(2)} MB total over $2(${N}-1)$ ring transfer steps.`,
-      { idx, shard_size: val, per_gpu_transferred: perGpuTransferred, isTarget },
-      currentElements,
-    );
-  });
 
   const finalElements: ArrayElement[] = elements.map((el) => ({
     ...el,
     state: "sorted" as const,
-    pointers: ["Ring Complete"],
+    pointers: [`Per GPU: ${(perGpuTransferred / 1e6).toFixed(2)} MB`],
   }));
 
   addStep(
-    26,
-    "Construct Output Metrics Dictionary",
-    "Assembling Ring-AllReduce communication volume summary payload.",
-    { total_network_transferred: totalNetworkTransferred },
-    finalElements,
-  );
-
-  addStep(
-    27,
-    `Set scatter_reduce_bytes = ${(scatterReduceBytes / 1e6).toFixed(2)} MB`,
-    "Assigning Scatter-Reduce per-GPU volume metric.",
-    { scatter_reduce_bytes: scatterReduceBytes },
-    finalElements,
-  );
-
-  addStep(
-    28,
-    `Set allgather_bytes = ${(allgatherBytes / 1e6).toFixed(2)} MB`,
-    "Assigning All-Gather per-GPU volume metric.",
-    { allgather_bytes: allgatherBytes },
-    finalElements,
-  );
-
-  addStep(
-    29,
-    `Set per_gpu_transferred = ${(perGpuTransferred / 1e6).toFixed(2)} MB`,
-    "Assigning total per-GPU volume metric.",
-    { per_gpu_transferred: perGpuTransferred },
-    finalElements,
-  );
-
-  addStep(
-    30,
-    `Set total_network_transferred = ${(totalNetworkTransferred / 1e6).toFixed(2)} MB`,
-    "Assigning aggregate cluster network traffic volume metric.",
-    { total_network_transferred: totalNetworkTransferred },
-    finalElements,
-  );
-
-  addStep(
-    31,
+    17,
     "Return Ring-AllReduce Data Volume Estimation",
     `Completed estimation for ${N} GPUs. Per-GPU transferred: ${(perGpuTransferred / 1e6).toFixed(2)} MB; Cluster total: ${(totalNetworkTransferred / 1e6).toFixed(2)} MB.`,
     {
@@ -244,7 +227,7 @@ export const generateRingAllreduceDataVolumeEstimatorSteps = (
 };
 
 const RINGALLREDUCEDATAVOLUMEESTIMATOR_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 19, 25],
+  skipLines: [4, 5, 6, 7, 8, 9, 10, 16, 17, 18, 19, 20, 21, 22],
   distractors: [
     "total_network_transferred = total_tensor_bytes * num_gpus",
     "per_gpu_transferred = total_tensor_bytes * 2",
@@ -252,43 +235,37 @@ const RINGALLREDUCEDATAVOLUMEESTIMATOR_TRIVIA: TriviaMeta = {
     "per_gpu_transferred = scatter_reduce_bytes * num_gpus",
   ],
   hints: [
-    { line: 20, hint: "Chunk size per GPU = total_tensor_bytes / num_gpus." },
-    { line: 21, hint: "Scatter-Reduce transfers (num_gpus - 1) * chunk_size bytes per GPU." },
-    { line: 22, hint: "All-Gather transfers (num_gpus - 1) * chunk_size bytes per GPU." },
-    { line: 23, hint: "Total per GPU transferred = scatter_reduce_bytes + allgather_bytes = 2 * (N-1)/N * S." },
+    { line: 11, hint: "Chunk size per GPU = total_tensor_bytes / num_gpus." },
+    { line: 12, hint: "Scatter-Reduce transfers (num_gpus - 1) * chunk_size bytes per GPU." },
+    { line: 13, hint: "All-Gather transfers (num_gpus - 1) * chunk_size bytes per GPU." },
+    {
+      line: 14,
+      hint: "Total per GPU transferred = scatter_reduce_bytes + allgather_bytes = 2 * (N-1)/N * S.",
+    },
   ],
   lineExplanations: {
     1: "Function signature for estimate_ring_allreduce_volume taking tensor_sizes list and num_gpus.",
-    2: "Docstring start describing Ring-AllReduce network data volume calculation.",
-    3: "Describes per-GPU network communication volume estimation.",
-    4: "Blank line in docstring.",
-    5: "Describes total model payload size S bytes and N GPUs.",
-    6: "Explains Scatter-Reduce phase transfer volume: (N-1)/N * S bytes.",
-    7: "Explains All-Gather phase transfer volume: (N-1)/N * S bytes.",
-    8: "Explains total per-rank transferred volume: 2 * (N-1)/N * S bytes.",
-    9: "Explains total cluster network traffic: 2 * (N-1) * S bytes.",
-    10: "Docstring close.",
-    11: "Calculates total_tensor_bytes by summing tensor_sizes list.",
-    12: "Checks guard condition for single GPU or empty world size (num_gpus <= 1).",
-    13: "Opens return dictionary for zero communication edge case.",
-    14: "Sets scatter_reduce_bytes to 0.0.",
-    15: "Sets allgather_bytes to 0.0.",
-    16: "Sets per_gpu_transferred to 0.0.",
-    17: "Sets total_network_transferred to 0.0.",
-    18: "Closes zero-communication return dictionary payload.",
-    19: "Blank line before ring bandwidth calculations.",
-    20: "Calculates chunk_size by dividing total_tensor_bytes by num_gpus.",
-    21: "Calculates scatter_reduce_bytes = (num_gpus - 1) * chunk_size.",
-    22: "Calculates allgather_bytes = (num_gpus - 1) * chunk_size.",
-    23: "Calculates per_gpu_transferred by summing scatter_reduce_bytes and allgather_bytes.",
-    24: "Calculates total_network_transferred = num_gpus * per_gpu_transferred.",
-    25: "Blank line before returning output payload.",
-    26: "Opens return dictionary payload.",
-    27: "Sets scatter_reduce_bytes field in return dictionary.",
-    28: "Sets allgather_bytes field in return dictionary.",
-    29: "Sets per_gpu_transferred field in return dictionary.",
-    30: "Sets total_network_transferred field in return dictionary.",
-    31: "Closes return dictionary payload and returns result.",
+    2: "Calculates total_tensor_bytes by summing tensor_sizes list.",
+    3: "Checks guard condition for single GPU or empty world size (num_gpus <= 1).",
+    4: "Opens return dictionary for zero communication edge case.",
+    5: "Sets scatter_reduce_bytes to 0.0.",
+    6: "Sets allgather_bytes to 0.0.",
+    7: "Sets per_gpu_transferred to 0.0.",
+    8: "Sets total_network_transferred to 0.0.",
+    9: "Closes zero-communication return dictionary payload.",
+    10: "Blank line before ring bandwidth calculations.",
+    11: "Calculates chunk_size by dividing total_tensor_bytes by num_gpus.",
+    12: "Calculates scatter_reduce_bytes = (num_gpus - 1) * chunk_size.",
+    13: "Calculates allgather_bytes = (num_gpus - 1) * chunk_size.",
+    14: "Calculates per_gpu_transferred by summing scatter_reduce_bytes and allgather_bytes.",
+    15: "Calculates total_network_transferred = num_gpus * per_gpu_transferred.",
+    16: "Blank line before returning output payload.",
+    17: "Opens return dictionary payload.",
+    18: "Sets scatter_reduce_bytes field in return dictionary.",
+    19: "Sets allgather_bytes field in return dictionary.",
+    20: "Sets per_gpu_transferred field in return dictionary.",
+    21: "Sets total_network_transferred field in return dictionary.",
+    22: "Closes return dictionary payload and returns result.",
   },
 };
 
@@ -296,12 +273,8 @@ export const ringAllreduceDataVolumeEstimator: AlgorithmDefinition<ringAllreduce
   {
     id: "ring-allreduce-data-volume-estimator",
     title: "Ring-AllReduce Total Data Volume Estimator",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+    topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
     difficulty: "Easy",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "Calculates the exact per-GPU and aggregate cluster network communication volume transferred during a standard Ring-AllReduce collective operation (as implemented in NCCL, Gloo, and Horovod).\n\n### Mathematical Formulation & Asymptotics\nIn a Ring-AllReduce over $N$ ranks with a model payload or gradient tensor of total size $S$ bytes:\n1. The tensor is split into $N$ equal chunks of size $\\frac{S}{N}$.\n2. **Scatter-Reduce Phase**: Executes $N-1$ logical ring transfer steps. In each step, every rank sends one chunk of size $\\frac{S}{N}$ to its successor and receives one chunk from its predecessor, accumulating partial gradients element-wise. Volume per rank:\n$$V_{\\text{Scatter-Reduce}} = \\left(\\frac{N-1}{N}\\right) S \\text{ bytes}$$\n3. **All-Gather Phase**: Executes $N-1$ logical ring transfer steps to share the fully reduced chunks across all ranks. Volume per rank:\n$$V_{\\text{All-Gather}} = \\left(\\frac{N-1}{N}\\right) S \\text{ bytes}$$\n\nTotal network bytes transferred per GPU rank is:\n$$V_{\\text{GPU}} = V_{\\text{Scatter-Reduce}} + V_{\\text{All-Gather}} = 2 \\cdot \\left(\\frac{N-1}{N}\\right) S \\text{ bytes}$$\nTotal network bytes transferred cluster-wide is:\n$$V_{\\text{Cluster}} = N \\cdot V_{\\text{GPU}} = 2 \\cdot (N-1) S \\text{ bytes}$$\n\nNotice that as $N$ grows large ($N \\to \\infty$):\n$$\\lim_{N \\to \\infty} V_{\\text{GPU}} = 2S$$\nThis property makes the communication footprint per GPU virtually independent of the number of ranks $N$, enabling Ring-AllReduce to scale efficiently to hundreds of GPUs.\n\nInput Format:\n- `data`: Array of tensor partition sizes or chunk memory values in MB/GB.\n- `target`: Optional target rank or partition marker.\n\nOutput Format:\n- Returns detailed dictionary containing per-GPU transferred volume, phase-specific bytes, and total cluster communication footprint.\n\nEdge Cases & Constraints:\n- Single GPU ($N=1$): Transferred volume is strictly 0 bytes.\n- Uneven padding: Tensors non-divisible by $N$ require tail padding to avoid unaligned chunk splits.\n- Bandwidth saturation: Maximum ring throughput is bounded by the slowest interconnect link in the ring cycle.",
     constraints: ["1 <= data.length <= 1000", "0 <= data[i] <= 10^9"],

@@ -7,9 +7,6 @@ export interface evalReversePolishNotationInput {
 }
 
 export const EVALREVERSEPOLISHNOTATION_CODE = `def eval_reverse_polish_notation(tokens):
-    """
-    Evaluates Reverse Polish Notation (RPN) expression using an explicit operand stack.
-    """
     stack = []
     for token in tokens:
         if token in ["+", "-", "*", "/"]:
@@ -34,7 +31,7 @@ export const generateEvalReversePolishNotationSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const arrayData = input?.data || [10, 20, 30, 40, 50];
-  
+
   // Construct an explicit RPN token sequence to evaluate, e.g. ["10", "20", "+", "30", "*", "40", "-"]
   const tokens: string[] = [
     String(arrayData[0] ?? 10),
@@ -95,30 +92,9 @@ export const generateEvalReversePolishNotationSteps = (
     { tokenCount: tokens.length, stackSize: 0, phase: "INIT_RPN" },
   );
 
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Evaluates Reverse Polish Notation (RPN) expression using an explicit operand sta",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
   // Step 2: Init stack array
   addStep(
-    5,
+    2,
     "Allocate LIFO Operand Stack `stack = []`",
     "Initializing dynamic array stack to hold intermediate scalar operands.",
     { stackSize: 0, phase: "ALLOC_STACK" },
@@ -136,7 +112,7 @@ export const generateEvalReversePolishNotationSteps = (
 
     // Step A: Inspect token
     addStep(
-      6,
+      3,
       `Loop Token ${idx}: "${tok}"`,
       `Reading token "${tok}" from RPN stream. Checking if it is an arithmetic operator or numeric operand.`,
       { idx, token: tok, isOperator: isOp, stackDepth: operandStack.length, phase: "READ_TOKEN" },
@@ -146,7 +122,7 @@ export const generateEvalReversePolishNotationSteps = (
 
     // Step B: Check operator condition
     addStep(
-      7,
+      4,
       `Check Token Type: token in ["+", "-", "*", "/"] -> ${isOp}`,
       isOp
         ? `Token "${tok}" is a binary operator. Popping top two operands from stack.`
@@ -158,7 +134,7 @@ export const generateEvalReversePolishNotationSteps = (
     if (isOp) {
       const b = operandStack.pop() ?? 0;
       addStep(
-        8,
+        5,
         `Pop Right Operand: b = ${b}`,
         `Popped top scalar operand b = ${b} from LIFO stack. Stack depth now ${operandStack.length}.`,
         { b, stackDepth: operandStack.length, phase: "POP_B" },
@@ -168,7 +144,7 @@ export const generateEvalReversePolishNotationSteps = (
 
       const a = operandStack.pop() ?? 0;
       addStep(
-        9,
+        6,
         `Pop Left Operand: a = ${a}`,
         `Popped second scalar operand a = ${a} from LIFO stack. Operand pair ready: (${a} ${tok} ${b}).`,
         { a, b, op: tok, stackDepth: operandStack.length, phase: "POP_A" },
@@ -177,19 +153,19 @@ export const generateEvalReversePolishNotationSteps = (
       );
 
       let res = 0;
-      let lineNum = 10;
+      let lineNum = 7;
       if (tok === "+") {
         res = a + b;
-        lineNum = 10;
+        lineNum = 7;
       } else if (tok === "-") {
         res = a - b;
-        lineNum = 11;
+        lineNum = 8;
       } else if (tok === "*") {
         res = a * b;
-        lineNum = 12;
+        lineNum = 9;
       } else if (tok === "/") {
         res = Math.trunc(a / (b || 1));
-        lineNum = 13;
+        lineNum = 10;
       }
 
       operandStack.push(res);
@@ -217,7 +193,7 @@ export const generateEvalReversePolishNotationSteps = (
       });
 
       addStep(
-        15,
+        12,
         `Push Operand onto Stack: int("${tok}") -> ${numVal}`,
         `Converted token string "${tok}" to integer ${numVal} and pushed onto LIFO stack. Stack depth now ${operandStack.length}.`,
         { token: tok, value: numVal, stackDepth: operandStack.length, phase: "PUSH_OPERAND" },
@@ -234,7 +210,7 @@ export const generateEvalReversePolishNotationSteps = (
   }));
 
   addStep(
-    16,
+    13,
     `Return Final RPN Evaluated Result: stack[0] = ${finalRes}`,
     `Postfix expression evaluation complete. Single remaining scalar result on top of stack: ${finalRes}.`,
     { finalResult: finalRes, stackDepth: operandStack.length },
@@ -243,7 +219,7 @@ export const generateEvalReversePolishNotationSteps = (
   );
 
   addStep(
-    16,
+    13,
     "Execution Complete",
     "Successfully processed all nodes in the computation graph structure.",
     { completed: true, totalSteps: stepIndex },
@@ -254,7 +230,7 @@ export const generateEvalReversePolishNotationSteps = (
 };
 
 const EVALREVERSEPOLISHNOTATION_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 14],
+  skipLines: [],
   distractors: [
     "result.append(item * 2)",
     "return result[::-1]",
@@ -262,40 +238,34 @@ const EVALREVERSEPOLISHNOTATION_TRIVIA: TriviaMeta = {
     "stack.append(a - b)",
   ],
   hints: [
-    { line: 5, hint: "Initialize empty list for LIFO operand stack." },
-    { line: 7, hint: "Check if current token is one of the four binary operator symbols." },
-    { line: 8, hint: "Pop right operand b first, then pop left operand a second." },
-    { line: 15, hint: "Convert numeric token to integer and push onto stack." },
+    { line: 2, hint: "Initialize empty list for LIFO operand stack." },
+    { line: 4, hint: "Check if current token is one of the four binary operator symbols." },
+    { line: 5, hint: "Pop right operand b first." },
+    { line: 6, hint: "Pop left operand a second." },
+    { line: 12, hint: "Convert numeric token to integer and push onto stack." },
   ],
   lineExplanations: {
     1: "Defines entry point for eval_reverse_polish_notation RPN postfix evaluator.",
-    2: "Docstring opening: describes Reverse Polish Notation expression evaluation.",
-    3: "Docstring body: evaluates RPN tokens using an explicit LIFO operand stack.",
-    4: "Docstring closing.",
-    5: "Initializes empty list stack to serve as LIFO operand stack.",
-    6: "Iterates through RPN expression token strings.",
-    7: "Checks if current token is a binary arithmetic operator (+, -, *, /).",
-    8: "Pops right operand b from top of operand stack.",
-    9: "Pops left operand a from top of operand stack.",
-    10: "Evaluates addition (a + b) and pushes scalar result onto stack.",
-    11: "Evaluates subtraction (a - b) and pushes scalar result onto stack.",
-    12: "Evaluates multiplication (a * b) and pushes scalar result onto stack.",
-    13: "Evaluates integer division int(a / b) truncating towards zero and pushes result onto stack.",
-    14: "Else branch handling non-operator numeric token strings.",
-    15: "Converts operand token string to integer and pushes value onto stack.",
-    16: "Returns final evaluated scalar result from index 0 of operand stack.",
+    2: "Initializes empty list stack to serve as LIFO operand stack.",
+    3: "Iterates through RPN expression token strings.",
+    4: "Checks if current token is a binary arithmetic operator (+, -, *, /).",
+    5: "Pops right operand b from top of operand stack.",
+    6: "Pops left operand a from top of operand stack.",
+    7: "Evaluates addition (a + b) and pushes scalar result onto stack.",
+    8: "Evaluates subtraction (a - b) and pushes scalar result onto stack.",
+    9: "Evaluates multiplication (a * b) and pushes scalar result onto stack.",
+    10: "Evaluates integer division int(a / b) truncating towards zero and pushes result onto stack.",
+    11: "Else branch handling non-operator numeric token strings.",
+    12: "Converts operand token string to integer and pushes value onto stack.",
+    13: "Returns final evaluated scalar result from index 0 of operand stack.",
   },
 };
 
 export const evalReversePolishNotation: AlgorithmDefinition<evalReversePolishNotationInput> = {
   id: "eval-reverse-polish-notation",
   title: "Evaluate Reverse Polish Notation",
-  category: "ml_autograd_dags",
-  categories: ["ml_autograd_dags", "graph_traversal"],
+  topicIds: ["ml_autograd_dags", "graph_traversal"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 3,
-  mlInfraCategory: "ml_autograd_dags",
   description: `### Evaluate Reverse Polish Notation (RPN)
 
 In deep learning compilers (**PyTorch FX**, **XLA Intermediate Representation**, **Bytecode Virtual Machines**, and **Stack Calculators**), expressions are often serialized in **Reverse Polish Notation (RPN)** / **Postfix Order**.

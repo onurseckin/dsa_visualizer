@@ -51,12 +51,6 @@ export const generateTensorContiguityReshapeSteps = (
   const { shape, strides, targetShape } = input;
   const ndim = shape.length;
 
-  const elements: ArrayElement[] = shape.map((s, idx) => ({
-    id: `dim-${idx}`,
-    value: s,
-    state: "default",
-  }));
-
   const addStep = (
     codeLine: number,
     what: string,
@@ -65,13 +59,21 @@ export const generateTensorContiguityReshapeSteps = (
     customElements?: ArrayElement[],
     customState?: Record<string, string | number>,
   ) => {
+    const baseElements: ArrayElement[] = shape.map((s, idx) => ({
+      id: `dim-${idx}`,
+      label: `d${idx}`,
+      value: s,
+      state: "default",
+      pointers: [`str=${strides[idx]}`],
+    }));
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: (customElements || elements).map((el) => ({
+        elements: (customElements || baseElements).map((el) => ({
           ...el,
           pointers: el.pointers ? [...el.pointers] : undefined,
         })),
@@ -88,51 +90,89 @@ export const generateTensorContiguityReshapeSteps = (
   };
 
   addStep(
-    1,
-    "Initialize Contiguity & Reshape Check",
-    `Analyzing tensor shape [${shape.join(", ")}] and strides [${strides.join(", ")}] against target reshape [${targetShape.join(", ")}].`,
-    { ndim },
+    2,
+    "Initialize Stride Analysis",
+    `Analyzing tensor shape [${shape.join(", ")}] (ndim=${ndim}) and strides [${strides.join(", ")}] against target reshape [${targetShape.join(", ")}].`,
+    { ndim, acc: 1 },
   );
 
-  // Compute expected C-contiguous strides
   const expectedStrides: number[] = new Array(ndim).fill(1);
   let acc = 1;
+
   for (let d = ndim - 1; d >= 0; d--) {
     expectedStrides[d] = acc;
-    acc *= shape[d];
+    const currentDimSize = shape[d];
+    acc *= currentDimSize;
+
+    const currentElements: ArrayElement[] = shape.map((s, idx) => ({
+      id: `dim-${idx}`,
+      label: `d${idx}`,
+      value: s,
+      state: idx === d ? "active" : idx > d ? "sorted" : "default",
+      pointers: [`str=${strides[idx]}`, ...(idx >= d ? [`exp=${expectedStrides[idx]}`] : [])],
+    }));
+
+    addStep(
+      6,
+      `Compute Expected Stride for Dim ${d} (size ${currentDimSize})`,
+      `Expected stride for dimension d=${d} is current accumulator acc = ${expectedStrides[d]}. Next acc = ${expectedStrides[d]} * ${currentDimSize} = ${acc}.`,
+      { d, shape_d: currentDimSize, expected_stride_d: expectedStrides[d], acc },
+      currentElements,
+      {
+        expectedStrides: `[${expectedStrides.map((s, i) => (i >= d ? s : "?")).join(", ")}]`,
+        currentAcc: acc,
+      },
+    );
   }
 
   const isContiguous = strides.every((val, idx) => val === expectedStrides[idx]);
+  const totalElements = acc;
 
-  const checkedElements: ArrayElement[] = elements.map((el, i) => ({
-    ...el,
+  const checkedElements: ArrayElement[] = shape.map((s, idx) => ({
+    id: `dim-${idx}`,
+    label: `d${idx}`,
+    value: s,
     state: isContiguous ? "sorted" : "compare",
-    pointers: [`str=${strides[i]}`, `exp=${expectedStrides[i]}`],
+    pointers: [`str=${strides[idx]}`, `exp=${expectedStrides[idx]}`],
   }));
 
   addStep(
-    8,
+    9,
     `Evaluate C-Contiguity: ${isContiguous ? "Contiguous" : "Non-Contiguous"}`,
-    `Computed expected contiguous strides [${expectedStrides.join(", ")}]. Match with input strides [${strides.join(", ")}]: ${isContiguous}.`,
-    { isContiguous },
+    `Comparing input strides [${strides.join(", ")}] with expected contiguous strides [${expectedStrides.join(", ")}]. Result: ${isContiguous}.`,
+    { is_contiguous: isContiguous },
     checkedElements,
     {
-      expectedStrides: `[${expectedStrides.join(", ")}]`,
       actualStrides: `[${strides.join(", ")}]`,
+      expectedStrides: `[${expectedStrides.join(", ")}]`,
       isContiguous: String(isContiguous),
     },
   );
 
-  const totalElements = acc;
-  const targetElements = targetShape.reduce((a, b) => a * b, 1);
+  let targetElements = 1;
+  for (const dim of targetShape) {
+    targetElements *= dim;
+  }
+
+  addStep(
+    13,
+    `Calculate Target Element Volume (${targetElements} elements)`,
+    `Multiplying target shape [${targetShape.join(", ")}] dimensions yields total volume of ${targetElements} elements (vs input ${totalElements}).`,
+    { total_elements: totalElements, target_elements: targetElements },
+    checkedElements,
+    {
+      totalElements,
+      targetElements,
+    },
+  );
 
   if (totalElements !== targetElements) {
     addStep(
-      16,
+      17,
       `Reshape Failed: Element Volume Mismatch (${totalElements} vs ${targetElements})`,
-      `Cannot reshape tensor with ${totalElements} total elements into target shape [${targetShape.join(", ")}] requiring ${targetElements} elements.`,
-      { totalElements, targetElements, can_zero_copy: false },
-      checkedElements,
+      `Cannot reshape tensor with ${totalElements} elements into target shape [${targetShape.join(", ")}] requiring ${targetElements} elements.`,
+      { total_elements: totalElements, target_elements: targetElements, can_zero_copy: false },
+      checkedElements.map((el) => ({ ...el, state: "compare", pointers: ["MISMATCH"] })),
       { reason: "Element count mismatch", totalElements, targetElements },
     );
     return steps;
@@ -142,17 +182,47 @@ export const generateTensorContiguityReshapeSteps = (
     const targetNdim = targetShape.length;
     const targetStrides: number[] = new Array(targetNdim).fill(1);
     let accT = 1;
+
     for (let d = targetNdim - 1; d >= 0; d--) {
       targetStrides[d] = accT;
-      accT *= targetShape[d];
+      const tDimSize = targetShape[d];
+      accT *= tDimSize;
+
+      const targetElementsSnap: ArrayElement[] = targetShape.map((s, idx) => ({
+        id: `target-dim-${idx}`,
+        label: `t${idx}`,
+        value: s,
+        state: idx === d ? "active" : idx > d ? "sorted" : "default",
+        pointers: idx >= d ? [`target_str=${targetStrides[idx]}`] : undefined,
+      }));
+
+      addStep(
+        24,
+        `Compute Target Stride for Dim ${d} (size ${tDimSize})`,
+        `Target dimension d=${d} gets stride acc_t = ${targetStrides[d]}. Next acc_t = ${targetStrides[d]} * ${tDimSize} = ${accT}.`,
+        { target_d: d, target_shape_d: tDimSize, target_stride_d: targetStrides[d], acc_t: accT },
+        targetElementsSnap,
+        {
+          targetStrides: `[${targetStrides.map((s, i) => (i >= d ? s : "?")).join(", ")}]`,
+          acc_t: accT,
+        },
+      );
     }
 
+    const finalTargetElements: ArrayElement[] = targetShape.map((s, idx) => ({
+      id: `target-dim-${idx}`,
+      label: `t${idx}`,
+      value: s,
+      state: "sorted",
+      pointers: [`target_str=${targetStrides[idx]}`],
+    }));
+
     addStep(
-      24,
-      `Reshape Success: Zero-Copy View Created with strides [${targetStrides.join(", ")}]`,
-      `Tensor is C-contiguous. Reshape to [${targetShape.join(", ")}] succeeded zero-copy with target strides [${targetStrides.join(", ")}].`,
+      26,
+      `Reshape Success: Zero-Copy View Created`,
+      `Input buffer is contiguous and element count matches (${totalElements}). Zero-copy view returned with target strides [${targetStrides.join(", ")}].`,
       { can_zero_copy: true, target_strides: targetStrides.join(",") },
-      checkedElements.map((el) => ({ ...el, state: "sorted", pointers: ["VIEW READY"] })),
+      finalTargetElements,
       {
         targetStrides: `[${targetStrides.join(", ")}]`,
         can_zero_copy: "true",
@@ -161,9 +231,9 @@ export const generateTensorContiguityReshapeSteps = (
     );
   } else {
     addStep(
-      26,
+      28,
       `Reshape Notice: Memory Copy Required`,
-      `Tensor is non-contiguous. Reshape requires contiguous memory reallocation and copy before reshaping.`,
+      `Tensor is non-contiguous. Zero-copy view cannot be created. Reshape requires a contiguous physical memory copy.`,
       { can_zero_copy: false },
       checkedElements.map((el) => ({ ...el, state: "compare", pointers: ["COPY REQ"] })),
       { can_zero_copy: "false", reason: "Non-contiguous tensor requires copy" },
@@ -183,7 +253,7 @@ const TENSOR_CONTIGUITY_RESHAPE_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 8,
+      line: 6,
       hint: "Calculate expected C-contiguous strides by accumulating trailing dimension sizes from right to left.",
     },
     {
@@ -191,27 +261,28 @@ const TENSOR_CONTIGUITY_RESHAPE_TRIVIA: TriviaMeta = {
       hint: "Ensure overall element volume (product of shape sizes) matches target shape volume.",
     },
     {
-      line: 24,
+      line: 26,
       hint: "For contiguous tensors, zero-copy view computes new strides directly without memory reallocation.",
     },
   ],
   lineExplanations: {
     1: "Defines function to verify tensor contiguity and evaluate zero-copy reshape feasibility.",
-    4: "Iterates right-to-left over dimensions to compute standard major-to-minor C-strides.",
-    8: "Compares actual strides against expected contiguous strides.",
+    2: "Determines input tensor dimensionality.",
+    6: "Iterates right-to-left over dimensions to compute standard major-to-minor C-strides.",
+    9: "Compares actual strides against expected contiguous strides.",
+    13: "Calculates overall target element volume by accumulating dimension sizes.",
     16: "Rejects reshape if total element counts disagree.",
     24: "Derives new strides for target shape when input buffer is contiguous.",
-    26: "Flags requirement for physical buffer memory copy for non-contiguous inputs.",
+    26: "Returns zero-copy view metadata when tensor is contiguous.",
+    28: "Flags requirement for physical buffer memory copy for non-contiguous inputs.",
   },
 };
 
 export const tensorContiguityReshape: AlgorithmDefinition<TensorContiguityReshapeInput> = {
   id: "tensor-contiguity-reshape",
   title: "Tensor Contiguity Check & Zero-Copy Reshape Engine",
-  category: "ml_tensor_algebra",
+  topicIds: ["ml_tensor_algebra"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   description:
     "Verifies if a multi-dimensional tensor is C-contiguous in memory and determines whether a target shape reshape operation can be executed as a zero-copy metadata view or requires a memory copy.",
   constraints: [

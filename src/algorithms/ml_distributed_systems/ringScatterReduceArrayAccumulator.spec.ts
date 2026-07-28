@@ -8,10 +8,11 @@ import {
 describe("ring-scatter-reduce-array-accumulator (Ring Scatter-Reduce Phase)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(ringScatterReduceArrayAccumulator.id).toBe("ring-scatter-reduce-array-accumulator");
-    expect(ringScatterReduceArrayAccumulator.isMlInfra).toBe(true);
-    expect(ringScatterReduceArrayAccumulator.mlInfraLevel).toBe(11);
-    expect(ringScatterReduceArrayAccumulator.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(ringScatterReduceArrayAccumulator.categories).toContain("ml_distributed_systems");
+    expect(
+      ringScatterReduceArrayAccumulator.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(ringScatterReduceArrayAccumulator.topicIds).toContain("ml_distributed_systems");
+    expect(ringScatterReduceArrayAccumulator.topicIds).toContain("ml_distributed_systems");
     expect(ringScatterReduceArrayAccumulator.defaultInput).toEqual(
       DEFAULT_RINGSCATTERREDUCEARRAYACCUMULATOR_INPUT,
     );

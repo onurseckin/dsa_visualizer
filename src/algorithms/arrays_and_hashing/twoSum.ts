@@ -197,8 +197,7 @@ const TWO_SUM_TRIVIA: TriviaMeta = {
 export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   id: "two-sum",
   title: "Two Sum",
-  category: "arrays_and_hashing",
-  categories: ["arrays_and_hashing"],
+  topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
     "Two Sum determines the $0$-indexed positions of two distinct numbers in an array that add up to a specified target value.\n\n### Why It Exists & What It Solves\nThe naive brute-force approach tests all $\\frac{N(N-1)}{2} = \\mathcal{O}(N^2)$ pairs using nested loops. Two Sum optimizes this to $\\mathcal{O}(N)$ time by replacing brute-force pair iteration with constant-time hash table lookups.\n- **Complement Paradigm**: For any element $x = \\text{nums}[i]$ and target $T$, the required partner value is $y = T - x$.\n- **Single-Pass Invariant**: By querying the hash map *before* inserting $x$, we prevent an element from matching with itself while maintaining a single linear scan.\n\n### Step-by-Step Intuition\n1. **Map Allocation**: Initialize an empty hash table `seen` to store mapping $\\text{value} \\to \\text{index}$.\n2. **Linear Probe ($i = 0 \\dots N-1$)**: Read $\\text{num} = \\text{nums}[i]$.\n3. **Complement Calculation**: Compute required partner $\\text{complement} = \\text{target} - \\text{num}$.\n4. **Instant Lookup**: Check `if complement in seen`:\n   - If present, return stored index pair $[\\text{seen}[\\text{complement}], i]$.\n5. **State Record**: If absent, record $\\text{seen}[\\text{num}] = i$ and proceed to index $i+1$.\n\n### Mathematical Formulation & Derivation\nGiven input sequence $A = [a_0, a_1, \\dots, a_{N-1}]$ and target $T$:\n$$\\exists \\, i, j \\text{ s.t. } 0 \\le i < j < N \\implies a_i + a_j = T \\iff a_i = T - a_j$$\nBy storing pairs $(a_k, k)$ in hash map $S$ as we iterate $j$ from $0$ to $N-1$:\n$$\\text{If } (T - a_j) \\in \\text{keys}(S) \\implies \\text{Result} = [S[T - a_j], j]$$\nSince hash map operations operate in expected $\\mathcal{O}(1)$ time, the loop terminates after at most $N$ lookups.\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), array of integers where $2 \\le N \\le 10^4$; `target` (`int`), target integer sum.\n- **Output**: `list[int]`, a 2-element array containing indices $[i, j]$ such that $\\text{nums}[i] + \\text{nums}[j] == \\text{target}$.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ expected time, as each insertion and lookup in the hash map takes $\\mathcal{O}(1)$ average time.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for storing up to $N$ elements in hash map `seen`.\n\n### Edge Cases & Constraints\n- **Negative & Zero Values**: Handled seamlessly since arithmetic subtraction preserves sign equality.\n- **Duplicate Array Values**: Handled correctly; if $\\text{nums} = [3, 3]$ and $\\text{target} = 6$, the second $3$ finds the first $3$ already banked in `seen`.",
@@ -248,8 +247,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   spaceComplexity: "O(n)",
   complexityAnalysis: {
     time: "Single linear pass over nums array. Hash map lookups and insertions operate in average O(1) time, yielding O(n) total runtime.",
-    space:
-      "Hash map stores at most n key-value pairs, requiring O(n) auxiliary space.",
+    space: "Hash map stores at most n key-value pairs, requiring O(n) auxiliary space.",
   },
   topicGuide: {
     overview:

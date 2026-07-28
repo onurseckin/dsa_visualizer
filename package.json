@@ -10,12 +10,14 @@
     "lint": "oxlint --threads 8 --deny-warnings",
     "format": "oxfmt --write --threads 8",
     "format:check": "oxfmt --check --threads 8",
+    "intent:check": "bun run scripts/checkIntentSkills.ts",
     "test": "vitest run --maxConcurrency 8",
+    "test:coverage": "vitest run --coverage --maxConcurrency 8 && bun run scripts/checkCoverageFiles.ts",
     "build": "tsc && vite build",
     "preview": "bun run scripts/freePort.ts 4173 && vite preview",
     "start": "bun run scripts/freePort.ts 4173 && vite preview",
     "kill-ports": "bun run scripts/freePort.ts 5173 4173",
-    "check": "bun run typecheck && bun run format:check && bun run lint && bun run test && bun run build"
+    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run test:coverage && bun run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -37,12 +39,19 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/coverage-v8": "1.3.1",
+    "@vitest/coverage-v8": "1.6.1",
     "jsdom": "^24.0.0",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0",
     "typescript": "^7.0.2",
     "vite": "^5.1.4",
-    "vitest": "^1.3.1"
+    "vitest": "1.6.1"
+  },
+  "intent": {
+    "skills": [
+      "@tanstack/router-core",
+      "@tanstack/router-plugin",
+      "@tanstack/virtual-file-routes"
+    ]
   }
 }

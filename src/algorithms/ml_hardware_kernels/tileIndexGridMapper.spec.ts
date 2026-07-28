@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tileIndexGridMapper } from "./tileIndexGridMapper";
 
-describe("tileIndexGridMapper", () => {
+describe("tile-index-grid-mapper", () => {
   it("should have valid metadata", () => {
     expect(tileIndexGridMapper.id).toBeDefined();
     expect(tileIndexGridMapper.title).toBeDefined();
@@ -10,9 +10,7 @@ describe("tileIndexGridMapper", () => {
   });
 
   it("should generate at least 20 steps with matrix snapshot for default input", () => {
-    const steps = tileIndexGridMapper.generateSteps(
-      tileIndexGridMapper.defaultInput,
-    );
+    const steps = tileIndexGridMapper.generateSteps(tileIndexGridMapper.defaultInput);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].primarySnapshot.kind).toBe("matrix");
     expect(steps[steps.length - 1].primarySnapshot.kind).toBe("matrix");

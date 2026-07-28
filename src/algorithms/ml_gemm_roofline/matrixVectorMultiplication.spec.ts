@@ -9,16 +9,15 @@ import {
 describe("matrix-vector-multiplication (Matrix-Vector Multiplication GEMV)", () => {
   it("should have correct metadata", () => {
     expect(matrixVectorMultiplication.id).toBe("matrix-vector-multiplication");
-    expect(matrixVectorMultiplication.isMlInfra).toBe(true);
-    expect(matrixVectorMultiplication.mlInfraLevel).toBe(2);
-    expect(matrixVectorMultiplication.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(matrixVectorMultiplication.categories).toContain("ml_gemm_roofline");
+    expect(matrixVectorMultiplication.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(matrixVectorMultiplication.topicIds).toContain("ml_gemm_roofline");
+    expect(matrixVectorMultiplication.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 algorithm steps with matrix snapshots", () => {
-    const steps = generateMatrixVectorMultiplicationSteps(
-      DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT,
-    );
+    const steps = generateMatrixVectorMultiplicationSteps(DEFAULT_MATRIXVECTORMULTIPLICATION_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("GEMV Matrix-Vector Engine");
     expect(steps[0].primarySnapshot.kind).toBe("matrix");

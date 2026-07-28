@@ -6,7 +6,7 @@ import { AlgorithmDefinition } from "../../../types/dsa";
 const sampleAlgorithm: AlgorithmDefinition = {
   id: "bubble-sort",
   title: "Bubble Sort",
-  category: "arrays_and_hashing",
+  topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
   description: "Simple comparison sort algorithm",
   timeComplexity: { best: "O(N)", average: "O(N^2)", worst: "O(N^2)" },
@@ -21,7 +21,7 @@ const sampleAlgorithm: AlgorithmDefinition = {
 const sampleAlgorithmSparse: AlgorithmDefinition = {
   id: "custom-alg",
   title: "Custom Alg",
-  category: "two_pointers",
+  topicIds: ["two_pointers"],
   description: "Sparse complexity algorithm",
   timeComplexity: { best: "", average: "", worst: "" },
   spaceComplexity: "",
@@ -103,37 +103,38 @@ describe("ProblemTable render spec", () => {
 
     // Keyboard selection (Enter & Space)
     fireEvent.keyDown(row, { key: "Enter" });
-    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort", "arrays_and_hashing");
+    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort");
 
     fireEvent.keyDown(row, { key: " " });
-    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort", "arrays_and_hashing");
+    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort");
 
     // Visualize button click
     fireEvent.click(screen.getByRole("button", { name: "Visualize" }));
-    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort", "arrays_and_hashing");
+    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort");
 
     // Row click
     fireEvent.click(row);
-    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort", "arrays_and_hashing");
+    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("bubble-sort");
   });
 
-  it("renders unknown category fallback label and ignorable keydown event", () => {
-    const unknownAlg: AlgorithmDefinition = {
+  it("renders every canonical topic label and ignores unrelated keydown events", () => {
+    const topicAlgorithm: AlgorithmDefinition = {
       ...sampleAlgorithm,
-      id: "unknown-alg",
-      category: "unknown_cat" as unknown as AlgorithmDefinition["category"],
+      id: "topic-alg",
+      topicIds: ["two_pointers", "intervals"],
     };
 
     render(
       <ProblemTable
-        filteredAlgorithms={[unknownAlg]}
+        filteredAlgorithms={[topicAlgorithm]}
         sortBy="title"
         onToggleSort={vi.fn()}
         onSelectAlgorithm={vi.fn()}
       />,
     );
 
-    expect(screen.getByText("unknown_cat")).toBeInTheDocument();
+    expect(screen.getByText("Two Pointers")).toBeInTheDocument();
+    expect(screen.getByText("Intervals")).toBeInTheDocument();
 
     const row = screen.getByRole("row", { name: /Open visualization for Bubble Sort/i });
     fireEvent.keyDown(row, { key: "Tab" }); // non-Enter, non-Space key

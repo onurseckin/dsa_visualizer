@@ -5,14 +5,16 @@ import {
   generateAsyncDoubleBufferingPipelineSteps,
   ASYNCDOUBLEBUFFERINGPIPELINE_CODE,
 } from "./asyncDoubleBufferingPipeline";
+import { requireLineExplanations } from "../specs/assertions";
 
 describe("async-double-buffering-pipeline (Async Double-Buffering Copy Pipeline)", () => {
   it("should have correct metadata", () => {
     expect(asyncDoubleBufferingPipeline.id).toBe("async-double-buffering-pipeline");
-    expect(asyncDoubleBufferingPipeline.isMlInfra).toBe(true);
-    expect(asyncDoubleBufferingPipeline.mlInfraLevel).toBe(2);
-    expect(asyncDoubleBufferingPipeline.mlInfraCategory).toBe("ml_gemm_roofline");
-    expect(asyncDoubleBufferingPipeline.categories).toContain("ml_gemm_roofline");
+    expect(asyncDoubleBufferingPipeline.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(asyncDoubleBufferingPipeline.topicIds).toContain("ml_gemm_roofline");
+    expect(asyncDoubleBufferingPipeline.topicIds).toContain("ml_gemm_roofline");
   });
 
   it("should generate at least 20 steps with matrix snapshots", () => {
@@ -32,7 +34,7 @@ describe("async-double-buffering-pipeline (Async Double-Buffering Copy Pipeline)
   it("should map every line of code in lineExplanations", () => {
     const lines = ASYNCDOUBLEBUFFERINGPIPELINE_CODE.trim().split("\n");
     const lineCount = lines.length;
-    const explanations = asyncDoubleBufferingPipeline.trivia.lineExplanations;
+    const explanations = requireLineExplanations(asyncDoubleBufferingPipeline);
 
     for (let i = 1; i <= lineCount; i++) {
       expect(explanations[i]).toBeDefined();

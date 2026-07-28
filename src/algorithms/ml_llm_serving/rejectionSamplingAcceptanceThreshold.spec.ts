@@ -8,10 +8,11 @@ import {
 describe("rejection-sampling-acceptance-threshold (Modified Rejection Sampling Acceptance Verifier)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(rejectionSamplingAcceptanceThreshold.id).toBe("rejection-sampling-acceptance-threshold");
-    expect(rejectionSamplingAcceptanceThreshold.isMlInfra).toBe(true);
-    expect(rejectionSamplingAcceptanceThreshold.mlInfraLevel).toBe(12);
-    expect(rejectionSamplingAcceptanceThreshold.mlInfraCategory).toBe("ml_llm_serving");
-    expect(rejectionSamplingAcceptanceThreshold.categories).toContain("ml_llm_serving");
+    expect(
+      rejectionSamplingAcceptanceThreshold.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(rejectionSamplingAcceptanceThreshold.topicIds).toContain("ml_llm_serving");
+    expect(rejectionSamplingAcceptanceThreshold.topicIds).toContain("ml_llm_serving");
     expect(rejectionSamplingAcceptanceThreshold.defaultInput).toEqual(
       DEFAULT_REJECTIONSAMPLINGACCEPTANCETHRESHOLD_INPUT,
     );
@@ -32,6 +33,8 @@ describe("rejection-sampling-acceptance-threshold (Modified Rejection Sampling A
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].codeLine).toBe(1);
-    expect(steps[steps.length - 1].codeLine).toBe(13);
+    expect(steps[steps.length - 1].codeLine).toBe(
+      rejectionSamplingAcceptanceThreshold.code.trim().split("\n").length,
+    );
   });
 });

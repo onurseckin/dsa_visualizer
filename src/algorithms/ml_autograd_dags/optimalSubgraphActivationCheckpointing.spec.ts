@@ -10,10 +10,11 @@ describe("optimal-subgraph-activation-checkpointing (Optimal Subgraph Activation
     expect(optimalSubgraphActivationCheckpointing.id).toBe(
       "optimal-subgraph-activation-checkpointing",
     );
-    expect(optimalSubgraphActivationCheckpointing.isMlInfra).toBe(true);
-    expect(optimalSubgraphActivationCheckpointing.mlInfraLevel).toBe(3);
-    expect(optimalSubgraphActivationCheckpointing.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(optimalSubgraphActivationCheckpointing.categories).toContain("ml_autograd_dags");
+    expect(
+      optimalSubgraphActivationCheckpointing.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(optimalSubgraphActivationCheckpointing.topicIds).toContain("ml_autograd_dags");
+    expect(optimalSubgraphActivationCheckpointing.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

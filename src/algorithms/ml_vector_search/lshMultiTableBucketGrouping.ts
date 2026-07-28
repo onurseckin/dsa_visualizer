@@ -1,4 +1,9 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorVisualSnapshot,
+  VectorItem,
+} from "../../types/dsa";
 
 export interface LshMultiTableBucketGroupingInput {
   query: number[];
@@ -35,19 +40,12 @@ def l2_distance(v1: list[float], v2: list[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
 
 def lsh_multi_table_search(query: list[float], query_hashes: list[str], hash_tables: list[dict], database_vectors: dict) -> list[tuple[float, int]]:
-    """
-    Multi-table Locality Sensitive Hashing (LSH) candidate bucket retrieval.
-    Probes L hash tables using query hash keys, unions matching bucket candidates (OR-construction),
-    and computes exact distances over deduplicated candidate set.
-    """
     candidate_ids = set()
 
-    # Step 1: Union candidates from probed buckets across L hash tables
     for table_idx, hash_key in enumerate(query_hashes):
         bucket_vectors = hash_tables[table_idx].get(hash_key, [])
         candidate_ids.update(bucket_vectors)
 
-    # Step 2: Exact distance calculation over unioned candidate set
     results = []
     for vec_id in candidate_ids:
         vec_data = database_vectors[vec_id]
@@ -56,6 +54,77 @@ def lsh_multi_table_search(query: list[float], query_hashes: list[str], hash_tab
 
     results.sort(key=lambda x: x[0])
     return results`;
+
+const buildVectorSnapshot = (
+  query: number[],
+  databaseVectors: Record<number, number[]>,
+  activeVecId?: number,
+  bucketVecIds?: Set<number>,
+  candidateSet?: Set<number>,
+  topVecId?: number,
+): VectorVisualSnapshot => {
+  const is3D = query.length >= 3;
+  const vectors: VectorItem[] = [];
+
+  // Query vector
+  vectors.push({
+    id: "query",
+    label: `Query [${query.map((n) => n.toFixed(2)).join(", ")}]`,
+    x: query[0] ?? 0,
+    y: query[1] ?? 0,
+    z: is3D ? query[2] : undefined,
+    color: "#ef4444",
+    state: "active",
+    subText: "Query Target",
+  });
+
+  // Database vectors
+  for (const [idStr, vec] of Object.entries(databaseVectors)) {
+    const vId = Number(idStr);
+    let state: VectorItem["state"] = "default";
+    let color: string | undefined = undefined;
+    let subText = `V_${vId} [${vec.map((n) => n.toFixed(2)).join(", ")}]`;
+
+    if (topVecId !== undefined && vId === topVecId) {
+      state = "result";
+      color = "#22c55e";
+      subText += " (Top Match)";
+    } else if (vId === activeVecId) {
+      state = "active";
+      color = "#f59e0b";
+      subText += " (Evaluating Dist)";
+    } else if (bucketVecIds?.has(vId)) {
+      state = "compared";
+      color = "#3b82f6";
+      subText += " (Bucket Match)";
+    } else if (candidateSet?.has(vId)) {
+      state = "compared";
+      color = "#8b5cf6";
+      subText += " (Candidate Union)";
+    } else {
+      state = "inactive";
+      color = "#94a3b8";
+    }
+
+    vectors.push({
+      id: `vec-${vId}`,
+      label: `V_${vId}`,
+      x: vec[0] ?? 0,
+      y: vec[1] ?? 0,
+      z: is3D ? vec[2] : undefined,
+      color,
+      state,
+      subText,
+    });
+  }
+
+  return {
+    kind: "vector",
+    vectors,
+    planeTitle: "2D Vector Space - Multi-Table LSH Bucket Grouping",
+    dimensions: is3D ? "3d" : "2d",
+  };
+};
 
 export const generateLshMultiTableSteps = (
   input: LshMultiTableBucketGroupingInput,
@@ -67,154 +136,295 @@ export const generateLshMultiTableSteps = (
   const l2Dist = (v1: number[], v2: number[]) =>
     Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
 
-  // Step 0: Init
+  // Line 7: candidate_ids = set()
+  const candidateSet = new Set<number>();
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 7,
     explanation: {
-      what: `Initialize Multi-Table LSH Bucket Engine (L = ${hashTables.length} tables)`,
-      why: `Probing L = ${hashTables.length} LSH tables using query hash keys [${queryHashes.map((h, i) => `T${i}:"${h}"`).join(", ")}].`,
+      what: `Initialize candidate set candidate_ids = set()`,
+      why: `Preparing to union candidate vector IDs retrieved from L = ${hashTables.length} independent LSH tables.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: hashTables.map((_, idx) => ({
-        id: `tbl-${idx}`,
-        value: idx,
-        label: `Table ${idx} (Key: "${queryHashes[idx]}")`,
-        state: "default" as ElementState,
-      })),
-    },
+    primarySnapshot: buildVectorSnapshot(
+      query,
+      databaseVectors,
+      undefined,
+      undefined,
+      candidateSet,
+    ),
     auxiliaryState: {
       customState: {
         query: `[${query.join(", ")}]`,
         queryHashes: queryHashes.join(" | "),
         numTables: String(hashTables.length),
-        status: "Initialized",
+        candidateSet: "{ }",
       },
+      visited: [],
     },
-    variables: { numTables: hashTables.length },
+    variables: { numTables: hashTables.length, candidateCount: 0 },
   });
 
-  const candidateSet = new Set<number>();
+  // Line 9: for table_idx, hash_key in enumerate(query_hashes):
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 9,
+    explanation: {
+      what: `Looping through L = ${hashTables.length} hash tables with query hash keys`,
+      why: `Iterating over each table to retrieve candidate vectors falling into matching hash buckets.`,
+    },
+    primarySnapshot: buildVectorSnapshot(
+      query,
+      databaseVectors,
+      undefined,
+      undefined,
+      candidateSet,
+    ),
+    auxiliaryState: {
+      customState: {
+        tableCount: String(hashTables.length),
+        queryHashes: queryHashes.join(" | "),
+        candidateSet: `{${Array.from(candidateSet).join(", ")}}`,
+      },
+      visited: [],
+    },
+    variables: { tableCount: hashTables.length },
+  });
 
   for (let t = 0; t < hashTables.length; t++) {
     const key = queryHashes[t];
     const bucket = hashTables[t][key] || [];
+    const bucketSet = new Set(bucket);
 
-    for (const vId of bucket) {
-      candidateSet.add(vId);
-    }
-
+    // Line 10: bucket_vectors = hash_tables[table_idx].get(hash_key, [])
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 12,
+      codeLine: 10,
       explanation: {
-        what: `Probe Hash Table T${t} with Key "${key}" -> Retrieved Bucket [${bucket.join(", ")}]`,
-        why: `Unioned bucket candidates into candidate set. Accumulated set size: ${candidateSet.size} unique vectors.`,
+        what: `Probe Hash Table T${t} with Key "${key}" -> Bucket vectors: [${bucket.join(", ")}]`,
+        why: `Query hash key "${key}" matches bucket [${bucket.length ? bucket.join(", ") : "empty"}] in Table T${t}.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: bucket.map((vId) => ({
-          id: `cand-${vId}`,
-          value: vId,
-          label: `Vector ${vId}`,
-          state: "highlighted" as ElementState,
-          pointers: [`T${t} Match`],
-        })),
-      },
+      primarySnapshot: buildVectorSnapshot(
+        query,
+        databaseVectors,
+        undefined,
+        bucketSet,
+        candidateSet,
+      ),
       auxiliaryState: {
         customState: {
           tableIndex: String(t),
           hashKey: key,
-          bucketVectors: bucket.join(", "),
-          accumulatedCandidates: Array.from(candidateSet).join(", "),
+          bucketVectors: bucket.length ? bucket.join(", ") : "None",
+          candidateSet: `{${Array.from(candidateSet).join(", ")}}`,
         },
+        hashMap: {
+          [`Table T${t} Key "${key}"`]: bucket.join(", ") || "empty",
+        },
+        visited: Array.from(candidateSet),
       },
-      variables: { table: t, bucketSize: bucket.length, setSize: candidateSet.size },
+      variables: { table_idx: t, hash_key: key, bucket_count: bucket.length },
+    });
+
+    // Line 11: candidate_ids.update(bucket_vectors)
+    for (const vId of bucket) {
+      candidateSet.add(vId);
+    }
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 11,
+      explanation: {
+        what: `Union bucket vectors into candidate_ids set: {${Array.from(candidateSet).join(", ")}}`,
+        why: `OR-construction adds ${bucket.length} candidate(s) from Table T${t} to candidate set (deduplicated total: ${candidateSet.size}).`,
+      },
+      primarySnapshot: buildVectorSnapshot(
+        query,
+        databaseVectors,
+        undefined,
+        undefined,
+        candidateSet,
+      ),
+      auxiliaryState: {
+        customState: {
+          tableIndex: String(t),
+          addedVectors: bucket.join(", "),
+          candidateSet: `{${Array.from(candidateSet).join(", ")}}`,
+          totalCandidates: String(candidateSet.size),
+        },
+        visited: Array.from(candidateSet),
+      },
+      variables: { candidate_count: candidateSet.size },
     });
   }
 
-  // Step 2: Exact Distance Evaluation over Deduplicated Candidates
+  // Line 13: results = []
   const results: { id: number; dist: number }[] = [];
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 13,
+    explanation: {
+      what: `Initialize results list results = []`,
+      why: `Preparing to calculate exact L2 distance for each of the ${candidateSet.size} deduplicated candidates in candidate_ids.`,
+    },
+    primarySnapshot: buildVectorSnapshot(
+      query,
+      databaseVectors,
+      undefined,
+      undefined,
+      candidateSet,
+    ),
+    auxiliaryState: {
+      customState: {
+        candidateSet: `{${Array.from(candidateSet).join(", ")}}`,
+        results: "[]",
+      },
+      visited: Array.from(candidateSet),
+    },
+    variables: { candidateCount: candidateSet.size, resultsCount: 0 },
+  });
+
+  // Line 14: for vec_id in candidate_ids:
   const candArray = Array.from(candidateSet);
+  const distanceTable: Record<string, number> = {};
 
   for (const vId of candArray) {
     const vecData = databaseVectors[vId];
+
+    // Line 15: vec_data = database_vectors[vec_id]
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 15,
+      explanation: {
+        what: `Fetch vector data for Vector ID ${vId}: [${vecData.join(", ")}]`,
+        why: `Retrieving D-dimensional coordinates for Vector V_${vId} from database.`,
+      },
+      primarySnapshot: buildVectorSnapshot(query, databaseVectors, vId, undefined, candidateSet),
+      auxiliaryState: {
+        customState: {
+          vec_id: String(vId),
+          vec_data: `[${vecData.join(", ")}]`,
+        },
+        distanceTable: { ...distanceTable },
+        visited: Array.from(candidateSet),
+      },
+      variables: { vec_id: vId },
+    });
+
+    // Line 16: dist = l2_distance(query, vec_data)
     const dist = l2Dist(query, vecData);
-    results.push({ id: vId, dist });
+    distanceTable[`Vector V_${vId}`] = Math.round(dist * 10000) / 10000;
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 19,
+      codeLine: 16,
       explanation: {
-        what: `Evaluate Distance for Candidate Vector ID ${vId} [${vecData.join(", ")}]`,
-        why: `Distance(query, V_${vId}) = ${dist.toFixed(4)}.`,
+        what: `Compute L2 distance between Query [${query.join(", ")}] and Vector V_${vId}: ${dist.toFixed(4)}`,
+        why: `L2 distance = sqrt(sum((q_i - v_i)^2)) = ${dist.toFixed(4)}.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: candArray.map((idVal) => ({
-          id: `vec-${idVal}`,
-          value: idVal,
-          label: `ID ${idVal} (dist=${idVal === vId ? dist.toFixed(3) : "?"})`,
-          state: idVal === vId ? ("active" as ElementState) : ("visited" as ElementState),
-          pointers: idVal === vId ? [`dist=${dist.toFixed(3)}`] : [],
-        })),
-      },
+      primarySnapshot: buildVectorSnapshot(query, databaseVectors, vId, undefined, candidateSet),
       auxiliaryState: {
         customState: {
-          vectorId: String(vId),
-          distance: dist.toFixed(4),
+          vec_id: String(vId),
+          dist: dist.toFixed(4),
         },
+        distanceTable: { ...distanceTable },
+        visited: Array.from(candidateSet),
       },
-      variables: { vectorId: vId, dist: Math.round(dist * 100) / 100 },
+      variables: { vec_id: vId, dist: Math.round(dist * 10000) / 10000 },
+    });
+
+    // Line 17: results.append((round(dist, 4), vec_id))
+    results.push({ id: vId, dist });
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 17,
+      explanation: {
+        what: `Append tuple (${dist.toFixed(4)}, Vector ID ${vId}) to results`,
+        why: `Added candidate Vector V_${vId} with distance ${dist.toFixed(4)} to results list.`,
+      },
+      primarySnapshot: buildVectorSnapshot(query, databaseVectors, vId, undefined, candidateSet),
+      auxiliaryState: {
+        customState: {
+          resultsCount: String(results.length),
+          lastAppended: `(${dist.toFixed(4)}, ID ${vId})`,
+        },
+        distanceTable: { ...distanceTable },
+        visited: Array.from(candidateSet),
+      },
+      variables: { resultsCount: results.length },
     });
   }
 
-  // Step Final: Complete
+  // Line 19: results.sort(key=lambda x: x[0])
   results.sort((a, b) => a.dist - b.dist);
+  const topMatch = results[0];
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 22,
+    codeLine: 19,
     explanation: {
-      what: "Multi-Table LSH Retrieval Complete",
-      why: `Top candidate: Vector ID ${results[0]?.id} with L2 distance ${results[0]?.dist.toFixed(
-        4,
-      )}. Scanned ${results.length} unioned candidates across L=${hashTables.length} tables.`,
+      what: `Sort candidate results by Euclidean distance ascending`,
+      why: `Ordering candidates so nearest neighbor appears first. Top candidate: ${topMatch ? `Vector V_${topMatch.id} (dist: ${topMatch.dist.toFixed(4)})` : "None"}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: results.map((res, rank) => ({
-        id: `res-${res.id}`,
-        value: res.id,
-        label: `Rank ${rank + 1}: ID ${res.id} (dist=${res.dist.toFixed(3)})`,
-        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
-        pointers: rank === 0 ? ["Top Match"] : [],
-      })),
-    },
+    primarySnapshot: buildVectorSnapshot(
+      query,
+      databaseVectors,
+      undefined,
+      undefined,
+      candidateSet,
+      topMatch?.id,
+    ),
     auxiliaryState: {
       customState: {
-        topVectorId: String(results[0]?.id),
-        topDistance: results[0]?.dist.toFixed(4),
+        sortedResults:
+          results.map((r) => `(ID ${r.id}, d=${r.dist.toFixed(4)})`).join(", ") || "[]",
+        topId: topMatch ? String(topMatch.id) : "None",
+      },
+      distanceTable: { ...distanceTable },
+      visited: Array.from(candidateSet),
+    },
+    variables: {
+      topMatchId: topMatch?.id,
+      minDistance: topMatch ? Math.round(topMatch.dist * 10000) / 10000 : undefined,
+    },
+  });
+
+  // Line 20: return results
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 20,
+    explanation: {
+      what: `Return sorted LSH candidate search results`,
+      why: `Multi-table LSH search complete. ${topMatch ? `Top candidate: Vector V_${topMatch.id} with distance ${topMatch.dist.toFixed(4)}.` : "No candidates found."} Scanned ${results.length} unioned candidates across L = ${hashTables.length} tables.`,
+    },
+    primarySnapshot: buildVectorSnapshot(
+      query,
+      databaseVectors,
+      undefined,
+      undefined,
+      candidateSet,
+      topMatch?.id,
+    ),
+    auxiliaryState: {
+      customState: {
+        topVectorId: topMatch ? String(topMatch.id) : "None",
+        topDistance: topMatch ? topMatch.dist.toFixed(4) : "N/A",
         unionedCandidateCount: String(results.length),
         status: "Completed",
       },
+      distanceTable: { ...distanceTable },
+      visited: Array.from(candidateSet),
     },
-    variables: { topId: results[0]?.id, totalScanned: results.length, complete: true },
+    variables: { topId: topMatch?.id, totalCandidates: results.length, complete: true },
   });
 
   return steps;
 };
 
 export const lshMultiTableBucketGrouping: AlgorithmDefinition<LshMultiTableBucketGroupingInput> = {
-  id: "lshMultiTableBucketGrouping",
+  id: "lsh-multi-table-bucket-grouping",
   title: "Multi-Table LSH Bucket Grouping & Candidate Union",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search"],
+  topicIds: ["ml_vector_search"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "Executes multi-table Locality Sensitive Hashing (LSH) candidate retrieval. Probes L independent hash tables constructed with distinct random projection families. Unions candidate vectors that collide in at least one hash table (OR-amplification), and evaluates exact Euclidean distances over the deduplicated candidate set.\n\nInput Format:\n- query: D-dimensional query embedding vector.\n- queryHashes: L hash key strings computed for query across L hash tables.\n- hashTables: L dictionaries mapping composite hash key -> vector ID list.\n- databaseVectors: Dictionary mapping vector ID to vector data.\n\nOutput Format:\n- Returns sorted list of (distance, vectorId) candidates.\n\nEdge Cases & Constraints:\n- Empty bucket match: Gracefully falls through to remaining tables.",
   constraints: ["queryHashes.length == hashTables.length."],

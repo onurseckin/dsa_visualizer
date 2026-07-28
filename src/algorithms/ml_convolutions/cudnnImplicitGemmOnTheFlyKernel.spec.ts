@@ -7,11 +7,12 @@ import {
 
 describe("cudnnImplicitGemmOnTheFlyKernel (cuDNN Implicit GEMM On-The-Fly Kernel)", () => {
   it("should have correct metadata", () => {
-    expect(cudnnImplicitGemmOnTheFlyKernel.id).toBe("cudnnImplicitGemmOnTheFlyKernel");
-    expect(cudnnImplicitGemmOnTheFlyKernel.isMlInfra).toBe(true);
-    expect(cudnnImplicitGemmOnTheFlyKernel.mlInfraLevel).toBe(8);
-    expect(cudnnImplicitGemmOnTheFlyKernel.mlInfraCategory).toBe("ml_convolutions");
-    expect(cudnnImplicitGemmOnTheFlyKernel.categories).toContain("ml_convolutions");
+    expect(cudnnImplicitGemmOnTheFlyKernel.id).toBe("cudnn-implicit-gemm-on-the-fly-kernel");
+    expect(
+      cudnnImplicitGemmOnTheFlyKernel.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(cudnnImplicitGemmOnTheFlyKernel.topicIds).toContain("ml_convolutions");
+    expect(cudnnImplicitGemmOnTheFlyKernel.topicIds).toContain("ml_convolutions");
   });
 
   it("should generate at least 20 algorithm steps for default input", () => {

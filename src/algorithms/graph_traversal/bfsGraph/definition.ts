@@ -69,8 +69,7 @@ const BFS_GRAPH_TRIVIA: TriviaMeta = {
 export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   id: "bfs-graph",
   title: "BFS Graph Traversal",
-  category: "graph_traversal",
-  categories: ["graph_traversal"],
+  topicIds: ["graph_traversal"],
   difficulty: "Medium",
   description:
     "Given a directed or undirected graph $G = (V, E)$ represented by vertices $V$ and edges $E$, along with a specified start node $s \\in V$, perform a Breadth-First Search (BFS) to traverse all reachable vertices layer by layer. BFS starts at the source $s$ at distance $d(s, s) = 0$ and explores all immediately adjacent neighbors at distance $d=1$, then moves on to explore neighbors of neighbors at distance $d=2$, and so forth. The algorithm utilizes a First-In-First-Out (FIFO) queue $Q$ to maintain discovery order and a visited set $S \\subseteq V$ to prevent processing duplicate vertices or getting trapped in infinite loops caused by graph cycles. Overall runtime is bounded by $\\mathcal{O}(|V| + |E|)$ with $\\mathcal{O}(|V|)$ auxiliary space.",
@@ -175,7 +174,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   },
   topicGuide: {
     overview:
-      'Breadth-first search explores a graph $G=(V, E)$ in expanding concentric rings around a starting vertex $s$: all vertices at unweighted distance $d=1$, then $d=2$, up to distance $d=k$. That ordering guarantees that the first time BFS visits a vertex $v$, it has reached $v$ via a path of minimum edge count $\\text{dist}(s, v)$. It is the fundamental algorithm for unweighted shortest paths, maze solving, connected component analysis, and network flooding.',
+      "Breadth-first search explores a graph $G=(V, E)$ in expanding concentric rings around a starting vertex $s$: all vertices at unweighted distance $d=1$, then $d=2$, up to distance $d=k$. That ordering guarantees that the first time BFS visits a vertex $v$, it has reached $v$ via a path of minimum edge count $\\text{dist}(s, v)$. It is the fundamental algorithm for unweighted shortest paths, maze solving, connected component analysis, and network flooding.",
     sections: [
       {
         heading: "The core idea: a queue turns a graph into layers",
@@ -205,18 +204,15 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
     keyTerms: [
       {
         term: "Frontier (Q)",
-        definition:
-          "The FIFO queue holding discovered nodes awaiting neighbor expansion.",
+        definition: "The FIFO queue holding discovered nodes awaiting neighbor expansion.",
       },
       {
         term: "Layer / Level",
-        definition:
-          "The set of vertices at uniform edge distance $d(s, v)$ from the source.",
+        definition: "The set of vertices at uniform edge distance $d(s, v)$ from the source.",
       },
       {
         term: "Visited Set (S)",
-        definition:
-          "The lookup set preventing cycle loops and duplicate enqueues.",
+        definition: "The lookup set preventing cycle loops and duplicate enqueues.",
       },
     ],
   },

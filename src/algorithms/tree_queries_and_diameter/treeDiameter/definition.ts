@@ -37,8 +37,7 @@ const TREE_DIAMETER_TRIVIA: TriviaMeta = {
 export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   id: "tree-diameter",
   title: "Tree Diameter (2-DFS Algorithm)",
-  category: "tree_fundamentals",
-  categories: ["tree_fundamentals", "tree_queries_and_diameter"],
+  topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Medium",
   description:
     "Find the diameter (length of the longest simple path between any two nodes) of an unweighted tree using two passes of Depth-First Search (2-DFS).\n\n### Problem Statement\nGiven an undirected tree on $N$ vertices, find its diameter $D$—the maximum number of edges in any simple path connecting two vertices in the tree.\n\nThe algorithm leverages the double-DFS property: starting a DFS from an arbitrary node $S$ discovers a vertex $A$ that is guaranteed to be one endpoint of a longest path. Running a second DFS starting from vertex $A$ finds the opposite endpoint $B$ and measures the exact diameter distance $D = dist(A, B)$.\n\n### Input Parameters\n- `rootId`: Identifier of the root node to start Pass 1.\n- `nodes`: List of tree node objects defining the tree structure.\n\n### Output\n- Returns an integer representing the diameter $D$ (number of edges on the longest simple path).\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- Valid connected tree with $N-1$ undirected edges.\n- Single node tree ($N=1$): Diameter distance is $0$.\n- Uniform edge weights (unweighted tree).",

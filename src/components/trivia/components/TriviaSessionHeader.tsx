@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge, Button, FieldLabel, Well, MarkdownRenderer } from "../../../ui";
 import { getAlgorithm } from "../../../algorithms/registry";
-import { getAlgorithmPrimaryCategory } from "../../../app/categories";
+import { getTopicLabel } from "../../../app/topics";
 import type { TriviaLayout, TriviaPanelVisibility } from "../../../trivia/triviaLayout";
 import type { TriviaMode } from "../../../types/trivia";
 
@@ -32,7 +32,6 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
   mode,
 }) => {
   const algorithm = getAlgorithm(algorithmId);
-  const primaryCategory = algorithm ? getAlgorithmPrimaryCategory(algorithm) : undefined;
   const isExpanded = layout.panelVisibility.problem;
 
   return (
@@ -40,8 +39,16 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">{algorithmTitle}</h2>
         <Badge size="md">{hiddenLabel}</Badge>
-        {primaryCategory && <Badge variant="neutral" size="sm">{primaryCategory}</Badge>}
-        {algorithm?.difficulty && <Badge variant="info" size="sm">{algorithm.difficulty}</Badge>}
+        {algorithm?.topicIds.map((topicId) => (
+          <Badge key={topicId} variant="neutral" size="sm">
+            {getTopicLabel(topicId)}
+          </Badge>
+        ))}
+        {algorithm?.difficulty && (
+          <Badge variant="info" size="sm">
+            {algorithm.difficulty}
+          </Badge>
+        )}
 
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <Button

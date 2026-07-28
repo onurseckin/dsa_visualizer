@@ -131,7 +131,11 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         elements: createArrayElements(minHeap),
       },
       auxiliaryState: {
-        customState: { currentNum: num, heap: `[${minHeap.join(", ")}]`, rootMin: minHeap[0] ?? "none" },
+        customState: {
+          currentNum: num,
+          heap: `[${minHeap.join(", ")}]`,
+          rootMin: minHeap[0] ?? "none",
+        },
       },
       variables: { i, num, heapSize: minHeap.length, k },
     });
@@ -173,7 +177,12 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         elements: createArrayElements(minHeap, 0, exceedsCapacity ? "active" : "default"),
       },
       auxiliaryState: {
-        customState: { currentNum: num, heap: `[${minHeap.join(", ")}]`, rootMin: minHeap[0], exceedsCapacity },
+        customState: {
+          currentNum: num,
+          heap: `[${minHeap.join(", ")}]`,
+          rootMin: minHeap[0],
+          exceedsCapacity,
+        },
       },
       variables: { i, num, heapSize: minHeap.length, k, exceedsCapacity },
     });

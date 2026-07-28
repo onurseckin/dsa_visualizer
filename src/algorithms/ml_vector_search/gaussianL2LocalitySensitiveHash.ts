@@ -1,4 +1,9 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorItem,
+  VectorVisualSnapshot,
+} from "../../types/dsa";
 
 export interface GaussianL2LocalitySensitiveHashInput {
   vector: number[];
@@ -21,22 +26,82 @@ export const DEFAULT_GAUSSIAN_L2_LSH_INPUT: GaussianL2LocalitySensitiveHashInput
 export const GAUSSIAN_L2_LSH_CODE = `import math
 
 def gaussian_l2_lsh(vector: list[float], projection_vectors: list[list[float]], offsets: list[float], bin_width: float) -> list[int]:
-    """
-    Computes p-stable Gaussian L2 Locality-Sensitive Hash (LSH) bucket keys.
-    h_{a,b}(v) = floor((a . v + b) / W)
-    where 'a' is a Gaussian projection vector, 'b' is a random offset in [0, W), and W is bin width.
-    """
     hash_keys = []
     for idx, (a, b) in enumerate(zip(projection_vectors, offsets)):
-        # Compute dot product (a . v)
         dot_product = sum(ai * vi for ai, vi in zip(a, vector))
-        # Compute scalar projection with offset
         projected_val = dot_product + b
-        # Quantize into bin index
         bin_idx = math.floor(projected_val / bin_width)
         hash_keys.append(bin_idx)
 
     return hash_keys`;
+
+const createVectorSnapshot = (
+  vector: number[],
+  projectionVectors: number[][],
+  offsets: number[],
+  hashKeys: number[],
+  activeIndex?: number,
+  activeStage?: "select" | "dot" | "offset" | "quantize" | "append" | "done",
+): VectorVisualSnapshot => {
+  const vectors: VectorItem[] = [];
+
+  // Query vector
+  vectors.push({
+    id: "query-v",
+    label: `v = [${vector.join(", ")}]`,
+    x: vector[0] ?? 0,
+    y: vector[1] ?? 0,
+    color: "#ec4899",
+    state: activeStage === "done" ? "result" : "active",
+    subText: "Query Vector",
+  });
+
+  // Projection vectors
+  projectionVectors.forEach((a, idx) => {
+    let state: VectorItem["state"] = "default";
+    let color: string | undefined = undefined;
+
+    if (activeIndex === idx) {
+      if (activeStage === "append") {
+        state = "result";
+        color = "#10b981";
+      } else {
+        state = "active";
+        color = "#f59e0b";
+      }
+    } else if (idx < hashKeys.length) {
+      state = "compared";
+      color = "#3b82f6";
+    } else {
+      state = "default";
+      color = "#6b7280";
+    }
+
+    const keyVal =
+      hashKeys[idx] !== undefined
+        ? `bin = ${hashKeys[idx]}`
+        : activeIndex === idx && activeStage === "quantize"
+          ? "bin ?"
+          : `b = ${offsets[idx]}`;
+
+    vectors.push({
+      id: `proj-${idx}`,
+      label: `a_${idx} = [${a.join(", ")}]`,
+      x: a[0] ?? 0,
+      y: a[1] ?? 0,
+      color,
+      state,
+      subText: `h_${idx}: ${keyVal}`,
+    });
+  });
+
+  return {
+    kind: "vector",
+    vectors,
+    planeTitle: "Gaussian L2 LSH Projection Space",
+    dimensions: "2d",
+  };
+};
 
 export const generateGaussianL2LshSteps = (
   input: GaussianL2LocalitySensitiveHashInput,
@@ -44,103 +109,183 @@ export const generateGaussianL2LshSteps = (
   const steps: AlgorithmStep[] = [];
   const { vector, projectionVectors, offsets, binWidth } = input;
   let stepIndex = 0;
+  const hashKeys: number[] = [];
 
-  // Step 0: Init
+  // Line 4: hash_keys = []
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 9,
+    codeLine: 4,
     explanation: {
-      what: "Initialize Gaussian L2 Locality-Sensitive Hash (LSH)",
-      why: `Hashing vector [${vector.join(", ")}] across ${projectionVectors.length} random Gaussian projections with bin width W = ${binWidth}.`,
+      what: "Initialize empty hash_keys list",
+      why: `Preparing to compute ${projectionVectors.length} p-stable Gaussian L2 hash functions for query vector v = [${vector.join(", ")}] with bin width W = ${binWidth}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: projectionVectors.map((a, idx) => ({
-        id: `proj-${idx}`,
-        value: idx,
-        label: `Func ${idx}: a=[${a.join(",")}], b=${offsets[idx]}`,
-        state: "default" as ElementState,
-      })),
-    },
+    primarySnapshot: createVectorSnapshot(vector, projectionVectors, offsets, hashKeys),
     auxiliaryState: {
       customState: {
-        inputVector: `[${vector.join(", ")}]`,
+        queryVector: `[${vector.join(", ")}]`,
         binWidth: String(binWidth),
-        funcCount: String(projectionVectors.length),
+        numProjections: String(projectionVectors.length),
+        hashKeys: "[]",
         status: "Initialized",
       },
     },
-    variables: { binWidth, funcCount: projectionVectors.length },
+    variables: { hash_keys: "[]", bin_width: binWidth },
   });
-
-  const hashKeys: number[] = [];
 
   for (let i = 0; i < projectionVectors.length; i++) {
     const a = projectionVectors[i];
     const b = offsets[i];
 
-    const dotProduct = a.reduce((acc, ai, d) => acc + ai * vector[d], 0);
-    const projVal = dotProduct + b;
-    const binIdx = Math.floor(projVal / binWidth);
-    hashKeys.push(binIdx);
-
+    // Line 5: for idx, (a, b) in enumerate(zip(projection_vectors, offsets)):
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 16,
+      codeLine: 5,
       explanation: {
-        what: `Evaluate Hash Function h_${i}(v)`,
-        why: `Dot product (a . v) = ${dotProduct.toFixed(3)}. Adding offset b=${b} yields ${projVal.toFixed(
-          3,
-        )}. Dividing by W=${binWidth} and flooring gives bin index ${binIdx}.`,
+        what: `Select projection function h_${i} (a_${i} and offset b_${i})`,
+        why: `Function h_${i} uses projection vector a_${i} = [${a.join(", ")}] sampled from Gaussian N(0, I) and uniform offset b_${i} = ${b} in range [0, ${binWidth}).`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: projectionVectors.map((_, idx) => ({
-          id: `proj-${idx}`,
-          value: idx === i ? binIdx : idx < i ? hashKeys[idx] : idx,
-          label: `h_${idx}: bin ${idx <= i ? (hashKeys[idx] ?? binIdx) : "?"}`,
-          state:
-            idx === i
-              ? ("active" as ElementState)
-              : idx < i
-                ? ("visited" as ElementState)
-                : ("default" as ElementState),
-          pointers: idx === i ? [`bin=${binIdx}`] : [],
-        })),
-      },
+      primarySnapshot: createVectorSnapshot(
+        vector,
+        projectionVectors,
+        offsets,
+        hashKeys,
+        i,
+        "select",
+      ),
       auxiliaryState: {
         customState: {
-          activeFunc: `h_${i}`,
-          dotProduct: dotProduct.toFixed(3),
-          projValWithOffset: projVal.toFixed(3),
-          binIndex: String(binIdx),
-          formula: `floor((${dotProduct.toFixed(3)} + ${b}) / ${binWidth}) = ${binIdx}`,
+          activeFunction: `h_${i}`,
+          projectionVector: `[${a.join(", ")}]`,
+          offset: String(b),
+          hashKeys: `[${hashKeys.join(", ")}]`,
         },
       },
-      variables: { i, dotProduct: Math.round(dotProduct * 100) / 100, binIdx },
+      variables: { idx: i, a: `[${a.join(", ")}]`, b },
+    });
+
+    // Line 6: dot_product = sum(ai * vi for ai, vi in zip(a, vector))
+    const dotProduct = a.reduce((acc, ai, d) => acc + ai * (vector[d] ?? 0), 0);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 6,
+      explanation: {
+        what: `Compute dot product (a_${i} · v) = ${dotProduct.toFixed(3)}`,
+        why: `Calculated sum of products: ${a.map((ai, d) => `(${ai} * ${vector[d] ?? 0})`).join(" + ")} = ${dotProduct.toFixed(3)}. Projects continuous space vector v onto random vector a_${i}.`,
+      },
+      primarySnapshot: createVectorSnapshot(vector, projectionVectors, offsets, hashKeys, i, "dot"),
+      auxiliaryState: {
+        customState: {
+          activeFunction: `h_${i}`,
+          dotProduct: dotProduct.toFixed(3),
+          formula: `a_${i} · v = ${dotProduct.toFixed(3)}`,
+        },
+      },
+      variables: { idx: i, dot_product: Math.round(dotProduct * 1000) / 1000 },
+    });
+
+    // Line 7: projected_val = dot_product + b
+    const projVal = dotProduct + b;
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 7,
+      explanation: {
+        what: `Add random offset b_${i}: ${dotProduct.toFixed(3)} + ${b} = ${projVal.toFixed(3)}`,
+        why: `Uniform random shift b_${i} = ${b} ensures the continuous L2 collision probability p(d) remains invariant under coordinate translations.`,
+      },
+      primarySnapshot: createVectorSnapshot(
+        vector,
+        projectionVectors,
+        offsets,
+        hashKeys,
+        i,
+        "offset",
+      ),
+      auxiliaryState: {
+        customState: {
+          activeFunction: `h_${i}`,
+          dotProduct: dotProduct.toFixed(3),
+          offset: String(b),
+          projected_val: projVal.toFixed(3),
+          formula: `${dotProduct.toFixed(3)} + ${b} = ${projVal.toFixed(3)}`,
+        },
+      },
+      variables: { idx: i, projected_val: Math.round(projVal * 1000) / 1000 },
+    });
+
+    // Line 8: bin_idx = math.floor(projected_val / bin_width)
+    const binIdx = Math.floor(projVal / binWidth);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 8,
+      explanation: {
+        what: `Quantize into integer bin index: floor(${projVal.toFixed(3)} / ${binWidth}) = ${binIdx}`,
+        why: `Dividing projected scalar value by bin width W = ${binWidth} and taking floor yields integer bin index ${binIdx}.`,
+      },
+      primarySnapshot: createVectorSnapshot(
+        vector,
+        projectionVectors,
+        offsets,
+        hashKeys,
+        i,
+        "quantize",
+      ),
+      auxiliaryState: {
+        customState: {
+          activeFunction: `h_${i}`,
+          projected_val: projVal.toFixed(3),
+          binWidth: String(binWidth),
+          bin_idx: String(binIdx),
+          formula: `floor(${projVal.toFixed(3)} / ${binWidth}) = ${binIdx}`,
+        },
+      },
+      variables: { idx: i, bin_idx: binIdx },
+    });
+
+    // Line 9: hash_keys.append(bin_idx)
+    hashKeys.push(binIdx);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 9,
+      explanation: {
+        what: `Append bucket index ${binIdx} for h_${i} to hash_keys`,
+        why: `Hash function h_${i} produces bin index ${binIdx}. Updated hash_keys: [${hashKeys.join(", ")}].`,
+      },
+      primarySnapshot: createVectorSnapshot(
+        vector,
+        projectionVectors,
+        offsets,
+        hashKeys,
+        i,
+        "append",
+      ),
+      auxiliaryState: {
+        customState: {
+          activeFunction: `h_${i}`,
+          bin_idx: String(binIdx),
+          hash_keys: `[${hashKeys.join(", ")}]`,
+        },
+      },
+      variables: { idx: i, hash_keys: `[${hashKeys.join(", ")}]` },
     });
   }
 
-  // Step Final: Hash Composite Key Constructed
+  // Line 11: return hash_keys
   const compositeKey = hashKeys.join("-");
-
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 19,
+    codeLine: 11,
     explanation: {
-      what: `LSH Key Construction Complete: [${hashKeys.join(", ")}]`,
-      why: `Composite LSH hash bucket key string: "${compositeKey}". Vectors with close Euclidean distances collisionally map to the same key.`,
+      what: `Return hash_keys: [${hashKeys.join(", ")}] (Composite key: "${compositeKey}")`,
+      why: `All ${projectionVectors.length} hash function indices evaluated. Vector v is assigned to hash bucket key "${compositeKey}". Nearby L2 vectors will collide in the same hash bucket with high probability.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: hashKeys.map((k, idx) => ({
-        id: `key-${idx}`,
-        value: k,
-        label: `h_${idx} = ${k}`,
-        state: "sorted" as ElementState,
-        pointers: idx === 0 ? [`Key: "${compositeKey}"`] : [],
-      })),
-    },
+    primarySnapshot: createVectorSnapshot(
+      vector,
+      projectionVectors,
+      offsets,
+      hashKeys,
+      undefined,
+      "done",
+    ),
     auxiliaryState: {
       customState: {
         hashKeys: `[${hashKeys.join(", ")}]`,
@@ -148,7 +293,7 @@ export const generateGaussianL2LshSteps = (
         status: "Completed",
       },
     },
-    variables: { compositeKey, complete: true },
+    variables: { hash_keys: `[${hashKeys.join(", ")}]`, complete: true },
   });
 
   return steps;
@@ -156,14 +301,10 @@ export const generateGaussianL2LshSteps = (
 
 export const gaussianL2LocalitySensitiveHash: AlgorithmDefinition<GaussianL2LocalitySensitiveHashInput> =
   {
-    id: "gaussianL2LocalitySensitiveHash",
+    id: "gaussian-l2-locality-sensitive-hash",
     title: "Gaussian L2 Locality-Sensitive Hashing (p-Stable LSH)",
-    category: "ml_vector_search",
-    categories: ["ml_vector_search"],
+    topicIds: ["ml_vector_search"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_vector_search",
     description:
       "Implements p-stable Gaussian Locality-Sensitive Hashing (LSH) for L2 Euclidean distance spaces. Uses random projections sampled from a standard Gaussian distribution N(0, I) and scalar binning to map high-dimensional vectors into discrete hash bucket keys. Vectors close in Euclidean distance collide in the same hash bucket with high probability.\n\nInput Format:\n- vector: Multi-dimensional query vector of dimension D.\n- projectionVectors: K random vectors sampled from N(0, I).\n- offsets: K random offsets sampled uniformly from [0, binWidth).\n- binWidth: Scalar quantization bin width W.\n\nOutput Format:\n- Returns array of K integer hash bin keys `[h_0, h_1, ..., h_{K-1}]`.\n\nEdge Cases & Constraints:\n- Small binWidth: Decreases collision probability (higher precision, lower recall).\n- Large binWidth: Increases bucket collision size (higher recall, lower filtering efficiency).",
     constraints: [

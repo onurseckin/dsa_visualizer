@@ -8,10 +8,9 @@ import {
 describe("detect-terminal-nodes (Detect Terminal Leaf Nodes in DAG)", () => {
   it("should have correct metadata", () => {
     expect(detectTerminalNodes.id).toBe("detect-terminal-nodes");
-    expect(detectTerminalNodes.isMlInfra).toBe(true);
-    expect(detectTerminalNodes.mlInfraLevel).toBe(3);
-    expect(detectTerminalNodes.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(detectTerminalNodes.categories).toContain("ml_autograd_dags");
+    expect(detectTerminalNodes.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(detectTerminalNodes.topicIds).toContain("ml_autograd_dags");
+    expect(detectTerminalNodes.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

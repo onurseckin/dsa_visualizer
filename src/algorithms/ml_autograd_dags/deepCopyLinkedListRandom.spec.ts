@@ -8,17 +8,18 @@ import {
 describe("deep-copy-linked-list-random (Deep Copy Graph with Random Pointers)", () => {
   it("should have correct metadata", () => {
     expect(deepCopyLinkedListRandom.id).toBe("deep-copy-linked-list-random");
-    expect(deepCopyLinkedListRandom.isMlInfra).toBe(true);
-    expect(deepCopyLinkedListRandom.mlInfraLevel).toBe(3);
-    expect(deepCopyLinkedListRandom.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(deepCopyLinkedListRandom.categories).toContain("ml_autograd_dags");
+    expect(deepCopyLinkedListRandom.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(deepCopyLinkedListRandom.topicIds).toContain("ml_autograd_dags");
+    expect(deepCopyLinkedListRandom.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {
     const steps = generateDeepCopyLinkedListRandomSteps(DEFAULT_DEEPCOPYLINKEDLISTRANDOM_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Deep Copy Graph Cloner");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
+    expect(steps[steps.length - 1].explanation.what).toBe("Return Cloned Graph Nodes List");
   });
 
   it("should have complete lineExplanations for every code line", () => {

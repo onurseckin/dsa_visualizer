@@ -8,9 +8,6 @@ export interface vectorDotProductMacInput {
 }
 
 export const VECTORDOTPRODUCTMAC_CODE = `def vector_dot_product_mac(vec_a, vec_b, bias=0):
-    """
-    Computes multiply-accumulate vector dot product y = sum(a_i * b_i) + bias.
-    """
     accumulator = bias
     for a, b in zip(vec_a, vec_b):
         accumulator += a * b
@@ -35,11 +32,7 @@ export const generateVectorDotProductMacSteps = (
 
   const partialProducts: number[] = [];
 
-  const createMatrixSnapshot = (
-    activeIdx?: number,
-    completed = false,
-    titleExtra = "",
-  ) => {
+  const createMatrixSnapshot = (activeIdx?: number, completed = false, titleExtra = "") => {
     const cells: MatrixCellItem[] = [];
     // Row 0: Vector A
     // Row 1: Vector B
@@ -125,47 +118,18 @@ export const generateVectorDotProductMacSteps = (
     });
   };
 
-  // Line 1: Setup
+  // Line 1: Function setup & validation
   addStep(
     1,
     "Initialize Vector Multiply-Accumulate (MAC) Engine",
-    `Vectors vec_a and vec_b length N = ${n}, initial bias = ${bias}.`,
-    { n, bias },
-  );
-
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Computes multiply-accumulate vector dot product y = sum(a_i * b_i) + bias.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 1 (detail): Validate input dimensions
-  addStep(
-    1,
-    `Verify Vector Dimensions: len(vec_a) = ${vec_a.length}, len(vec_b) = ${vec_b.length}`,
-    "Ensure paired vector elements align for hardware MAC vector execution.",
+    `Vectors vec_a and vec_b length N = ${n}, initial bias = ${bias}. Validating input vector alignment.`,
     { len_a: vec_a.length, len_b: vec_b.length, n, bias },
   );
 
-  // Line 5: accumulator = bias
+  // Line 2: accumulator = bias
   let accumulator = bias;
   addStep(
-    5,
+    2,
     `Initialize Accumulator Register: accumulator = bias (${bias})`,
     `Set MAC accumulator register to initial scalar bias value (${bias}).`,
     { accumulator, bias },
@@ -177,7 +141,7 @@ export const generateVectorDotProductMacSteps = (
     const b = vec_b[i];
 
     addStep(
-      6,
+      3,
       `Fetch Vector Pair at Index ${i}: a = ${a}, b = ${b}`,
       `Load paired scalar elements a = vec_a[${i}] and b = vec_b[${i}] into hardware MAC registers.`,
       { i, a, b, accumulator },
@@ -188,7 +152,7 @@ export const generateVectorDotProductMacSteps = (
     partialProducts.push(prod);
 
     addStep(
-      6,
+      4,
       `Compute Element Product: a * b = ${a} * ${b} = ${prod}`,
       `Execute hardware multiplication unit for index ${i}.`,
       { i, a, b, prod, accumulator },
@@ -198,7 +162,7 @@ export const generateVectorDotProductMacSteps = (
     accumulator += prod;
 
     addStep(
-      7,
+      4,
       `Execute MAC Accumulate: accumulator += ${prod} -> accumulator = ${accumulator}`,
       `Add element product ${prod} into running accumulator register total (${accumulator}).`,
       { i, a, b, prod, accumulator },
@@ -208,7 +172,7 @@ export const generateVectorDotProductMacSteps = (
 
   // Summary accumulation step
   addStep(
-    7,
+    4,
     `MAC Vector Loop Complete: Total Accumulator = ${accumulator}`,
     `Successfully accumulated all ${n} element products plus initial bias (${bias}).`,
     { n, bias, total_products_sum: accumulator - bias, accumulator },
@@ -216,9 +180,9 @@ export const generateVectorDotProductMacSteps = (
     true,
   );
 
-  // Line 8: Return accumulator
+  // Line 5: Return accumulator
   addStep(
-    8,
+    5,
     `Return Final MAC Result: ${accumulator}`,
     `Return accumulated scalar total y = sum(a_i * b_i) + bias = ${accumulator}.`,
     { accumulator, completed: true },
@@ -232,37 +196,26 @@ export const generateVectorDotProductMacSteps = (
 
 export const VECTORDOTPRODUCTMAC_TRIVIA: TriviaMeta = {
   skipLines: [],
-  distractors: [
-    "accumulator = 0",
-    "for a in vec_a: accumulator += a",
-    "return accumulator * bias",
-  ],
+  distractors: ["accumulator = 0", "for a in vec_a: accumulator += a", "return accumulator * bias"],
   hints: [
-    { line: 5, hint: "Accumulator must be initialized to the initial bias scalar value." },
-    { line: 6, hint: "zip(vec_a, vec_b) pairs corresponding elements from vec_a and vec_b." },
-    { line: 7, hint: "MAC operation adds the product a * b directly into accumulator." },
+    { line: 2, hint: "Accumulator must be initialized to the initial bias scalar value." },
+    { line: 3, hint: "zip(vec_a, vec_b) pairs corresponding elements from vec_a and vec_b." },
+    { line: 4, hint: "MAC operation adds the product a * b directly into accumulator." },
   ],
   lineExplanations: {
     1: "Defines vector multiply-accumulate (MAC) dot product function.",
-    2: "Starts docstring explaining hardware MAC vector operation contract.",
-    3: "Describes mathematical formula: y = sum(a_i * b_i) + bias.",
-    4: "Ends function docstring.",
-    5: "Initializes accumulator register to initial scalar bias value.",
-    6: "Iterates through paired scalar elements a and b from input vectors vec_a and vec_b.",
-    7: "Executes hardware MAC operation: accumulator += a * b.",
-    8: "Returns accumulated scalar MAC dot product total.",
+    2: "Initializes accumulator register to initial scalar bias value.",
+    3: "Iterates through paired scalar elements a and b from input vectors vec_a and vec_b.",
+    4: "Executes hardware MAC operation: accumulator += a * b.",
+    5: "Returns accumulated scalar MAC dot product total.",
   },
 };
 
 export const vectorDotProductMac: AlgorithmDefinition<vectorDotProductMacInput> = {
   id: "vector-dot-product-mac",
   title: "Vector Multiply-Accumulate (MAC) Engine",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "Multiply-Accumulate (MAC) is the fundamental atomic hardware instruction performing $y = (a \\times b) + c$ in GPU Tensor Cores, Google TPUs, Apple Neural Engines, and Digital Signal Processors (DSPs). Evaluating vector dot products with optional scalar bias accumulation forms the baseline mathematical building block for matrix multiplication (GEMM) and neural network linear layers:\n$$\\text{Accumulator} = \\text{bias} + \\sum_{i=0}^{N-1} a_i \\times b_i$$\nHardware Fused Multiply-Add (FMA) units execute the multiplication and addition steps in a single clock cycle with single rounding, improving numerical accuracy and doubling arithmetic throughput compared to separate multiply and add instructions.",
   constraints: [

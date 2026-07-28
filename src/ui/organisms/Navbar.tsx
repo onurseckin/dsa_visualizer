@@ -16,7 +16,7 @@ import {
   RotateCcw,
   Activity,
 } from "lucide-react";
-import { CategoryType, AppView, PanelKey, PanelVisibility } from "../../types/dsa";
+import { TopicId, AppView, PanelKey, PanelVisibility } from "../../types/dsa";
 import { Button, ButtonGroup, ConfirmDialog, Segmented } from "../index";
 import { resetWorkspaceLayout } from "../../app/workspaceLayout";
 import { resetTriviaLayout } from "../../trivia/triviaLayout";
@@ -29,9 +29,9 @@ import { QuickAccessDrawer } from "./QuickAccessDrawer";
 export interface NavbarProps {
   appView: AppView;
   onSetAppView: (view: AppView) => void;
-  categories?: { id: CategoryType; label: string }[];
+  topics?: readonly { id: TopicId; label: string }[];
   activeAlgorithmId?: string;
-  onGlobalSelectAlgorithm: (id: string, categoryFolder?: CategoryType) => void;
+  onGlobalSelectAlgorithm: (id: string) => void;
   panels: PanelVisibility;
   onTogglePanel: (key: PanelKey) => void;
 }
@@ -93,7 +93,7 @@ const PANEL_TOGGLES: { key: PanelKey; label: string; icon: ReactNode; hint: stri
 export const Navbar: React.FC<NavbarProps> = ({
   appView,
   onSetAppView,
-  categories,
+  topics,
   activeAlgorithmId,
   onGlobalSelectAlgorithm,
   panels,
@@ -178,7 +178,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         onClose={closeDrawer}
         onSelectAlgorithm={onGlobalSelectAlgorithm}
         activeAlgorithmId={activeAlgorithmId}
-        categories={categories}
+        topics={topics}
       />
 
       <ConfirmDialog

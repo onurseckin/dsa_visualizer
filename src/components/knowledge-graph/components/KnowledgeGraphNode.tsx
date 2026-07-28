@@ -1,52 +1,46 @@
 import React from "react";
 import { getAllAlgorithms } from "../../../algorithms/registry";
-import { getAlgorithmCategories } from "../../../app/categories";
+import { getAlgorithmTopics } from "../../../app/topics";
 import {
-  TOPIC_ROADMAP_NODE_MAP,
-  TopicRoadmapNode,
+  DSA_TREE_PLACEMENT_MAP,
+  DsaCurriculumPlacement,
   topicFamilyColor,
   topicFamilyFill,
   topicFamilyFillHover,
 } from "../knowledgeGraphData";
 
 interface KnowledgeGraphNodeProps {
-  node: TopicRoadmapNode;
+  node: DsaCurriculumPlacement;
   hoveredNodeId: string | null;
-  onSelectCategoryFolder: (folder: string) => void;
+  onSelectTopic: (topicId: string) => void;
   onHover: (id: string | null) => void;
 }
 
 export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
   node,
   hoveredNodeId,
-  onSelectCategoryFolder,
+  onSelectTopic,
   onHover,
 }) => {
   const [isFocused, setIsFocused] = React.useState(false);
   const isHovered = hoveredNodeId === node.id;
   const hoveredNode =
-    hoveredNodeId !== null ? TOPIC_ROADMAP_NODE_MAP.get(hoveredNodeId) : undefined;
+    hoveredNodeId !== null ? DSA_TREE_PLACEMENT_MAP.get(hoveredNodeId) : undefined;
   const isRelated =
     hoveredNodeId !== null &&
     (node.prerequisites.includes(hoveredNodeId) ||
       (hoveredNode?.prerequisites.includes(node.id) ?? false));
 
   const actualCount = React.useMemo(() => {
-    const allAlgs = getAllAlgorithms();
-    const count = allAlgs.filter((alg) => {
-      const algCats = new Set<string>();
-      getAlgorithmCategories(alg).forEach((c) => algCats.add(c));
-      if (alg.category) algCats.add(alg.category);
-      if (alg.mlInfraCategory) algCats.add(alg.mlInfraCategory);
-      return algCats.has(node.categoryFolder);
-    }).length;
-    return count > 0 ? count : node.algorithmCount;
-  }, [node.categoryFolder, node.algorithmCount]);
+    return getAllAlgorithms().filter((algorithm) =>
+      getAlgorithmTopics(algorithm).includes(node.topicId),
+    ).length;
+  }, [node.topicId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      onSelectCategoryFolder(node.categoryFolder);
+      onSelectTopic(node.topicId);
     }
   };
 
@@ -58,7 +52,7 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       tabIndex={0}
       aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
       transform={`translate(${node.x - 95}, ${node.y - 32})`}
-      onClick={() => onSelectCategoryFolder(node.categoryFolder)}
+      onClick={() => onSelectTopic(node.topicId)}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => onHover(node.id)}
       onMouseLeave={() => onHover(null)}

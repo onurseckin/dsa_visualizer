@@ -7,17 +7,6 @@ export interface cudaIpcSharedMemoryPointerMapperInput {
 }
 
 export const CUDAIPCSHAREDMEMORYPOINTERMAPPER_CODE = `def cuda_ipc_shared_memory_pointer_mapper(buffer_addresses: list[int], target_rank: int) -> dict:
-    """
-    Simulates CUDA IPC (Inter-Process Communication) zero-copy shared memory handle mapping across peer GPUs.
-    Maps local physical VRAM virtual addresses into exported IPC mem handles and peer device pointers.
-
-    Input:
-        buffer_addresses: List of physical memory virtual address pointers (int64) for each GPU process.
-        target_rank: GPU rank ID requesting peer memory access.
-
-    Output:
-        Dictionary mapping GPU ranks to exported IPC mem handles, virtual offsets, and peer mapping status.
-    """
     if not buffer_addresses:
         return {}
 
@@ -25,7 +14,6 @@ export const CUDAIPCSHAREDMEMORYPOINTERMAPPER_CODE = `def cuda_ipc_shared_memory
     total_ranks = len(buffer_addresses)
 
     for rank, base_addr in enumerate(buffer_addresses):
-        # Generate 64-byte CUDA IPC handle hash from VRAM address offset
         ipc_handle_hash = (base_addr ^ 0xDEADBEEF00) & 0xFFFFFFFFFFFFFFFF
         is_target = (rank == target_rank)
 
@@ -64,7 +52,9 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     for (let r = 0; r < totalRanks; r++) {
       const addr = addresses[r];
-      const handleHash = ((addr ^ 0xdeadbeef) >>> 0).toString(16).slice(0, 8);
+      const handleHashStr = ((BigInt(addr) ^ BigInt("0xDEADBEEF00")) & BigInt("0xFFFFFFFFFFFFFFFF"))
+        .toString(16)
+        .padStart(16, "0");
       const isTarget = r === targetRank;
       const isDone = completedRanks.includes(r);
       const isActive = r === currentRank;
@@ -72,7 +62,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
       const rowValues = [
         `Rank ${r}`,
         `0x${addr.toString(16)}`,
-        `ipc_0x${handleHash}`,
+        `cudaIpcHandle_0x${handleHashStr}`,
         isTarget ? "Local Owner" : "P2P Enabled",
       ];
 
@@ -135,7 +125,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
   // Step 2: Input check
   addStep(
-    13,
+    2,
     "Validate Buffer Address List",
     `Evaluating if buffer_addresses list is empty. Found ${totalRanks} valid physical VRAM address pointers.`,
     { buffer_addresses_count: totalRanks, valid: true },
@@ -143,7 +133,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
   // Step 3: Initialize container
   addStep(
-    16,
+    5,
     "Initialize Mapped Handles Dictionary",
     "Created empty mapped_handles dictionary to store exported 64-byte CUDA IPC mem handles and virtual offsets.",
     { mapped_handles_size: 0 },
@@ -151,7 +141,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
   // Step 4: Compute total_ranks
   addStep(
-    17,
+    6,
     "Compute Total Rank Count",
     `Set total_ranks = len(buffer_addresses) = ${totalRanks}.`,
     { total_ranks: totalRanks },
@@ -166,7 +156,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Loop header
     addStep(
-      19,
+      8,
       `Iterate GPU Rank ${rank} Base Address`,
       `Processing rank=${rank} with physical base VRAM address 0x${baseAddr.toString(16)}.`,
       { rank, base_addr_hex: `0x${baseAddr.toString(16)}` },
@@ -174,20 +164,15 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
       completedRanks,
     );
 
-    // Step: Comment
-    addStep(
-      20,
-      "IPC Handle Generation Comment",
-      "Generating 64-byte CUDA IPC handle hash via bitwise XOR transformation of VRAM virtual address.",
-      { rank },
-      rank,
-      completedRanks,
-    );
-
     // Step: Compute IPC handle hash
-    const handleHashStr = ((baseAddr ^ 0xdeadbeef) >>> 0).toString(16);
+    const handleHashStr = (
+      (BigInt(baseAddr) ^ BigInt("0xDEADBEEF00")) &
+      BigInt("0xFFFFFFFFFFFFFFFF")
+    )
+      .toString(16)
+      .padStart(16, "0");
     addStep(
-      21,
+      9,
       `Compute IPC Handle Hash for Rank ${rank}`,
       `ipc_handle_hash = (0x${baseAddr.toString(16)} ^ 0xDEADBEEF00) & mask = 0x${handleHashStr}.`,
       { rank, ipc_handle_hash: `0x${handleHashStr}` },
@@ -197,7 +182,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Is target evaluation
     addStep(
-      22,
+      10,
       `Evaluate Target Rank Flag for Rank ${rank}`,
       `is_target = (${rank} == ${targetRank}) = ${isTarget}.`,
       { rank, is_target: isTarget, target_rank: targetRank },
@@ -207,7 +192,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Construct dictionary payload start
     addStep(
-      24,
+      12,
       `Construct Mapped Handle Entry for Rank ${rank}`,
       `Building dictionary payload mapping rank ${rank} to IPC mem handle.`,
       { rank },
@@ -217,7 +202,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Assign rank field
     addStep(
-      25,
+      13,
       `Set rank Field = ${rank}`,
       `Populating dictionary field "rank": ${rank}.`,
       { rank },
@@ -227,7 +212,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Assign virtual_address field
     addStep(
-      26,
+      14,
       `Set virtual_address Field = 0x${baseAddr.toString(16)}`,
       `Populating dictionary field "virtual_address": hex(${baseAddr}).`,
       { rank, hex_addr: `0x${baseAddr.toString(16)}` },
@@ -237,7 +222,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Assign ipc_handle field
     addStep(
-      27,
+      15,
       `Export cudaIpcGetMemHandle String for Rank ${rank}`,
       `Populating field "ipc_handle": "cudaIpcHandle_0x${handleHashStr}".`,
       { rank, handle: `cudaIpcHandle_0x${handleHashStr}` },
@@ -247,7 +232,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Assign peer_access_enabled field
     addStep(
-      28,
+      16,
       `Set peer_access_enabled = ${!isTarget} for Rank ${rank}`,
       isTarget
         ? "Target rank uses direct local virtual address; P2P export unnecessary."
@@ -259,7 +244,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
     // Step: Assign can_access_target field
     addStep(
-      29,
+      17,
       `Verify can_access_target = true for Rank ${rank}`,
       `Validated cudaDeviceCanAccessPeer between Rank ${rank} and Rank ${targetRank}.`,
       { rank, can_access_target: true },
@@ -270,7 +255,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
     // Step: Complete entry dictionary
     completedRanks.push(rank);
     addStep(
-      30,
+      18,
       `Store Rank ${rank} Mapping in IPC Handle Table`,
       `Successfully registered Rank ${rank} IPC handle into mapped_handles dictionary.`,
       { rank, total_mapped: completedRanks.length },
@@ -281,7 +266,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
   // Verification step: Memory alignment & zero copy checks
   addStep(
-    32,
+    20,
     "Verify CUDA Driver Page Alignment & Zero-Copy Pointer Table",
     `Verified all ${totalRanks} GPU handles align with 2MB hugepages and NVLink P2P DMA permissions.`,
     { total_ranks: totalRanks, verified: true },
@@ -291,7 +276,7 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 
   // Return step
   addStep(
-    32,
+    20,
     "Return Mapped Handles Dictionary",
     "Returning final dictionary of mapped CUDA IPC shared memory handles and zero-copy peer pointers.",
     { completed: true, mapped_ranks: totalRanks },
@@ -303,48 +288,36 @@ export const generateCudaIpcSharedMemoryPointerMapperSteps = (
 };
 
 const CUDAIPCSHAREDMEMORYPOINTERMAPPER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  skipLines: [4, 7, 11, 19],
   distractors: [
     "cudaMemcpy(dst, src, bytes, cudaMemcpyHostToDevice)",
     "shm_open('/cuda_ipc_shm', O_CREAT | O_RDWR, 0666)",
     "return buffer_addresses[::-1]",
   ],
   hints: [
-    { line: 21, hint: "Generate 64-byte IPC memory handle from physical GPU VRAM base address." },
+    { line: 9, hint: "Generate 64-byte IPC memory handle from physical GPU VRAM base address." },
   ],
   lineExplanations: {
     1: "Defines entry point for CUDA IPC zero-copy shared memory pointer mapper function.",
-    2: "Starts docstring describing function intent.",
-    3: "Describes CUDA IPC zero-copy shared memory handle mapping across peer GPU processes.",
-    4: "Notes mapping local physical VRAM virtual addresses into exported IPC mem handles.",
-    5: "Blank docstring line separating overview from inputs.",
-    6: "Docstring section header for input parameters.",
-    7: "Docstring describing buffer_addresses as int64 physical memory virtual address pointers.",
-    8: "Docstring describing target_rank parameter as requesting peer GPU rank ID.",
-    9: "Blank docstring line separating inputs from output.",
-    10: "Docstring section header for output return dictionary.",
-    11: "Docstring describing return format mapping ranks to exported IPC mem handles.",
-    12: "Closes docstring block.",
-    13: "Checks if the buffer_addresses list is empty.",
-    14: "Returns an empty dictionary immediately if buffer_addresses is empty.",
-    15: "Blank line before handle mapping initialization.",
-    16: "Initializes empty dictionary to accumulate mapped IPC handles.",
-    17: "Calculates total number of GPU processes in the node group.",
-    18: "Blank line before process enumeration loop.",
-    19: "Iterates through buffer_addresses with rank index and base_addr pointer.",
-    20: "Comment explaining bitwise XOR IPC handle hash creation.",
-    21: "Generates 64-byte CUDA IPC handle hash from VRAM address offset.",
-    22: "Checks if current rank matches target_rank.",
-    23: "Blank line before dictionary payload construction.",
-    24: "Appends mapping dictionary entry for current GPU rank.",
-    25: "Sets rank key in output mapping entry.",
-    26: "Sets virtual_address key formatted as hex string.",
-    27: "Sets ipc_handle key as formatted cudaIpcHandle string.",
-    28: "Sets peer_access_enabled boolean flag.",
-    29: "Sets can_access_target boolean validation flag.",
-    30: "Closes mapping dictionary entry definition.",
-    31: "Blank line before returning mapped_handles.",
-    32: "Returns complete dictionary of mapped CUDA IPC handles.",
+    2: "Checks if the buffer_addresses list is empty.",
+    3: "Returns an empty dictionary immediately if buffer_addresses is empty.",
+    4: "Blank line before handle mapping initialization.",
+    5: "Initializes empty dictionary to accumulate mapped IPC handles.",
+    6: "Calculates total number of GPU processes in the node group.",
+    7: "Blank line before process enumeration loop.",
+    8: "Iterates through buffer_addresses with rank index and base_addr pointer.",
+    9: "Generates 64-byte CUDA IPC handle hash from VRAM address offset.",
+    10: "Checks if current rank matches target_rank.",
+    11: "Blank line before dictionary payload construction.",
+    12: "Appends mapping dictionary entry for current GPU rank.",
+    13: "Sets rank key in output mapping entry.",
+    14: "Sets virtual_address key formatted as hex string.",
+    15: "Sets ipc_handle key as formatted cudaIpcHandle string.",
+    16: "Sets peer_access_enabled boolean flag.",
+    17: "Sets can_access_target boolean validation flag.",
+    18: "Closes mapping dictionary entry definition.",
+    19: "Blank line before returning mapped_handles.",
+    20: "Returns complete dictionary of mapped CUDA IPC handles.",
   },
 };
 
@@ -352,12 +325,8 @@ export const cudaIpcSharedMemoryPointerMapper: AlgorithmDefinition<cudaIpcShared
   {
     id: "cuda-ipc-shared-memory-pointer-mapper",
     title: "CUDA IPC Zero-Copy Shared Memory Pointer Mapper",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+    topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "CUDA Inter-Process Communication (IPC) allows multiple GPU worker processes residing on the same host (e.g. PyTorch DDP ranks or vLLM Worker Ray actors) to share device VRAM pointers directly over NVLink or PCIe without staging data through host CPU system RAM.\n\n### Why It Exists & Problem Solved\nStandard multi-process communication requires copying GPU data to host CPU memory before sending it over Unix sockets or shared memory (Device-to-Host -> CPU IPC -> Host-to-Device), capped by PCIe host bandwidth (~32-64 GB/s). CUDA IPC exports opaque 64-byte physical memory tokens (`cudaIpcMemHandle_t`) that peer processes open (`cudaIpcOpenMemHandle`), granting direct zero-copy GPU-to-GPU DMA transfers at full NVLink speed (up to 900 GB/s on NVSwitch).\n\n### Step-by-Step Intuition\n1. **Handle Export**: Owner GPU process allocates VRAM (`cudaMalloc`) and calls `cudaIpcGetMemHandle(&handle, ptr)`.\n2. **Handle Exchange**: The 64-byte IPC handle is passed to peer worker processes via Unix domain sockets or shared memory.\n3. **Peer Memory Binding**: Peer process calls `cudaIpcOpenMemHandle(&peer_ptr, handle, cudaIpcMemLazyEnablePeerAccess)` to map the remote physical VRAM directly into its local CUDA virtual address space.\n4. **Zero-Copy Execution**: Peer GPU reads/writes `peer_ptr` directly over NVLink without host CPU intervention.\n\n### Trade-offs & Complexity\n- **Time Complexity**: $O(N)$ linear step to export handles for $N$ GPU worker ranks.\n- **Space Complexity**: $O(N)$ memory table storing IPC handles and virtual offset pointers.\n- **Scope Limit**: CUDA IPC handles are valid ONLY within the same physical host and IPC namespace. Cross-node transfers must use NCCL InfiniBand transport.",
     constraints: ["1 <= data.length <= 64", "0 <= target < data.length"],
@@ -447,4 +416,3 @@ export const cudaIpcSharedMemoryPointerMapper: AlgorithmDefinition<cudaIpcShared
     defaultInput: DEFAULT_CUDAIPCSHAREDMEMORYPOINTERMAPPER_INPUT,
     generateSteps: generateCudaIpcSharedMemoryPointerMapperSteps,
   };
-

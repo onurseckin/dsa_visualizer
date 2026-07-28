@@ -9,18 +9,15 @@ import {
 describe("single-head-attention-map (Single-Head Attention Map Generator)", () => {
   it("should have correct metadata", () => {
     expect(singleHeadAttentionMap.id).toBe("single-head-attention-map");
-    expect(singleHeadAttentionMap.isMlInfra).toBe(true);
-    expect(singleHeadAttentionMap.mlInfraLevel).toBe(7);
-    expect(singleHeadAttentionMap.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(singleHeadAttentionMap.categories).toContain("ml_attention_geometry");
+    expect(singleHeadAttentionMap.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(singleHeadAttentionMap.topicIds).toContain("ml_attention_geometry");
+    expect(singleHeadAttentionMap.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
     const steps = generateSingleHeadAttentionMapSteps(DEFAULT_SINGLEHEADATTENTIONMAP_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    expect(steps[0].explanation.what).toContain(
-      "Initialize Single-Head Attention Map Generator",
-    );
+    expect(steps[0].explanation.what).toContain("Initialize Single-Head Attention Map Generator");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
 
     steps.forEach((step) => {

@@ -4,14 +4,13 @@ import {
   DEFAULT_LSH_VECTOR_HASHING_INPUT,
   generateLshVectorHashingSteps,
 } from "../lshVectorHashing";
-import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import type { VectorVisualSnapshot } from "../../../types/dsa";
 
 describe("lshVectorHashing algorithm spec", () => {
   it("should have correct ML Infra Level 4 metadata", () => {
     expect(lshVectorHashing.id).toBe("lsh-vector-hashing");
-    expect(lshVectorHashing.isMlInfra).toBe(true);
-    expect(lshVectorHashing.mlInfraLevel).toBe(4);
-    expect(lshVectorHashing.category).toBe("ml_vector_search");
+    expect(lshVectorHashing.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(lshVectorHashing.topicIds).toContain("ml_vector_search");
     expect(lshVectorHashing.defaultInput).toEqual(DEFAULT_LSH_VECTOR_HASHING_INPUT);
     expect(lshVectorHashing.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "ML Infra Level 4" },
@@ -23,7 +22,7 @@ describe("lshVectorHashing algorithm spec", () => {
     expect(steps.length).toBeGreaterThan(0);
 
     const lastStep = steps[steps.length - 1];
-    expect(lastStep.codeLine).toBe(22);
+    expect(lastStep.codeLine).toBe(17);
 
     const distTable = lastStep.auxiliaryState.distanceTable;
     expect(distTable).toBeDefined();
@@ -31,10 +30,9 @@ describe("lshVectorHashing algorithm spec", () => {
     expect(distTable?.V1).toBe(1);
     expect(distTable?.V2).toBe(2);
 
-    const snap = lastStep.primarySnapshot as ArrayVisualSnapshot;
-    expect(snap.kind).toBe("array");
-    expect(snap.elements.length).toBe(4);
-    expect(snap.elements[0].state).toBe("sorted");
+    const snap = lastStep.primarySnapshot as VectorVisualSnapshot;
+    expect(snap.kind).toBe("vector");
+    expect(snap.vectors.length).toBe(7);
   });
 
   it("should handle multi-dimensional hyperplanes", () => {

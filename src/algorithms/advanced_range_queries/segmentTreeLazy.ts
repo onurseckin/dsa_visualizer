@@ -13,8 +13,7 @@ export { SEGMENT_TREE_LAZY_CODE, DEFAULT_SEGMENT_TREE_LAZY_INPUT, generateSegmen
 export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   id: "segment-tree-lazy",
   title: "Segment Tree (Lazy Propagation)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "A **Segment Tree with Lazy Propagation** supports both range updates and range sum queries in $O(\\log N)$ time per operation. By deferring updates to child subtrees via pending lazy tags and pushing them down strictly on demand, it avoids touching individual leaves during range modifications.",

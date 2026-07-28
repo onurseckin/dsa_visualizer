@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PageHeader } from "../ui/templates/PageHeader";
-import { CategoryType } from "../types/dsa";
+import { isTopicId } from "../app/topics";
 
 const MLInfraKnowledgeGraph = React.lazy(
   () => import("../components/knowledge-graph/MLInfraKnowledgeGraph"),
@@ -33,8 +33,13 @@ function MLInfraPage(): React.ReactElement {
         }
       >
         <MLInfraKnowledgeGraph
-          onSelectCategoryFolder={(folder) => {
-            navigate({ to: "/problems", search: { category: folder as CategoryType } });
+          onSelectTopic={(topicId) => {
+            if (isTopicId(topicId)) {
+              navigate({ to: "/problems", search: { topic: topicId } });
+            }
+          }}
+          onNavigateToAlgorithm={(algorithmId) => {
+            navigate({ to: "/workspace/$algorithmId", params: { algorithmId } });
           }}
         />
       </Suspense>

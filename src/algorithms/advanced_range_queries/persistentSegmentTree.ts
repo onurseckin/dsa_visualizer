@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, TopicGuide, TreeNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  DisplayValue,
+  TopicGuide,
+  TreeNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface PersistentSegOp {
@@ -78,51 +84,54 @@ export const generatePersistentSegmentTreeSteps = (
   const arr = [...input.array];
   const n = arr.length;
   const versions: PNode[] = [];
+  const allCreatedNodes: PNode[] = [];
 
-  const collectAllNodes = (activeId?: string, extraRoot?: PNode): TreeNodeItem[] => {
-    const list: TreeNodeItem[] = [];
-    const visited = new Set<string>();
+  const addNode = (node: PNode): PNode => {
+    allCreatedNodes.push(node);
+    return node;
+  };
 
-    const traverse = (node: PNode) => {
-      if (!node || visited.has(node.id)) return;
-      visited.add(node.id);
-      list.push({
+  const collectAllNodes = (activeId?: string, highlightedIds?: Set<string>): TreeNodeItem[] => {
+    return allCreatedNodes.map((node) => {
+      let state: TreeNodeItem["state"] = "default";
+      if (node.id === activeId) {
+        state = "active";
+      } else if (highlightedIds?.has(node.id)) {
+        state = "highlighted";
+      }
+      return {
         id: node.id,
         val: node.val,
         leftId: node.left?.id,
         rightId: node.right?.id,
-        state: node.id === activeId ? "active" : "default",
-      });
-      if (node.left) traverse(node.left);
-      if (node.right) traverse(node.right);
-    };
-
-    for (const rootNode of versions) {
-      traverse(rootNode);
-    }
-    if (extraRoot) {
-      traverse(extraRoot);
-    }
-    return list;
+        state,
+      };
+    });
   };
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    variables: Record<string, string | number | boolean>,
+    variables: Record<string, DisplayValue>,
     activeId?: string,
-    customState?: Record<string, string | number>,
-    extraRoot?: PNode,
+    customState?: Record<string, DisplayValue>,
+    highlightedIds?: Set<string>,
   ) => {
-    const activeRoot = versions.length > 0 ? versions[versions.length - 1].id : extraRoot?.id;
+    const activeRoot =
+      versions.length > 0
+        ? versions[versions.length - 1].id
+        : allCreatedNodes.length > 0
+          ? allCreatedNodes[allCreatedNodes.length - 1].id
+          : undefined;
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "tree",
-        nodes: collectAllNodes(activeId, extraRoot),
+        nodes: collectAllNodes(activeId, highlightedIds),
         rootId: activeRoot,
       },
       auxiliaryState: {
@@ -136,30 +145,64 @@ export const generatePersistentSegmentTreeSteps = (
   };
 
   if (n === 0) {
-    addStep(28, "Array is empty", "No tree built for empty array.", { n: 0 });
+    addStep(28, "Array is empty", "No segment tree created for empty input array.", { n: 0 });
     return steps;
   }
 
   const buildTree = (l: number, r: number, v: number): PNode => {
     const id = `pnode-v${v}-${nodeCounter++}`;
     if (l === r) {
-      const leafNode = { id, l, r, val: arr[l], version: v };
+      const leafNode = addNode({ id, l, r, val: arr[l], version: v });
       addStep(
-        9,
-        `Build leaf node [${l}..${r}] = ${arr[l]} for v${v}`,
-        `Created base leaf for index ${l} holding value ${arr[l]}.`,
+        8,
+        `Base case (l == r == ${l}): Create leaf node = ${arr[l]} for v${v}`,
+        `At single element range [${l}..${r}], construct leaf node storing array value ${arr[l]}.`,
         { l, r, val: arr[l], version: v },
         id,
-        undefined,
-        leafNode,
+      );
+      addStep(
+        9,
+        `Return leaf node [${l}..${r}] (val = ${arr[l]}) for v${v}`,
+        `Leaf node returned to parent node constructor.`,
+        { l, r, val: arr[l], version: v },
+        id,
       );
       return leafNode;
     }
+
+    addStep(
+      8,
+      `Check range [${l}..${r}] for v${v}: not a leaf (l != r)`,
+      `Range spans multiple elements. Divide interval into left and right subtrees.`,
+      { l, r, version: v },
+    );
+
     const mid = Math.floor((l + r) / 2);
+    addStep(
+      10,
+      `Calculate midpoint mid = (${l} + ${r}) // 2 = ${mid} for v${v}`,
+      `Splitting interval [${l}..${r}] into [${l}..${mid}] and [${mid + 1}..${r}].`,
+      { l, r, mid, version: v },
+    );
+
+    addStep(
+      11,
+      `Build left child range [${l}..${mid}] for v${v}`,
+      `Recursively constructing left subtree.`,
+      { l, mid, version: v },
+    );
     const leftChild = buildTree(l, mid, v);
+
+    addStep(
+      12,
+      `Build right child range [${mid + 1}..${r}] for v${v}`,
+      `Recursively constructing right subtree.`,
+      { mid: mid + 1, r, version: v },
+    );
     const rightChild = buildTree(mid + 1, r, v);
+
     const nodeVal = leftChild.val + rightChild.val;
-    const internalNode = {
+    const internalNode = addNode({
       id,
       l,
       r,
@@ -167,34 +210,39 @@ export const generatePersistentSegmentTreeSteps = (
       left: leftChild,
       right: rightChild,
       version: v,
-    };
+    });
+
     addStep(
       13,
-      `Build internal node [${l}..${r}] = ${nodeVal} for v${v}`,
-      `Combined left child (${leftChild.val}) and right child (${rightChild.val}).`,
-      { l, r, val: nodeVal, version: v },
+      `Combine children for range [${l}..${r}]: left (${leftChild.val}) + right (${rightChild.val}) = ${nodeVal}`,
+      `Created internal node for v${v} combining left child (${leftChild.val}) and right child (${rightChild.val}).`,
+      {
+        l,
+        r,
+        val: nodeVal,
+        leftVal: leftChild.val,
+        rightVal: rightChild.val,
+        version: v,
+      },
       id,
-      undefined,
-      internalNode,
     );
     return internalNode;
   };
+
+  addStep(
+    7,
+    "Start build(arr, 0, n-1) to construct version 0 tree",
+    `Constructing initial segment tree version 0 over array [${arr.join(", ")}].`,
+    { n },
+  );
 
   const rootV0 = buildTree(0, n - 1, 0);
   versions.push(rootV0);
 
   addStep(
-    7,
-    "Initialize Persistent Segment Tree v0",
-    `Building version 0 of Segment Tree over array [${arr.join(", ")}].`,
-    { n },
-    rootV0.id,
-  );
-
-  addStep(
     13,
-    `Built root version 0 (val = ${rootV0.val})`,
-    "Version 0 tree constructed. Subsequent updates will clone only modified path nodes and reuse unmodified subtrees.",
+    `Completed build for version 0 (root sum = ${rootV0.val})`,
+    `Version 0 root registered. Ready for persistent updates or queries.`,
     { version: 0, rootValue: rootV0.val },
     rootV0.id,
   );
@@ -208,43 +256,96 @@ export const generatePersistentSegmentTreeSteps = (
     v: number,
   ): PNode => {
     const id = `pnode-v${v}-${nodeCounter++}`;
+
     if (l === r) {
+      const newLeaf = addNode({ id, l, r, val, version: v });
+      addStep(
+        16,
+        `Base case (l == r == ${l}) on update: target index ${idx}`,
+        `Reached target leaf node for index ${idx}.`,
+        { l, r, idx, val, v },
+        prev.id,
+      );
       addStep(
         17,
-        `Created new leaf node for v${v} at index ${idx} with val ${val}`,
-        `Leaf replacement at index ${idx}. Path node cloned for new version v${v}.`,
+        `Return new cloned leaf node [${l}..${r}] with updated value ${val} for v${v}`,
+        `Allocated new leaf node for version v${v} holding updated value ${val} without mutating prev version leaf.`,
         { v, idx, val },
-        id,
+        newLeaf.id,
       );
-      return { id, l, r, val, version: v };
+      return newLeaf;
     }
 
+    addStep(
+      16,
+      `Check range [${l}..${r}] on update v${v}: not leaf (l != r)`,
+      `Target index ${idx} falls within interval [${l}..${r}].`,
+      { l, r, idx, v },
+      prev.id,
+    );
+
     const mid = Math.floor((l + r) / 2);
+    addStep(
+      18,
+      `Calculate mid = (${l} + ${r}) // 2 = ${mid} for update v${v}`,
+      `Determining whether target index ${idx} lies in left or right half.`,
+      { l, r, mid, idx, v },
+      prev.id,
+    );
+
     let newLeft = prev.left;
     let newRight = prev.right;
 
     if (idx <= mid) {
       addStep(
-        20,
-        `Path clone left: descending into [${l}..${mid}] for v${v}`,
-        `Target index ${idx} is in left half. Cloning left path and sharing previous right child.`,
+        19,
+        `Target idx ${idx} <= mid ${mid}: descend into left subtree [${l}..${mid}]`,
+        `Left child will be updated and cloned. Right child pointer will be shared from version ${prev.version}.`,
         { v, l, mid, idx },
-        id,
+        prev.id,
+      );
+      addStep(
+        20,
+        `Recurse update on left child prev.left (version ${prev.left?.version})`,
+        `Cloning left path for version v${v}.`,
+        { v, l, mid, idx },
+        prev.left?.id,
       );
       newLeft = updateTree(prev.left!, l, mid, idx, val, v);
+      addStep(
+        21,
+        `Share unmodified right subtree from version ${prev.version} (root ${prev.right?.id})`,
+        `Right branch is unchanged; reusing existing subtree from previous version.`,
+        { v, rightId: prev.right?.id },
+        prev.right?.id,
+      );
     } else {
       addStep(
-        24,
-        `Path clone right: descending into [${mid + 1}..${r}] for v${v}`,
-        `Target index ${idx} is in right half. Cloning right path and sharing previous left child.`,
+        19,
+        `Target idx ${idx} > mid ${mid}: descend into right subtree [${mid + 1}..${r}]`,
+        `Right child will be updated and cloned. Left child pointer will be shared from version ${prev.version}.`,
         { v, mid: mid + 1, r, idx },
-        id,
+        prev.id,
+      );
+      addStep(
+        23,
+        `Share unmodified left subtree from version ${prev.version} (root ${prev.left?.id})`,
+        `Left branch is unchanged; reusing existing subtree from previous version.`,
+        { v, leftId: prev.left?.id },
+        prev.left?.id,
+      );
+      addStep(
+        24,
+        `Recurse update on right child prev.right (version ${prev.right?.version})`,
+        `Cloning right path for version v${v}.`,
+        { v, mid: mid + 1, r, idx },
+        prev.right?.id,
       );
       newRight = updateTree(prev.right!, mid + 1, r, idx, val, v);
     }
 
     const newNodeVal = (newLeft?.val ?? 0) + (newRight?.val ?? 0);
-    const newNode: PNode = {
+    const newNode = addNode({
       id,
       l,
       r,
@@ -252,14 +353,14 @@ export const generatePersistentSegmentTreeSteps = (
       left: newLeft,
       right: newRight,
       version: v,
-    };
+    });
 
     addStep(
       25,
-      `Created version v${v} node [${l}..${r}] (val = ${newNodeVal})`,
-      `Cloned parent node for v${v}. Left child is ${newLeft?.id}, right child is ${newRight?.id} (shared or new).`,
+      `Return new node [${l}..${r}] for v${v} (val = ${newNodeVal})`,
+      `Constructed cloned ancestor node combining new child (${idx <= mid ? newLeft?.val : newRight?.val}) and shared child.`,
       { v, l, r, val: newNodeVal },
-      id,
+      newNode.id,
     );
 
     return newNode;
@@ -272,34 +373,70 @@ export const generatePersistentSegmentTreeSteps = (
     ql: number,
     qr: number,
   ): number => {
-    if (!node || qr < l || ql > r) return 0;
+    if (!node || qr < l || ql > r) {
+      addStep(
+        28,
+        `Base case: node is empty or range [${l}..${r}] does not overlap [${ql}..${qr}]`,
+        `Out-of-bounds range query returns 0 contribution.`,
+        { l, r, ql, qr },
+        node?.id,
+      );
+      addStep(
+        29,
+        `Return 0 for non-overlapping subsegment [${l}..${r}]`,
+        `Zero returned to caller.`,
+        { l, r, ql, qr },
+        node?.id,
+      );
+      return 0;
+    }
+
     addStep(
-      27,
-      `Querying node [${l}..${r}] on v${node.version} for interval [${ql}..${qr}]`,
-      `Traversing node [${l}..${r}] of version ${node.version}.`,
+      28,
+      `Check overlap for node [${l}..${r}] on version v${node.version} against query [${ql}..${qr}]`,
+      `Evaluating query interval against node [${l}..${r}].`,
       { l, r, ql, qr, v: node.version },
       node.id,
     );
+
     if (ql <= l && r <= qr) {
       addStep(
+        30,
+        `Range match: node [${l}..${r}] is completely inside query range [${ql}..${qr}]`,
+        `Segment [${l}..${r}] is fully covered by query range [${ql}..${qr}].`,
+        { l, r, ql, qr, val: node.val, v: node.version },
+        node.id,
+      );
+      addStep(
         31,
-        `Node [${l}..${r}] fully inside query range. Returning ${node.val}`,
-        `Exact match. Returning version v${node.version} precomputed node value ${node.val}.`,
+        `Return precomputed sum ${node.val} from node [${l}..${r}] of v${node.version}`,
+        `Directly return stored node aggregate value ${node.val} without traversing further down.`,
         { l, r, val: node.val, v: node.version },
         node.id,
       );
       return node.val;
     }
+
     const mid = Math.floor((l + r) / 2);
+    addStep(
+      32,
+      `Calculate midpoint mid = (${l} + ${r}) // 2 = ${mid} for query on node [${l}..${r}]`,
+      `Partial overlap: split query into left [${l}..${mid}] and right [${mid + 1}..${r}] child queries.`,
+      { l, r, mid, ql, qr, v: node.version },
+      node.id,
+    );
+
     const leftSum = queryTree(node.left, l, mid, ql, qr);
     const rightSum = queryTree(node.right, mid + 1, r, ql, qr);
     const totalSum = leftSum + rightSum;
+
     addStep(
       33,
-      `Combined query results for node [${l}..${r}]: ${leftSum} + ${rightSum} = ${totalSum}`,
-      `Combined child queries for range [${ql}..${qr}].`,
-      { l, r, leftSum, rightSum, totalSum },
+      `Combine query results for node [${l}..${r}]: ${leftSum} + ${rightSum} = ${totalSum}`,
+      `Summed responses from left child (${leftSum}) and right child (${rightSum}) for node [${l}..${r}].`,
+      { l, r, leftSum, rightSum, totalSum, v: node.version },
       node.id,
+      { queryResult: String(totalSum) },
     );
     return totalSum;
   };
@@ -393,7 +530,8 @@ export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Version Roots Array",
-      definition: "An array of pointers holding the root node reference for each historical version of the segment tree.",
+      definition:
+        "An array of pointers holding the root node reference for each historical version of the segment tree.",
     },
     {
       term: "Fully Persistent",
@@ -465,8 +603,7 @@ export const PERSISTENT_SEGMENT_TREE_TRIVIA: TriviaMeta = {
 export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInput> = {
   id: "persistent-segment-tree",
   title: "Persistent Segment Tree (Versioned Range Queries)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "A **Persistent Segment Tree** maintains historical versions of range data structures via **path copying**, allocating $O(\\log N)$ new nodes per update while preserving full read/write access to all previous versions.",

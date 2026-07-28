@@ -1,4 +1,9 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  VectorItem,
+  VectorVisualSnapshot,
+} from "../../types/dsa";
 
 export interface HnswHeuristicSpatialPruningInput {
   pivot: number[];
@@ -25,11 +30,6 @@ def l2_distance(v1: list[float], v2: list[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
 
 def hnsw_heuristic_spatial_pruning(pivot: list[float], candidates: list[int], max_M: int, node_vectors: dict) -> list[int]:
-    """
-    HNSW heuristic neighbor selection algorithm (SELECT-NEIGHBORS-HEURISTIC, Algorithm 4 in Malkov & Yashunin).
-    Prunes candidates that are closer to an already selected neighbor than to the base pivot vector.
-    """
-    # Sort candidates by ascending distance to base pivot vector
     cand_with_dist = [(l2_distance(pivot, node_vectors[c]), c) for c in candidates]
     cand_with_dist.sort(key=lambda x: x[0])
 
@@ -42,7 +42,6 @@ def hnsw_heuristic_spatial_pruning(pivot: list[float], candidates: list[int], ma
         cand_vec = node_vectors[cand_id]
         is_pruned = False
 
-        # Check if candidate is closer to any already selected neighbor than to pivot
         for sel_id in selected_neighbors:
             sel_vec = node_vectors[sel_id]
             dist_to_selected = l2_distance(cand_vec, sel_vec)
@@ -63,172 +62,251 @@ export const generateHnswHeuristicSpatialPruningSteps = (
   let stepIndex = 0;
 
   const l2Dist = (v1: number[], v2: number[]) =>
-    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
+    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - (v2[idx] ?? 0)) ** 2, 0));
 
   const candDists = candidates
-    .map((cId) => ({ id: cId, dist: l2Dist(pivot, nodeVectors[cId]) }))
+    .map((cId) => ({
+      id: cId,
+      dist: l2Dist(pivot, nodeVectors[cId] ?? [0, 0]),
+    }))
     .sort((a, b) => a.dist - b.dist);
 
-  // Step 0: Init
+  const createVectorSnapshot = (
+    selected: number[],
+    prunedMap: Record<number, number>,
+    currentEvaluatingId: number | null,
+    planeTitle?: string,
+  ): VectorVisualSnapshot => {
+    const vectors: VectorItem[] = [
+      {
+        id: "pivot",
+        label: `Pivot (${pivot.join(", ")})`,
+        x: pivot[0] ?? 0,
+        y: pivot[1] ?? 0,
+        state: "active",
+        subText: "Base Vector",
+      },
+    ];
+
+    for (const c of candDists) {
+      const vec = nodeVectors[c.id] ?? [0, 0];
+      const isSelected = selected.includes(c.id);
+      const prunedBy = prunedMap[c.id];
+      const isEvaluating = currentEvaluatingId === c.id;
+
+      let state: "default" | "active" | "compared" | "result" | "inactive" = "default";
+      let subText = `d_pivot = ${c.dist.toFixed(2)}`;
+
+      if (isEvaluating) {
+        state = "compared";
+        subText = "Evaluating Candidate";
+      } else if (isSelected) {
+        state = "result";
+        subText = "Selected Neighbor";
+      } else if (prunedBy !== undefined) {
+        state = "inactive";
+        subText = `Pruned by C${prunedBy}`;
+      }
+
+      vectors.push({
+        id: `cand-${c.id}`,
+        label: `C${c.id}`,
+        x: vec[0] ?? 0,
+        y: vec[1] ?? 0,
+        state,
+        subText,
+      });
+    }
+
+    return {
+      kind: "vector",
+      vectors,
+      planeTitle: planeTitle || "HNSW Spatial Vector Space",
+    };
+  };
+
+  const selected: number[] = [];
+  const prunedMap: Record<number, number> = {};
+
+  // Step 0: Init & candidate distance sorting
   steps.push({
     stepIndex: stepIndex++,
     codeLine: 8,
     explanation: {
-      what: "Initialize HNSW Spatial Pruning Heuristic (SELECT-NEIGHBORS-HEURISTIC)",
-      why: `Sorting ${candidates.length} candidates by distance to pivot vector [${pivot.join(
+      what: "Initialize HNSW Spatial Neighbor Pruning and sort candidates by distance to pivot",
+      why: `Computed L2 distance to base pivot vector [${pivot.join(
         ", ",
-      )}]. Selection budget maxM = ${maxM}.`,
+      )}] for ${candidates.length} candidate nodes. Selection budget maxM = ${maxM}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: candDists.map((c, idx) => ({
-        id: `c-${c.id}`,
-        value: c.id,
-        label: `C${c.id} (d=${c.dist.toFixed(2)})`,
-        state: "default" as ElementState,
-        pointers: idx === 0 ? ["Closest Candidate"] : [],
-      })),
-    },
+    primarySnapshot: createVectorSnapshot([], {}, null, "Initial Candidate Distance Ranking"),
     auxiliaryState: {
       customState: {
         pivotVector: `[${pivot.join(", ")}]`,
         maxM: String(maxM),
         sortedCandidates: candDists.map((c) => `C${c.id}:${c.dist.toFixed(2)}`).join(", "),
-        phase: "Initialization",
+        selectedCount: "0",
       },
     },
-    variables: { maxM, totalCandidates: candidates.length },
+    variables: { maxM, totalCandidates: candidates.length, selectedCount: 0 },
   });
-
-  const selected: number[] = [];
 
   for (let i = 0; i < candDists.length; i++) {
     if (selected.length >= maxM) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 18,
+        codeLine: 14,
         explanation: {
           what: `Reached Maximum Edge Connection Capacity maxM = ${maxM}`,
-          why: `Selected ${selected.length} neighbors [${selected.map((s) => `C${s}`).join(", ")}]. Halting selection.`,
+          why: `Already selected ${selected.length} neighbors [${selected
+            .map((s) => `C${s}`)
+            .join(", ")}]. Halting further neighbor evaluation.`,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: candDists.map((c) => ({
-            id: `c-${c.id}`,
-            value: c.id,
-            label: `C${c.id}`,
-            state: selected.includes(c.id)
-              ? ("sorted" as ElementState)
-              : ("visited" as ElementState),
-          })),
+        primarySnapshot: createVectorSnapshot(
+          selected,
+          prunedMap,
+          null,
+          "Max Edge Capacity Limit Reached",
+        ),
+        auxiliaryState: {
+          customState: {
+            maxM: String(maxM),
+            selectedNeighbors: selected.map((s) => `C${s}`).join(", "),
+            status: "Capacity Limit Reached",
+          },
         },
-        auxiliaryState: { customState: { status: "Capacity limit reached" } },
-        variables: { maxM, selectedCount: selected.length },
+        variables: { maxM, selectedCount: selected.length, capacityReached: true },
       });
       break;
     }
 
     const cand = candDists[i];
-    const candVec = nodeVectors[cand.id];
+    const candVec = nodeVectors[cand.id] ?? [0, 0];
+
+    // Candidate Evaluation step
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 16,
+      explanation: {
+        what: `Evaluate candidate C${cand.id} (dist to pivot = ${cand.dist.toFixed(2)})`,
+        why: `Checking if candidate C${cand.id} is closer to any already selected neighbor than to the base pivot vector.`,
+      },
+      primarySnapshot: createVectorSnapshot(
+        selected,
+        prunedMap,
+        cand.id,
+        `Evaluating Candidate C${cand.id}`,
+      ),
+      auxiliaryState: {
+        customState: {
+          currentCandidate: `C${cand.id}`,
+          distToPivot: cand.dist.toFixed(3),
+          selectedNeighbors: selected.length > 0 ? selected.map((s) => `C${s}`).join(", ") : "None",
+        },
+      },
+      variables: {
+        candId: cand.id,
+        distToPivot: Number(cand.dist.toFixed(3)),
+        selectedCount: selected.length,
+      },
+    });
+
     let prunedBy: number | null = null;
+    let distToPruned = 0;
 
     for (const selId of selected) {
-      const selVec = nodeVectors[selId];
+      const selVec = nodeVectors[selId] ?? [0, 0];
       const distToSel = l2Dist(candVec, selVec);
       if (distToSel < cand.dist) {
         prunedBy = selId;
+        distToPruned = distToSel;
         break;
       }
     }
 
     if (prunedBy !== null) {
+      prunedMap[cand.id] = prunedBy;
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 28,
+        codeLine: 23,
         explanation: {
-          what: `Prune Candidate C${cand.id}: Occluded by already selected neighbor C${prunedBy}`,
-          why: `Distance(C${cand.id}, C${prunedBy}) < Distance(C${cand.id}, Pivot). Rejecting candidate to maintain cluster diversity and prevent clustering redundant neighbors.`,
+          what: `Prune candidate C${cand.id}: Occluded by neighbor C${prunedBy}`,
+          why: `dist(C${cand.id}, C${prunedBy}) = ${distToPruned.toFixed(
+            2,
+          )} < dist(C${cand.id}, Pivot) = ${cand.dist.toFixed(
+            2,
+          )}. Candidate C${cand.id} is closer to C${prunedBy} than to Pivot, violating spatial diversity.`,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: candDists.map((c) => ({
-            id: `c-${c.id}`,
-            value: c.id,
-            label: `C${c.id} (${c.id === cand.id ? "PRUNED" : selected.includes(c.id) ? "Selected" : "Pending"})`,
-            state:
-              c.id === cand.id
-                ? ("visited" as ElementState)
-                : selected.includes(c.id)
-                  ? ("sorted" as ElementState)
-                  : ("default" as ElementState),
-            pointers: c.id === cand.id ? [`Pruned by C${prunedBy}`] : [],
-          })),
-        },
+        primarySnapshot: createVectorSnapshot(
+          selected,
+          prunedMap,
+          null,
+          `Candidate C${cand.id} Pruned by C${prunedBy}`,
+        ),
         auxiliaryState: {
           customState: {
             candidate: `C${cand.id}`,
-            distToPivot: cand.dist.toFixed(3),
             prunedByNeighbor: `C${prunedBy}`,
+            distToNeighbor: distToPruned.toFixed(3),
+            distToPivot: cand.dist.toFixed(3),
             action: "Pruned",
           },
         },
-        variables: { candId: cand.id, prunedBy },
+        variables: {
+          candId: cand.id,
+          prunedBy,
+          distToNeighbor: Number(distToPruned.toFixed(3)),
+          isPruned: true,
+        },
       });
     } else {
       selected.push(cand.id);
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 31,
+        codeLine: 27,
         explanation: {
-          what: `Select Candidate C${cand.id} (dist to pivot = ${cand.dist.toFixed(3)})`,
-          why: `Candidate provides unique spatial direction and is closer to pivot than to any previously selected neighbor.`,
+          what: `Select candidate C${cand.id} as HNSW neighbor edge`,
+          why: `Candidate C${cand.id} is not occluded by any existing selected neighbor and provides a unique directional vector coverage.`,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: candDists.map((c) => ({
-            id: `c-${c.id}`,
-            value: c.id,
-            label: `C${c.id} (${selected.includes(c.id) ? "SELECTED" : ""})`,
-            state:
-              c.id === cand.id
-                ? ("active" as ElementState)
-                : selected.includes(c.id)
-                  ? ("sorted" as ElementState)
-                  : ("default" as ElementState),
-            pointers: c.id === cand.id ? ["Newly Selected"] : [],
-          })),
-        },
+        primarySnapshot: createVectorSnapshot(
+          selected,
+          prunedMap,
+          null,
+          `Candidate C${cand.id} Selected`,
+        ),
         auxiliaryState: {
           customState: {
-            selectedList: selected.map((s) => `C${s}`).join(", "),
+            newlySelected: `C${cand.id}`,
+            totalSelected: selected.map((s) => `C${s}`).join(", "),
             action: "Selected",
           },
         },
-        variables: { candId: cand.id, selectedCount: selected.length },
+        variables: { candId: cand.id, selectedCount: selected.length, isPruned: false },
       });
     }
   }
 
-  // Step Final: Complete
+  // Step Final: Completion
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 33,
+    codeLine: 29,
     explanation: {
-      what: `HNSW Heuristic Spatial Pruning Complete: Retained ${selected.length} Neighbors`,
-      why: `Final edge connections for pivot: [${selected.map((s) => `C${s}`).join(", ")}]. Maintains Delaunay-like directional graph coverage.`,
+      what: "HNSW Heuristic Spatial Neighbor Pruning Complete",
+      why: `Selected ${selected.length} neighbor edges [${selected
+        .map((s) => `C${s}`)
+        .join(
+          ", ",
+        )}] for pivot. Maintains Delaunay-like graph connectivity and directional diversity.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: selected.map((sId) => ({
-        id: `c-${sId}`,
-        value: sId,
-        label: `Edge C${sId}`,
-        state: "sorted" as ElementState,
-      })),
-    },
+    primarySnapshot: createVectorSnapshot(
+      selected,
+      prunedMap,
+      null,
+      "Final Retained Neighbor Graph Edges",
+    ),
     auxiliaryState: {
       customState: {
-        finalEdges: selected.map((s) => `C${s}`).join(", "),
+        finalNeighbors: selected.map((s) => `C${s}`).join(", "),
+        totalSelected: selected.length,
         status: "Completed",
       },
     },
@@ -239,14 +317,10 @@ export const generateHnswHeuristicSpatialPruningSteps = (
 };
 
 export const hnswHeuristicSpatialPruning: AlgorithmDefinition<HnswHeuristicSpatialPruningInput> = {
-  id: "hnswHeuristicSpatialPruning",
+  id: "hnsw-heuristic-spatial-pruning",
   title: "HNSW Heuristic Spatial Neighbor Pruning",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search", "graph_traversal"],
+  topicIds: ["ml_vector_search", "graph_traversal"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "Executes the HNSW heuristic neighbor selection algorithm (SELECT-NEIGHBORS-HEURISTIC, Malkov & Yashunin Algorithm 4). Rather than blindly taking the K closest candidates, spatial pruning discards candidates that are closer to an already selected neighbor than to the base pivot vector. This ensures directional edge diversity and prevents graph clustering bottlenecks.\n\nInput Format:\n- pivot: Base node vector coordinates.\n- candidates: Candidate node IDs sorted or un-sorted.\n- maxM: Maximum number of outgoing edges allowed per node.\n- nodeVectors: Dictionary mapping node ID to vector embedding.\n\nOutput Format:\n- Returns list of selected neighbor node IDs of length <= maxM.\n\nEdge Cases & Constraints:\n- Co-linear vectors: Occluded points are pruned.\n- Small maxM: Strong pruning reduces graph connectivity.",
   constraints: ["maxM >= 1.", "nodeVectors must contain all candidate IDs."],

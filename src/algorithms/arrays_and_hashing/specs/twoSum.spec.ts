@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TWO_SUM_INPUT, generateTwoSumSteps, twoSum } from "../twoSum";
 import type { ArrayVisualSnapshot } from "../../../types/dsa";
+import { requireExampleInputs } from "../../specs/assertions";
 
 describe("twoSum algorithm spec", () => {
   it("should have correct metadata", () => {
     expect(twoSum.id).toBe("two-sum");
     expect(twoSum.title).toBe("Two Sum");
-    expect(twoSum.category).toBe("arrays_and_hashing");
+    expect(twoSum.topicIds).toContain("arrays_and_hashing");
     expect(twoSum.defaultInput).toEqual(DEFAULT_TWO_SUM_INPUT);
   });
 
@@ -60,7 +61,13 @@ describe("twoSum algorithm spec", () => {
   it("ensures codeLine is 1-indexed (1..8) for defaultInput and all examples", () => {
     const totalLines = twoSum.code.split("\n").length;
     expect(totalLines).toBe(8);
-    const inputs = [twoSum.defaultInput, ...twoSum.examples.map((e) => e.input)];
+    const inputs = [
+      twoSum.defaultInput,
+      ...requireExampleInputs(
+        twoSum,
+        (input): input is typeof twoSum.defaultInput => typeof input === "object" && input !== null,
+      ),
+    ];
     for (const input of inputs) {
       const steps = generateTwoSumSteps(input);
       expect(steps.length).toBeGreaterThan(0);
@@ -110,4 +117,3 @@ describe("twoSum trivia metadata", () => {
     });
   });
 });
-

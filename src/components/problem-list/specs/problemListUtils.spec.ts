@@ -6,11 +6,11 @@ import {
   isProblemListSortField,
   isProblemListSortOrder,
   PROBLEM_LIST_STORAGE_PREFIX,
-  CATEGORY_LABELS,
   cellPadding,
   PANEL_BORDER,
-  CATEGORY_ENTRIES,
+  TOPIC_ENTRIES,
 } from "../problemListUtils";
+import { getTopicLabel } from "../../../app/topics";
 
 describe("problemListUtils Spec", () => {
   beforeEach(() => {
@@ -74,7 +74,7 @@ describe("problemListUtils Spec", () => {
     it("isProblemListSortField validates sort field values", () => {
       expect(isProblemListSortField("title")).toBe(true);
       expect(isProblemListSortField("difficulty")).toBe(true);
-      expect(isProblemListSortField("category")).toBe(true);
+      expect(isProblemListSortField("topic")).toBe(true);
       expect(isProblemListSortField("other")).toBe(false);
       expect(isProblemListSortField(undefined)).toBe(false);
     });
@@ -88,11 +88,11 @@ describe("problemListUtils Spec", () => {
   });
 
   describe("constants", () => {
-    it("exports CATEGORY_LABELS and styling constants", () => {
-      expect(CATEGORY_LABELS.arrays_and_hashing).toBe("Arrays & Hashing");
+    it("exports topic entries and styling constants", () => {
+      expect(getTopicLabel("arrays_and_hashing")).toBe("Arrays & Hashing");
       expect(cellPadding).toBe("var(--space-3) var(--space-4)");
       expect(PANEL_BORDER).toEqual({ borderColor: "var(--border-default)" });
-      expect(CATEGORY_ENTRIES.length).toBeGreaterThan(0);
+      expect(TOPIC_ENTRIES.length).toBeGreaterThan(0);
     });
   });
 });

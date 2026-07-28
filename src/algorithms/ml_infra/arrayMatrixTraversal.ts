@@ -17,7 +17,7 @@ export const ARRAY_MATRIX_TRAVERSAL_CODE = `def matrix_traversal(matrix: list[li
         for r in range(rows):
             for c in range(cols):
                 result.append(matrix[r][c])
-    else:  # col-major
+    else:
         for c in range(cols):
             for r in range(rows):
                 result.append(matrix[r][c])
@@ -112,7 +112,7 @@ export const generateArrayMatrixTraversalSteps = (
   }
 
   addStep(
-    5,
+    4,
     `Initialize ${order} matrix traversal`,
     `Matrix size: ${rows}x${cols}. Traversing elements in ${order} memory order.`,
     null,
@@ -182,7 +182,7 @@ export const ARRAY_MATRIX_TRAVERSAL_TRIVIA: TriviaMeta = {
   skipLines: [2, 4],
   hints: [
     { line: 9, hint: "Check outer row loop for row-major order" },
-    { line: 14, hint: "Outer column loop drives column-major order" },
+    { line: 13, hint: "Outer column loop drives column-major order" },
   ],
   distractors: ["for r in range(cols):", "result.append(matrix[c][r])", "offset = r + c * cols"],
 };
@@ -190,10 +190,8 @@ export const ARRAY_MATRIX_TRAVERSAL_TRIVIA: TriviaMeta = {
 export const arrayMatrixTraversal: AlgorithmDefinition<ArrayMatrixTraversalInput> = {
   id: "2d-array-matrix-traversal",
   title: "2D Array Matrix Traversal",
-  category: "ml_tensor_algebra",
+  topicIds: ["ml_tensor_algebra"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description:
     "Traverse a 2D matrix in row-major vs column-major order, illustrating CPU cache spatial locality vs memory striding.",

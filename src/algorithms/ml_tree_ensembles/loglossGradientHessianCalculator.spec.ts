@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { loglossGradientHessianCalculator } from "./loglossGradientHessianCalculator";
 
-describe("loglossGradientHessianCalculator", () => {
+describe("logloss-gradient-hessian-calculator", () => {
   it("should have valid metadata", () => {
     expect(loglossGradientHessianCalculator.id).toBeDefined();
     expect(loglossGradientHessianCalculator.title).toBeDefined();

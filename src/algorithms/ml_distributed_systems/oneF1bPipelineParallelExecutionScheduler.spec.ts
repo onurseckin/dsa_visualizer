@@ -11,14 +11,13 @@ describe("one-f1b-pipeline-parallel-execution-scheduler (1F1B Pipeline Parallel 
     expect(oneF1bPipelineParallelExecutionScheduler.id).toBe(
       "one-f1b-pipeline-parallel-execution-scheduler",
     );
-    expect(oneF1bPipelineParallelExecutionScheduler.isMlInfra).toBe(true);
-    expect(oneF1bPipelineParallelExecutionScheduler.mlInfraLevel).toBe(11);
-    expect(oneF1bPipelineParallelExecutionScheduler.mlInfraCategory).toBe(
-      "ml_distributed_systems",
-    );
-    expect(oneF1bPipelineParallelExecutionScheduler.categories).toContain(
-      "ml_distributed_systems",
-    );
+    expect(
+      oneF1bPipelineParallelExecutionScheduler.topicIds.some((topicId) =>
+        topicId.startsWith("ml_"),
+      ),
+    ).toBe(true);
+    expect(oneF1bPipelineParallelExecutionScheduler.topicIds).toContain("ml_distributed_systems");
+    expect(oneF1bPipelineParallelExecutionScheduler.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {
@@ -29,15 +28,12 @@ describe("one-f1b-pipeline-parallel-execution-scheduler (1F1B Pipeline Parallel 
     expect(steps[0].explanation.what).toContain(
       "Enter one_f1b_pipeline_parallel_execution_scheduler",
     );
-    expect(steps[steps.length - 1].explanation.what).toBe(
-      "Return Ordered 1F1B Execution Schedule",
-    );
+    expect(steps[steps.length - 1].explanation.what).toBe("Return Ordered 1F1B Execution Schedule");
   });
 
   it("should have lineExplanations mapping every code line", () => {
     const codeLines = ONEF1BPIPELINEPARALLELEXECUTIONSCHEDULER_CODE.trimEnd().split("\n").length;
-    const explanations =
-      oneF1bPipelineParallelExecutionScheduler.trivia?.lineExplanations || {};
+    const explanations = oneF1bPipelineParallelExecutionScheduler.trivia?.lineExplanations || {};
     expect(Object.keys(explanations).length).toBe(codeLines);
     for (let i = 1; i <= codeLines; i++) {
       expect(explanations[i]).toBeDefined();

@@ -8,9 +8,6 @@ export interface naive3LoopMatmulInput {
 }
 
 export const NAIVE3LOOPMATMUL_CODE = `def naive_3_loop_matmul(matrix_a, matrix_b):
-    """
-    Computes un-tiled triply-nested loop matrix multiplication C = A @ B.
-    """
     m, k_dim = len(matrix_a), len(matrix_a[0])
     n = len(matrix_b[0])
     matrix_c = [[0] * n for _ in range(m)]
@@ -35,9 +32,7 @@ export const DEFAULT_NAIVE3LOOPMATMUL_INPUT: naive3LoopMatmulInput = {
   ],
 };
 
-export const generateNaive3LoopMatmulSteps = (
-  input: naive3LoopMatmulInput,
-): AlgorithmStep[] => {
+export const generateNaive3LoopMatmulSteps = (input: naive3LoopMatmulInput): AlgorithmStep[] => {
   const matrixA = input.matrixA ?? [
     [1, 2, 3],
     [4, 5, 6],
@@ -103,16 +98,13 @@ export const generateNaive3LoopMatmulSteps = (
     variables: Record<string, string | number | boolean>,
     activeI?: number,
     activeJ?: number,
+    activeK?: number,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: makeMatrixSnapshot(
-        activeI,
-        activeJ,
-        `Naive GEMM Step ${stepIndex}`,
-      ),
+      primarySnapshot: makeMatrixSnapshot(activeI, activeJ, `Naive GEMM Step ${stepIndex}`),
       auxiliaryState: {
         customState: {
           m: String(m),
@@ -120,98 +112,78 @@ export const generateNaive3LoopMatmulSteps = (
           kDim: String(kDim),
           matrixA: JSON.stringify(matrixA),
           matrixB: JSON.stringify(matrixB),
+          ...(activeI !== undefined ? { activeI: String(activeI) } : {}),
+          ...(activeJ !== undefined ? { activeJ: String(activeJ) } : {}),
+          ...(activeK !== undefined ? { activeK: String(activeK) } : {}),
         },
       },
       variables,
     });
   };
 
-  // Step 1: Entry
+  // Line 1: Function entry
   addStep(
     1,
     "Initialize Naive Triply-Nested Loop GEMM O(N^3)",
-    "Configuring classical 3-loop nest (i, j, k) un-tiled matrix multiplication.",
+    `Configuring classical 3-loop nest (i, j, k) un-tiled matrix multiplication of size M=${m}, N=${n}, K=${kDim}.`,
     { m, n, kDim },
   );
 
-  // Step 2: Docstring start
+  // Line 2: Read dimensions M and K
   addStep(
     2,
-    "Inspect Matrix Multiplication Operational Structure",
-    "Un-tiled 3-loop matmul computes M x N dot products over K contraction dimension.",
-    { m, n, kDim },
-  );
-
-  // Step 3: Docstring description
-  addStep(
-    3,
-    "Inspect Memory Access Latency Impact",
-    "Column-major reads on matrix B cause stride-N cache line misses in CPU/GPU DRAM memory layout.",
-    { m, n, kDim },
-  );
-
-  // Step 4: Docstring end
-  addStep(
-    4,
-    "Prepare Loop Iteration Variables",
-    "Allocating loop pointers i, j, k and result matrix container.",
-    { m, n, kDim },
-  );
-
-  // Step 5: Read dimensions M and K
-  addStep(
-    5,
     `Get Matrix A Dimensions: M=${m}, K=${kDim}`,
-    "Reading row count M and inner contraction dimension K from matrix A.",
+    `Extracted matrix A row count M=${m} and inner contraction dimension K=${kDim}.`,
     { m, kDim },
   );
 
-  // Step 6: Read dimension N
+  // Line 3: Read dimension N
   addStep(
-    6,
+    3,
     `Get Matrix B Column Dimension: N=${n}`,
-    "Reading column count N from matrix B.",
+    `Extracted matrix B column count N=${n}. Output matrix C shape will be ${m} x ${n}.`,
     { n },
   );
 
-  // Step 7: Allocate output matrix C
+  // Line 4: Allocate output matrix C
   addStep(
-    7,
+    4,
     `Allocate ${m} x ${n} Output Matrix C`,
-    "Zero-initializing output matrix C in DRAM RAM memory.",
+    `Zero-initialized output matrix C of shape ${m}x${n} (${m * n} elements) in DRAM memory.`,
     { m, n, totalCells: m * n },
   );
 
   for (let i = 0; i < m; i++) {
-    // Step 9: Outer loop i
+    // Line 6: Outer loop i
     addStep(
-      9,
+      6,
       `Outer Loop i=${i}: Target Row ${i} of Matrix A`,
-      `Iterating through row index i=${i} of ${m} in matrix A.`,
+      `Iterating through row index i=${i} (0 to ${m - 1}) of matrix A.`,
       { i, m },
       i,
     );
 
     for (let j = 0; j < n; j++) {
-      // Step 10: Middle loop j
+      // Line 7: Middle loop j
       addStep(
-        10,
+        7,
         `Middle Loop j=${j}: Target Cell C[${i}][${j}]`,
-        `Targeting output column j=${j} of ${n} for matrix C cell (${i}, ${j}).`,
+        `Iterating through column index j=${j} (0 to ${n - 1}) for output cell C[${i}][${j}].`,
         { i, j, n },
         i,
         j,
       );
 
       for (let k = 0; k < kDim; k++) {
-        // Step 11: Inner loop k
+        // Line 8: Inner loop k
         addStep(
-          11,
-          `Inner Contraction Loop k=${k}`,
-          `Fetching matrix_a[${i}][${k}] (${matrixA[i][k]}) and matrix_b[${k}][${j}] (${matrixB[k][j]}).`,
+          8,
+          `Inner Contraction Loop k=${k}: Contraction Dimension`,
+          `Accessing A[${i}][${k}] = ${matrixA[i][k]} and B[${k}][${j}] = ${matrixB[k][j]} along contraction index k=${k}.`,
           { i, j, k, valA: matrixA[i][k], valB: matrixB[k][j] },
           i,
           j,
+          k,
         );
 
         const valA = matrixA[i][k];
@@ -219,24 +191,25 @@ export const generateNaive3LoopMatmulSteps = (
         const prod = valA * valB;
         matrixC[i][j] += prod;
 
-        // Step 12: Multiply-accumulate
+        // Line 9: Multiply-accumulate
         addStep(
-          12,
-          `Multiply-Accumulate: matrix_c[${i}][${j}] += matrix_a[${i}][${k}] * matrix_b[${k}][${j}]`,
-          `matrix_c[${i}][${j}] += ${valA} * ${valB} (${prod}) -> New C[${i}][${j}] = ${matrixC[i][j]}`,
+          9,
+          `Multiply-Accumulate: C[${i}][${j}] += A[${i}][${k}] * B[${k}][${j}]`,
+          `Multiplying A[${i}][${k}] (${valA}) * B[${k}][${j}] (${valB}) = ${prod}; adding to C[${i}][${j}] yields ${matrixC[i][j]}.`,
           { i, j, k, valA, valB, prod, currentC: matrixC[i][j] },
           i,
           j,
+          k,
         );
       }
     }
   }
 
-  // Step 14: Return statement
+  // Line 11: Return statement
   addStep(
-    14,
+    11,
     "Execution Complete: Return Product Matrix C",
-    "Completed naive 3-loop matrix multiplication.",
+    `Completed all ${m * n * kDim} multiply-accumulate operations for ${m}x${n} product matrix C.`,
     { completed: true, resultShape: `${m}x${n}` },
   );
 
@@ -244,7 +217,7 @@ export const generateNaive3LoopMatmulSteps = (
 };
 
 const NAIVE3LOOPMATMUL_TRIVIA: TriviaMeta = {
-  skipLines: [8, 13],
+  skipLines: [5, 10],
   distractors: [
     "matrix_c[i][j] += matrix_a[i][j] * matrix_b[i][j]",
     "matrix_c[i][k] += matrix_a[i][j] * matrix_b[j][k]",
@@ -252,38 +225,31 @@ const NAIVE3LOOPMATMUL_TRIVIA: TriviaMeta = {
     "for i in range(n): for j in range(m): for k in range(k_dim):",
   ],
   hints: [
-    { line: 9, hint: "Outer loop i iterates through output rows 0 to M-1." },
-    { line: 10, hint: "Middle loop j iterates through output columns 0 to N-1." },
-    { line: 11, hint: "Inner loop k iterates through contraction index 0 to K-1." },
-    { line: 12, hint: "Multiply element A[i][k] by B[k][j] and accumulate into C[i][j]." },
+    { line: 6, hint: "Outer loop i iterates through output rows 0 to M-1." },
+    { line: 7, hint: "Middle loop j iterates through output columns 0 to N-1." },
+    { line: 8, hint: "Inner loop k iterates through contraction index 0 to K-1." },
+    { line: 9, hint: "Multiply element A[i][k] by B[k][j] and accumulate into C[i][j]." },
   ],
   lineExplanations: {
     1: "Defines naive triply-nested loop matrix multiplication function signature.",
-    2: "Start of docstring detailing baseline GEMM implementation.",
-    3: "Describes computation of untiled matrix product C = A @ B.",
-    4: "End of docstring.",
-    5: "Gets rows M and inner contraction dimension K from matrix A.",
-    6: "Gets column count N from matrix B.",
-    7: "Allocates M x N output matrix C initialized to zero.",
-    8: "Blank line between initialization and 3-loop nest.",
-    9: "Outer loop i iterates through row index 0 to M-1.",
-    10: "Middle loop j iterates through column index 0 to N-1.",
-    11: "Inner loop k iterates through contraction index 0 to K-1.",
-    12: "Accumulates element product matrix_a[i][k] * matrix_b[k][j] into matrix_c[i][j].",
-    13: "Blank line prior to return.",
-    14: "Returns computed M x N output matrix product C.",
+    2: "Gets rows M and inner contraction dimension K from matrix A.",
+    3: "Gets column count N from matrix B.",
+    4: "Allocates M x N output matrix C initialized to zero.",
+    5: "Blank line prior to outer 3-loop nest.",
+    6: "Outer loop i iterates through row index 0 to M-1.",
+    7: "Middle loop j iterates through column index 0 to N-1.",
+    8: "Inner loop k iterates through contraction index 0 to K-1.",
+    9: "Accumulates element product matrix_a[i][k] * matrix_b[k][j] into matrix_c[i][j].",
+    10: "Blank line prior to return statement.",
+    11: "Returns computed M x N output matrix product C.",
   },
 };
 
 export const naive3LoopMatmul: AlgorithmDefinition<naive3LoopMatmulInput> = {
   id: "naive-3-loop-matmul",
   title: "Naive Triply-Nested Loop GEMM O(N^3)",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "The triply-nested loop algorithm $(i, j, k)$ is the baseline definition of General Matrix Multiplication (GEMM: $C = A \\times B$). For an $M \\times K$ matrix $A$ and $K \\times N$ matrix $B$, entry $C_{ij}$ is evaluated as $C_{ij} = \\sum_{k=0}^{K-1} A_{ik} \\cdot B_{kj}$.\n\nWhile mathematically simple, naive 3-loop GEMM exhibits terrible memory subsystem performance on modern hardware. Because elements of $B$ are stored in row-major memory order ($B_{k, j}$ and $B_{k+1, j}$ are separated by $N$ elements in RAM), inner loop step $k \\to k+1$ jumps across memory cache lines, resulting in non-strided reads, frequent cache evictions, and low ALU utilization (< 5% of peak hardware GFLOPS).\n\nInput Format:\n- matrixA: M x K input matrix A.\n- matrixB: K x N input matrix B.\n\nOutput Format:\n- Returns M x N output matrix product C.\n\nEdge Cases & Constraints:\n- Non-square matrix dimensions ($M \\ne N \\ne K$).\n- Single element 1x1 matrix multiplies.\n- Mismatched inner dimensions ($K_A \\ne K_B$).",
   constraints: ["1 <= matrixA.length <= 100", "matrixA[0].length == matrixB.length"],
@@ -338,7 +304,8 @@ export const naive3LoopMatmul: AlgorithmDefinition<naive3LoopMatmulInput> = {
       },
       {
         term: "Contraction Index",
-        definition: "The inner index k that is multiplied and reduced to produce scalar cell values.",
+        definition:
+          "The inner index k that is multiplied and reduced to produce scalar cell values.",
       },
       {
         term: "Non-Strided Read",

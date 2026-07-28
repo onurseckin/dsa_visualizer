@@ -8,10 +8,11 @@ import {
 describe("zero2-gradient-partitioning-engine (DeepSpeed ZeRO-2 Gradient Partitioning Engine)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(zero2GradientPartitioningEngine.id).toBe("zero2-gradient-partitioning-engine");
-    expect(zero2GradientPartitioningEngine.isMlInfra).toBe(true);
-    expect(zero2GradientPartitioningEngine.mlInfraLevel).toBe(11);
-    expect(zero2GradientPartitioningEngine.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(zero2GradientPartitioningEngine.categories).toContain("ml_distributed_systems");
+    expect(
+      zero2GradientPartitioningEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(zero2GradientPartitioningEngine.topicIds).toContain("ml_distributed_systems");
+    expect(zero2GradientPartitioningEngine.topicIds).toContain("ml_distributed_systems");
     expect(zero2GradientPartitioningEngine.defaultInput).toEqual(
       DEFAULT_ZERO2GRADIENTPARTITIONINGENGINE_INPUT,
     );

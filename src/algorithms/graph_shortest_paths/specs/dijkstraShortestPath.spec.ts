@@ -9,7 +9,7 @@ import {
 describe("dijkstraShortestPath logic spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(dijkstraShortestPath.id).toBe("dijkstra-shortest-path");
-    expect(dijkstraShortestPath.category).toBe("graph_shortest_paths");
+    expect(dijkstraShortestPath.topicIds).toContain("graph_shortest_paths");
     expect(dijkstraShortestPath.difficulty).toBe("Medium");
     expect(dijkstraShortestPath.code).toContain("def dijkstra");
     expect(dijkstraShortestPath.defaultInput).toEqual(DEFAULT_DIJKSTRA_INPUT);

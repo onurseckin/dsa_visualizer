@@ -1,6 +1,5 @@
 import React from "react";
-import type { CategoryType, DifficultyLevel, ProblemSource } from "../../types/dsa";
-import { getAlgorithmSources } from "../../types/dsa";
+import type { TopicId, DifficultyLevel, ProblemSource } from "../../types/dsa";
 import { Badge, Button, difficultyBadgeVariant, SourceBadgeList } from "../index";
 import { Collapsible } from "@base-ui-components/react/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -14,7 +13,7 @@ export interface DeckEntry {
 }
 
 export interface DeckGroup {
-  id: CategoryType;
+  id: TopicId;
   label: string;
   entries: DeckEntry[];
 }
@@ -74,7 +73,7 @@ export const DeckGroupCollapsible: React.FC<DeckGroupCollapsibleProps> = ({
       <Collapsible.Panel className="ui-collapsible__content flex flex-col gap-2 p-6 md:p-8 bg-[var(--bg-elevated)] border-t-2 border-[var(--border-default)]">
         {group.entries.map((entry) => {
           const isSelected = selected.has(entry.id);
-          const sources = getAlgorithmSources(entry);
+          const sources = entry.sources ?? [];
           return (
             <Button
               key={entry.id}

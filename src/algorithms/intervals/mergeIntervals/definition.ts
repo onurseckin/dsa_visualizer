@@ -36,8 +36,7 @@ const MERGE_INTERVALS_TRIVIA: TriviaMeta = {
 export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   id: "merge-intervals",
   title: "Merge Intervals",
-  category: "two_pointers",
-  categories: ["two_pointers", "intervals"],
+  topicIds: ["two_pointers", "intervals"],
   difficulty: "Medium",
   description:
     "Merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same range as the input intervals.\n\n" +

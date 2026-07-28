@@ -10,27 +10,19 @@ export interface draftModelLookaheadTokenSamplerInput {
 export const DRAFTMODELLOOKAHEADTOKENSAMPLER_CODE = `import math
 
 def draft_model_lookahead_token_sampler(logits_seq, gamma=4, temperature=1.0):
-    """
-    Autoregressively samples gamma lookahead candidate tokens from draft model logits.
-    Applies temperature scaling, max logit subtraction for softmax numerical stability,
-    and returns sampled token indices along with candidate probabilities q(x_i).
-    """
     draft_tokens = []
     draft_probs = []
 
     for step in range(min(gamma, len(logits_seq))):
         logits = logits_seq[step]
-        # Temperature scaling
         temp = max(temperature, 1e-5)
         scaled_logits = [l / temp for l in logits]
         
-        # Softmax with max logit subtraction for numerical stability
         max_l = max(scaled_logits)
         exp_logits = [math.exp(l - max_l) for l in scaled_logits]
         sum_exp = sum(exp_logits)
         probs = [e / sum_exp for e in exp_logits]
 
-        # Greedy top-1 candidate selection
         best_token = max(range(len(probs)), key=lambda i: probs[i])
         
         draft_tokens.append(best_token)
@@ -66,6 +58,9 @@ export const generateDraftModelLookaheadTokenSamplerSteps = (
     state: "default",
   }));
 
+  const draftTokens: number[] = [];
+  const draftProbs: number[] = [];
+
   const addStep = (
     codeLine: number,
     what: string,
@@ -98,6 +93,8 @@ export const generateDraftModelLookaheadTokenSamplerSteps = (
           gamma: String(gamma),
           temperature: String(temperature),
           totalLookaheadSteps: String(maxSteps),
+          draft_tokens: `[${draftTokens.join(", ")}]`,
+          draft_probs: `[${draftProbs.map((p) => p.toFixed(3)).join(", ")}]`,
         },
       },
       variables,
@@ -113,43 +110,8 @@ export const generateDraftModelLookaheadTokenSamplerSteps = (
   );
 
   // Step 2: Init draft_tokens
-    addStep(
+  addStep(
     4,
-    "Function docstring — describes algorithm contract",
-    "Opening delimiter of the Python docstring.",
-    {},
-  );
-
-  addStep(
-    5,
-    "Docstring body: algorithm description",
-    "Autoregressively samples gamma lookahead candidate tokens from draft model ",
-    {},
-  );
-
-  addStep(
-    6,
-    "Docstring body: algorithm description",
-    "Applies temperature scaling, max logit subtraction for softmax numerical st",
-    {},
-  );
-
-  addStep(
-    7,
-    "Docstring body: algorithm description",
-    "and returns sampled token indices along with candidate probabilities q(x_i)",
-    {},
-  );
-
-  addStep(
-    8,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-addStep(
-    9,
     "Initialize draft_tokens = []",
     "Empty array to store sampled candidate token indices $x_1, x_2, \\dots, x_{\\gamma}$.",
     { draft_tokens: "[]" },
@@ -157,18 +119,15 @@ addStep(
 
   // Step 3: Init draft_probs
   addStep(
-    10,
+    5,
     "Initialize draft_probs = []",
     "Empty array to store candidate sampling probabilities $q(x_i)$ for target model verification.",
     { draft_probs: "[]" },
   );
 
-  const draftTokens: number[] = [];
-  const draftProbs: number[] = [];
-
   for (let step = 0; step < maxSteps; step++) {
     addStep(
-      12,
+      7,
       `Loop step ${step + 1} of ${maxSteps}: range(min(gamma=${gamma}, len(logits_seq)=${logits_seq.length}))`,
       `Beginning lookahead sampling iteration for step ${step + 1}.`,
       { step: step + 1, gamma, maxSteps },
@@ -178,7 +137,7 @@ addStep(
 
     const logits = logits_seq[step];
     addStep(
-      13,
+      8,
       `Step ${step + 1}: Extract raw logits = [${logits.join(", ")}]`,
       `Unnormalized output vector from draft model at position ${step + 1}.`,
       { step: step + 1, logits: logits.join(", ") },
@@ -187,7 +146,7 @@ addStep(
 
     const temp = Math.max(temperature, 1e-5);
     addStep(
-      15,
+      9,
       `Step ${step + 1}: Clamp temperature temp = max(${temperature}, 1e-5) -> ${temp}`,
       "Guarantees positive non-zero temperature scaling divisor to prevent division by zero.",
       { step: step + 1, temp },
@@ -196,7 +155,7 @@ addStep(
 
     const scaledLogits = logits.map((l) => l / temp);
     addStep(
-      16,
+      10,
       `Step ${step + 1}: Compute scaled_logits = [${scaledLogits.map((l) => l.toFixed(2)).join(", ")}]`,
       `Applied temperature scaling: $z_i / T$ for $T = ${temp}$.`,
       { step: step + 1, scaled_logits: scaledLogits.map((l) => l.toFixed(2)).join(", ") },
@@ -205,7 +164,7 @@ addStep(
 
     const maxL = Math.max(...scaledLogits);
     addStep(
-      19,
+      12,
       `Step ${step + 1}: Find max_l = max(scaled_logits) = ${maxL.toFixed(2)}`,
       "Max logit subtraction ensures numerical stability: $\\exp(z_i - \\max(z)) \\le 1.0$, preventing overflow.",
       { step: step + 1, max_l: Number(maxL.toFixed(2)) },
@@ -214,7 +173,7 @@ addStep(
 
     const expLogits = scaledLogits.map((l) => Math.exp(l - maxL));
     addStep(
-      20,
+      13,
       `Step ${step + 1}: Compute exp_logits = [${expLogits.map((e) => e.toFixed(4)).join(", ")}]`,
       "Exponentiating shifted logits: $\\exp(z_i - \\max(z))$.",
       { step: step + 1, exp_logits: expLogits.map((e) => e.toFixed(4)).join(", ") },
@@ -223,7 +182,7 @@ addStep(
 
     const sumExp = expLogits.reduce((a, b) => a + b, 0);
     addStep(
-      21,
+      14,
       `Step ${step + 1}: Compute sum_exp = sum(exp_logits) = ${sumExp.toFixed(4)}`,
       "Summing exponentiated values to compute Softmax denominator.",
       { step: step + 1, sum_exp: Number(sumExp.toFixed(4)) },
@@ -232,7 +191,7 @@ addStep(
 
     const probs = expLogits.map((e) => e / sumExp);
     addStep(
-      22,
+      15,
       `Step ${step + 1}: Compute Softmax probs = [${probs.map((p) => p.toFixed(4)).join(", ")}]`,
       "Probability distribution $q(x)$: $q_i = \\exp(z_i - \\max(z)) / \\sum \\exp(z_j - \\max(z))$.",
       { step: step + 1, probs: probs.map((p) => p.toFixed(4)).join(", ") },
@@ -244,7 +203,7 @@ addStep(
       if (probs[i] > probs[bestToken]) bestToken = i;
     }
     addStep(
-      25,
+      17,
       `Step ${step + 1}: Pick greedy best_token = ${bestToken} (prob q(x) = ${probs[bestToken].toFixed(4)})`,
       `Token ${bestToken} achieves highest candidate probability $q(x_{${step + 1}}) = ${probs[bestToken].toFixed(4)}$.`,
       { step: step + 1, best_token: bestToken, prob: Number(probs[bestToken].toFixed(4)) },
@@ -254,7 +213,7 @@ addStep(
 
     draftTokens.push(bestToken);
     addStep(
-      27,
+      19,
       `Step ${step + 1}: Append ${bestToken} to draft_tokens -> [${draftTokens.join(", ")}]`,
       `Candidate sequence updated: [${draftTokens.join(", ")}].`,
       { step: step + 1, draft_tokens: draftTokens.join(", ") },
@@ -263,7 +222,7 @@ addStep(
 
     draftProbs.push(probs[bestToken]);
     addStep(
-      28,
+      20,
       `Step ${step + 1}: Append ${probs[bestToken].toFixed(4)} to draft_probs -> [${draftProbs.map((p) => p.toFixed(3)).join(", ")}]`,
       "Draft probability distribution updated for target verification.",
       { step: step + 1, draft_probs: draftProbs.map((p) => p.toFixed(3)).join(", ") },
@@ -273,7 +232,7 @@ addStep(
 
   // Step return
   addStep(
-    30,
+    22,
     `Return (draft_tokens=[${draftTokens.join(", ")}], draft_probs=[${draftProbs.map((p) => p.toFixed(3)).join(", ")}])`,
     `Completed generation of ${draftTokens.length} speculative lookahead candidate tokens for target verification pass.`,
     {
@@ -287,7 +246,7 @@ addStep(
 };
 
 const DRAFTMODELLOOKAHEADTOKENSAMPLER_TRIVIA: TriviaMeta = {
-  skipLines: [2, 4, 5, 6, 7, 8, 11, 14, 17, 18, 23, 24, 26, 29],
+  skipLines: [2, 6, 11, 16, 18, 21],
   distractors: [
     "draft_tokens = [0] * gamma",
     "probs = [l / sum(logits) for l in logits]",
@@ -295,41 +254,36 @@ const DRAFTMODELLOOKAHEADTOKENSAMPLER_TRIVIA: TriviaMeta = {
     "temp = min(temperature, 1.0)",
   ],
   hints: [
-    { line: 15, hint: "Clamp temperature using max(temperature, 1e-5) to prevent division by zero." },
-    { line: 19, hint: "Subtract max_l before exponentiation for numerical stability." },
-    { line: 25, hint: "Select best_token via greedy argmax or multinomial sampling over probs." },
+    {
+      line: 9,
+      hint: "Clamp temperature using max(temperature, 1e-5) to prevent division by zero.",
+    },
+    { line: 12, hint: "Subtract max_l before exponentiation for numerical stability." },
+    { line: 17, hint: "Select best_token via greedy argmax or multinomial sampling over probs." },
   ],
   lineExplanations: {
     1: "Import math module for floating-point exponential calculation math.exp.",
     2: "Blank line after imports.",
     3: "Function signature for Speculative Decoding Draft Token Sampler taking logits_seq, gamma, and temperature.",
-    4: "Begin docstring describing lookahead candidate sampling.",
-    5: "Docstring line describing autoregressive sampling of gamma candidate tokens.",
-    6: "Docstring line describing temperature scaling and numerically stable softmax.",
-    7: "Docstring line describing output tuple of candidate tokens and probabilities q(x_i).",
-    8: "End docstring.",
-    9: "Initialize empty list draft_tokens to store sampled candidate token indices.",
-    10: "Initialize empty list draft_probs to store candidate sampling probabilities q(x_i).",
-    11: "Blank line before lookahead sampling loop.",
-    12: "Loop over each lookahead step from 0 up to min(gamma, len(logits_seq)).",
-    13: "Extract raw logits vector for current lookahead step.",
-    14: "Comment explaining temperature scaling.",
-    15: "Clamp temperature to minimum epsilon (1e-5) to prevent division by zero.",
-    16: "Scale raw logits by temperature factor: scaled_logits = [l / temp for l in logits].",
-    17: "Blank line before Softmax computation.",
-    18: "Comment explaining Softmax with max logit subtraction.",
-    19: "Find maximum scaled logit max_l for numerical stability during Softmax.",
-    20: "Exponentiate shifted logits: exp_logits = [math.exp(l - max_l) for l in scaled_logits].",
-    21: "Sum exponentiated values to compute Softmax normalization denominator.",
-    22: "Compute normalized Softmax probability distribution: probs = [e / sum_exp for e in exp_logits].",
-    23: "Blank line before candidate token selection.",
-    24: "Comment explaining greedy top-1 candidate selection.",
-    25: "Select candidate token index with highest probability (argmax greedy selection).",
-    26: "Blank line before updating output lists.",
-    27: "Append selected best_token index to draft_tokens list.",
-    28: "Append candidate probability probs[best_token] to draft_probs list.",
-    29: "Blank line before returning results.",
-    30: "Return tuple of draft_tokens and draft_probs to caller for target verification.",
+    4: "Initialize empty list draft_tokens to store sampled candidate token indices.",
+    5: "Initialize empty list draft_probs to store candidate sampling probabilities q(x_i).",
+    6: "Blank line before lookahead sampling loop.",
+    7: "Loop over each lookahead step from 0 up to min(gamma, len(logits_seq)).",
+    8: "Extract raw logits vector for current lookahead step.",
+    9: "Clamp temperature to minimum epsilon (1e-5) to prevent division by zero.",
+    10: "Scale raw logits by temperature factor: scaled_logits = [l / temp for l in logits].",
+    11: "Blank line before Softmax computation.",
+    12: "Find maximum scaled logit max_l for numerical stability during Softmax.",
+    13: "Exponentiate shifted logits: exp_logits = [math.exp(l - max_l) for l in scaled_logits].",
+    14: "Sum exponentiated values to compute Softmax normalization denominator.",
+    15: "Compute normalized Softmax probability distribution: probs = [e / sum_exp for e in exp_logits].",
+    16: "Blank line before candidate token selection.",
+    17: "Select candidate token index with highest probability (argmax greedy selection).",
+    18: "Blank line before updating output lists.",
+    19: "Append selected best_token index to draft_tokens list.",
+    20: "Append candidate probability probs[best_token] to draft_probs list.",
+    21: "Blank line before returning results.",
+    22: "Return tuple of draft_tokens and draft_probs to caller for target verification.",
   },
 };
 
@@ -337,12 +291,8 @@ export const draftModelLookaheadTokenSampler: AlgorithmDefinition<draftModelLook
   {
     id: "draft-model-lookahead-token-sampler",
     title: "Speculative Decoding Draft Token Sampler",
-    category: "ml_llm_serving",
-    categories: ["ml_llm_serving", "ml_attention_geometry"],
+    topicIds: ["ml_llm_serving", "ml_attention_geometry"],
     difficulty: "Easy",
-    isMlInfra: true,
-    mlInfraLevel: 12,
-    mlInfraCategory: "ml_llm_serving",
     description:
       "Speculative Decoding uses a small, fast draft model $M_{\\text{draft}}$ (or speculative draft heads like Medusa / Eagle) to autoregressively sample $\\gamma$ lookahead candidate tokens $(x_{t+1}, x_{t+2}, \\dots, x_{t+\\gamma})$ prior to running the target model $M_{\\text{target}}$. Because draft models are 10x-100x smaller than the target LLM, generating $\\gamma$ tokens sequentially with $M_{\\text{draft}}$ consumes minimal time and GPU memory bandwidth.\n\n### Softmax & Sampling Formula\n$$\\text{Softmax}(z_i) = \\frac{\\exp\\left((z_i - \\max(z)) / T\\right)}{\\sum_j \\exp\\left((z_j - \\max(z)) / T\\right)}$$\n\nwhere:\n- $z_i$: Raw draft model logit for token $i$.\n- $T$: Sampling temperature parameter.\n- $\\max(z)$: Maximum scaled logit subtracted for numerical stability (preventing IEEE 754 overflow).\n\n### Input Parameters\n- `logits_seq`: 2D array of draft model logit vectors, shape $[\\gamma, V]$.\n- `gamma`: Speculative lookahead depth $\\gamma$.\n- `temperature`: Sampling temperature $T > 0$.\n\n### Output\n- Returns tuple `(draft_tokens, draft_probs)` containing candidate token IDs and probabilities $q(x_i)$.",
     constraints: [

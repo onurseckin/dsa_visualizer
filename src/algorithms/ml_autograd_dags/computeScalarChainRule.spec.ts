@@ -8,10 +8,9 @@ import {
 describe("compute-scalar-chain-rule (Scalar Chain Rule Gradient Accumulator)", () => {
   it("should have correct metadata", () => {
     expect(computeScalarChainRule.id).toBe("compute-scalar-chain-rule");
-    expect(computeScalarChainRule.isMlInfra).toBe(true);
-    expect(computeScalarChainRule.mlInfraLevel).toBe(3);
-    expect(computeScalarChainRule.mlInfraCategory).toBe("ml_autograd_dags");
-    expect(computeScalarChainRule.categories).toContain("ml_autograd_dags");
+    expect(computeScalarChainRule.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(computeScalarChainRule.topicIds).toContain("ml_autograd_dags");
+    expect(computeScalarChainRule.topicIds).toContain("ml_autograd_dags");
   });
 
   it("should generate valid algorithm steps", () => {

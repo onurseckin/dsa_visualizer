@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { useSearchStore } from "../useSearchStore";
 import { useSettingsStore } from "../useSettingsStore";
 import { useWorkspaceLayoutStore } from "../useWorkspaceLayoutStore";
-import { useTriviaStore } from "../../trivia/useTriviaStore";
 
 describe("Zustand stores suite", () => {
   beforeEach(() => {
@@ -10,7 +9,6 @@ describe("Zustand stores suite", () => {
     useSettingsStore.getState().refreshFromStorage();
     useSearchStore.setState({ isDrawerOpen: false });
     useWorkspaceLayoutStore.getState().resetLayout();
-    useTriviaStore.getState().refreshFromStorage();
   });
 
   describe("useSettingsStore", () => {
@@ -57,24 +55,6 @@ describe("Zustand stores suite", () => {
 
       useWorkspaceLayoutStore.getState().resetLayout();
       expect(useWorkspaceLayoutStore.getState().layout.splitPercent).toBe(60);
-    });
-  });
-
-  describe("useTriviaStore", () => {
-    it("manages trivia session records and active session", () => {
-      const store = useTriviaStore.getState();
-      const newSession = store.createSession("Test Session");
-      expect(newSession.name).toBe("Test Session");
-
-      store.renameSession(newSession.id, "Renamed Session");
-      expect(useTriviaStore.getState().sessions.find((s) => s.id === newSession.id)?.name).toBe(
-        "Renamed Session",
-      );
-
-      store.deleteSession(newSession.id);
-      expect(
-        useTriviaStore.getState().sessions.find((s) => s.id === newSession.id),
-      ).toBeUndefined();
     });
   });
 });

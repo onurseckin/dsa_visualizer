@@ -8,9 +8,6 @@ export interface matrixVectorMultiplicationInput {
 }
 
 export const MATRIXVECTORMULTIPLICATION_CODE = `def matrix_vector_multiplication(matrix, vector):
-    """
-    Computes GEMV y = A * x matrix-vector product.
-    """
     rows = len(matrix)
     cols = len(vector)
     result = []
@@ -139,7 +136,7 @@ export const generateMatrixVectorMultiplicationSteps = (
     });
   };
 
-  // Step 1: Definition
+  // Step 1: Function signature
   addStep(
     1,
     "Initialize GEMV Matrix-Vector Engine (y = A * x)",
@@ -147,68 +144,41 @@ export const generateMatrixVectorMultiplicationSteps = (
     { rows, cols },
   );
 
-  // Step 2: Docstring start
+  // Step 2: Get rows count
   addStep(
     2,
-    "Inspect GEMV Operational Characteristics",
-    "GEMV performs 2 * M * N FLOPs with ~1 FLOP/Byte arithmetic intensity (memory-bandwidth bound).",
-    { rows, cols },
-  );
-
-  // Step 3: Docstring description
-  addStep(
-    3,
-    "Inspect Weight Matrix A and Vector x",
-    `Matrix A shape: ${rows} x ${cols}, Activation vector x length: ${cols}.`,
-    { rows, cols },
-  );
-
-  // Step 4: Docstring end
-  addStep(
-    4,
-    "Prepare Inner Loop State Variables",
-    "Initializing output accumulator array for result vector y.",
-    { rows, cols },
-  );
-
-  // Step 5: Rows count
-  addStep(
-    5,
     `Get Matrix Row Count (rows = ${rows})`,
     "Determining number of output vector elements M.",
     { rows },
   );
 
-  // Step 6: Cols count
-  addStep(
-    6,
-    `Get Vector Length (cols = ${cols})`,
-    "Determining dot product dimension N.",
-    { cols },
-  );
+  // Step 3: Get cols count
+  addStep(3, `Get Vector Length (cols = ${cols})`, "Determining dot product dimension N.", {
+    cols,
+  });
 
-  // Step 7: Allocate result vector
+  // Step 4: Allocate result vector
   addStep(
-    7,
+    4,
     "Initialize Result Vector List",
     "Creating empty container to hold output vector elements y.",
     { resultLen: 0 },
   );
 
   for (let r = 0; r < rows; r++) {
-    // Step 9: Outer loop row r
+    // Line 6: Outer loop row r
     addStep(
-      9,
+      6,
       `Start Row ${r} Dot Product Execution`,
       `Targeting row A[${r}][:] of weight matrix A.`,
       { r },
       r,
     );
 
-    // Step 10: Initialize dot accumulator
+    // Line 7: Initialize dot accumulator
     let dot = 0;
     addStep(
-      10,
+      7,
       `Initialize Accumulation Register dot = 0 for Row ${r}`,
       "Zero-initializing row scalar product register.",
       { r, dot },
@@ -216,9 +186,9 @@ export const generateMatrixVectorMultiplicationSteps = (
     );
 
     for (let c = 0; c < cols; c++) {
-      // Step 11: Inner loop col c
+      // Line 8: Inner loop col c
       addStep(
-        11,
+        8,
         `Fetch Column ${c} Entry A[${r}][${c}] and Vector x[${c}]`,
         `Reading weight A[${r}][${c}] (${matrix[r][c]}) and activation x[${c}] (${vector[c]}).`,
         { r, c, valA: matrix[r][c], valX: vector[c] },
@@ -229,9 +199,9 @@ export const generateMatrixVectorMultiplicationSteps = (
       const prod = matrix[r][c] * vector[c];
       dot += prod;
 
-      // Step 12: Multiply-accumulate
+      // Line 9: Multiply-accumulate
       addStep(
-        12,
+        9,
         `Multiply-Accumulate: dot += A[${r}][${c}] * x[${c}]`,
         `A[${r}][${c}] (${matrix[r][c]}) * x[${c}] (${vector[c]}) = ${prod}; Accumulator dot = ${dot}`,
         { r, c, valA: matrix[r][c], valX: vector[c], prod, dot },
@@ -242,9 +212,9 @@ export const generateMatrixVectorMultiplicationSteps = (
 
     result.push(dot);
 
-    // Step 13: Append row dot result
+    // Line 10: Append row dot result
     addStep(
-      13,
+      10,
       `Append Row ${r} Dot Result (y[${r}] = ${dot})`,
       `Stored completed dot product sum ${dot} into output result vector y.`,
       { r, dot, resultLength: result.length },
@@ -252,9 +222,9 @@ export const generateMatrixVectorMultiplicationSteps = (
     );
   }
 
-  // Step 15: Return statement
+  // Line 12: Return statement
   addStep(
-    15,
+    12,
     "Execution Complete: Return Result Vector y",
     `Completed GEMV matrix-vector product. Result vector y = [${result.join(", ")}].`,
     { completed: true, result: JSON.stringify(result) },
@@ -264,7 +234,7 @@ export const generateMatrixVectorMultiplicationSteps = (
 };
 
 const MATRIXVECTORMULTIPLICATION_TRIVIA: TriviaMeta = {
-  skipLines: [8, 14],
+  skipLines: [5, 11],
   distractors: [
     "result.append(sum(vector))",
     "dot += matrix[r][c] + vector[c]",
@@ -272,38 +242,31 @@ const MATRIXVECTORMULTIPLICATION_TRIVIA: TriviaMeta = {
     "return matrix",
   ],
   hints: [
-    { line: 9, hint: "Outer loop iterates through each row r of matrix A." },
-    { line: 12, hint: "Multiply matrix[r][c] by vector[c] and accumulate into scalar dot." },
-    { line: 13, hint: "Append row dot product sum to output vector y." },
+    { line: 6, hint: "Outer loop iterates through each row r of matrix A." },
+    { line: 9, hint: "Multiply matrix[r][c] by vector[c] and accumulate into scalar dot." },
+    { line: 10, hint: "Append row dot product sum to output vector y." },
   ],
   lineExplanations: {
     1: "Defines GEMV matrix-vector multiplication function signature.",
-    2: "Start of docstring detailing GEMV arithmetic operation.",
-    3: "Describes computation of output vector y = A * x.",
-    4: "End of docstring.",
-    5: "Gets matrix row count M (len(matrix)).",
-    6: "Gets input vector length N (len(vector)).",
-    7: "Initializes empty list to collect output vector entries.",
-    8: "Blank line separating allocation and row loop.",
-    9: "Loops through each matrix row index r.",
-    10: "Initializes row dot product accumulator to 0.",
-    11: "Loops through each column index c.",
-    12: "Accumulates element product matrix[r][c] * vector[c] into dot.",
-    13: "Appends completed scalar dot product to output result vector.",
-    14: "Blank line prior to return.",
-    15: "Returns computed 1D output result vector y.",
+    2: "Gets matrix row count M (len(matrix)).",
+    3: "Gets input vector length N (len(vector)).",
+    4: "Initializes empty list to collect output vector entries.",
+    5: "Blank line separating allocation and row loop.",
+    6: "Loops through each matrix row index r.",
+    7: "Initializes row dot product accumulator to 0.",
+    8: "Loops through each column index c.",
+    9: "Accumulates element product matrix[r][c] * vector[c] into dot.",
+    10: "Appends completed scalar dot product to output result vector.",
+    11: "Blank line prior to return.",
+    12: "Returns computed 1D output result vector y.",
   },
 };
 
 export const matrixVectorMultiplication: AlgorithmDefinition<matrixVectorMultiplicationInput> = {
   id: "matrix-vector-multiplication",
   title: "Matrix-Vector Multiplication (GEMV)",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description:
     "General Matrix-Vector Multiplication (GEMV: $y = A \\times x$) is the foundational linear algebra operation executing single-token decoding in auto-regressive Large Language Models (e.g. LLaMA, GPT-4, Mistral). In the decoding phase, batch size is $B=1$, meaning weight matrix $A$ ($M \\times N$) is multiplied by a single token vector $x$ ($N \\times 1$).\n\nBecause each weight in matrix $A$ is loaded from DRAM exactly once to perform a single multiply-add operation, GEMV has an Operational Intensity of $I \\approx \\frac{2 \\cdot M \\cdot N}{2 \\cdot M \\cdot N \\text{ bytes}} = 1.0$ FLOP/Byte (for FP16 weights). This makes GEMV strictly Memory-Bandwidth Bound on modern GPUs, capping token generation speeds directly by DRAM/HBM bandwidth.\n\nInput Format:\n- matrix: M x N 2D matrix A.\n- vector: N x 1 1D activation vector x.\n\nOutput Format:\n- Returns M x 1 1D output vector y.\n\nEdge Cases & Constraints:\n- Mismatched dimensions (vector length != matrix column count).\n- 1x1 matrix multiplied by scalar vector.\n- Sparse matrix inputs.",
   constraints: ["1 <= matrix.length <= 100", "matrix[0].length == vector.length"],

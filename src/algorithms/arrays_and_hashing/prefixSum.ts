@@ -160,7 +160,6 @@ const PREFIX_SUM_TRIVIA: TriviaMeta = {
 export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   id: "prefix-sum",
   title: "Prefix Sum",
-  category: "arrays_and_hashing",
   difficulty: "Easy",
   description:
     "Prefix Sum is a precomputation technique that builds running totals across an array to answer arbitrary range sum queries in constant time.\n\n### Why It Exists & What It Solves\nCalculating range sums $\\sum_{k=L}^R \\text{nums}[k]$ on-the-fly costs $\\mathcal{O}(N)$ per query, resulting in $\\mathcal{O}(Q \\cdot N)$ total time for $Q$ queries. Prefix Sum trades a one-time $\\mathcal{O}(N)$ precomputation phase to create a cumulative array $\\text{prefix}$ of size $N + 1$. Subsequent range queries execute in $\\mathcal{O}(1)$ time via scalar subtraction:\n$$\\text{RangeSum}(L, R) = \\text{prefix}[R + 1] - \\text{prefix}[L]$$\n\n### Step-by-Step Intuition\n1. **Sentinel Array Allocation**: Allocate `prefix` of size $N + 1$ initialized to $0$, setting $\\text{prefix}[0] = 0$. This 1-based offset sentinel prevents off-by-one errors when $L=0$.\n2. **Linear Accumulation**: Walk $i$ from $0$ to $N - 1$, setting:\n   $$\\text{prefix}[i + 1] = \\text{prefix}[i] + \\text{nums}[i]$$\n3. **Constant Time Query**: To sum $\\text{nums}[L \\dots R]$, take cumulative total up to $R$ ($\\text{prefix}[R + 1]$) and subtract cumulative total before $L$ ($\\text{prefix}[L]$).\n\n### Mathematical Formulation & Derivation\nThe prefix sum array definition is:\n$$\\text{prefix}[k] = \\begin{cases} 0, & \\text{if } k = 0 \\\\ \\sum_{j=0}^{k-1} \\text{nums}[j], & \\text{if } 1 \\le k \\le N \\end{cases}$$\nBy fundamental theorem of finite differences:\n$$\\text{prefix}[R + 1] - \\text{prefix}[L] = \\sum_{j=0}^{R} \\text{nums}[j] - \\sum_{j=0}^{L-1} \\text{nums}[j] = \\sum_{j=L}^{R} \\text{nums}[j]$$\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), an array of integers where $1 \\le N \\le 10^5$.\n- **Output**: `list[int]`, prefix array of size $N + 1$ where $\\text{prefix}[i]$ holds sum of $\\text{nums}[0 \\dots i-1]$.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**:\n  - **Precomputation**: $\\mathcal{O}(N)$ linear time to build the prefix array.\n  - **Range Query**: $\\mathcal{O}(1)$ constant time per range sum query.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for the $\\text{prefix}$ array of size $N + 1$.\n\n### Edge Cases & Constraints\n- **Full Range ($0 \\dots N-1$)**: $\\text{prefix}[N] - \\text{prefix}[0] = \\text{prefix}[N]$.\n- **Single Element Range ($L = R$)**: $\\text{prefix}[L + 1] - \\text{prefix}[L] = \\text{nums}[L]$.\n- **Negative & Zero Values**: Handled seamlessly since signed addition preserves identity.",
@@ -204,8 +203,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   spaceComplexity: "O(n)",
   complexityAnalysis: {
     time: "Single pass over input array nums. Each element performs one addition to compute prefix[i+1], resulting in O(n) precomputation time.",
-    space:
-      "Allocates an extra prefix sum array of size n + 1, requiring O(n) auxiliary space.",
+    space: "Allocates an extra prefix sum array of size n + 1, requiring O(n) auxiliary space.",
   },
   topicGuide: {
     overview:
@@ -246,7 +244,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
       },
     ],
   },
-  categories: ["arrays_and_hashing"],
+  topicIds: ["arrays_and_hashing"],
   trivia: PREFIX_SUM_TRIVIA,
   leetcode: {
     id: 303,
@@ -270,4 +268,3 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   defaultInput: DEFAULT_PREFIX_SUM_INPUT,
   generateSteps: generatePrefixSumSteps,
 };
-

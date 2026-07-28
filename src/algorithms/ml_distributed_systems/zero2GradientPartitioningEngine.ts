@@ -7,23 +7,6 @@ export interface zero2GradientPartitioningEngineInput {
 }
 
 export const ZERO2GRADIENTPARTITIONINGENGINE_CODE = `def estimate_zero2_memory(parameters, num_gpus):
-    """
-    Calculates per-GPU VRAM footprint under DeepSpeed ZeRO-2 (Optimizer State + Gradient Partitioning).
-    
-    For Adam mixed-precision training with parameter count Psi and N GPUs:
-    - Model Weights (FP16): 2 * Psi bytes (unsharded)
-    - Gradients (FP16): 2 * Psi / N bytes (sharded via Reduce-Scatter)
-    - Optimizer States (FP32): 12 * Psi / N bytes (sharded)
-
-    Total per-GPU memory = 2*Psi + (2*Psi / N) + (12*Psi / N) = 2*Psi + (14*Psi / N).
-
-    Args:
-        parameters: Total parameter count (Psi)
-        num_gpus: Number of data parallel GPUs (N)
-
-    Returns:
-        dict of per-GPU memory allocations for weights, gradients, and optimizer states.
-    """
     if num_gpus <= 0:
         raise ValueError("Number of GPUs must be at least 1")
 
@@ -98,7 +81,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   );
 
   addStep(
-    19,
+    2,
     "Check Number of GPUs Guard (num_gpus <= 0)",
     `Validating GPU count: ${N} >= 1. Guard check passed.`,
     { num_gpus: N, valid: true },
@@ -107,7 +90,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
 
   const weightBytes = 2 * params;
   addStep(
-    22,
+    5,
     `Compute Unsharded FP16 Model Weight Memory weight_bytes = ${(weightBytes / 1e9).toFixed(2)} GB`,
     `Unsharded model weights: 2 bytes/param * ${params.toLocaleString()} = ${(weightBytes / 1e9).toFixed(2)} GB per GPU.`,
     { parameters: params, weight_bytes: weightBytes },
@@ -116,7 +99,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
 
   const gradientBytesPerGpu = (2 * params) / N;
   addStep(
-    23,
+    6,
     `Compute Sharded FP16 Gradient Memory gradient_bytes_per_gpu = ${(gradientBytesPerGpu / 1e9).toFixed(2)} GB`,
     `Reduce-Scatter gradient sharding: (2 * ${params.toLocaleString()}) / ${N} = ${(gradientBytesPerGpu / 1e9).toFixed(2)} GB per GPU.`,
     { parameters: params, num_gpus: N, gradient_bytes_per_gpu: gradientBytesPerGpu },
@@ -125,7 +108,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
 
   const optimizerBytesPerGpu = (12 * params) / N;
   addStep(
-    24,
+    7,
     `Compute Sharded FP32 Optimizer Memory optimizer_bytes_per_gpu = ${(optimizerBytesPerGpu / 1e9).toFixed(2)} GB`,
     `Adam optimizer state sharding: (12 * ${params.toLocaleString()}) / ${N} = ${(optimizerBytesPerGpu / 1e9).toFixed(2)} GB per GPU.`,
     { parameters: params, num_gpus: N, optimizer_bytes_per_gpu: optimizerBytesPerGpu },
@@ -134,31 +117,35 @@ export const generateZero2GradientPartitioningEngineSteps = (
 
   const totalPerGpu = weightBytes + gradientBytesPerGpu + optimizerBytesPerGpu;
   addStep(
-    25,
+    8,
     `Compute Total Per-GPU VRAM Footprint total_per_gpu = ${(totalPerGpu / 1e9).toFixed(2)} GB`,
     `Total per-GPU memory: weight (${(weightBytes / 1e9).toFixed(2)}GB) + grad (${(gradientBytesPerGpu / 1e9).toFixed(2)}GB) + opt (${(optimizerBytesPerGpu / 1e9).toFixed(2)}GB) = ${(totalPerGpu / 1e9).toFixed(2)} GB.`,
-    { weight_bytes: weightBytes, gradient_bytes_per_gpu: gradientBytesPerGpu, optimizer_bytes_per_gpu: optimizerBytesPerGpu, total_per_gpu: totalPerGpu },
+    {
+      weight_bytes: weightBytes,
+      gradient_bytes_per_gpu: gradientBytesPerGpu,
+      optimizer_bytes_per_gpu: optimizerBytesPerGpu,
+      total_per_gpu: totalPerGpu,
+    },
     [...elements],
   );
 
   input.data.forEach((val, idx) => {
-    const isTarget = val === input.target;
     const currentElements: ArrayElement[] = elements.map((el, i) => {
       if (i === idx)
         return {
           ...el,
-          state: isTarget ? ("active" as const) : ("compare" as const),
-          pointers: [`GPU_${idx}`, `VRAM: ${(totalPerGpu / 1e9).toFixed(2)}GB`],
+          state: "active" as const,
+          pointers: [`GPU_${idx}`, `Grad: ${(gradientBytesPerGpu / 1e9).toFixed(2)}GB`],
         };
       if (i < idx) return { ...el, state: "visited" as const };
       return el;
     });
 
     addStep(
-      25,
-      `Allocate ZeRO-2 Bucket for GPU ${idx} (Payload = ${val} MB)`,
-      `Executing Reduce-Scatter for bucket ${idx}, retaining 1/${N}-th gradient slice on GPU ${idx}.`,
-      { idx, val, total_per_gpu: totalPerGpu, isTarget },
+      6,
+      `Execute Reduce-Scatter & Partition Gradient for GPU Rank ${idx} (Payload = ${val} MB)`,
+      `GPU ${idx} retains 1/${N}-th gradient partition (${(gradientBytesPerGpu / 1e9).toFixed(2)} GB) and sharded optimizer state (${(optimizerBytesPerGpu / 1e9).toFixed(2)} GB), releasing remaining $(N-1)/N$ gradient buffers.`,
+      { idx, val, total_per_gpu: totalPerGpu, gradient_bytes_per_gpu: gradientBytesPerGpu },
       currentElements,
     );
   });
@@ -170,7 +157,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   }));
 
   addStep(
-    27,
+    10,
     "Construct Return Dictionary Payload",
     "Assembling ZeRO-2 memory breakdown dictionary.",
     { total_per_gpu: totalPerGpu },
@@ -178,7 +165,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   );
 
   addStep(
-    28,
+    11,
     `Set weight_bytes = ${(weightBytes / 1e9).toFixed(2)} GB`,
     "Assigning FP16 unsharded weight memory footprint.",
     { weight_bytes: weightBytes },
@@ -186,7 +173,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   );
 
   addStep(
-    29,
+    12,
     `Set gradient_bytes_per_gpu = ${(gradientBytesPerGpu / 1e9).toFixed(2)} GB`,
     "Assigning FP16 Reduce-Scatter sharded gradient memory requirement.",
     { gradient_bytes_per_gpu: gradientBytesPerGpu },
@@ -194,7 +181,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   );
 
   addStep(
-    30,
+    13,
     `Set optimizer_bytes_per_gpu = ${(optimizerBytesPerGpu / 1e9).toFixed(2)} GB`,
     "Assigning FP32 Adam sharded optimizer state memory requirement.",
     { optimizer_bytes_per_gpu: optimizerBytesPerGpu },
@@ -202,7 +189,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   );
 
   addStep(
-    31,
+    14,
     `Set total_per_gpu = ${(totalPerGpu / 1e9).toFixed(2)} GB`,
     "Assigning total per-GPU VRAM memory footprint.",
     { total_per_gpu: totalPerGpu },
@@ -210,7 +197,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
   );
 
   addStep(
-    32,
+    15,
     "Return DeepSpeed ZeRO-2 Memory Allocation Analysis",
     `Completed ZeRO-2 memory estimation across ${N} GPUs. Total per-GPU VRAM footprint = ${(totalPerGpu / 1e9).toFixed(2)} GB.`,
     {
@@ -227,7 +214,7 @@ export const generateZero2GradientPartitioningEngineSteps = (
 };
 
 const ZERO2GRADIENTPARTITIONINGENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21, 26],
+  skipLines: [4, 9],
   distractors: [
     "total_per_gpu = weight_bytes * num_gpus",
     "gradient_bytes_per_gpu = weight_bytes * 2",
@@ -235,44 +222,36 @@ const ZERO2GRADIENTPARTITIONINGENGINE_TRIVIA: TriviaMeta = {
     "total_per_gpu = weight_bytes + gradient_bytes_per_gpu",
   ],
   hints: [
-    { line: 22, hint: "FP16 model weights are unsharded: weight_bytes = 2 * parameters." },
-    { line: 23, hint: "Gradients are sharded via Reduce-Scatter: gradient_bytes_per_gpu = (2 * parameters) / num_gpus." },
-    { line: 24, hint: "Adam optimizer states are sharded: optimizer_bytes_per_gpu = (12 * parameters) / num_gpus." },
-    { line: 25, hint: "Total per-GPU memory = weight_bytes + gradient_bytes_per_gpu + optimizer_bytes_per_gpu." },
+    { line: 5, hint: "FP16 model weights are unsharded: weight_bytes = 2 * parameters." },
+    {
+      line: 6,
+      hint: "Gradients are sharded via Reduce-Scatter: gradient_bytes_per_gpu = (2 * parameters) / num_gpus.",
+    },
+    {
+      line: 7,
+      hint: "Adam optimizer states are sharded: optimizer_bytes_per_gpu = (12 * parameters) / num_gpus.",
+    },
+    {
+      line: 8,
+      hint: "Total per-GPU memory = weight_bytes + gradient_bytes_per_gpu + optimizer_bytes_per_gpu.",
+    },
   ],
   lineExplanations: {
     1: "Function signature for estimate_zero2_memory taking parameters and num_gpus.",
-    2: "Docstring start describing ZeRO-2 optimizer and gradient partitioning.",
-    3: "Describes per-GPU VRAM footprint calculation under DeepSpeed ZeRO-2.",
-    4: "Blank line in docstring.",
-    5: "Describes mixed precision Adam training components.",
-    6: "Explains unsharded FP16 model weights (2 * Psi bytes).",
-    7: "Explains sharded FP16 gradients (2 * Psi / N bytes) via Reduce-Scatter.",
-    8: "Explains sharded FP32 optimizer states (12 * Psi / N bytes).",
-    9: "Blank line in docstring.",
-    10: "Shows total per-GPU memory equation: 2*Psi + (14*Psi / N).",
-    11: "Blank line in docstring.",
-    12: "Docstring parameters section header.",
-    13: "Explains parameters argument representing total model parameter count Psi.",
-    14: "Explains num_gpus argument representing Data Parallel world size N.",
-    15: "Blank line in docstring.",
-    16: "Docstring returns section header.",
-    17: "Explains return dictionary of per-GPU memory allocations.",
-    18: "Docstring close.",
-    19: "Checks guard condition if num_gpus is less than or equal to 0.",
-    20: "Raises ValueError if GPU count is invalid.",
-    21: "Blank line before memory calculations.",
-    22: "Calculates unsharded FP16 weight memory weight_bytes = 2 * parameters.",
-    23: "Calculates sharded gradient memory per GPU gradient_bytes_per_gpu = (2 * parameters) / num_gpus.",
-    24: "Calculates sharded optimizer memory per GPU optimizer_bytes_per_gpu = (12 * parameters) / num_gpus.",
-    25: "Calculates total_per_gpu by summing weight_bytes, gradient_bytes_per_gpu, and optimizer_bytes_per_gpu.",
-    26: "Blank line before returning dictionary payload.",
-    27: "Opens return dictionary payload.",
-    28: "Sets weight_bytes field in return dictionary.",
-    29: "Sets gradient_bytes_per_gpu field in return dictionary.",
-    30: "Sets optimizer_bytes_per_gpu field in return dictionary.",
-    31: "Sets total_per_gpu field in return dictionary.",
-    32: "Closes return dictionary payload and returns result.",
+    2: "Checks guard condition if num_gpus is less than or equal to 0.",
+    3: "Raises ValueError if GPU count is invalid.",
+    4: "Blank line separating guard clause from memory calculations.",
+    5: "Calculates unsharded FP16 weight memory weight_bytes = 2 * parameters.",
+    6: "Calculates sharded gradient memory per GPU gradient_bytes_per_gpu = (2 * parameters) / num_gpus.",
+    7: "Calculates sharded optimizer memory per GPU optimizer_bytes_per_gpu = (12 * parameters) / num_gpus.",
+    8: "Calculates total_per_gpu by summing weight_bytes, gradient_bytes_per_gpu, and optimizer_bytes_per_gpu.",
+    9: "Blank line before returning dictionary payload.",
+    10: "Opens return dictionary payload.",
+    11: "Sets weight_bytes field in return dictionary.",
+    12: "Sets gradient_bytes_per_gpu field in return dictionary.",
+    13: "Sets optimizer_bytes_per_gpu field in return dictionary.",
+    14: "Sets total_per_gpu field in return dictionary.",
+    15: "Closes return dictionary payload and returns result.",
   },
 };
 
@@ -280,12 +259,8 @@ export const zero2GradientPartitioningEngine: AlgorithmDefinition<zero2GradientP
   {
     id: "zero2-gradient-partitioning-engine",
     title: "DeepSpeed ZeRO-2 Gradient Partitioning Engine",
-    category: "ml_distributed_systems",
-    categories: ["ml_distributed_systems", "ml_hardware_kernels"],
+    topicIds: ["ml_distributed_systems", "ml_hardware_kernels"],
     difficulty: "Medium",
-    isMlInfra: true,
-    mlInfraLevel: 11,
-    mlInfraCategory: "ml_distributed_systems",
     description:
       "Calculates per-GPU VRAM memory allocation under DeepSpeed ZeRO-2 (Zero Redundancy Optimizer Stage 2: Gradient Partitioning).\n\n### Mathematical Formulation & Memory Breakdown\nIn deep learning mixed-precision training (FP16/BF16) with parameter count $\\Psi$ across $N$ Data Parallel GPUs:\n- **Model Weights (FP16/BF16)**: $M_{\\text{weights}} = 2\\Psi$ bytes (unsharded, replicated across all GPUs)\n- **Gradients (FP16/BF16)**: $M_{\\text{grads}} = \\frac{2\\Psi}{N}$ bytes (sharded using Reduce-Scatter during backward pass)\n- **Adam Optimizer States (FP32)**: $M_{\\text{opt}} = \\frac{12\\Psi}{N}$ bytes (sharded across $N$ GPUs)\n\nTotal per-GPU memory footprint under ZeRO-2:\n$$M_{\\text{ZeRO-2}} = 2\\Psi + \\frac{2\\Psi}{N} + \\frac{12\\Psi}{N} = 2\\Psi + \\frac{14\\Psi}{N} \\text{ bytes}$$\nPer-GPU memory savings compared to baseline DDP ($16\\Psi$ bytes) is:\n$$\\Delta M = 16\\Psi - \\left(2\\Psi + \\frac{14\\Psi}{N}\\right) = 14\\Psi \\left(1 - \\frac{1}{N}\\right) \\text{ bytes}$$\n\nKey Mechanics:\nDuring the backward pass, as each layer computes its gradients, a Reduce-Scatter operation immediately sums gradients across DP ranks and retains ONLY the $1/N$-th gradient slice corresponding to that GPU's sharded optimizer state. The remaining $(N-1)/N$ gradient buffers are released immediately, preventing full gradient accumulation VRAM spikes.\n\nInput Format:\n- `data`: Array representing parameter count blocks or layer payload magnitudes.\n- `target`: Optional target search marker.\n\nOutput Format:\n- Returns per-GPU memory allocations for weights, gradients, and optimizer states.\n\nEdge Cases & Constraints:\n- Single GPU ($N=1$): No sharding benefit; memory footprint is $16\\Psi$.\n- Gradient Accumulation: Requires retaining local gradient partitions across multiple micro-batches before optimizer steps.",
     constraints: ["1 <= data.length <= 1000", "0 <= data[i] <= 10^9"],

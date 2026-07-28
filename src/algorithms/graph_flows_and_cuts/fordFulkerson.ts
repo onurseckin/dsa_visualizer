@@ -10,8 +10,7 @@ export { FORD_FULKERSON_CODE, DEFAULT_FORD_FULKERSON_INPUT, generateFordFulkerso
 export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   id: "ford-fulkerson",
   title: "Ford-Fulkerson Maximum Flow",
-  category: "graph_flows_and_cuts",
-  categories: ["graph_flows_and_cuts"],
+  topicIds: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
     "Computes the maximum flow from a source vertex S to a sink vertex T in a flow network by repeatedly finding augmenting paths in the residual graph. The algorithm terminates when no path with positive residual capacity exists, guaranteeing maximum throughput according to the Max-Flow Min-Cut Theorem in $\\mathcal{O}(E \\cdot |f^*|)$ time.",

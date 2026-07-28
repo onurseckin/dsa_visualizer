@@ -11,10 +11,11 @@ describe("nvlink-symmetric-memory-peer-to-peer-engine (NVLink SymmetricMemory Pe
     expect(nvlinkSymmetricMemoryPeerToPeerEngine.id).toBe(
       "nvlink-symmetric-memory-peer-to-peer-engine",
     );
-    expect(nvlinkSymmetricMemoryPeerToPeerEngine.isMlInfra).toBe(true);
-    expect(nvlinkSymmetricMemoryPeerToPeerEngine.mlInfraLevel).toBe(11);
-    expect(nvlinkSymmetricMemoryPeerToPeerEngine.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(nvlinkSymmetricMemoryPeerToPeerEngine.categories).toContain("ml_distributed_systems");
+    expect(
+      nvlinkSymmetricMemoryPeerToPeerEngine.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(nvlinkSymmetricMemoryPeerToPeerEngine.topicIds).toContain("ml_distributed_systems");
+    expect(nvlinkSymmetricMemoryPeerToPeerEngine.topicIds).toContain("ml_distributed_systems");
   });
 
   it("should generate >= 20 algorithm steps", () => {
@@ -22,7 +23,9 @@ describe("nvlink-symmetric-memory-peer-to-peer-engine (NVLink SymmetricMemory Pe
       DEFAULT_NVLINKSYMMETRICMEMORYPEERTOPEERENGINE_INPUT,
     );
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    expect(steps[0].explanation.what).toContain("Enter nvlink_symmetric_memory_peer_to_peer_engine");
+    expect(steps[0].explanation.what).toContain(
+      "Enter nvlink_symmetric_memory_peer_to_peer_engine",
+    );
     expect(steps[steps.length - 1].explanation.what).toBe("Return Peer Transfers List");
   });
 
@@ -35,4 +38,3 @@ describe("nvlink-symmetric-memory-peer-to-peer-engine (NVLink SymmetricMemory Pe
     }
   });
 });
-

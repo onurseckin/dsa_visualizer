@@ -20,15 +20,9 @@ export const DEFAULT_UNIGRAM_CANDIDATE_LOSS_INPUT: UnigramCandidateLossRanksInpu
 export const UNIGRAM_CANDIDATE_LOSS_CODE = `import math
 
 def compute_unigram_loss_impact(corpus: list[str], vocab: dict[str, float], candidates: list[str]) -> list[tuple[float, str]]:
-    """
-    Computes negative log-likelihood loss rank impact when removing candidate subword tokens
-    during Unigram LM vocabulary pruning (Kudo 2018).
-    Loss impact L_loss(t) = L(V - {t}) - L(V). Tokens with lowest loss increase are pruned.
-    """
     def compute_corpus_log_loss(current_vocab: dict[str, float]) -> float:
         total_loss = 0.0
         for text in corpus:
-            # Simplified Viterbi cost approximation
             word_cost = 0.0
             idx = 0
             while idx < len(text):
@@ -41,7 +35,7 @@ def compute_unigram_loss_impact(corpus: list[str], vocab: dict[str, float], cand
                         matched = True
                         break
                 if not matched:
-                    word_cost += 10.0 # penalty for OOV
+                    word_cost += 10.0
                     idx += 1
             total_loss += word_cost
         return total_loss
@@ -50,13 +44,11 @@ def compute_unigram_loss_impact(corpus: list[str], vocab: dict[str, float], cand
     impact_ranks = []
 
     for candidate in candidates:
-        # Create vocabulary without candidate token
         pruned_vocab = {k: v for k, v in vocab.items() if k != candidate}
         pruned_loss = compute_corpus_log_loss(pruned_vocab)
         loss_increase = pruned_loss - baseline_loss
         impact_ranks.append((round(loss_increase, 4), candidate))
 
-    # Sort candidates by ascending loss increase (lowest loss increase = safest to prune)
     impact_ranks.sort(key=lambda x: x[0])
     return impact_ranks`;
 
@@ -67,7 +59,6 @@ export const generateUnigramCandidateLossSteps = (
   const { corpus, vocab, candidatesToEvaluate } = input;
   let stepIndex = 0;
 
-  // Baseline Loss
   const computeLoss = (vMap: Record<string, number>) => {
     let loss = 0;
     for (const text of corpus) {
@@ -94,54 +85,146 @@ export const generateUnigramCandidateLossSteps = (
 
   const baselineLoss = computeLoss(vocab);
 
-  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 24,
     explanation: {
-      what: "Initialize Unigram LM Candidate Loss Rank Evaluator",
-      why: `Baseline corpus negative log-likelihood loss L(V) = ${baselineLoss.toFixed(
+      what: "Calculate Baseline Corpus Log-Loss L(V)",
+      why: `Full vocabulary loss L(V) = ${baselineLoss.toFixed(
         4,
-      )}. Evaluating loss impact for ${candidatesToEvaluate.length} candidate tokens.`,
+      )}. Loss increase for candidate tokens will be measured relative to this baseline.`,
     },
     primarySnapshot: {
       kind: "array",
       elements: candidatesToEvaluate.map((cand, idx) => ({
         id: `cand-${idx}`,
-        value: idx,
-        label: `Token "${cand}"`,
+        value: 0,
+        label: `"${cand}"`,
         state: "default" as ElementState,
       })),
     },
     auxiliaryState: {
       customState: {
         baselineLoss: baselineLoss.toFixed(4),
-        candidatesCount: String(candidatesToEvaluate.length),
-        status: "Initialized",
+        candidateCount: String(candidatesToEvaluate.length),
+        status: "Baseline Computed",
       },
     },
-    variables: { baselineLoss: Math.round(baselineLoss * 100) / 100 },
+    variables: { baselineLoss: Math.round(baselineLoss * 10000) / 10000 },
   });
 
-  const impacts: { candidate: string; lossIncrease: number }[] = [];
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 25,
+    explanation: {
+      what: "Initialize Candidates Impact Ranking List",
+      why: "Initialize empty impact_ranks list to store pairs of (loss_increase, candidate).",
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: candidatesToEvaluate.map((cand, idx) => ({
+        id: `cand-${idx}`,
+        value: 0,
+        label: `"${cand}"`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        baselineLoss: baselineLoss.toFixed(4),
+        impactRanksCount: "0",
+        status: "Ready for Evaluation",
+      },
+    },
+    variables: { impactRanks: [] },
+  });
+
+  const impacts: { candidate: string; lossIncrease: number; prunedLoss: number }[] = [];
 
   for (let cIdx = 0; cIdx < candidatesToEvaluate.length; cIdx++) {
     const cand = candidatesToEvaluate[cIdx];
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 27,
+      explanation: {
+        what: `Select Candidate Token "${cand}" (${cIdx + 1}/${candidatesToEvaluate.length})`,
+        why: `Begin evaluating negative log-likelihood loss impact for candidate token "${cand}".`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: candidatesToEvaluate.map((c, idx) => ({
+          id: `cand-${idx}`,
+          value: idx < cIdx ? Math.round(impacts[idx].lossIncrease * 10000) / 10000 : 0,
+          label: `"${c}" ${idx < cIdx ? `(dL=${impacts[idx].lossIncrease.toFixed(4)})` : ""}`,
+          state:
+            idx === cIdx
+              ? ("active" as ElementState)
+              : idx < cIdx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === cIdx ? ["Evaluating"] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          currentCandidate: `"${cand}"`,
+          baselineLoss: baselineLoss.toFixed(4),
+          evaluatedCount: `${cIdx}/${candidatesToEvaluate.length}`,
+        },
+      },
+      variables: { currentCandidate: cand, candidateIndex: cIdx },
+    });
+
     const prunedVocab: Record<string, number> = {};
     for (const [k, v] of Object.entries(vocab)) {
       if (k !== cand) prunedVocab[k] = v;
     }
 
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 28,
+      explanation: {
+        what: `Construct Pruned Vocabulary (V \\ {"${cand}"})`,
+        why: `Remove subword "${cand}" from vocabulary V. Pruned vocabulary now has ${
+          Object.keys(prunedVocab).length
+        } tokens.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: candidatesToEvaluate.map((c, idx) => ({
+          id: `cand-${idx}`,
+          value: idx < cIdx ? Math.round(impacts[idx].lossIncrease * 10000) / 10000 : 0,
+          label: `"${c}" ${idx < cIdx ? `(dL=${impacts[idx].lossIncrease.toFixed(4)})` : ""}`,
+          state:
+            idx === cIdx
+              ? ("active" as ElementState)
+              : idx < cIdx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
+          pointers: idx === cIdx ? ["Pruned from V"] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          currentCandidate: `"${cand}"`,
+          prunedVocabSize: String(Object.keys(prunedVocab).length),
+          status: "Vocabulary Pruned",
+        },
+      },
+      variables: { currentCandidate: cand, prunedVocabTokens: Object.keys(prunedVocab) },
+    });
+
     const prunedLoss = computeLoss(prunedVocab);
     const lossIncrease = Math.max(0, prunedLoss - baselineLoss);
-    impacts.push({ candidate: cand, lossIncrease });
+    impacts.push({ candidate: cand, lossIncrease, prunedLoss });
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 26,
+      codeLine: 30,
       explanation: {
-        what: `Evaluate Pruning Impact for Candidate Token "${cand}"`,
-        why: `Corpus loss without "${cand}" = ${prunedLoss.toFixed(4)}. Loss increase L(V\\{t}) - L(V) = ${lossIncrease.toFixed(
+        what: `Compute Loss Impact for "${cand}": dL = ${lossIncrease.toFixed(4)}`,
+        why: `Corpus loss without "${cand}" = ${prunedLoss.toFixed(4)}. Loss increase L(V\\{"${cand}"}) - L(V) = ${lossIncrease.toFixed(
           4,
         )}.`,
       },
@@ -149,40 +232,72 @@ export const generateUnigramCandidateLossSteps = (
         kind: "array",
         elements: candidatesToEvaluate.map((c, idx) => ({
           id: `cand-${idx}`,
-          value: idx === cIdx ? Math.round(lossIncrease * 100) : idx,
-          label: `"${c}" (dL=${idx <= cIdx ? (impacts[idx]?.lossIncrease ?? 0).toFixed(3) : "?"})`,
-          state: idx === cIdx ? ("active" as ElementState) : ("visited" as ElementState),
+          value: idx <= cIdx ? Math.round(impacts[idx].lossIncrease * 10000) / 10000 : 0,
+          label: `"${c}" ${idx <= cIdx ? `(dL=${impacts[idx].lossIncrease.toFixed(4)})` : ""}`,
+          state:
+            idx === cIdx
+              ? ("active" as ElementState)
+              : idx < cIdx
+                ? ("visited" as ElementState)
+                : ("default" as ElementState),
           pointers: idx === cIdx ? [`dL = ${lossIncrease.toFixed(4)}`] : [],
         })),
       },
       auxiliaryState: {
         customState: {
-          evaluatedCandidate: `"${cand}"`,
-          prunedCorpusLoss: prunedLoss.toFixed(4),
+          currentCandidate: `"${cand}"`,
+          prunedLoss: prunedLoss.toFixed(4),
+          baselineLoss: baselineLoss.toFixed(4),
           lossIncrease: lossIncrease.toFixed(4),
         },
       },
-      variables: { cIdx, candidate: cand, lossIncrease: Math.round(lossIncrease * 100) / 100 },
+      variables: {
+        candidate: cand,
+        prunedLoss: Math.round(prunedLoss * 10000) / 10000,
+        lossIncrease: Math.round(lossIncrease * 10000) / 10000,
+      },
+    });
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 31,
+      explanation: {
+        what: `Append (${lossIncrease.toFixed(4)}, "${cand}") to Impact Ranks List`,
+        why: `Impact tuple (${lossIncrease.toFixed(4)}, "${cand}") added to impact_ranks list.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: candidatesToEvaluate.map((c, idx) => ({
+          id: `cand-${idx}`,
+          value: idx <= cIdx ? Math.round(impacts[idx].lossIncrease * 10000) / 10000 : 0,
+          label: `"${c}" (dL=${idx <= cIdx ? impacts[idx].lossIncrease.toFixed(4) : "?"})`,
+          state: idx <= cIdx ? ("visited" as ElementState) : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          evaluatedCandidatesCount: `${impacts.length}/${candidatesToEvaluate.length}`,
+          latestRecordedImpact: `(${lossIncrease.toFixed(4)}, "${cand}")`,
+        },
+      },
+      variables: { recordedCandidates: impacts.map((i) => i.candidate) },
     });
   }
 
-  // Step Final: Sorted
   impacts.sort((a, b) => a.lossIncrease - b.lossIncrease);
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 30,
+    codeLine: 33,
     explanation: {
-      what: "Rank Candidates by Ascending Pruning Loss Impact",
-      why: `Safest token to prune: "${impacts[0]?.candidate}" (causes lowest loss increase ${impacts[0]?.lossIncrease.toFixed(
-        4,
-      )}).`,
+      what: "Sort Candidate Tokens by Ascending Loss Impact",
+      why: "Candidates causing the lowest loss increase are ranked first. Lowest loss increase indicates candidate is redundant and safest to prune.",
     },
     primarySnapshot: {
       kind: "array",
       elements: impacts.map((item, rank) => ({
         id: `res-${rank}`,
-        value: Math.round(item.lossIncrease * 100),
+        value: Math.round(item.lossIncrease * 10000) / 10000,
         label: `Rank ${rank + 1}: "${item.candidate}" (dL=${item.lossIncrease.toFixed(4)})`,
         state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
         pointers: rank === 0 ? ["Safest to Prune"] : [],
@@ -190,14 +305,43 @@ export const generateUnigramCandidateLossSteps = (
     },
     auxiliaryState: {
       customState: {
-        safestTokenToPrune: `"${impacts[0]?.candidate}"`,
+        safestToken: `"${impacts[0]?.candidate}"`,
+        minLossIncrease: impacts[0]?.lossIncrease.toFixed(4),
+        status: "Candidates Ranked",
+      },
+    },
+    variables: { sortedCandidates: impacts.map((i) => i.candidate) },
+  });
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 34,
+    explanation: {
+      what: "Return Candidate Loss Impact Ranks",
+      why: `Final evaluation complete. Token "${impacts[0]?.candidate}" causes the minimal loss increase (${impacts[0]?.lossIncrease.toFixed(
+        4,
+      )}) and is prioritized for pruning.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: impacts.map((item, rank) => ({
+        id: `res-${rank}`,
+        value: Math.round(item.lossIncrease * 10000) / 10000,
+        label: `Rank ${rank + 1}: "${item.candidate}" (dL=${item.lossIncrease.toFixed(4)})`,
+        state: rank === 0 ? ("sorted" as ElementState) : ("visited" as ElementState),
+        pointers: rank === 0 ? ["Safest to Prune"] : [],
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        safestToken: `"${impacts[0]?.candidate}"`,
         minLossIncrease: impacts[0]?.lossIncrease.toFixed(4),
         status: "Completed",
       },
     },
     variables: {
       safestCandidate: impacts[0]?.candidate,
-      minIncrease: impacts[0]?.lossIncrease,
+      minIncrease: Math.round((impacts[0]?.lossIncrease ?? 0) * 10000) / 10000,
       complete: true,
     },
   });
@@ -206,14 +350,10 @@ export const generateUnigramCandidateLossSteps = (
 };
 
 export const unigramCandidateLossRanks: AlgorithmDefinition<UnigramCandidateLossRanksInput> = {
-  id: "unigramCandidateLossRanks",
+  id: "unigram-candidate-loss-ranks",
   title: "Unigram Candidate Loss Impact Ranking",
-  category: "ml_tokenization",
-  categories: ["ml_tokenization"],
+  topicIds: ["ml_tokenization"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_tokenization",
   description:
     "Calculates the negative log-likelihood loss increase L(V\\{t}) - L(V) when candidate subword tokens t are removed from the Unigram LM vocabulary V (Kudo, 2018). Subwords causing the smallest loss increase are identified as redundant and prioritized for pruning.\n\nInput Format:\n- corpus: Array of text documents.\n- vocab: Current subword vocabulary map (token -> marginal probability P(t)).\n- candidatesToEvaluate: Array of candidate subwords evaluated for pruning.\n\nOutput Format:\n- Returns sorted list of (lossIncrease, candidateToken) in ascending order of loss impact.\n\nEdge Cases & Constraints:\n- Single character tokens: Cannot be pruned (infinitely high loss impact).",
   constraints: ["Single character tokens must be retained to maintain 100% coverage."],

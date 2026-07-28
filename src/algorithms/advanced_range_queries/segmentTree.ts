@@ -10,8 +10,7 @@ export { SEGMENT_TREE_CODE, DEFAULT_SEGMENT_TREE_INPUT, generateSegmentTreeSteps
 export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   id: "segment-tree",
   title: "Segment Tree (Range Sum Query & Update)",
-  category: "advanced_range_queries",
-  categories: ["advanced_range_queries"],
+  topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
     "A **Segment Tree** structures an array into a balanced binary tree of nested intervals where leaves hold individual elements and internal nodes cache interval aggregates. It supports both range queries (e.g., sum, min, max) and point updates in $O(\\log N)$ time per operation.",

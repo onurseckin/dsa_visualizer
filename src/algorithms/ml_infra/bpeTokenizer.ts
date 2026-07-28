@@ -12,7 +12,6 @@ export const BPE_TOKENIZER_CODE = `def bpe_tokenize(text: str, num_merges: int) 
     merges = []
     
     for iteration in range(num_merges):
-        # Count adjacent token pair frequencies across corpus
         pair_counts = {}
         for word in vocab:
             for i in range(len(word) - 1):
@@ -24,12 +23,11 @@ export const BPE_TOKENIZER_CODE = `def bpe_tokenize(text: str, num_merges: int) 
             
         best_pair = max(pair_counts, key=pair_counts.get)
         if pair_counts[best_pair] < 2:
-            break  # Stop if no pair frequency > 1
+            break
             
         merges.append(best_pair)
         target_pair = best_pair[0] + best_pair[1]
         
-        # Merge best pair in vocabulary tokens
         new_vocab = []
         for word in vocab:
             new_word = []
@@ -62,21 +60,47 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
   const getSnapshotElements = (
     currentVocab: string[][],
-    mergedPair?: [string, string],
+    options?: {
+      activePair?: [string, string];
+      mergedPair?: [string, string];
+    },
   ): ArrayElement[] => {
     const elements: ArrayElement[] = [];
     let idx = 0;
 
+    const { activePair, mergedPair } = options || {};
+
     currentVocab.forEach((wordTokens) => {
-      wordTokens.forEach((token) => {
-        const isMerged = mergedPair !== undefined && token === mergedPair[0] + mergedPair[1];
+      for (let i = 0; i < wordTokens.length; i++) {
+        const token = wordTokens[i];
+        let state: ArrayElement["state"] = "default";
+
+        if (mergedPair !== undefined && token === mergedPair[0] + mergedPair[1]) {
+          state = "sorted";
+        } else if (
+          activePair !== undefined &&
+          i < wordTokens.length - 1 &&
+          wordTokens[i] === activePair[0] &&
+          wordTokens[i + 1] === activePair[1]
+        ) {
+          state = "active";
+        } else if (
+          activePair !== undefined &&
+          i > 0 &&
+          wordTokens[i - 1] === activePair[0] &&
+          wordTokens[i] === activePair[1]
+        ) {
+          state = "active";
+        }
+
         elements.push({
           id: `tok-${idx++}`,
-          value: token.length,
-          state: isMerged ? "sorted" : "default",
+          value: token,
+          label: token,
+          state,
           pointers: [token],
         });
-      });
+      }
     });
 
     return elements;
@@ -88,7 +112,10 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
     why: string,
     variables: Record<string, string | number | boolean>,
     currentVocab: string[][],
-    mergedPair?: [string, string],
+    options?: {
+      activePair?: [string, string];
+      mergedPair?: [string, string];
+    },
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -96,7 +123,7 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: getSnapshotElements(currentVocab, mergedPair),
+        elements: getSnapshotElements(currentVocab, options),
       },
       auxiliaryState: {
         customState: {
@@ -119,7 +146,7 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
   addStep(
     2,
-    `words = text.split() → [${rawWords.map(w => `'${w}'`).join(", ")}]`,
+    `words = text.split() → [${rawWords.map((w) => `'${w}'`).join(", ")}]`,
     `Split input into ${rawWords.length} words by whitespace.`,
     { words: rawWords.join(", "), word_count: rawWords.length },
     vocab,
@@ -159,12 +186,20 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
       }
     });
 
+    addStep(
+      7,
+      `Iteration ${iter + 1}: Count adjacent token pair frequencies across corpus`,
+      `Scanned corpus words; identified ${pairCounts.size} distinct adjacent subword pairs.`,
+      { iteration: iter + 1, distinctPairs: pairCounts.size },
+      vocab,
+    );
+
     if (pairCounts.size === 0) {
       addStep(
-        14,
+        13,
         "if not pair_counts: break — No adjacent pairs remaining to merge",
         "Vocabulary contains no adjacent token pairs. Halting early.",
-        { iteration: iter },
+        { iteration: iter + 1 },
         vocab,
       );
       break;
@@ -182,10 +217,10 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
     if (maxCount < 2) {
       addStep(
-        20,
-        `if pair_counts[best_pair] < 2: break — Stop at iteration ${iter} (max count=${maxCount})`,
+        17,
+        `if pair_counts[best_pair] < 2: break — Stop at iteration ${iter + 1} (max count=${maxCount})`,
         `Highest pair frequency ${maxCount} < 2. No pair appears at least 2 times. Halting BPE merge iterations.`,
-        { iteration: iter, maxCount },
+        { iteration: iter + 1, maxCount },
         vocab,
       );
       break;
@@ -193,16 +228,26 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
 
     const [t1, t2] = bestPairKey.split("|");
     const mergedPair: [string, string] = [t1, t2];
-    merges.push(mergedPair);
     const targetToken = t1 + t2;
 
     addStep(
-      17,
-      `Iteration ${iter + 1}: best_pair = max(pair_counts) = ('${t1}', '${t2}') with count=${maxCount}`,
-      `Selected pair ('${t1}', '${t2}') for vocabulary merge into single subword token '${targetToken}'.`,
+      16,
+      `best_pair = max(pair_counts) = ('${t1}', '${t2}') with count=${maxCount}`,
+      `Selected pair ('${t1}', '${t2}') with maximum frequency (${maxCount}) for vocabulary merge into single subword token '${targetToken}'.`,
       { iteration: iter + 1, pair1: t1, pair2: t2, count: maxCount, newToken: targetToken },
       vocab,
-      mergedPair,
+      { activePair: mergedPair },
+    );
+
+    merges.push(mergedPair);
+
+    addStep(
+      20,
+      `merges.append(('${t1}', '${t2}')); target_pair = '${targetToken}'`,
+      `Appended merge rule ('${t1}', '${t2}') -> '${targetToken}' to learned merge operations list.`,
+      { iteration: iter + 1, targetPair: targetToken, totalMerges: merges.length },
+      vocab,
+      { activePair: mergedPair },
     );
 
     // Apply merge
@@ -224,21 +269,29 @@ export const generateBpeTokenizerSteps = (input: BpeTokenizerInput): AlgorithmSt
     vocab = newVocab;
 
     addStep(
-      31,
-      `Merged '${t1}' + '${t2}' -> '${targetToken}' across corpus (iteration ${iter + 1})`,
+      35,
+      `vocab = new_vocab → Merged '${t1}' + '${t2}' -> '${targetToken}' across corpus (iteration ${iter + 1})`,
       `Applied merge rule: every adjacent (${t1}, ${t2}) replaced by '${targetToken}'. Updated vocabulary: [${vocab.map((w) => w.join("")).join(", ")}].`,
       { iteration: iter + 1, newToken: targetToken, totalMerges: merges.length },
       vocab,
-      mergedPair,
+      { mergedPair },
     );
   }
 
   const finalTokens = vocab.flat();
 
   addStep(
+    37,
+    `flat_tokens = [t for w in vocab for t in w] → ${finalTokens.length} tokens`,
+    `Flattened vocabulary into final token list: [${finalTokens.map((t) => `'${t}'`).join(", ")}].`,
+    { totalTokens: finalTokens.length, mergesExecuted: merges.length },
+    vocab,
+  );
+
+  addStep(
     38,
-    `flat_tokens = [t for w in vocab for t in w] → ${finalTokens.length} tokens — BPE Complete`,
-    `Flattened vocabulary into final token list: [${finalTokens.map((t) => `'${t}'`).join(", ")}]. Total merges executed: ${merges.length}.`,
+    `return flat_tokens, merges — BPE Training Complete`,
+    `Returned final subword token sequence and ${merges.length} learned BPE merge rules.`,
     { totalTokens: finalTokens.length, mergesExecuted: merges.length },
     vocab,
   );
@@ -260,20 +313,27 @@ const BPE_TOKENIZER_TRIVIA: TriviaMeta = {
       hint: "Count frequencies of all adjacent subword pairs across words in corpus.",
     },
     {
-      line: 18,
+      line: 16,
       hint: "Find the most frequent adjacent pair to merge into a single vocabulary subword.",
     },
     {
-      line: 28,
+      line: 35,
       hint: "Replace occurrences of the selected pair in vocabulary words with the merged token.",
     },
   ],
   lineExplanations: {
     1: "Defines Byte-Pair Encoding subword tokenizer training & application function.",
+    2: "Splits input string into individual word strings by whitespace.",
+    3: "Splits each word into character tokens and appends end-of-word '</w>' token.",
+    4: "Initializes list to record sequence of learned pair merge rules.",
+    6: "Iterates up to num_merges passes over corpus vocabulary.",
     7: "Counts adjacent pair frequencies across all words in the text corpus.",
-    18: "Extracts pair with maximum occurrence frequency.",
-    20: "Halts merging when no adjacent pair occurs more than once.",
-    28: "Applies vocabulary pair replacement across all tokenized words.",
+    13: "Halts early if no adjacent token pairs remain in the corpus.",
+    16: "Extracts pair with maximum occurrence frequency in corpus.",
+    17: "Halts merging when no adjacent pair occurs more than once.",
+    20: "Appends selected best pair to list of merge operations.",
+    35: "Applies vocabulary pair replacement across all tokenized words in corpus.",
+    37: "Flattens word token lists into a single flat list of output tokens.",
     38: "Returns flattened subword tokens list and executed merge rules.",
   },
 };
@@ -281,10 +341,8 @@ const BPE_TOKENIZER_TRIVIA: TriviaMeta = {
 export const bpeTokenizer: AlgorithmDefinition<BpeTokenizerInput> = {
   id: "bpe-tokenizer",
   title: "Byte-Pair Encoding Subword Tokenizer",
-  category: "ml_tokenization",
+  topicIds: ["ml_tokenization"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
   description:
     "Constructs a subword vocabulary and tokenizes text using Byte-Pair Encoding (BPE), iteratively merging the most frequent adjacent pair of characters/tokens.",
   constraints: ["len(text) > 0", "numMerges >= 1"],

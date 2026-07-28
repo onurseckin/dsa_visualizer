@@ -104,8 +104,7 @@ const FLOYD_WARSHALL_TRIVIA: TriviaMeta = {
 export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   id: "floyd-warshall",
   title: "Floyd-Warshall All-Pairs Shortest Path",
-  category: "graph_shortest_paths",
-  categories: ["graph_shortest_paths"],
+  topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
     "The Floyd-Warshall algorithm computes the shortest path between every pair of vertices in a weighted directed graph $G = (V, E)$ using dynamic programming over a distance matrix $\\mathbf{D} \\in \\mathbb{R}^{|V| \\times |V|}$. For each pivot vertex $k \\in V$, it relaxes every pair $(i, j)$ using the dynamic programming recurrence: $$d_{i,j}^{(k)} = \\min\\left(d_{i,j}^{(k-1)}, d_{i,k}^{(k-1)} + d_{k,j}^{(k-1)}\\right)$$ It runs in $\\mathcal{O}(|V|^3)$ time and $\\mathcal{O}(|V|^2)$ space, supporting negative edge weights.",

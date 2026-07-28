@@ -1,4 +1,11 @@
-import { AlgorithmDefinition, AlgorithmStep, ElementState } from "../../types/dsa";
+import {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  GraphEdgeItem,
+  GraphNodeItem,
+  GraphVisualSnapshot,
+} from "../../types/dsa";
 
 export interface HnswGreedyBeamSearchEngineInput {
   query: number[];
@@ -37,16 +44,9 @@ def l2_distance(v1: list[float], v2: list[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
 
 def hnsw_greedy_beam_search(query: list[float], entry_node: int, ef_search: int, graph: dict, node_vectors: dict) -> list[tuple[float, int]]:
-    """
-    Executes HNSW layer beam search (SEARCH-LAYER algorithm).
-    Traverses graph using min-heap candidate queue and max-heap result queue of size ef_search.
-    """
     v0_dist = l2_distance(query, node_vectors[entry_node])
-    
     visited = {entry_node}
-    # candidates: min-heap of (dist, node_id)
     candidates = [(v0_dist, entry_node)]
-    # results: max-heap of (-dist, node_id) to track top ef_search nearest nodes
     results = [(-v0_dist, entry_node)]
 
     while candidates:
@@ -80,39 +80,102 @@ export const generateHnswGreedyBeamSearchSteps = (
   let stepIndex = 0;
 
   const l2Dist = (v1: number[], v2: number[]) =>
-    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
+    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - (v2[idx] ?? 0)) ** 2, 0));
 
-  const entryDist = l2Dist(query, nodeVectors[entryNode]);
+  const entryDist = l2Dist(query, nodeVectors[entryNode] ?? [0, 0]);
   const visited = new Set<number>([entryNode]);
-  // candidate array of { dist, node } sorted ascending
+  const computedDistances: Record<number, number> = { [entryNode]: entryDist };
   let candidates = [{ dist: entryDist, node: entryNode }];
-  // results array sorted ascending by dist
   let results = [{ dist: entryDist, node: entryNode }];
+
+  const buildGraphSnapshot = (
+    activeNodeId?: number,
+    evaluatingNeighborId?: number,
+    activeEdge?: { from: number; to: number },
+  ): GraphVisualSnapshot => {
+    const nodeIds = Object.keys(nodeVectors).map(Number);
+
+    const nodes: GraphNodeItem[] = nodeIds.map((nId) => {
+      const vec = nodeVectors[nId] ?? [0, 0];
+      const distToQuery = computedDistances[nId];
+      const distStr = distToQuery !== undefined ? distToQuery.toFixed(2) : "?";
+      const isInResults = results.some((r) => r.node === nId);
+      const isCandidate = candidates.some((c) => c.node === nId);
+
+      let state: ElementState = "default";
+      if (nId === activeNodeId) {
+        state = "active";
+      } else if (nId === evaluatingNeighborId) {
+        state = "compare";
+      } else if (isInResults) {
+        state = "sorted";
+      } else if (isCandidate) {
+        state = "queued";
+      } else if (visited.has(nId)) {
+        state = "visited";
+      }
+
+      return {
+        id: String(nId),
+        label: `N${nId} (${distStr})`,
+        val: nId,
+        x: vec[0] ?? 0,
+        y: vec[1] ?? 0,
+        state,
+      };
+    });
+
+    const edgeList: GraphEdgeItem[] = [];
+    const addedEdges = new Set<string>();
+
+    for (const uStr of Object.keys(graph)) {
+      const u = Number(uStr);
+      const neighbors = graph[u] || [];
+      for (const v of neighbors) {
+        const edgeKey = u < v ? `${u}-${v}` : `${v}-${u}`;
+        if (!addedEdges.has(edgeKey)) {
+          addedEdges.add(edgeKey);
+
+          const isCurrentEdge =
+            (activeEdge?.from === u && activeEdge?.to === v) ||
+            (activeEdge?.from === v && activeEdge?.to === u);
+          const isBothVisited = visited.has(u) && visited.has(v);
+          const isBothResults =
+            results.some((r) => r.node === u) && results.some((r) => r.node === v);
+
+          const v1 = nodeVectors[u];
+          const v2 = nodeVectors[v];
+          const edgeWeight = v1 && v2 ? Math.round(l2Dist(v1, v2) * 100) / 100 : undefined;
+
+          edgeList.push({
+            from: String(u),
+            to: String(v),
+            weight: edgeWeight,
+            isTraversed: isCurrentEdge || isBothVisited,
+            isPath: isBothResults,
+          });
+        }
+      }
+    }
+
+    return {
+      kind: "graph",
+      nodes,
+      edges: edgeList,
+    };
+  };
 
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 11,
+    codeLine: 8,
     explanation: {
-      what: `Initialize HNSW Layer Beam Search at Entry Node ${entryNode}`,
-      why: `Query vector [${query.join(", ")}], beam search size efSearch = ${efSearch}. Entry node ${entryNode} dist = ${entryDist.toFixed(
+      what: `Initialize HNSW Layer Beam Search at Entry Node N${entryNode}`,
+      why: `Query vector [${query.join(", ")}], beam search size efSearch = ${efSearch}. Entry node N${entryNode} distance = ${entryDist.toFixed(
         3,
       )}.`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: Object.keys(nodeVectors).map((nIdStr) => {
-        const nId = Number(nIdStr);
-        const isEntry = nId === entryNode;
-        return {
-          id: `node-${nId}`,
-          value: nId,
-          label: `N${nId} (${isEntry ? entryDist.toFixed(2) : "?"})`,
-          state: isEntry ? ("active" as ElementState) : ("default" as ElementState),
-          pointers: isEntry ? ["Entry"] : [],
-        };
-      }),
-    },
+    primarySnapshot: buildGraphSnapshot(entryNode),
     auxiliaryState: {
       customState: {
         visited: Array.from(visited).join(", "),
@@ -126,42 +189,20 @@ export const generateHnswGreedyBeamSearchSteps = (
   });
 
   while (candidates.length > 0) {
-    // Pop min candidate
     candidates.sort((a, b) => a.dist - b.dist);
     const curr = candidates.shift()!;
     const furthestResultDist = Math.max(...results.map((r) => r.dist));
 
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 20,
+      codeLine: 14,
       explanation: {
         what: `Pop Closest Candidate Node N${curr.node} (dist=${curr.dist.toFixed(3)})`,
         why: `Comparing candidate distance ${curr.dist.toFixed(
           3,
         )} against current worst beam result distance ${furthestResultDist.toFixed(3)}.`,
       },
-      primarySnapshot: {
-        kind: "array",
-        elements: Object.keys(nodeVectors).map((nIdStr) => {
-          const nId = Number(nIdStr);
-          const inResults = results.some((r) => r.node === nId);
-          const isCurr = nId === curr.node;
-
-          return {
-            id: `node-${nId}`,
-            value: nId,
-            label: `N${nId}`,
-            state: isCurr
-              ? ("active" as ElementState)
-              : inResults
-                ? ("sorted" as ElementState)
-                : visited.has(nId)
-                  ? ("visited" as ElementState)
-                  : ("default" as ElementState),
-            pointers: isCurr ? ["Active"] : inResults ? ["In Beam"] : [],
-          };
-        }),
-      },
+      primarySnapshot: buildGraphSnapshot(curr.node),
       auxiliaryState: {
         customState: {
           currNode: `N${curr.node}`,
@@ -177,23 +218,14 @@ export const generateHnswGreedyBeamSearchSteps = (
     if (curr.dist > furthestResultDist) {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 23,
+        codeLine: 18,
         explanation: {
           what: "Early Exit: Candidate distance exceeds furthest beam result",
           why: `Candidate N${curr.node} distance (${curr.dist.toFixed(
             3,
           )}) > worst beam distance (${furthestResultDist.toFixed(3)}). Graph search terminated.`,
         },
-        primarySnapshot: {
-          kind: "array",
-          elements: results.map((r) => ({
-            id: `node-${r.node}`,
-            value: r.node,
-            label: `N${r.node} (${r.dist.toFixed(2)})`,
-            state: "sorted" as ElementState,
-            pointers: ["Final Top-K"],
-          })),
-        },
+        primarySnapshot: buildGraphSnapshot(curr.node),
         auxiliaryState: {
           customState: {
             status: "Early exit condition met",
@@ -207,88 +239,110 @@ export const generateHnswGreedyBeamSearchSteps = (
 
     const neighbors = graph[curr.node] || [];
     for (const neighbor of neighbors) {
-      if (!visited.has(neighbor)) {
-        visited.add(neighbor);
-        const neighborDist = l2Dist(query, nodeVectors[neighbor]);
-        const currentWorstDist = Math.max(...results.map((r) => r.dist));
-
-        if (neighborDist < currentWorstDist || results.length < efSearch) {
-          candidates.push({ dist: neighborDist, node: neighbor });
-          results.push({ dist: neighborDist, node: neighbor });
-          results.sort((a, b) => a.dist - b.dist);
-          if (results.length > efSearch) {
-            results.pop(); // remove worst
-          }
-
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 31,
-            explanation: {
-              what: `Explore Neighbor N${neighbor} (dist=${neighborDist.toFixed(3)}) -> Added to Beam`,
-              why: `Distance ${neighborDist.toFixed(
-                3,
-              )} qualifies for beam size ${efSearch}. Updated candidate queue and top results.`,
+      if (visited.has(neighbor)) {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 21,
+          explanation: {
+            what: `Skip Already Visited Neighbor N${neighbor}`,
+            why: `Neighbor N${neighbor} is already in visited set. Skipping traversal.`,
+          },
+          primarySnapshot: buildGraphSnapshot(curr.node, neighbor, {
+            from: curr.node,
+            to: neighbor,
+          }),
+          auxiliaryState: {
+            customState: {
+              currNode: `N${curr.node}`,
+              neighbor: `N${neighbor}`,
+              status: "Already visited",
+              candidates: candidates.map((c) => `N${c.node}:${c.dist.toFixed(2)}`).join(", "),
+              results: results.map((r) => `N${r.node}:${r.dist.toFixed(2)}`).join(", "),
             },
-            primarySnapshot: {
-              kind: "array",
-              elements: Object.keys(nodeVectors).map((nIdStr) => {
-                const nId = Number(nIdStr);
-                const isNeighbor = nId === neighbor;
-                const inResults = results.some((r) => r.node === nId);
+          },
+          variables: { currNode: curr.node, neighbor, skipped: true },
+        });
+        continue;
+      }
 
-                return {
-                  id: `node-${nId}`,
-                  value: nId,
-                  label: `N${nId} (${nId === neighbor ? neighborDist.toFixed(2) : ""})`,
-                  state: isNeighbor
-                    ? ("highlighted" as ElementState)
-                    : inResults
-                      ? ("sorted" as ElementState)
-                      : visited.has(nId)
-                        ? ("visited" as ElementState)
-                        : ("default" as ElementState),
-                  pointers: isNeighbor ? ["Added to Beam"] : [],
-                };
-              }),
-            },
-            auxiliaryState: {
-              customState: {
-                neighbor: `N${neighbor}`,
-                neighborDist: neighborDist.toFixed(3),
-                action: "Inserted into beam",
-                candidates: candidates.map((c) => `N${c.node}:${c.dist.toFixed(2)}`).join(", "),
-                results: results.map((r) => `N${r.node}:${r.dist.toFixed(2)}`).join(", "),
-              },
-            },
-            variables: { neighbor, neighborDist: Math.round(neighborDist * 100) / 100 },
-          });
+      visited.add(neighbor);
+      const neighborDist = l2Dist(query, nodeVectors[neighbor] ?? [0, 0]);
+      computedDistances[neighbor] = neighborDist;
+      const currentWorstDist = Math.max(...results.map((r) => r.dist));
+
+      if (neighborDist < currentWorstDist || results.length < efSearch) {
+        candidates.push({ dist: neighborDist, node: neighbor });
+        results.push({ dist: neighborDist, node: neighbor });
+        results.sort((a, b) => a.dist - b.dist);
+        if (results.length > efSearch) {
+          results.pop();
         }
+
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 27,
+          explanation: {
+            what: `Explore Neighbor N${neighbor} (dist=${neighborDist.toFixed(3)}) -> Added to Beam`,
+            why: `Distance ${neighborDist.toFixed(
+              3,
+            )} qualifies for beam size ${efSearch}. Updated candidate queue and top results.`,
+          },
+          primarySnapshot: buildGraphSnapshot(curr.node, neighbor, {
+            from: curr.node,
+            to: neighbor,
+          }),
+          auxiliaryState: {
+            customState: {
+              neighbor: `N${neighbor}`,
+              neighborDist: neighborDist.toFixed(3),
+              action: "Inserted into beam",
+              candidates: candidates.map((c) => `N${c.node}:${c.dist.toFixed(2)}`).join(", "),
+              results: results.map((r) => `N${r.node}:${r.dist.toFixed(2)}`).join(", "),
+            },
+          },
+          variables: { neighbor, neighborDist: Math.round(neighborDist * 100) / 100 },
+        });
+      } else {
+        steps.push({
+          stepIndex: stepIndex++,
+          codeLine: 26,
+          explanation: {
+            what: `Evaluate Neighbor N${neighbor} (dist=${neighborDist.toFixed(3)}) -> Pruned`,
+            why: `Distance ${neighborDist.toFixed(
+              3,
+            )} >= worst beam result distance (${currentWorstDist.toFixed(3)}) and beam is full (efSearch=${efSearch}). Neighbor is pruned.`,
+          },
+          primarySnapshot: buildGraphSnapshot(curr.node, neighbor, {
+            from: curr.node,
+            to: neighbor,
+          }),
+          auxiliaryState: {
+            customState: {
+              neighbor: `N${neighbor}`,
+              neighborDist: neighborDist.toFixed(3),
+              action: "Pruned (not added to beam)",
+              candidates: candidates.map((c) => `N${c.node}:${c.dist.toFixed(2)}`).join(", "),
+              results: results.map((r) => `N${r.node}:${r.dist.toFixed(2)}`).join(", "),
+            },
+          },
+          variables: { neighbor, neighborDist: Math.round(neighborDist * 100) / 100, pruned: true },
+        });
       }
     }
   }
 
-  // Final Step: Complete
   results.sort((a, b) => a.dist - b.dist);
 
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 38,
+    codeLine: 34,
     explanation: {
       what: `HNSW Layer Beam Search Complete: Retained Top ${results.length} Nodes`,
       why: `Final nearest neighbors: [${results
         .map((r) => `N${r.node} (dist=${r.dist.toFixed(3)})`)
         .join(", ")}].`,
     },
-    primarySnapshot: {
-      kind: "array",
-      elements: results.map((r, rank) => ({
-        id: `node-${r.node}`,
-        value: r.node,
-        label: `Rank ${rank + 1}: N${r.node} (dist=${r.dist.toFixed(3)})`,
-        state: "sorted" as ElementState,
-        pointers: rank === 0 ? ["Nearest Neighbor"] : [],
-      })),
-    },
+    primarySnapshot: buildGraphSnapshot(),
     auxiliaryState: {
       customState: {
         finalNodes: results.map((r) => `N${r.node}`).join(", "),
@@ -303,14 +357,10 @@ export const generateHnswGreedyBeamSearchSteps = (
 };
 
 export const hnswGreedyBeamSearchEngine: AlgorithmDefinition<HnswGreedyBeamSearchEngineInput> = {
-  id: "hnswGreedyBeamSearchEngine",
+  id: "hnsw-greedy-beam-search-engine",
   title: "HNSW Greedy Beam Search (SEARCH-LAYER)",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search", "graph_traversal"],
+  topicIds: ["ml_vector_search", "graph_traversal"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "Executes the core HNSW layer traversal algorithm (SEARCH-LAYER, Malkov & Yashunin). Maintained by a priority queue beam of size `efSearch`, greedy graph exploration routes candidate queries through small-world proximity networks in logarithmic O(log N) time.\n\nInput Format:\n- query: D-dimensional query embedding vector.\n- entryNode: Node ID to begin layer graph search.\n- efSearch: Beam search capacity priority queue size.\n- graph: Adjacency list map `node -> [neighborNodes]`.\n- nodeVectors: Dictionary mapping node ID to vector embedding.\n\nOutput Format:\n- Returns sorted list of (distance, nodeId) tuples of size <= efSearch.\n\nEdge Cases & Constraints:\n- Disconnected graph components: Search is bounded by current connected component.\n- Small efSearch: Extremely fast, lower recall.\n- Large efSearch: Slower search, approaches exact kNN precision.",
   constraints: ["entryNode must exist in graph and nodeVectors.", "efSearch >= 1."],

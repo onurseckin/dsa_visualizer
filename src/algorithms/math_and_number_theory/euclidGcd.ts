@@ -274,8 +274,7 @@ const EUCLID_GCD_TRIVIA: TriviaMeta = {
 export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   id: "euclid-gcd",
   title: "Euclidean Algorithm (GCD)",
-  category: "math_and_number_theory",
-  categories: ["math_and_number_theory"],
+  topicIds: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
     "Computes the Greatest Common Divisor $\\gcd(a, b)$ of two non-negative integers using the classical Euclidean algorithm based on the reduction identity:\n\n$$\\gcd(a, b) = \\gcd(b, a \\bmod b)$$\n\n### Mathematical State Vector\nThe state is tracked as a 2D reduction vector $\\mathbf{v} = (a, b)^T \\in \\mathbb{Z}_{\\ge 0}^2$ updated via matrix transformation:\n$$\\begin{pmatrix} a_{k+1} \\\\ b_{k+1} \\end{pmatrix} = \\begin{pmatrix} 0 & 1 \\\\ 1 & -q_k \\end{pmatrix} \\begin{pmatrix} a_k \\\\ b_k \\end{pmatrix}$$\nwhere $q_k = \\lfloor a_k / b_k \\rfloor$.\n\n### Input Parameters\n- `a` ($a \\in \\mathbb{Z}_{\\ge 0}$): First non-negative integer.\n- `b` ($b \\in \\mathbb{Z}_{\\ge 0}$): Second non-negative integer.\n\n### Output\n- `int`: The greatest common divisor $\\gcd(a, b)$.\n\n### Edge Cases & Constraints\n- `b = 0`: Returns $a$ immediately since $\\gcd(a, 0) = a$.\n- Coprime inputs: Returns $1$.",
@@ -340,4 +339,3 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   defaultInput: DEFAULT_EUCLID_GCD_INPUT,
   generateSteps: generateEuclidGcdSteps,
 };
-

@@ -6,7 +6,7 @@ describe("fenwickTree algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(fenwickTree.id).toBe("fenwick-tree");
     expect(fenwickTree.title).toContain("Fenwick Tree");
-    expect(fenwickTree.category).toBe("advanced_range_queries");
+    expect(fenwickTree.topicIds).toContain("advanced_range_queries");
     expect(fenwickTree.timeComplexity.average).toBe("O(log n)");
     expect(fenwickTree.spaceComplexity).toBe("O(n)");
   });

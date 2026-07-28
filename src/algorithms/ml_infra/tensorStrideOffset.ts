@@ -13,7 +13,7 @@ export const TENSOR_STRIDE_OFFSET_CODE = `def tensor_stride_offset(shape: list[i
     for d in range(ndim):
         idx = indices[d]
         if idx < 0 or idx >= shape[d]:
-            return -1  # Out of bounds
+            return -1
         offset += idx * strides[d]
     return offset`;
 
@@ -34,6 +34,7 @@ export const generateTensorStrideOffsetSteps = (
   const elements: ArrayElement[] = input.shape.map((dimSize, idx) => ({
     id: `dim-${idx}`,
     value: dimSize,
+    label: `${dimNames[idx]}: idx=${input.indices[idx]}, stride=${input.strides[idx]}`,
     state: "default",
   }));
 
@@ -68,18 +69,23 @@ export const generateTensorStrideOffsetSteps = (
   };
 
   addStep(
-    1,
-    "Initialize tensor offset calculation",
-    `Calculating physical 1D memory offset for 4D indices [${input.indices.join(
-      ", ",
-    )}] given tensor shape [${input.shape.join(", ")}] and strides [${input.strides.join(", ")}].`,
-    { ndim: 4, offset: 0 },
+    2,
+    "Determine number of dimensions",
+    `Extract dimension count ndim = ${input.shape.length} from tensor shape [${input.shape.join(", ")}].`,
+    { ndim: input.shape.length, offset: 0 },
+  );
+
+  addStep(
+    3,
+    "Initialize flat memory offset",
+    `Set initial 1D memory byte/element offset to 0. Target multi-index is [${input.indices.join(", ")}].`,
+    { ndim: input.shape.length, offset: 0 },
   );
 
   let runningOffset = 0;
   let oob = false;
 
-  for (let d = 0; d < 4; d++) {
+  for (let d = 0; d < input.shape.length; d++) {
     const dimName = dimNames[d];
     const idx = input.indices[d];
     const size = input.shape[d];
@@ -97,21 +103,38 @@ export const generateTensorStrideOffsetSteps = (
 
     addStep(
       4,
-      `Inspect dimension ${d}: ${dimName}`,
-      `Checking dimension ${d} index=${idx}, size=${size}, stride=${stride}.`,
+      `Loop iteration: dimension ${d} (${dimName})`,
+      `Iterating through dimension ${d} of ${input.shape.length}. Current running offset = ${runningOffset}.`,
+      { d, dimName, offset: runningOffset },
+      currentElements,
+    );
+
+    addStep(
+      5,
+      `Inspect index for dimension ${d}`,
+      `Selected index=${idx}, size=${size}, stride=${stride} for ${dimName}.`,
       { d, dimName, idx, shape_d: size, stride_d: stride, offset: runningOffset },
       currentElements,
     );
 
-    if (idx < 0 || idx >= size) {
+    const isOutOfBounds = idx < 0 || idx >= size;
+    addStep(
+      6,
+      `Validate index bounds for dimension ${d}`,
+      `Checking if index ${idx} is within bounds [0, ${size}). Boundary check: ${isOutOfBounds ? "FAILED" : "PASSED"}.`,
+      { d, idx, shape_d: size, valid_bounds: !isOutOfBounds, offset: runningOffset },
+      currentElements,
+    );
+
+    if (isOutOfBounds) {
       oob = true;
       const errorElements: ArrayElement[] = currentElements.map((el, i) =>
         i === d ? { ...el, state: "compare", pointers: ["OUT OF BOUNDS"] } : el,
       );
       addStep(
-        6,
+        7,
         `Out of bounds detected at dimension ${d}`,
-        `Index ${idx} is invalid for shape bound ${size}. Returning -1 to indicate memory fault.`,
+        `Index ${idx} is invalid for shape bound ${size}. Returning -1 to signal memory fault.`,
         { d, idx, shape_d: size, offset: -1 },
         errorElements,
       );
@@ -126,9 +149,9 @@ export const generateTensorStrideOffsetSteps = (
     );
 
     addStep(
-      7,
+      8,
       `Accumulate offset: +${term} (running total = ${runningOffset})`,
-      `Dimension ${d} contributes ${idx} * ${stride} = ${term} bytes/elements to the linear memory offset.`,
+      `Dimension ${d} contributes index ${idx} * stride ${stride} = ${term} to linear memory offset.`,
       { d, idx, stride_d: stride, term, offset: runningOffset },
       updatedElements,
     );
@@ -141,7 +164,7 @@ export const generateTensorStrideOffsetSteps = (
   }));
 
   addStep(
-    8,
+    9,
     `Return final memory offset: ${runningOffset}`,
     `Successfully mapped 4D multi-index [${input.indices.join(
       ", ",
@@ -191,10 +214,8 @@ const TENSOR_STRIDE_OFFSET_TRIVIA: TriviaMeta = {
 export const tensorStrideOffset: AlgorithmDefinition<TensorStrideOffsetInput> = {
   id: "tensor-stride-offset",
   title: "4D Tensor Stride & Memory Offset",
-  category: "ml_tensor_algebra",
+  topicIds: ["ml_tensor_algebra"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 1,
   description:
     "Computes the 1D linear memory buffer offset for any multi-dimensional index in a 4D tensor given its shapes and strides (e.g., NCHW or NHWC layout).",
   constraints: [

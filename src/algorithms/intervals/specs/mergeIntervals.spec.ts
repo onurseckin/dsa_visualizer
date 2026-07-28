@@ -49,7 +49,7 @@ describe("mergeIntervals logic spec", () => {
 
   it("verifies algorithm definition metadata and complete lineExplanations", () => {
     expect(mergeIntervals.id).toBe("merge-intervals");
-    expect(mergeIntervals.category).toBe("intervals");
+    expect(mergeIntervals.topicIds).toContain("two_pointers");
     expect(mergeIntervals.difficulty).toBe("Medium");
     expect(mergeIntervals.code).toContain("def merge(intervals):");
 

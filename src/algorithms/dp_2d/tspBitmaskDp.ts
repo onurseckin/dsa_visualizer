@@ -128,7 +128,7 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     codeLine: 3,
     explanation: {
       what: `Define INF = float('inf') as sentinel for unreachable states`,
-      why: "Using infinity as the DP table's initial value cleanly represents \"not yet computed\" and lets us take min() without special-casing.",
+      why: 'Using infinity as the DP table\'s initial value cleanly represents "not yet computed" and lets us take min() without special-casing.',
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { INF: "inf" } },
@@ -202,9 +202,10 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         codeLine: 10,
         explanation: {
           what: `Check condition if dp[${mask.toString(2)}][${u}] == INF`,
-          why: dp[mask][u] === INF
-            ? `State unreachable (cost is infinity). Skipping.`
-            : `State is reachable with cost ${dp[mask][u]}. Exploring unvisited target cities.`,
+          why:
+            dp[mask][u] === INF
+              ? `State unreachable (cost is infinity). Skipping.`
+              : `State is reachable with cost ${dp[mask][u]}. Exploring unvisited target cities.`,
         },
         primarySnapshot: createSnapshot(u),
         auxiliaryState: { customState: { u, cost: dp[mask][u] } },
@@ -247,9 +248,10 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
           codeLine: 13,
           explanation: {
             what: `Inspect transition from City ${u} to City ${v}: unvisited=${unvisited}, edgeExists=${edgeExists}`,
-            why: unvisited && edgeExists
-              ? `City ${v} is unvisited in mask ${mask.toString(2)} and edge (${u}, ${v}) costs ${dist[u][v]}.`
-              : `Cannot move to City ${v} (already visited or no direct edge).`,
+            why:
+              unvisited && edgeExists
+                ? `City ${v} is unvisited in mask ${mask.toString(2)} and edge (${u}, ${v}) costs ${dist[u][v]}.`
+                : `Cannot move to City ${v} (already visited or no direct edge).`,
           },
           primarySnapshot: createSnapshot(u, v),
           auxiliaryState: { customState: { u, v, unvisited, edgeExists } },
@@ -352,9 +354,10 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
       codeLine: 20,
       explanation: {
         what: `Check return edge from city ${u} to city 0`,
-        why: dist[u][0] !== INF && dp[fullMask][u] !== INF
-          ? `Both the return edge (dist[${u}][0] = ${dist[u][0]}) and the path dp[full][${u}] = ${dp[fullMask][u]} are finite — this is a valid complete tour.`
-          : `Either the return edge or the path to city ${u} is infinite — skip this ending city.`,
+        why:
+          dist[u][0] !== INF && dp[fullMask][u] !== INF
+            ? `Both the return edge (dist[${u}][0] = ${dist[u][0]}) and the path dp[full][${u}] = ${dp[fullMask][u]} are finite — this is a valid complete tour.`
+            : `Either the return edge or the path to city ${u} is infinite — skip this ending city.`,
       },
       primarySnapshot: createSnapshot(u, 0),
       auxiliaryState: { customState: { u, returnEdge: dist[u][0], pathCost: dp[fullMask][u] } },
@@ -432,8 +435,7 @@ const TSP_BITMASK_TRIVIA: TriviaMeta = {
 export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   id: "tsp-bitmask-dp",
   title: "Traveling Salesperson Problem (Bitmask DP)",
-  category: "dp_2d",
-  categories: ["dp_2d"],
+  topicIds: ["dp_2d"],
   difficulty: "Hard",
   description: `The **Traveling Salesperson Problem (TSP)** (LeetCode #943 / Held-Karp Algorithm) asks for the minimum cost closed tour that visits every city $v \\in \\{0, 1, \\dots, N-1\\}$ exactly once and returns to the starting city (City 0).
 
@@ -576,4 +578,3 @@ $$\\text{Ans} = \\min_{1 \\le u < N} \\Big( dp[\\text{full\\_mask}][u] + dist[u]
   defaultInput: DEFAULT_TSP_BITMASK_INPUT,
   generateSteps: generateTspBitmaskDpSteps,
 };
-

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { flashAttention1ForwardTiling } from "./flashAttention1ForwardTiling";
 
-describe("flashAttention1ForwardTiling", () => {
+describe("flash-attention-1-forward-tiling", () => {
   it("should have valid metadata", () => {
     expect(flashAttention1ForwardTiling.id).toBeDefined();
     expect(flashAttention1ForwardTiling.title).toBeDefined();

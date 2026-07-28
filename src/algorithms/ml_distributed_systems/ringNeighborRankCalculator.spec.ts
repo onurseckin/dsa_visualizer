@@ -8,10 +8,11 @@ import {
 describe("ring-neighbor-rank-calculator (Ring Topology Neighbor Rank Calculator)", () => {
   it("should have correct metadata and full trivia lineExplanations", () => {
     expect(ringNeighborRankCalculator.id).toBe("ring-neighbor-rank-calculator");
-    expect(ringNeighborRankCalculator.isMlInfra).toBe(true);
-    expect(ringNeighborRankCalculator.mlInfraLevel).toBe(11);
-    expect(ringNeighborRankCalculator.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(ringNeighborRankCalculator.categories).toContain("ml_distributed_systems");
+    expect(ringNeighborRankCalculator.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(ringNeighborRankCalculator.topicIds).toContain("ml_distributed_systems");
+    expect(ringNeighborRankCalculator.topicIds).toContain("ml_distributed_systems");
     expect(ringNeighborRankCalculator.defaultInput).toEqual(
       DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT,
     );
@@ -27,9 +28,7 @@ describe("ring-neighbor-rank-calculator (Ring Topology Neighbor Rank Calculator)
   });
 
   it("should generate >= 20 algorithm steps", () => {
-    const steps = generateRingNeighborRankCalculatorSteps(
-      DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT,
-    );
+    const steps = generateRingNeighborRankCalculatorSteps(DEFAULT_RINGNEIGHBORRANKCALCULATOR_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
     expect(steps[0].explanation.what).toContain("Initialize");
     expect(steps[steps.length - 1].explanation.what).toContain("Return");

@@ -91,27 +91,13 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   let left = 0;
   let currentSum = 0;
 
-  addStep(
-    2,
-    "Initialize left = 0",
-    "Setting left pointer to start of array at index 0.",
-    { left, currentSum, target },
-  );
-
-  addStep(
-    3,
-    "Initialize current_sum = 0",
-    "Setting running accumulator current_sum to 0.",
-    { left, currentSum, target },
-  );
-
   const syncElementStates = (currentLeft: number, currentRight: number, isMatch = false) => {
     for (let k = 0; k < n; k++) {
       const ptrs: string[] = [];
       if (k === currentLeft) ptrs.push("left");
       if (k === currentRight) ptrs.push("right");
 
-      if (k >= currentLeft && k <= currentRight) {
+      if (currentLeft >= 0 && currentRight >= 0 && k >= currentLeft && k <= currentRight) {
         elements[k].state = isMatch ? "sorted" : "active";
       } else {
         elements[k].state = "default";
@@ -121,12 +107,28 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     }
   };
 
+  syncElementStates(left, -1);
+
+  addStep(2, "Initialize left = 0", "Setting left pointer to start of array at index 0.", {
+    left,
+    currentSum,
+    target,
+  });
+
+  addStep(3, "Initialize current_sum = 0", "Setting running accumulator current_sum to 0.", {
+    left,
+    currentSum,
+    target,
+  });
+
   let foundMatch = false;
   let matchLeft = -1;
   let matchRight = -1;
 
   for (let right = 0; right < n; right++) {
     const rightVal = Number(elements[right].value);
+
+    syncElementStates(left, right);
 
     addStep(
       4,
@@ -136,7 +138,6 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     );
 
     currentSum += rightVal;
-    syncElementStates(left, right);
 
     addStep(
       5,
@@ -148,8 +149,10 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     addStep(
       6,
       `Evaluate shrink condition: current_sum (${currentSum}) > target (${target})`,
-      `Checking if running sum exceeds target.`,
-      { currentSum, target, needsShrink: currentSum > target },
+      currentSum > target && left <= right
+        ? `Sum ${currentSum} exceeds target ${target}. Shrink window from the left.`
+        : `Sum ${currentSum} is within target ${target}. Window shrinking not required.`,
+      { left, right, currentSum, target, needsShrink: currentSum > target && left <= right },
     );
 
     while (currentSum > target && left <= right) {
@@ -174,14 +177,25 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
       if (left <= right) {
         syncElementStates(left, right);
+      } else {
+        syncElementStates(-1, -1);
       }
+
+      addStep(
+        6,
+        `Evaluate shrink condition: current_sum (${currentSum}) > target (${target})`,
+        currentSum > target && left <= right
+          ? `Sum ${currentSum} still exceeds target ${target}. Shrink window from the left.`
+          : `Sum ${currentSum} no longer exceeds target ${target}. Exit shrink loop.`,
+        { left, right, currentSum, target, needsShrink: currentSum > target && left <= right },
+      );
     }
 
     addStep(
       9,
       `Check if current_sum (${currentSum}) == target (${target})`,
       `Comparing window sum against target.`,
-      { currentSum, target, isMatch: currentSum === target },
+      { left, right, currentSum, target, isMatch: currentSum === target },
     );
 
     if (currentSum === target) {
@@ -238,15 +252,15 @@ const TWO_POINTERS_TOPIC_GUIDE: TopicGuide = {
   sections: [
     {
       heading: "The Window as a Repaired Derived Quantity",
-      body: "Rather than re-evaluating every candidate subarray sum in $O(N^2)$ or $O(N^3)$ time, the sliding window maintains $current\_sum$ by incrementally adding $arr[right]$ and subtracting $arr[left]$. Each window state change costs exactly $O(1)$ arithmetic operation.",
+      body: "Rather than re-evaluating every candidate subarray sum in $O(N^2)$ or $O(N^3)$ time, the sliding window maintains $current_sum$ by incrementally adding $arr[right]$ and subtracting $arr[left]$. Each window state change costs exactly $O(1)$ arithmetic operation.",
     },
     {
       heading: "Interactions Between Outer Expansion & Inner Shrink Loops",
-      body: "The outer loop increments $right$ from $0$ to $N - 1$, incorporating elements. The inner loop shrinks $left$ while $current\_sum > target$. Because $left$ and $right$ move strictly forward, the total pointer advances across both loops are bounded by $2N$.",
+      body: "The outer loop increments $right$ from $0$ to $N - 1$, incorporating elements. The inner loop shrinks $left$ while $current_sum > target$. Because $left$ and $right$ move strictly forward, the total pointer advances across both loops are bounded by $2N$.",
     },
     {
       heading: "Why Non-Negative Elements Are Essential",
-      body: "Non-negative elements ($arr[i] \\ge 0$) guarantee monotonic window behavior: expanding $right$ never decreases $current\_sum$, and shrinking $left$ never increases it. If negative numbers are present, monotonicity breaks and a Prefix Sum + Hash Map approach must be used instead.",
+      body: "Non-negative elements ($arr[i] \\ge 0$) guarantee monotonic window behavior: expanding $right$ never decreases $current_sum$, and shrinking $left$ never increases it. If negative numbers are present, monotonicity breaks and a Prefix Sum + Hash Map approach must be used instead.",
     },
     {
       heading: "Loop Invariants & Correctness",
@@ -265,8 +279,7 @@ const TWO_POINTERS_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Running Sum",
-      definition:
-        "An accumulated total maintained via $O(1)$ additions and subtractions per step.",
+      definition: "An accumulated total maintained via $O(1)$ additions and subtractions per step.",
     },
     {
       term: "Monotone Response",
@@ -295,8 +308,7 @@ const TWO_POINTERS_TRIVIA: TriviaMeta = {
 export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   id: "two-pointers",
   title: "Two Pointers (Subarray Sum)",
-  category: "two_pointers",
-  categories: ["two_pointers"],
+  topicIds: ["two_pointers"],
   difficulty: "Easy",
   description:
     "Finds a contiguous subarray that sums to a target value using a variable-size sliding window over non-negative integers.\n\n### Why It Exists & What It Solves\nEvaluating all $O(N^2)$ candidate subarrays by recomputing sums requires $O(N^2)$ or $O(N^3)$ operations. The variable-size sliding window solves this problem in amortized $O(N)$ time and $O(1)$ auxiliary space. Non-negative array elements guarantee monotonic window behavior: growing the window increases the sum, while shrinking it decreases the sum.\n\n### Step-by-Step Intuition\n1. **Expand Right**: Advance `right` from $0$ to $N - 1$, adding `arr[right]` to `current_sum`.\n2. **Shrink Left**: While `current_sum > target` and `left <= right`, subtract `arr[left]` from `current_sum` and increment `left`.\n3. **Match Verification**: If `current_sum == target`, return `[left, right]`.\n4. **Amortized Complexity**: Each element is added once by `right` and subtracted at most once by `left`, bounding total operations to $2N$.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), non-negative integer array; `target` (`int`), target sum.\n- **Output**: `list[int]`, `[left, right]` 0-based indices or `[-1, -1]` if not found.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ amortized linear time.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space.\n\n### Edge Cases & Constraints\n- **Non-Negativity Required**: If negative values exist, use Prefix Sum + Hash Map.\n- **Empty Array**: Returns `[-1, -1]`.",
@@ -339,7 +351,8 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   spaceComplexity: "O(1)",
   complexityAnalysis: {
     time: "Although the inner loop sits inside the outer loop, left and right only ever move forward. In the absolute worst case right advances n times and left advances n times, for at most 2n steps overall — amortized linear time, O(n).",
-    space: "The algorithm holds only two pointer indices and a running sum — constant memory, O(1).",
+    space:
+      "The algorithm holds only two pointer indices and a running sum — constant memory, O(1).",
   },
   topicGuide: TWO_POINTERS_TOPIC_GUIDE,
   trivia: TWO_POINTERS_TRIVIA,

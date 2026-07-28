@@ -1,3 +1,12 @@
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  DisplayValue,
+  TopicGuide,
+} from "../../types/dsa";
+import type { TriviaMeta } from "../../types/trivia";
+
 export interface MeetInTheMiddleInput {
   array: number[];
   target: number;
@@ -67,7 +76,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     variables: Record<string, string | number | boolean>,
     activeIndices?: number[],
     highlightIndices?: number[],
-    customState?: Record<string, string | number>,
+    customState?: Record<string, DisplayValue>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -101,13 +110,18 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     { n, target },
   );
 
+  addStep(
+    4,
+    `Cache element count n = ${n}`,
+    `Storing array length n = ${n} to evaluate partitioning threshold.`,
+    { n, target },
+  );
+
   if (n === 0) {
     addStep(
       5,
       `Check if n == 0 (n = ${n})`,
-      n === 0
-        ? "The input array is empty. The only achievable sum is 0, so we return whether target itself equals 0."
-        : `n = ${n} — the array is non-empty, so we proceed with the split-and-search strategy.`,
+      "The input array is empty. The only achievable sum is 0, so we return whether target itself equals 0.",
       { n, target },
     );
 
@@ -125,13 +139,6 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     5,
     `Check if n == 0 (n = ${n})`,
     `n = ${n} — the array is non-empty, so we proceed with the split-and-search strategy.`,
-    { n, target },
-  );
-
-  addStep(
-    4,
-    `Cache element count n = ${n}`,
-    `Storing array length n = ${n} to evaluate partitioning threshold.`,
     { n, target },
   );
 
@@ -250,6 +257,9 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       `Loop iteration ${idx + 1}/${leftSums.length}: Test left sum s = ${s}`,
       `Inspecting candidate left subset sum s = ${s}.`,
       { leftIdx: idx, leftSum: s, target },
+      undefined,
+      undefined,
+      { leftSum: s, rightSums: JSON.stringify(rightSums) },
     );
 
     const needed = target - s;
@@ -258,9 +268,11 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       `Calculate needed right sum: needed = target - s = ${target} - ${s} = ${needed}`,
       `Left sum ${s} requires complementary right sum ${needed} to reach target ${target}.`,
       { leftSum: s, needed, target },
+      undefined,
+      undefined,
+      { leftSum: s, needed, rightSums: JSON.stringify(rightSums) },
     );
 
-    // Binary search for needed in rightSums
     let bLeft = 0;
     let bRight = rightSums.length - 1;
     let found = false;
@@ -271,6 +283,9 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       `Bisect left: bisect.bisect_left(right_sums, ${needed})`,
       `Searching sorted right_sums [${rightSums.join(", ")}] for target complement ${needed}.`,
       { needed, rightSumsLength: rightSums.length },
+      undefined,
+      undefined,
+      { leftSum: s, needed, rightSums: JSON.stringify(rightSums) },
     );
 
     while (bLeft <= bRight) {
@@ -282,6 +297,16 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
         `Probe right_sums[${bMid}] = ${bVal} against needed = ${needed}`,
         `Binary search probe at index ${bMid} in range [${bLeft}..${bRight}]. Value ${bVal} vs needed ${needed}.`,
         { bLeft, bRight, bMid, bVal, needed },
+        undefined,
+        undefined,
+        {
+          leftSum: s,
+          needed,
+          rightSums: JSON.stringify(rightSums),
+          probeIdx: bMid,
+          probeVal: bVal,
+          probeRange: `[${bLeft}..${bRight}]`,
+        },
       );
 
       if (bVal === needed) {
@@ -302,6 +327,9 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
         ? `Match found in right_sums at index ${foundIdx} (value ${needed}).`
         : `Value ${needed} not present in right_sums.`,
       { needed, found },
+      undefined,
+      undefined,
+      { leftSum: s, needed, foundMatch: found },
     );
 
     if (found) {
@@ -431,8 +459,7 @@ export const MEET_IN_THE_MIDDLE_TRIVIA: TriviaMeta = {
 export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
   id: "meet-in-the-middle",
   title: "Meet in the Middle (Subset Sum Technique)",
-  category: "binary_search",
-  categories: ["binary_search"],
+  topicIds: ["binary_search"],
   difficulty: "Hard",
   description: `Master Meet in the Middle: solve exponential search problems like Subset Sum for $N \\approx 40$ in $O(N \\cdot 2^{N/2})$ time instead of $O(2^N)$.
 
@@ -512,7 +539,8 @@ Brute-force subset sum exploration tests all $2^N$ subsets. When $N = 40$, $2^{4
   spaceComplexity: "O(2^(n/2))",
   complexityAnalysis: {
     time: "Generating 2^(n/2) subset sums for both halves takes O(2^(n/2)). Sorting right sums takes O(n 2^(n/2)). Doing 2^(n/2) binary searches takes O(n 2^(n/2)) total time.",
-    space: "Requires O(2^(n/2)) auxiliary memory to store precomputed left and right subset sum vectors.",
+    space:
+      "Requires O(2^(n/2)) auxiliary memory to store precomputed left and right subset sum vectors.",
   },
   topicGuide: MEET_IN_THE_MIDDLE_TOPIC_GUIDE,
   trivia: MEET_IN_THE_MIDDLE_TRIVIA,

@@ -9,20 +9,17 @@ import {
 describe("rope-2d-complex-plane-rotation (RoPE 2D Complex Plane Rotation Matrix)", () => {
   it("should have correct metadata", () => {
     expect(rope2dComplexPlaneRotation.id).toBe("rope-2d-complex-plane-rotation");
-    expect(rope2dComplexPlaneRotation.isMlInfra).toBe(true);
-    expect(rope2dComplexPlaneRotation.mlInfraLevel).toBe(7);
-    expect(rope2dComplexPlaneRotation.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(rope2dComplexPlaneRotation.categories).toContain("ml_attention_geometry");
+    expect(rope2dComplexPlaneRotation.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(
+      true,
+    );
+    expect(rope2dComplexPlaneRotation.topicIds).toContain("ml_attention_geometry");
+    expect(rope2dComplexPlaneRotation.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {
-    const steps = generateRope2dComplexPlaneRotationSteps(
-      DEFAULT_ROPE2DCOMPLEXPLANEROTATION_INPUT,
-    );
+    const steps = generateRope2dComplexPlaneRotationSteps(DEFAULT_ROPE2DCOMPLEXPLANEROTATION_INPUT);
     expect(steps.length).toBeGreaterThanOrEqual(20);
-    expect(steps[0].explanation.what).toContain(
-      "Initialize RoPE 2D Complex Plane Rotation Engine",
-    );
+    expect(steps[0].explanation.what).toContain("Initialize RoPE 2D Complex Plane Rotation Engine");
     expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
 
     steps.forEach((step) => {

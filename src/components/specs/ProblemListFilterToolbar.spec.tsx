@@ -6,8 +6,8 @@ describe("ProblemListFilterToolbar Component Spec", () => {
   const defaultProps = {
     searchTerm: "",
     onSearchTermChange: vi.fn(),
-    selectedCategory: "All" as const,
-    onCategorySelect: vi.fn(),
+    selectedTopic: "All" as const,
+    onTopicSelect: vi.fn(),
     selectedDifficulty: "All" as const,
     onDifficultySelect: vi.fn(),
     selectedSource: "All" as const,
@@ -16,11 +16,11 @@ describe("ProblemListFilterToolbar Component Spec", () => {
     stats: { total: 10, easy: 4, medium: 4, hard: 2 },
   };
 
-  it("renders search input, category, difficulty, source select options including ML Infra", () => {
+  it("renders search input, topic, difficulty, source select options including ML Infra", () => {
     render(<ProblemListFilterToolbar {...defaultProps} />);
 
     expect(screen.getByRole("textbox", { name: /Filter problems/i })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /Filter by Category/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /Filter by Topic/i })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: /Filter by Difficulty/i })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: /Filter by Source/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Filter by ML Infra/i })).toBeInTheDocument();

@@ -1,4 +1,9 @@
-import type { AlgorithmDefinition, AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface diagonalCacheThrashingInput {
@@ -9,9 +14,6 @@ export interface diagonalCacheThrashingInput {
 }
 
 export const DIAGONALCACHETHRASHING_CODE = `def diagonal_cache_thrashing(matrix, cache_sets=4):
-    """
-    Demonstrates L1 cache line thrashing when strided diagonal matrix access spans cache sets.
-    """
     n = len(matrix)
     misses = 0
     accessed_vals = []
@@ -57,10 +59,7 @@ export const generateDiagonalCacheThrashingSteps = (
   const accessedVals: number[] = [];
   let misses = 0;
 
-  const getMatrixSnapshot = (
-    currentI?: number,
-    phase: string = "init",
-  ): MatrixVisualSnapshot => {
+  const getMatrixSnapshot = (currentI?: number, phase: string = "init"): MatrixVisualSnapshot => {
     const cells: MatrixCellItem[] = [];
 
     for (let r = 0; r < n; r++) {
@@ -124,7 +123,7 @@ export const generateDiagonalCacheThrashingSteps = (
     });
   };
 
-  // Line 1: Setup
+  // Line 1: def diagonal_cache_thrashing
   addStep(
     1,
     "Initialize Diagonal Cache Thrashing Simulator",
@@ -132,57 +131,36 @@ export const generateDiagonalCacheThrashingSteps = (
     { n, cache_sets: cacheSets },
   );
 
+  // Line 2: n = len(matrix)
   addStep(
     2,
-    "Function docstring — describes algorithm contract",
-    "Demonstrates L1 cache line thrashing when strided diagonal matrix access spans c",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
-  );
-
-  // Line 5: Read n
-  addStep(
-    5,
-    "Read Matrix Dimension N",
-    `Matrix size N = ${n} (Total elements N^2 = ${n * n}).`,
+    `Read Matrix Dimension N = ${n}`,
+    `Matrix dimension N = ${n} (Total elements N^2 = ${n * n}).`,
     { n },
   );
 
-  // Line 6: Init misses
+  // Line 3: misses = 0
   addStep(
-    6,
+    3,
     "Initialize Cache Miss Counter",
-    "Set misses counter to 0.",
+    "Set misses counter to 0 before beginning diagonal matrix traversal.",
     { misses: 0 },
   );
 
-  // Line 7: Init accessed_vals
+  // Line 4: accessed_vals = []
   addStep(
-    7,
+    4,
     "Initialize Accessed Values List",
-    "Allocated array to record accessed diagonal values.",
+    "Allocated empty array to record accessed diagonal values.",
     { accessed_vals: "[]" },
   );
 
-  // Lines 8-12: Diagonal loop
+  // Lines 5-9: Diagonal loop
   for (let i = 0; i < n; i++) {
     addStep(
-      8,
+      5,
       `Iterate Diagonal Element Index i=${i}`,
-      `Traversing main diagonal at index (${i}, ${i}).`,
+      `Traversing main diagonal at coordinate (${i}, ${i}).`,
       { i },
       i,
       "iter",
@@ -190,9 +168,9 @@ export const generateDiagonalCacheThrashingSteps = (
 
     const val = matrix[i][i];
     addStep(
-      9,
+      6,
       `Read Diagonal Value matrix[${i}][${i}] = ${val}`,
-      `Accessed diagonal memory address mapped to element ${val}.`,
+      `Accessed diagonal memory address mapped to element value ${val}.`,
       { i, val },
       i,
       "read",
@@ -200,7 +178,7 @@ export const generateDiagonalCacheThrashingSteps = (
 
     accessedVals.push(val);
     addStep(
-      10,
+      7,
       `Record Diagonal Value in History List`,
       `Appended ${val} to accessed_vals list.`,
       { i, val, accessed_vals: `[${accessedVals.join(", ")}]` },
@@ -211,7 +189,7 @@ export const generateDiagonalCacheThrashingSteps = (
     const flatOffset = i * n + i;
     const cacheSet = flatOffset % cacheSets;
     addStep(
-      11,
+      8,
       `Compute L1 Cache Set Alias: (${i} * ${n} + ${i}) mod ${cacheSets} = ${cacheSet}`,
       `Linear offset ${flatOffset} maps directly to L1 Cache Set #${cacheSet}.`,
       { i, flat_offset: flatOffset, cache_set: cacheSet },
@@ -221,7 +199,7 @@ export const generateDiagonalCacheThrashingSteps = (
 
     misses++;
     addStep(
-      12,
+      9,
       `Cache Miss Eviction Tally (Misses = ${misses})`,
       `Strided diagonal access caused set aliasing collision in Cache Set #${cacheSet}, evicting cache line. Total misses = ${misses}.`,
       { i, cache_set: cacheSet, misses },
@@ -230,9 +208,9 @@ export const generateDiagonalCacheThrashingSteps = (
     );
   }
 
-  // Line 13: Return
+  // Line 10: return accessed_vals, misses
   addStep(
-    13,
+    10,
     "Diagonal Access Simulation Complete",
     `Finished traversal over ${n} diagonal elements with ${misses} total L1 cache misses.`,
     { misses, completed: true },
@@ -245,41 +223,36 @@ export const generateDiagonalCacheThrashingSteps = (
 
 const DIAGONALCACHETHRASHING_TRIVIA: TriviaMeta = {
   skipLines: [],
-  distractors: [
-    "cache_set = (i + i) % cache_sets  # Incorrect 1D index mapping",
-    "misses += 0  # Assuming 100% cache hit rate",
-    "return matrix[::-1]",
-  ],
+  distractors: ["cache_set = (i + i) % cache_sets", "misses += 0", "return matrix[::-1]"],
   hints: [
-    { line: 11, hint: "Linearize 2D diagonal index as (i * n + i) to determine L1 cache set mapping." },
-    { line: 12, hint: "Increment miss counter when diagonal elements alias to the same cache set, causing eviction." },
+    {
+      line: 8,
+      hint: "Linearize 2D diagonal index as (i * n + i) to determine L1 cache set mapping.",
+    },
+    {
+      line: 9,
+      hint: "Increment miss counter when diagonal elements alias to the same cache set, causing eviction.",
+    },
   ],
   lineExplanations: {
     1: "Defines diagonal_cache_thrashing function accepting matrix and cache_sets parameters.",
-    2: "Starts docstring describing L1 cache line thrashing simulation during diagonal matrix access.",
-    3: "Explains how strided diagonal memory accesses map to identical set-associative cache buckets.",
-    4: "Closes function docstring.",
-    5: "Gets square matrix row/column dimension n.",
-    6: "Initializes cache miss eviction counter to 0.",
-    7: "Initializes accessed_vals array to record fetched diagonal scalar entries.",
-    8: "Iterates through main diagonal indices i from 0 to n - 1.",
-    9: "Fetches diagonal value at matrix[i][i].",
-    10: "Appends fetched diagonal scalar value to accessed_vals array.",
-    11: "Calculates L1 cache set index by linearizing address: cache_set = (i * n + i) mod cache_sets.",
-    12: "Increments misses counter due to cache line set aliasing collision and eviction.",
-    13: "Returns tuple containing accessed_vals list and total misses count.",
+    2: "Gets square matrix row/column dimension n.",
+    3: "Initializes cache miss eviction counter to 0.",
+    4: "Initializes accessed_vals array to record fetched diagonal scalar entries.",
+    5: "Iterates through main diagonal indices i from 0 to n - 1.",
+    6: "Fetches diagonal value at matrix[i][i].",
+    7: "Appends fetched diagonal scalar value to accessed_vals array.",
+    8: "Calculates L1 cache set index by linearizing address: cache_set = (i * n + i) mod cache_sets.",
+    9: "Increments misses counter due to cache line set aliasing collision and eviction.",
+    10: "Returns tuple containing accessed_vals list and total misses count.",
   },
 };
 
 export const diagonalCacheThrashing: AlgorithmDefinition<diagonalCacheThrashingInput> = {
   id: "diagonal-cache-thrashing",
   title: "Diagonal Matrix Access Cache Thrashing",
-  category: "ml_gemm_roofline",
-  categories: ["ml_gemm_roofline", "arrays_and_hashing"],
+  topicIds: ["ml_gemm_roofline", "arrays_and_hashing"],
   difficulty: "Medium",
-  isMlInfra: true,
-  mlInfraLevel: 2,
-  mlInfraCategory: "ml_gemm_roofline",
   description: `In high-performance GPU and CPU computing (BLAS GEMM, LU decomposition, Cholesky factorization), traversing the main diagonal $(i, i)$ of a row-major $N \\times N$ matrix can trigger **diagonal cache thrashing** (set aliasing conflict).
 
 Set-associative hardware caches map physical memory addresses to cache sets via modular arithmetic:
@@ -296,7 +269,8 @@ This algorithm simulates diagonal traversal, calculating set indices step-by-ste
       outputDisplay: "5 Diagonal Elements Accessed, 5 Cache Misses",
       input: DEFAULT_DIAGONALCACHETHRASHING_INPUT,
       output: "5 Diagonal Elements Accessed, 5 Cache Misses",
-      explanation: "Iterates along main diagonal (i, i), calculating set indices and recording set collision misses.",
+      explanation:
+        "Iterates along main diagonal (i, i), calculating set indices and recording set collision misses.",
     },
     {
       kind: "complex",
@@ -313,7 +287,8 @@ This algorithm simulates diagonal traversal, calculating set indices step-by-ste
         cacheSets: 4,
       },
       output: "4 Diagonal Elements Mapped to Same Set",
-      explanation: "Demonstrates power-of-two stride aliasing where every diagonal element maps to Set 0.",
+      explanation:
+        "Demonstrates power-of-two stride aliasing where every diagonal element maps to Set 0.",
     },
   ],
   code: DIAGONALCACHETHRASHING_CODE,
@@ -366,8 +341,7 @@ This algorithm simulates diagonal traversal, calculating set indices step-by-ste
       },
       {
         term: "Linearized Memory Index",
-        definition:
-          "Calculating 1D byte offset from 2D coordinates via row * N + col.",
+        definition: "Calculating 1D byte offset from 2D coordinates via row * N + col.",
       },
     ],
   },

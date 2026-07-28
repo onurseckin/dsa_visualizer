@@ -12,51 +12,34 @@ export const DEFAULT_ITERATIVE_BPE_TRAINER_INPUT: IterativeBpeVocabularyTrainerI
     "n e w e s t </w>": 6,
     "w i d e s t </w>": 3,
   },
-  targetVocabSize: 10,
+  targetVocabSize: 14,
 };
 
 export const ITERATIVE_BPE_TRAINER_CODE = `def train_bpe_vocabulary(initial_corpus: dict[str, int], target_vocab_size: int) -> tuple[list[tuple[str, str]], list[str]]:
-    """
-    Iterative Byte-Pair Encoding (BPE) Vocabulary Trainer.
-    Repeatedly finds the most frequent adjacent symbol pair, adds it to the merge rule list,
-    and updates the corpus words until target_vocab_size is reached.
-    """
     corpus = {w: freq for w, freq in initial_corpus.items()}
-
-    # Initialize base vocabulary with single characters
     vocab = set()
     for word_str in corpus:
         vocab.update(word_str.split())
-
     merges = []
-
     while len(vocab) < target_vocab_size:
-        # Step 1: Count pair frequencies across current corpus
         pair_counts = {}
         for word_str, freq in corpus.items():
             symbols = word_str.split()
             for i in range(len(symbols) - 1):
                 pair = (symbols[i], symbols[i + 1])
                 pair_counts[pair] = pair_counts.get(pair, 0) + freq
-
         if not pair_counts:
             break
-
-        # Step 2: Select most frequent pair
         best_pair = max(pair_counts.items(), key=lambda x: x[1])[0]
         merges.append(best_pair)
         new_token = best_pair[0] + best_pair[1]
         vocab.add(new_token)
-
-        # Step 3: Replace best_pair in corpus words
         pair_str = f"{best_pair[0]} {best_pair[1]}"
         new_corpus = {}
         for word_str, freq in corpus.items():
             new_word = word_str.replace(pair_str, new_token)
             new_corpus[new_word] = freq
-
         corpus = new_corpus
-
     return merges, sorted(list(vocab))`;
 
 export const generateIterativeBpeTrainerSteps = (
@@ -67,19 +50,46 @@ export const generateIterativeBpeTrainerSteps = (
   let stepIndex = 0;
 
   let corpus = { ...initialCorpus };
-  const vocabSet = new Set<string>();
-  Object.keys(corpus).forEach((w) => w.split(" ").forEach((s) => vocabSet.add(s)));
-  const merges: [string, string][] = [];
 
-  // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 4,
+    codeLine: 2,
     explanation: {
-      what: `Initialize Iterative BPE Vocabulary Trainer (Target Size = ${targetVocabSize})`,
-      why: `Base character vocabulary contains ${vocabSet.size} unique symbols: [${Array.from(
-        vocabSet,
-      ).join(", ")}]. Training until vocab size reaches ${targetVocabSize}.`,
+      what: `Initialize corpus dictionary with ${Object.keys(corpus).length} words`,
+      why: `Corpus loaded with initial frequencies: ${Object.entries(corpus)
+        .map(([w, f]) => `"${w}": ${f}`)
+        .join(", ")}.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Object.keys(corpus).map((word, idx) => ({
+        id: `word-${idx}`,
+        value: idx,
+        label: `"${word}"`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        corpusWords: String(Object.keys(corpus).length),
+        targetVocabSize: String(targetVocabSize),
+        status: "Corpus Loaded",
+      },
+    },
+    variables: { wordCount: Object.keys(corpus).length, targetVocabSize },
+  });
+
+  const vocabSet = new Set<string>();
+  Object.keys(corpus).forEach((w) => w.split(" ").forEach((s) => vocabSet.add(s)));
+
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 3,
+    explanation: {
+      what: `Extract initial base character vocabulary (${vocabSet.size} unique symbols)`,
+      why: `Base characters found across corpus: [${Array.from(vocabSet)
+        .map((s) => `"${s}"`)
+        .join(", ")}]. Training goal is target size ${targetVocabSize}.`,
     },
     primarySnapshot: {
       kind: "array",
@@ -94,15 +104,68 @@ export const generateIterativeBpeTrainerSteps = (
       customState: {
         baseVocabSize: String(vocabSet.size),
         targetVocabSize: String(targetVocabSize),
-        status: "Initialized",
+        status: "Base Vocabulary Formed",
       },
     },
-    variables: { currentVocabSize: vocabSet.size, targetVocabSize },
+    variables: { baseVocabSize: vocabSet.size, targetVocabSize },
   });
 
-  while (vocabSet.size < targetVocabSize) {
-    const pairCounts: Record<string, number> = {};
+  const merges: [string, string][] = [];
+  steps.push({
+    stepIndex: stepIndex++,
+    codeLine: 6,
+    explanation: {
+      what: `Initialize empty merge rules list`,
+      why: `Will record pair substitution rules as most frequent symbol pairs are iteratively merged.`,
+    },
+    primarySnapshot: {
+      kind: "array",
+      elements: Array.from(vocabSet).map((sym, idx) => ({
+        id: `vocab-${idx}`,
+        value: idx,
+        label: `"${sym}"`,
+        state: "default" as ElementState,
+      })),
+    },
+    auxiliaryState: {
+      customState: {
+        mergesCount: "0",
+        currentVocabSize: String(vocabSet.size),
+        targetVocabSize: String(targetVocabSize),
+      },
+    },
+    variables: { mergeCount: 0, currentVocabSize: vocabSet.size },
+  });
 
+  let iteration = 1;
+  while (vocabSet.size < targetVocabSize) {
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 7,
+      explanation: {
+        what: `Iteration ${iteration}: Check loop condition (vocab size ${vocabSet.size} < target ${targetVocabSize})`,
+        why: `Current vocabulary size (${vocabSet.size}) has not reached target size (${targetVocabSize}). Proceed to pair counting.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Array.from(vocabSet).map((tok, idx) => ({
+          id: `vocab-it${iteration}-${idx}`,
+          value: idx,
+          label: `"${tok}"`,
+          state: "default" as ElementState,
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          iteration: String(iteration),
+          currentVocabSize: String(vocabSet.size),
+          targetVocabSize: String(targetVocabSize),
+        },
+      },
+      variables: { iteration, currentVocabSize: vocabSet.size, targetVocabSize },
+    });
+
+    const pairCounts: Record<string, number> = {};
     for (const [wStr, freq] of Object.entries(corpus)) {
       const syms = wStr.split(" ");
       for (let i = 0; i < syms.length - 1; i++) {
@@ -112,16 +175,131 @@ export const generateIterativeBpeTrainerSteps = (
     }
 
     const pairEntries = Object.entries(pairCounts).sort((a, b) => b[1] - a[1]);
-    if (pairEntries.length === 0) break;
+    if (pairEntries.length === 0) {
+      steps.push({
+        stepIndex: stepIndex++,
+        codeLine: 14,
+        explanation: {
+          what: `Iteration ${iteration}: No adjacent pairs available in corpus`,
+          why: `No adjacent symbol pairs remain to be merged. Breaking out of loop early.`,
+        },
+        primarySnapshot: {
+          kind: "array",
+          elements: Array.from(vocabSet).map((tok, idx) => ({
+            id: `vocab-nopairs-${idx}`,
+            value: idx,
+            label: `"${tok}"`,
+            state: "default" as ElementState,
+          })),
+        },
+        auxiliaryState: {
+          customState: {
+            status: "No Pairs Left",
+            currentVocabSize: String(vocabSet.size),
+          },
+        },
+        variables: { pairCount: 0 },
+      });
+      break;
+    }
 
     const [bestPairStr, bestFreq] = pairEntries[0];
     const [p1, p2] = bestPairStr.split(",");
-    const newToken = `${p1}${p2}`;
+    const topPairsSummary = pairEntries
+      .slice(0, 3)
+      .map(([p, f]) => `("${p.replace(",", '", "')}"): ${f}`)
+      .join(", ");
+
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 13,
+      explanation: {
+        what: `Iteration ${iteration}: Count pair frequencies across corpus`,
+        why: `Computed frequency for ${pairEntries.length} unique adjacent pairs. Top pairs: [${topPairsSummary}].`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Array.from(vocabSet).map((tok, idx) => ({
+          id: `vocab-cnt-${idx}`,
+          value: idx,
+          label: `"${tok}"`,
+          state:
+            tok === p1 || tok === p2
+              ? ("highlighted" as ElementState)
+              : ("default" as ElementState),
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          topPairs: topPairsSummary,
+          mostFrequentPair: `("${p1}", "${p2}")`,
+          pairFrequency: String(bestFreq),
+        },
+      },
+      variables: { uniquePairs: pairEntries.length, bestPair: `("${p1}", "${p2}")`, bestFreq },
+    });
 
     merges.push([p1, p2]);
-    vocabSet.add(newToken);
+    const newToken = `${p1}${p2}`;
 
-    // Replace in corpus
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 16,
+      explanation: {
+        what: `Iteration ${iteration}: Select best pair ("${p1}", "${p2}") with count ${bestFreq}`,
+        why: `Pair ("${p1}", "${p2}") is selected as the argmax frequency pair. Merge rule #${merges.length} added to list.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Array.from(vocabSet).map((tok, idx) => ({
+          id: `vocab-sel-${idx}`,
+          value: idx,
+          label: `"${tok}"`,
+          state:
+            tok === p1 || tok === p2
+              ? ("highlighted" as ElementState)
+              : ("default" as ElementState),
+          pointers: tok === p1 ? ["Merge Candidate L"] : tok === p2 ? ["Merge Candidate R"] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          selectedPair: `("${p1}", "${p2}")`,
+          frequency: String(bestFreq),
+          mergesLearned: String(merges.length),
+        },
+      },
+      variables: { selectedPair: `("${p1}", "${p2}")`, bestFreq, mergesCount: merges.length },
+    });
+
+    vocabSet.add(newToken);
+    steps.push({
+      stepIndex: stepIndex++,
+      codeLine: 19,
+      explanation: {
+        what: `Iteration ${iteration}: Add new token "${newToken}" to vocabulary`,
+        why: `Created new subword token "${newToken}" by merging "${p1}" + "${p2}". Vocabulary size grows to ${vocabSet.size}/${targetVocabSize}.`,
+      },
+      primarySnapshot: {
+        kind: "array",
+        elements: Array.from(vocabSet).map((tok, idx) => ({
+          id: `vocab-add-${idx}`,
+          value: idx,
+          label: `"${tok}"`,
+          state: tok === newToken ? ("active" as ElementState) : ("visited" as ElementState),
+          pointers: tok === newToken ? [`New Token (#${merges.length})`] : [],
+        })),
+      },
+      auxiliaryState: {
+        customState: {
+          newToken: `"${newToken}"`,
+          currentVocabSize: `${vocabSet.size}/${targetVocabSize}`,
+          mergeRule: `("${p1}", "${p2}") -> "${newToken}"`,
+        },
+      },
+      variables: { newToken, vocabSize: vocabSet.size, targetVocabSize },
+    });
+
     const oldPairStr = `${p1} ${p2}`;
     const newCorpus: Record<string, number> = {};
     for (const [wStr, freq] of Object.entries(corpus)) {
@@ -130,54 +308,55 @@ export const generateIterativeBpeTrainerSteps = (
     }
     corpus = newCorpus;
 
+    const corpusSample = Object.keys(corpus)
+      .slice(0, 2)
+      .map((w) => `"${w}"`)
+      .join(" | ");
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 24,
+      codeLine: 25,
       explanation: {
-        what: `BPE Merge Step ${merges.length}: Added Rule ("${p1}", "${p2}") -> "${newToken}" (count = ${bestFreq})`,
-        why: `Merged pair ("${p1}", "${p2}") into new token "${newToken}". Vocabulary size expanded to ${vocabSet.size}/${targetVocabSize}.`,
+        what: `Iteration ${iteration}: Rewrite corpus words replacing "${p1} ${p2}" with "${newToken}"`,
+        why: `Replaced occurrences of "${oldPairStr}" with token "${newToken}" across all corpus entries. Sample updated words: ${corpusSample}.`,
       },
       primarySnapshot: {
         kind: "array",
         elements: Array.from(vocabSet).map((tok, idx) => ({
-          id: `tok-${idx}`,
+          id: `vocab-rep-${idx}`,
           value: idx,
           label: `"${tok}"`,
-          state: tok === newToken ? ("active" as ElementState) : ("visited" as ElementState),
-          pointers: tok === newToken ? [`New Token (${merges.length})`] : [],
+          state: tok === newToken ? ("visited" as ElementState) : ("default" as ElementState),
         })),
       },
       auxiliaryState: {
         customState: {
-          mergeRule: `("${p1}", "${p2}") -> "${newToken}"`,
-          frequency: String(bestFreq),
+          updatedCorpusSample: corpusSample,
           currentVocabSize: String(vocabSet.size),
-          targetVocabSize: String(targetVocabSize),
-          corpusSample: Object.keys(corpus).slice(0, 2).join(" | "),
         },
       },
-      variables: { mergeStep: merges.length, newToken, vocabSize: vocabSet.size },
+      variables: { updatedCorpusWords: Object.keys(corpus).length, newToken },
     });
+
+    iteration++;
   }
 
-  // Step Final: Complete
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 35,
+    codeLine: 26,
     explanation: {
-      what: `BPE Training Complete: Final Vocabulary Size ${vocabSet.size}`,
-      why: `Learned ${merges.length} merge rules: [${merges
-        .map(([a, b]) => `("${a}","${b}")`)
-        .join(", ")}]. Vocabulary ready for model tokenizer deployment.`,
+      what: `BPE Vocabulary Training Complete: Final Vocab Size ${vocabSet.size}`,
+      why: `Learned ${merges.length} merge rules: [${merges.map(([a, b]) => `("${a}","${b}")`).join(", ")}]. Final vocabulary contains ${vocabSet.size} tokens ready for model tokenization.`,
     },
     primarySnapshot: {
       kind: "array",
-      elements: Array.from(vocabSet).map((tok, rank) => ({
-        id: `vocab-${rank}`,
-        value: rank,
-        label: `"${tok}"`,
-        state: "sorted" as ElementState,
-      })),
+      elements: Array.from(vocabSet)
+        .sort()
+        .map((tok, rank) => ({
+          id: `final-vocab-${rank}`,
+          value: rank,
+          label: `"${tok}"`,
+          state: "sorted" as ElementState,
+        })),
     },
     auxiliaryState: {
       customState: {
@@ -194,39 +373,35 @@ export const generateIterativeBpeTrainerSteps = (
 
 export const iterativeBpeVocabularyTrainer: AlgorithmDefinition<IterativeBpeVocabularyTrainerInput> =
   {
-    id: "iterativeBpeVocabularyTrainer",
+    id: "iterative-bpe-vocabulary-trainer",
     title: "Iterative BPE Vocabulary Trainer",
-    category: "ml_tokenization",
-    categories: ["ml_tokenization"],
+    topicIds: ["ml_tokenization"],
     difficulty: "Hard",
-    isMlInfra: true,
-    mlInfraLevel: 5,
-    mlInfraCategory: "ml_tokenization",
     description:
       "Full iterative Byte-Pair Encoding (BPE) vocabulary training loop (Sennrich et al., 2016). Starts with a base character vocabulary, repeatedly identifies the most frequent adjacent symbol pair, appends a new merge rule to the vocabulary, and updates corpus words until reaching `targetVocabSize`.\n\nInput Format:\n- initialCorpus: Dictionary mapping word symbol strings to corpus frequency counts.\n- targetVocabSize: Target total vocabulary size V.\n\nOutput Format:\n- Returns tuple (learnedMergeRulesList, finalVocabularyList).\n\nEdge Cases & Constraints:\n- Target size smaller than base character vocabulary: Terminates immediately without merges.",
     constraints: ["targetVocabSize >= base character count."],
     examples: [
       {
         kind: "basic",
-        title: "Train BPE Vocabulary to Target Size 10",
-        inputDisplay: "initialCorpus (4 words), targetVocabSize = 10",
+        title: "Train BPE Vocabulary to Target Size 14",
+        inputDisplay: "initialCorpus (4 words), targetVocabSize = 14",
         outputDisplay:
-          "Learned 3 merges: ('e','s') -> 'es', ('es','t') -> 'est', ('e','r') -> 'er'",
+          "Learned 3 merges: ('e','s') -> 'es', ('es','t') -> 'est', ('est','</w>') -> 'est</w>'",
         input: DEFAULT_ITERATIVE_BPE_TRAINER_INPUT,
         output: "3 merge rules learned",
-        explanation: "Iteratively adds most frequent pairs until vocabulary reaches size 10.",
+        explanation: "Iteratively adds most frequent pairs until vocabulary reaches size 14.",
       },
       {
         kind: "complex",
         title: "Small Target Size Equal to Base Vocab",
-        inputDisplay: "targetVocabSize = 7",
+        inputDisplay: "targetVocabSize = 11",
         outputDisplay: "0 merge rules learned",
         input: {
           ...DEFAULT_ITERATIVE_BPE_TRAINER_INPUT,
-          targetVocabSize: 7,
+          targetVocabSize: 11,
         },
         output: "0 merges",
-        explanation: "Base characters already fill target vocabulary size of 7.",
+        explanation: "Base characters already fill target vocabulary size of 11.",
       },
       {
         kind: "negative",

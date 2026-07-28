@@ -10,9 +10,6 @@ export interface asStridedTensorViewEngineInput {
 }
 
 export const ASSTRIDEDTENSORVIEWENGINE_CODE = `def as_strided_tensor_view_engine(memory_buffer, shape, strides, storage_offset=0):
-    """
-    Calculates zero-copy strided tensor element access and checks contiguity.
-    """
     rows, cols = shape
     r_stride, c_stride = strides
     flat_offsets = []
@@ -49,10 +46,10 @@ export const generateAsStridedTensorViewEngineSteps = (
   const strides = input.strides ?? [4, 1];
   const storageOffset = input.storageOffset ?? 1;
 
-  const rows = Math.max(1, shape[0]);
-  const cols = Math.max(1, shape[1]);
-  const rStride = strides[0];
-  const cStride = strides[1];
+  const rows = Math.max(1, shape[0] ?? 1);
+  const cols = Math.max(1, shape[1] ?? 1);
+  const rStride = strides[0] ?? cols;
+  const cStride = strides[1] ?? 1;
   const isContiguous = cStride === 1 && rStride === cols;
 
   const buildCells = (
@@ -127,34 +124,18 @@ export const generateAsStridedTensorViewEngineSteps = (
   addStep(
     1,
     "Initialize PyTorch ATen as_strided Zero-Copy View Engine",
-    "Setting up view parameters: physical memory buffer, shape, stride strides, and storage offset.",
-    { storage_offset: storageOffset },
-  );
-
-  addStep(
-    2,
-    "Function docstring — describes algorithm contract",
-    "Calculates zero-copy strided tensor element access and checks contiguity.",
-    {},
-  );
-
-  addStep(
-    3,
-    "Docstring body: algorithm description",
-    "See the Python docstring for the contract and purpose of this algorithm.",
-    {},
-  );
-
-  addStep(
-    4,
-    "End of docstring",
-    "Docstring complete. Entering the function body.",
-    {},
+    "Setting up view parameters: physical memory buffer, shape, stride step sizes, and storage offset.",
+    {
+      memory_buffer_len: data.length,
+      shape: `[${rows}, ${cols}]`,
+      strides: `[${rStride}, ${cStride}]`,
+      storage_offset: storageOffset,
+    },
   );
 
   // Step 2: Unpack shape
   addStep(
-    5,
+    2,
     "Unpack Target View Dimensions",
     `Extracted rows = ${rows}, cols = ${cols} from target shape tuple [${rows}, ${cols}].`,
     { rows, cols },
@@ -162,7 +143,7 @@ export const generateAsStridedTensorViewEngineSteps = (
 
   // Step 3: Unpack strides
   addStep(
-    6,
+    3,
     "Unpack Stride Step Sizes",
     `Extracted r_stride = ${rStride}, c_stride = ${cStride} from strides tuple [${rStride}, ${cStride}].`,
     { r_stride: rStride, c_stride: cStride },
@@ -170,15 +151,15 @@ export const generateAsStridedTensorViewEngineSteps = (
 
   // Step 4: Init flat_offsets
   addStep(
-    7,
+    4,
     "Initialize Mapped Offsets List",
     "Created empty list flat_offsets to record 2D coordinate to physical 1D offset mappings.",
     { flat_offsets_len: 0 },
   );
 
-  // Step 5: Verify contiguity
+  // Step 6: Verify contiguity
   addStep(
-    9,
+    6,
     "Evaluate C-Contiguity Condition",
     isContiguous
       ? `c_stride == 1 and r_stride (${rStride}) == cols (${cols}): View IS C-contiguous.`
@@ -190,7 +171,7 @@ export const generateAsStridedTensorViewEngineSteps = (
 
   for (let r = 0; r < rows; r++) {
     addStep(
-      11,
+      8,
       `Begin Row Iteration r = ${r}`,
       `Iterating outer loop for row index r = ${r} of ${rows}.`,
       { r, total_rows: rows },
@@ -203,7 +184,7 @@ export const generateAsStridedTensorViewEngineSteps = (
       const val = exists ? data[offset] : 0;
 
       addStep(
-        12,
+        9,
         `Evaluate Column Index c = ${c} for Row ${r}`,
         `Iterating inner loop for column index c = ${c} of ${cols}.`,
         { r, c, total_cols: cols },
@@ -213,7 +194,7 @@ export const generateAsStridedTensorViewEngineSteps = (
       );
 
       addStep(
-        13,
+        10,
         `Calculate Physical Offset for (${r}, ${c})`,
         `offset = ${storageOffset} + ${r} * ${rStride} + ${c} * ${cStride} = ${offset}.`,
         { r, c, offset, storage_offset: storageOffset, r_stride: rStride, c_stride: cStride },
@@ -223,7 +204,7 @@ export const generateAsStridedTensorViewEngineSteps = (
       );
 
       addStep(
-        14,
+        11,
         `Fetch Value at Physical Offset ${offset}`,
         exists
           ? `Extracted scalar memory_buffer[${offset}] = ${val}.`
@@ -236,7 +217,7 @@ export const generateAsStridedTensorViewEngineSteps = (
 
       completedCells.push({ r, c });
       addStep(
-        15,
+        12,
         `Append Mapping Tuple (${r}, ${c}, ${offset}, ${val})`,
         `Recorded mapped coordinate tuple for (${r}, ${c}) to physical offset ${offset}.`,
         { r, c, offset, val, total_mapped: completedCells.length },
@@ -249,7 +230,7 @@ export const generateAsStridedTensorViewEngineSteps = (
 
   // Return step
   addStep(
-    17,
+    14,
     "Return View Contiguity and Offset Mapping List",
     `Execution complete. Produced ${completedCells.length} mapped tensor view coordinates. is_contiguous = ${isContiguous}.`,
     { completed: true, is_contiguous: isContiguous, total_mapped: completedCells.length },
@@ -262,7 +243,7 @@ export const generateAsStridedTensorViewEngineSteps = (
 };
 
 const ASSTRIDEDTENSORVIEWENGINE_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4],
+  skipLines: [5, 7, 13],
   distractors: [
     "is_contiguous = (r_stride == 1)",
     "offset = r * cols + c",
@@ -270,44 +251,37 @@ const ASSTRIDEDTENSORVIEWENGINE_TRIVIA: TriviaMeta = {
   ],
   hints: [
     {
-      line: 9,
+      line: 6,
       hint: "A 2D tensor view is C-contiguous when column stride is 1 and row stride equals column count.",
     },
     {
-      line: 13,
+      line: 10,
       hint: "Physical memory address calculation formula: storage_offset + r * r_stride + c * c_stride.",
     },
   ],
   lineExplanations: {
     1: "Defines entry point for ATen as_strided zero-copy view engine function.",
-    2: "Starts docstring for as_strided tensor view engine.",
-    3: "Explains purpose of calculating zero-copy strided element access and evaluating C-contiguity.",
-    4: "Closes docstring for as_strided tensor view engine.",
-    5: "Unpacks target row and column dimensions from shape tuple.",
-    6: "Unpacks row and column stride step sizes from strides tuple.",
-    7: "Initializes empty list flat_offsets to hold mapped coordinate-to-physical-offset tuples.",
-    8: "Blank line before contiguity verification.",
-    9: "Verifies row-major C-contiguity condition: c_stride == 1 and r_stride == cols.",
-    10: "Blank line before row and column coordinate iteration.",
-    11: "Iterates through row index r from 0 to rows - 1.",
-    12: "Iterates through column index c from 0 to cols - 1.",
-    13: "Calculates physical 1D memory offset = storage_offset + r * r_stride + c * c_stride.",
-    14: "Fetches scalar value from memory_buffer at offset if within bounds, otherwise returns 0.",
-    15: "Appends coordinate tuple (r, c, offset, val) to flat_offsets list.",
-    16: "Blank line before function return statement.",
-    17: "Returns tuple containing boolean C-contiguity flag and mapped physical offset tuples.",
+    2: "Unpacks target row and column dimensions from shape tuple.",
+    3: "Unpacks row and column stride step sizes from strides tuple.",
+    4: "Initializes empty list flat_offsets to hold mapped coordinate-to-physical-offset tuples.",
+    5: "Blank line before contiguity verification.",
+    6: "Verifies row-major C-contiguity condition: c_stride == 1 and r_stride == cols.",
+    7: "Blank line before row and column coordinate iteration.",
+    8: "Iterates through row index r from 0 to rows - 1.",
+    9: "Iterates through column index c from 0 to cols - 1.",
+    10: "Calculates physical 1D memory offset = storage_offset + r * r_stride + c * c_stride.",
+    11: "Fetches scalar value from memory_buffer at offset if within bounds, otherwise returns 0.",
+    12: "Appends coordinate tuple (r, c, offset, val) to flat_offsets list.",
+    13: "Blank line before function return statement.",
+    14: "Returns tuple containing boolean C-contiguity flag and mapped physical offset tuples.",
   },
 };
 
 export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewEngineInput> = {
   id: "as-strided-tensor-view-engine",
   title: "PyTorch ATen `as_strided` Zero-Copy View Engine",
-  category: "ml_tensor_algebra",
-  categories: ["ml_tensor_algebra", "arrays_and_hashing"],
+  topicIds: ["ml_tensor_algebra", "arrays_and_hashing"],
   difficulty: "Hard",
-  isMlInfra: true,
-  mlInfraLevel: 1,
-  mlInfraCategory: "ml_tensor_algebra",
   description:
     "In PyTorch's ATen C++ core and deep learning runtime engines, tensor operations such as `transpose()`, `permute()`, `slice()`, `narrow()`, and `expand()` do NOT re-allocate memory or copy underlying physical byte buffers. Instead, they invoke `torch.as_strided()`, reinterpreting raw 1D storage using custom shape dimensions, stride step vectors, and storage byte offsets.\n\nThis algorithm implements the core `as_strided` mapping formula $\\text{Offset} = \\text{StorageOffset} + \\sum_{i} \\text{coord}_i \\times \\text{stride}_i$, resolving 2D multi-dimensional tensor coordinates into 1D physical memory addresses while evaluating row-major (C-style) memory contiguity.\n\n### Problem Solved & ML Compiler Relevance\nZero-copy tensor view creation operates in $O(1)$ constant time regardless of tensor size (whether 1 KB or 100 GB). However, operating on non-contiguous strided views can drastically degrade downstream CUDA kernel performance due to non-coalesced memory reads. Understanding `as_strided` mechanics allows AI compilers (Triton, PyTorch Inductor) to detect non-contiguous views and emit stride-aware memory layout transformations before kernel launch.\n\n### Step-by-Step Execution\n1. **Parameter Resolution**: Unpack target view dimensions $[rows, cols]$ and strides $[r\\_stride, c\\_stride]$.\n2. **Contiguity Audit**: Check if $c\\_stride == 1$ and $r\\_stride == cols$.\n3. **Physical Address Mapping**: Loop through coordinates $(r, c)$ and evaluate $\\text{offset} = \\text{storage\\_offset} + r \\cdot r\\_stride + c \\cdot c\\_stride$.\n4. **Buffer Extraction**: Read $memory\\_buffer[offset]$ and record coordinate mapping.",
   constraints: ["1 <= data.length <= 1000", "-10^9 <= data[i] <= 10^9"],
@@ -315,8 +289,7 @@ export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewE
     {
       kind: "basic",
       title: "Non-Contiguous Strided Tensor Slice",
-      inputDisplay:
-        "data = [10..120], shape = [3, 3], strides = [4, 1], storageOffset = 1",
+      inputDisplay: "data = [10..120], shape = [3, 3], strides = [4, 1], storageOffset = 1",
       outputDisplay: "is_contiguous = false, Offsets: [(0,0)->1, (0,1)->2, ..., (2,2)->10]",
       input: {
         data: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120],
@@ -331,7 +304,8 @@ export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewE
     {
       kind: "complex",
       title: "Contiguous 2x3 Matrix View",
-      inputDisplay: "data = [10, 20, 30, 40, 50, 60], shape = [2, 3], strides = [3, 1], storageOffset = 0",
+      inputDisplay:
+        "data = [10, 20, 30, 40, 50, 60], shape = [2, 3], strides = [3, 1], storageOffset = 0",
       outputDisplay: "is_contiguous = true, Offsets: [(0,0)->0, ..., (1,2)->5]",
       input: {
         data: [10, 20, 30, 40, 50, 60],
@@ -340,7 +314,8 @@ export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewE
         storageOffset: 0,
       },
       output: "is_contiguous = true, 6 mapped coordinate offsets",
-      explanation: "Column stride is 1 and row stride equals column count 3, proving perfect C-contiguity.",
+      explanation:
+        "Column stride is 1 and row stride equals column count 3, proving perfect C-contiguity.",
     },
     {
       kind: "negative",
@@ -354,7 +329,8 @@ export const asStridedTensorViewEngine: AlgorithmDefinition<asStridedTensorViewE
         storageOffset: 0,
       },
       output: "is_contiguous = false, transposed view",
-      explanation: "Swapping strides creates a transposed 2D view without moving any underlying physical bytes.",
+      explanation:
+        "Swapping strides creates a transposed 2D view without moving any underlying physical bytes.",
     },
   ],
   code: ASSTRIDEDTENSORVIEWENGINE_CODE,

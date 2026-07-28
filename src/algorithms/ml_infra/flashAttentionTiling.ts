@@ -1,7 +1,8 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  ArrayElement,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
   ProblemExample,
 } from "../../types/dsa";
 
@@ -192,14 +193,16 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
   if (N <= 0 || d <= 0 || blockQ <= 0 || blockK <= 0 || !Q || !K || !V) {
     steps.push({
       stepIndex: stepIndex++,
-      codeLine: 1,
+      codeLine: 3,
       explanation: {
         what: "Invalid FlashAttention Input",
         why: "Sequence length, head dimension, and block sizes must be positive.",
       },
       primarySnapshot: {
-        kind: "array",
-        elements: [],
+        kind: "matrix",
+        rows: 0,
+        cols: 0,
+        cells: [],
       },
       auxiliaryState: { customState: { error: "Invalid dimensions" } },
       variables: {},
@@ -214,11 +217,42 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
 
   const flatOutput = () => O.map((row) => row.map((v) => Number(v.toFixed(3))).join(", "));
 
-  const elements: ArrayElement[] = Array.from({ length: N }, (_, idx) => ({
-    id: `row-${idx}`,
-    value: idx,
-    state: "default",
-  }));
+  const createMatrixSnapshot = (
+    activeRow?: number,
+    activeCol?: number,
+    highlightRows?: number[],
+  ): MatrixVisualSnapshot => {
+    const cells: MatrixCellItem[] = [];
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < d; c++) {
+        let state: MatrixCellItem["state"] = "default";
+        if (r === activeRow && (activeCol === undefined || c === activeCol)) {
+          state = "active";
+        } else if (highlightRows?.includes(r)) {
+          state = "pivot";
+        } else if (l[r] > 0) {
+          state = "sorted";
+        }
+        cells.push({
+          row: r,
+          col: c,
+          value: Number(O[r][c].toFixed(3)),
+          label: `O[${r},${c}]`,
+          state,
+        });
+      }
+    }
+
+    return {
+      kind: "matrix",
+      rows: N,
+      cols: d,
+      title: `FlashAttention Output Matrix O (${N}x${d})`,
+      rowHeaders: Array.from({ length: N }, (_, idx) => `Row ${idx}`),
+      colHeaders: Array.from({ length: d }, (_, idx) => `Dim ${idx}`),
+      cells,
+    };
+  };
 
   const addStep = (
     codeLine: number,
@@ -227,18 +261,16 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
     qBlockIdx: number,
     kBlockIdx: number,
     vars: Record<string, string | number | boolean>,
+    activeRow?: number,
+    activeCol?: number,
+    highlightRows?: number[],
+    extraCustomState?: Record<string, string | number>,
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: createMatrixSnapshot(activeRow, activeCol, highlightRows),
       auxiliaryState: {
         customState: {
           runningMax_m: m.map((v) => (v === -Infinity ? "-inf" : v.toFixed(3))).join(", "),
@@ -246,19 +278,21 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
           outputMatrix_O: flatOutput().join(" | "),
           activeQBlock: `[${qBlockIdx * blockQ}..${Math.min(N, (qBlockIdx + 1) * blockQ) - 1}]`,
           activeKVBlock: `[${kBlockIdx * blockK}..${Math.min(N, (kBlockIdx + 1) * blockK) - 1}]`,
+          ...extraCustomState,
         },
       },
       variables: vars,
     });
   };
 
+  // Line 10: Initialize buffers
   addStep(
-    1,
-    "Initialize FlashAttention Tiled Softmax Engine",
-    `Setting up online softmax statistics (m=-inf, l=0) and tiled SRAM iteration for ${N} queries with head dimension ${d}.`,
+    10,
+    "Initialize FlashAttention Matrix & Statistics Buffers",
+    `Allocated output matrix O (${N}x${d}) initialized to 0, running max vector m initialized to -inf, and running sum denominator vector l initialized to 0. Scale factor is 1/sqrt(${d}) = ${scale.toFixed(4)}.`,
     0,
     0,
-    { N, d, blockQ, blockK, scale: scale.toFixed(4) },
+    { N, d, blockQ, blockK, scale: Number(scale.toFixed(4)) },
   );
 
   const numQBlocks = Math.ceil(N / blockQ);
@@ -267,23 +301,40 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
   for (let qb = 0; qb < numQBlocks; qb++) {
     const qStart = qb * blockQ;
     const qEnd = Math.min(N, (qb + 1) * blockQ);
+    const qBlockRows = Array.from({ length: qEnd - qStart }, (_, k) => qStart + k);
+
+    // Line 18: Outer loop over Q blocks
+    addStep(
+      18,
+      `Load Query Block Q_block #${qb} [Rows ${qStart}..${qEnd - 1}]`,
+      `Iterating over query tiles. SRAM block loading keeps query sub-matrix (${qEnd - qStart}x${d}) in fast on-chip memory to minimize HBM reads.`,
+      qb,
+      0,
+      { qb, qStart, qEnd: qEnd - 1 },
+      undefined,
+      undefined,
+      qBlockRows,
+    );
 
     for (let kb = 0; kb < numKBlocks; kb++) {
       const kStart = kb * blockK;
       const kEnd = Math.min(N, (kb + 1) * blockK);
 
-      // Highlight active query rows
-      elements.forEach((el, idx) => {
-        if (idx >= qStart && idx < qEnd) {
-          el.state = "active";
-          el.pointers = [`Q-block #${qb}`];
-        } else {
-          el.state = "default";
-          el.pointers = undefined;
-        }
-      });
+      // Line 20: Inner loop over K/V blocks
+      addStep(
+        20,
+        `Load Key & Value Blocks K_block, V_block #${kb} [Rows ${kStart}..${kEnd - 1}]`,
+        `Streaming key and value tiles into fast SRAM for block product computation with Q_block #${qb}.`,
+        qb,
+        kb,
+        { qb, kb, kStart, kEnd: kEnd - 1 },
+        undefined,
+        undefined,
+        qBlockRows,
+      );
 
       for (let i = qStart; i < qEnd; i++) {
+        const bi = i - qStart;
         const qRow = Q[i] ?? new Array(d).fill(0);
         const sRow: number[] = [];
 
@@ -296,15 +347,75 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
           sRow.push(dot * scale);
         }
 
+        // Line 26: Compute S_row dot products
+        addStep(
+          26,
+          `Compute Scaled Tile Attention Scores S_row for Row ${i}`,
+          `Calculated scaled dot products Q[${i}] @ K_block^T * ${scale.toFixed(4)} = [${sRow.map((v) => v.toFixed(3)).join(", ")}].`,
+          qb,
+          kb,
+          { row_idx: i, bi, scores: sRow.map((v) => Number(v.toFixed(3))).join(", ") },
+          i,
+          undefined,
+          qBlockRows,
+          { tileScores_S: sRow.map((v) => v.toFixed(3)).join(", ") },
+        );
+
         const mPrev = m[i];
         const mCurr = Math.max(...sRow);
         const mNew = Math.max(mPrev, mCurr);
+
+        // Line 30: Compute online max update
+        addStep(
+          30,
+          `Update Online Softmax Max Score m[${i}]`,
+          `Previous max m_prev = ${mPrev === -Infinity ? "-inf" : mPrev.toFixed(3)}, tile max m_curr = ${mCurr.toFixed(3)}. New combined row max m_new = ${mNew.toFixed(3)}.`,
+          qb,
+          kb,
+          {
+            row_idx: i,
+            m_prev: mPrev === -Infinity ? "-inf" : Number(mPrev.toFixed(3)),
+            m_curr: Number(mCurr.toFixed(3)),
+            m_new: Number(mNew.toFixed(3)),
+          },
+          i,
+          undefined,
+          qBlockRows,
+          {
+            m_prev: mPrev === -Infinity ? "-inf" : mPrev.toFixed(3),
+            m_curr: mCurr.toFixed(3),
+            m_new: mNew.toFixed(3),
+          },
+        );
 
         const pRow = sRow.map((s) => Math.exp(s - mNew));
         const lPrev = l[i];
         const correction = mPrev === -Infinity ? 0.0 : Math.exp(mPrev - mNew);
         const pSum = pRow.reduce((a, b) => a + b, 0);
         const lNew = correction * lPrev + pSum;
+
+        // Line 35: Compute unnormalized probabilities & updated denominator l_new
+        addStep(
+          35,
+          `Compute Exponents P_row & Updated Denominator l[${i}]`,
+          `Correction factor exp(m_prev - m_new) = ${correction.toFixed(4)}. Unnormalized weights P_row = [${pRow.map((v) => v.toFixed(3)).join(", ")}]. New denominator sum l_new = ${lNew.toFixed(3)}.`,
+          qb,
+          kb,
+          {
+            row_idx: i,
+            correction: Number(correction.toFixed(4)),
+            l_prev: Number(lPrev.toFixed(3)),
+            l_new: Number(lNew.toFixed(3)),
+          },
+          i,
+          undefined,
+          qBlockRows,
+          {
+            unnormalizedP: pRow.map((v) => v.toFixed(3)).join(", "),
+            correction: correction.toFixed(4),
+            l_new: lNew.toFixed(3),
+          },
+        );
 
         const vBlock = V.slice(kStart, kEnd);
         for (let k = 0; k < d; k++) {
@@ -316,30 +427,44 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
           O[i][k] = lNew > 0 ? (correction * prevO * lPrev + pvSum) / lNew : 0;
         }
 
+        // Line 39: Rescale & update output matrix row O[i]
+        addStep(
+          39,
+          `Rescale & Update Output Row O[${i}]`,
+          `Rescaled previous accumulated output O[${i}] by correction scale factor and added new block contribution P_row @ V_block / l_new.`,
+          qb,
+          kb,
+          { row_idx: i, O_row: O[i].map((v) => Number(v.toFixed(3))).join(", ") },
+          i,
+          undefined,
+          qBlockRows,
+          { updatedRow_O: O[i].map((v) => v.toFixed(3)).join(", ") },
+        );
+
         m[i] = mNew;
         l[i] = lNew;
-      }
 
-      addStep(
-        15,
-        `Processed Q-block #${qb} with K/V-block #${kb}`,
-        `Updated online softmax max (m) and sum (l) statistics dynamically in fast SRAM without writing N x N matrix to HBM.`,
-        qb,
-        kb,
-        { qb, kb, qStart, kStart, activeRows: `${qStart}..${qEnd - 1}` },
-      );
+        // Line 41: Update statistics
+        addStep(
+          41,
+          `Persist Updated Softmax Statistics m[${i}] and l[${i}]`,
+          `Stored m[${i}] = ${mNew.toFixed(3)} and l[${i}] = ${lNew.toFixed(3)} for subsequent K/V tile iterations.`,
+          qb,
+          kb,
+          { row_idx: i, m_val: Number(mNew.toFixed(3)), l_val: Number(lNew.toFixed(3)) },
+          i,
+          undefined,
+          qBlockRows,
+        );
+      }
     }
   }
 
-  elements.forEach((el) => {
-    el.state = "sorted";
-    el.pointers = undefined;
-  });
-
+  // Line 44: Return output matrix O
   addStep(
-    30,
+    44,
     "FlashAttention Tiling Complete",
-    "Successfully evaluated exact attention matrix product in IO-aware tiled fashion, saving memory bandwidth by O(N).",
+    `Successfully computed exact attention matrix product O (${N}x${d}) in fast SRAM tiles using online softmax rescaling without materializing the N x N attention matrix in HBM.`,
     numQBlocks - 1,
     numKBlocks - 1,
     { totalOutputRows: N, headDim: d },
@@ -351,12 +476,10 @@ export function generateFlashAttentionSteps(input: FlashAttentionInput): Algorit
 export const flashAttentionTiling: AlgorithmDefinition<FlashAttentionInput> = {
   id: "flash-attention-tiling",
   title: "FlashAttention Tiling & Online Softmax",
-  category: "ml_hardware_kernels",
+  topicIds: ["ml_hardware_kernels"],
   difficulty: "Hard",
   description:
     "IO-aware exact attention algorithm that tiles Query, Key, and Value matrices into fast SRAM blocks, computing online softmax updates without materializing the full N x N attention matrix in GPU memory.",
-  isMlInfra: true,
-  mlInfraLevel: 7,
   constraints: [
     "Sequence length N > 0",
     "Head dimension d > 0",

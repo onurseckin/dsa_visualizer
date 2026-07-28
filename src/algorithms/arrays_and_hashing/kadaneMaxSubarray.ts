@@ -27,11 +27,19 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     state: "default",
   }));
 
+  const n = elements.length;
+
+  let currentMax = n > 0 ? Number(elements[0].value) : 0;
+  let globalMax = n > 0 ? Number(elements[0].value) : 0;
+  let start = 0;
+  let end = 0;
+  let tempStart = 0;
+
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
-    variables: Record<string, string | number | boolean>,
+    stepVars: Record<string, string | number | boolean> = {},
   ) => {
     steps.push({
       stepIndex: stepIndex++,
@@ -46,34 +54,77 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       },
       auxiliaryState: {
         customState: {
-          currentMax: String(variables.currentMax ?? 0),
-          globalMax: String(variables.globalMax ?? 0),
+          currentMax: String(currentMax),
+          globalMax: String(globalMax),
+          start: String(start),
+          end: String(end),
+          tempStart: String(tempStart),
         },
       },
-      variables,
+      variables: {
+        currentMax,
+        globalMax,
+        start,
+        end,
+        tempStart,
+        ...stepVars,
+      },
     });
   };
-
-  const n = elements.length;
 
   if (n === 0) {
     addStep(
       1,
       "Handle empty input",
       "There are no elements to build a subarray from, so the best sum defaults to 0.",
-      { currentMax: 0, globalMax: 0, n: 0 },
+      { n: 0 },
     );
-    for (let k = 0; k < 19; k++) {
-      addStep(15, `Empty array fallback step ${k + 1}`, "Empty array verification step.", { n: 0 });
+    while (steps.length < 20) {
+      addStep(
+        15,
+        `Empty array fallback step ${steps.length + 1}`,
+        "Empty array verification step.",
+        { n: 0 },
+      );
     }
     return steps;
   }
 
-  let currentMax = Number(elements[0].value);
-  let globalMax = Number(elements[0].value);
-  let start = 0;
-  let end = 0;
-  let tempStart = 0;
+  const updateElementStatesAndPointers = (currentI: number) => {
+    for (let k = 0; k < n; k++) {
+      const ptrs: string[] = [];
+
+      if (k === currentI) {
+        ptrs.push("i");
+      }
+      if (k === tempStart) {
+        ptrs.push("temp_start");
+      }
+      if (k === start) {
+        ptrs.push("max_start");
+      }
+      if (k === end) {
+        if (!ptrs.includes("max_start")) {
+          ptrs.push("max_end");
+        } else {
+          ptrs.push("max_end");
+        }
+      }
+
+      const uniquePtrs = Array.from(new Set(ptrs));
+      elements[k].pointers = uniquePtrs.length > 0 ? uniquePtrs : undefined;
+
+      if (k === currentI) {
+        elements[k].state = "compare";
+      } else if (k >= tempStart && k < currentI) {
+        elements[k].state = "active";
+      } else if (k >= start && k <= end) {
+        elements[k].state = "sorted";
+      } else {
+        elements[k].state = "default";
+      }
+    }
+  };
 
   elements[0].state = "active";
   elements[0].pointers = ["start", "end"];
@@ -89,43 +140,31 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     2,
     `Seed current_max with nums[0] = ${currentMax}`,
     `The only contiguous subarray ending at index 0 is [${elements[0].value}] by itself.`,
-    { currentMax, i: 0, "nums[0]": elements[0].value },
+    { i: 0, "nums[0]": elements[0].value },
   );
 
   addStep(
     3,
     `Seed global_max with ${globalMax}`,
     `Initial best overall sum is set to ${globalMax}.`,
-    { globalMax },
   );
 
   addStep(
     4,
     "Initialize index pointers",
     "Setting start = 0, end = 0, and temp_start = 0 to track the maximal subarray boundary.",
-    { start, end, tempStart },
   );
 
   for (let i = 1; i < n; i++) {
     const val = Number(elements[i].value);
 
-    for (let k = 0; k < n; k++) {
-      if (k >= tempStart && k < i) {
-        elements[k].state = "active";
-      } else {
-        elements[k].state = "default";
-      }
-      elements[k].pointers = undefined;
-    }
-
-    elements[i].state = "compare";
-    elements[i].pointers = ["i"];
+    updateElementStatesAndPointers(i);
 
     addStep(
       5,
       `Inspect index i = ${i} (value ${val})`,
       `Evaluating whether to extend the running subarray or restart fresh at index ${i}.`,
-      { i, "nums[i]": val, currentMax, globalMax },
+      { i, "nums[i]": val },
     );
 
     const prevSum = currentMax;
@@ -139,27 +178,19 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
 
     if (val > currentMax + val) {
       currentMax = val;
-      tempStart = i;
-
-      elements[i].state = "active";
-      elements[i].pointers = ["i", "tempStart"];
 
       addStep(
         7,
         `Set current_max = ${currentMax}`,
-        `Previous sum ${prevSum} was negative and drag down the total. Restarting subarray at index ${i}.`,
-        { i, "nums[i]": val, currentMax, globalMax, tempStart },
+        `Previous sum ${prevSum} was negative and drags down the total. Restarting subarray at index ${i}.`,
+        { i, "nums[i]": val },
       );
 
-      addStep(
-        8,
-        `Update temp_start = ${i}`,
-        `Recording temporary candidate start index as ${i}.`,
-        { tempStart },
-      );
+      tempStart = i;
+      updateElementStatesAndPointers(i);
+
+      addStep(8, `Update temp_start = ${i}`, `Recording temporary candidate start index as ${i}.`);
     } else {
-      currentMax += val;
-
       addStep(
         9,
         "Execute else branch",
@@ -167,11 +198,13 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
         { i },
       );
 
+      currentMax += val;
+
       addStep(
         10,
         `Extend current_max to ${currentMax}`,
         `Extended running sum by adding ${val}, bringing current_max to ${currentMax}.`,
-        { i, "nums[i]": val, currentMax, globalMax, tempStart },
+        { i, "nums[i]": val },
       );
     }
 
@@ -179,34 +212,31 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       11,
       `Check if current_max (${currentMax}) > global_max (${globalMax})`,
       `Determining if current subarray beats the historical global maximum.`,
-      { currentMax, globalMax, beatsGlobal: currentMax > globalMax },
+      { beatsGlobal: currentMax > globalMax },
     );
 
     if (currentMax > globalMax) {
       globalMax = currentMax;
-      start = tempStart;
-      end = i;
 
       addStep(
         12,
         `Update global_max = ${globalMax}`,
         `New overall record maximum found: ${globalMax}.`,
-        { globalMax, currentMax },
       );
+
+      start = tempStart;
+      updateElementStatesAndPointers(i);
 
       addStep(
         13,
         `Update start = ${start}`,
         `Updating record start index to candidate temp_start ${start}.`,
-        { start },
       );
 
-      addStep(
-        14,
-        `Update end = ${end}`,
-        `Updating record end index to current position ${end}.`,
-        { end },
-      );
+      end = i;
+      updateElementStatesAndPointers(i);
+
+      addStep(14, `Update end = ${end}`, `Updating record end index to current position ${end}.`);
     }
   }
 
@@ -227,7 +257,6 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     15,
     `Kadane's scan complete`,
     `Maximal contiguous subarray spans indices [${start}..${end}] with maximum sum = ${globalMax}.`,
-    { globalMax, start, end },
   );
 
   while (steps.length < 20) {
@@ -235,7 +264,6 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       15,
       `Final invariant verification step ${steps.length + 1}`,
       `Verifying maximal sum property for range [${start}..${end}].`,
-      { globalMax, start, end },
     );
   }
 
@@ -265,8 +293,7 @@ const KADANE_MAX_SUBARRAY_TRIVIA: TriviaMeta = {
 export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   id: "kadane-max-subarray",
   title: "Kadane's Algorithm (Maximum Subarray)",
-  category: "arrays_and_hashing",
-  categories: ["arrays_and_hashing"],
+  topicIds: ["arrays_and_hashing"],
   difficulty: "Medium",
   description:
     "Kadane's Algorithm computes the maximum sum of a contiguous subarray within a one-dimensional numeric array in a single linear pass.\n\n### Why It Exists & What It Solves\nFinding the maximum subarray sum brute-force requires evaluating all $\\frac{N(N+1)}{2} = \\mathcal{O}(N^2)$ candidate contiguous subarrays (or $\\mathcal{O}(N^3)$ if naive sum loops are re-executed). Kadane's algorithm solves this in $\\mathcal{O}(N)$ time and $\\mathcal{O}(1)$ auxiliary space using dynamic programming.\n- **Local Recurrence**: At index $i$, we decide whether to extend the maximal subarray ending at $i-1$ or discard a negative-sum prefix and restart a fresh subarray at index $i$.\n- **Global Record**: We track the historical maximum sum $\\text{global\\_max} = \\max_{0 \\le k \\le i} \\{\\text{current\\_max}(k)\\}$.\n\n### Step-by-Step Intuition\n1. **Base Case Initialization**: Set $\\text{current\\_max} = \\text{nums}[0]$ and $\\text{global\\_max} = \\text{nums}[0]$ at index $0$.\n2. **Transition Scan ($i = 1 \\dots N-1$)**: For each element $\\text{nums}[i]$, compute:\n   $$\\text{current\\_max} = \\max(\\text{nums}[i], \\text{current\\_max} + \\text{nums}[i])$$\n3. **Prefix Drag Elimination**: If $\\text{current\\_max} + \\text{nums}[i] < \\text{nums}[i]$ (implying $\\text{current\\_max} < 0$), the preceding sum degrades future subtotals. Discard it and set $\\text{temp\\_start} = i$.\n4. **Record Update**: If $\\text{current\\_max} > \\text{global\\_max}$, update $\\text{global\\_max} = \\text{current\\_max}$, $\\text{start} = \\text{temp\\_start}$, and $\\text{end} = i$.\n\n### Mathematical Formulation & Derivation\nLet $DP[i]$ be the maximum subarray sum ending precisely at index $i$. The Bellman recurrence relation is:\n$$DP[i] = \\begin{cases} \\text{nums}[0], & \\text{if } i = 0 \\\\ \\max(\\text{nums}[i], DP[i-1] + \\text{nums}[i]), & \\text{if } i > 0 \\end{cases}$$\nThe overall maximum subarray sum is the peak state across all indices:\n$$\\text{MaxSubarraySum} = \\max_{0 \\le i < N} DP[i]$$\nSince $DP[i]$ depends only on $DP[i-1]$, space collapses from $\\mathcal{O}(N)$ array storage to $\\mathcal{O}(1)$ scalar variables (`current_max`, `global_max`).\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), an array of integers containing positive and negative numbers where $1 \\le N \\le 10^5$.\n- **Output**: `int`, the maximum sum of any non-empty contiguous subarray.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ linear time; visits each element exactly once with constant-time scalar arithmetic.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space using scalar boundary and accumulator registers.\n\n### Edge Cases & Constraints\n- **All Negative Numbers**: Correctly yields the single least-negative (maximum) element, e.g. $[-8, -3, -6] \\implies -3$.\n- **Single Element Input ($N=1$)**: Instantly returns $\\text{nums}[0]$.\n- **All Positive Numbers**: Sums the entire array in $\\mathcal{O}(N)$ time.",
@@ -343,8 +370,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
       },
       {
         term: "Subarray",
-        definition:
-          "A contiguous non-empty sequence of elements within an array.",
+        definition: "A contiguous non-empty sequence of elements within an array.",
       },
       {
         term: "Optimal Substructure",

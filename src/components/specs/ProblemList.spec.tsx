@@ -15,7 +15,7 @@ describe("ProblemList Component Spec", () => {
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
     expect(screen.getByRole("textbox", { name: /Filter problems/i })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: /Filter by Category/i })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: /Filter by Topic/i })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: /Filter by Difficulty/i })).toBeInTheDocument();
   });
 
@@ -51,11 +51,11 @@ describe("ProblemList Component Spec", () => {
     expect(input).toHaveValue("");
   });
 
-  it("filters rows via category select dropdown", () => {
+  it("filters rows via topic select dropdown", () => {
     const onSelectMock = vi.fn();
     render(<ProblemList onSelectAlgorithm={onSelectMock} />);
 
-    const select = screen.getByRole("combobox", { name: /Filter by Category/i });
+    const select = screen.getByRole("combobox", { name: /Filter by Topic/i });
     fireEvent.change(select, { target: { value: "arrays_and_hashing" } });
 
     expect(screen.getByText("Bubble Sort")).toBeInTheDocument();
@@ -68,38 +68,34 @@ describe("ProblemList Component Spec", () => {
     const row = screen.getByText("Bubble Sort");
     fireEvent.click(row);
 
-    expect(onSelectMock).toHaveBeenCalledWith("bubble-sort", "arrays_and_hashing");
+    expect(onSelectMock).toHaveBeenCalledWith("bubble-sort");
   });
 
-  it("drives the category filter from the controlled category prop", () => {
+  it("drives the topic filter from the controlled topic prop", () => {
     render(
-      <ProblemList
-        onSelectAlgorithm={vi.fn()}
-        category="two_pointers"
-        onCategoryChange={vi.fn()}
-      />,
+      <ProblemList onSelectAlgorithm={vi.fn()} topic="two_pointers" onTopicChange={vi.fn()} />,
     );
 
     const select = screen.getByRole("combobox", {
-      name: /Filter by Category/i,
+      name: /Filter by Topic/i,
     }) as HTMLSelectElement;
     expect(select.value).toBe("two_pointers");
     expect(screen.queryByText("Bubble Sort")).not.toBeInTheDocument();
   });
 
   it("round-trips the sort field, sort direction, and difficulty filter across a reload", () => {
-    const categoryButtonName = /Sort by topic \/ category/i;
+    const topicButtonName = /Sort by topic/i;
     const firstRowTitle = () => screen.getAllByRole("row")[1]?.textContent ?? "";
 
     const { unmount } = render(<ProblemList onSelectAlgorithm={vi.fn()} />);
 
     // Title is the default sort column, so switching to a different one is what
     // actually exercises (and persists) a change to sort_by.
-    fireEvent.click(screen.getByRole("button", { name: categoryButtonName }));
+    fireEvent.click(screen.getByRole("button", { name: topicButtonName }));
     const ascendingFirstTitle = firstRowTitle();
 
     // Same column again flips asc -> desc.
-    fireEvent.click(screen.getByRole("button", { name: categoryButtonName }));
+    fireEvent.click(screen.getByRole("button", { name: topicButtonName }));
     const descendingFirstTitle = firstRowTitle();
     expect(descendingFirstTitle).not.toBe(ascendingFirstTitle);
 
@@ -107,7 +103,7 @@ describe("ProblemList Component Spec", () => {
       target: { value: "Hard" },
     });
 
-    expect(window.localStorage.getItem("dsa_visualizer_problem_list_sort_by")).toBe('"category"');
+    expect(window.localStorage.getItem("dsa_visualizer_problem_list_sort_by")).toBe('"topic"');
     expect(window.localStorage.getItem("dsa_visualizer_problem_list_sort_order")).toBe('"desc"');
     expect(window.localStorage.getItem("dsa_visualizer_problem_list_difficulty")).toBe('"Hard"');
 
@@ -117,7 +113,7 @@ describe("ProblemList Component Spec", () => {
     expect(
       (screen.getByRole("combobox", { name: /Filter by Difficulty/i }) as HTMLSelectElement).value,
     ).toBe("Hard");
-    expect(screen.getByRole("button", { name: categoryButtonName })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: topicButtonName })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -144,18 +140,11 @@ describe("ProblemList Component Spec", () => {
     expect(screen.getAllByRole("row")[1]?.textContent ?? "").toBe(cleanFirstRowTitle);
   });
 
-  it("renders ML Infra problems when category='ml_tensor_algebra'", () => {
-    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_tensor_algebra" />);
+  it("renders ML Infra problems when topic='ml_tensor_algebra'", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} topic="ml_tensor_algebra" />);
 
     expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
     expect(screen.getByText("2D Array Matrix Traversal")).toBeInTheDocument();
-  });
-
-  it("renders ML Infra problems when category='ml_infra'", () => {
-    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_infra" />);
-
-    expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
-    expect(screen.getByText("1D Conv GPU SRAM Scratchpad Simulator")).toBeInTheDocument();
   });
 
   it("renders ML Infra problems when selectedSource='ml_infra'", () => {
@@ -169,7 +158,7 @@ describe("ProblemList Component Spec", () => {
   });
 
   it("verifies ML Infra topic algorithms are present in the list and filterable", () => {
-    render(<ProblemList onSelectAlgorithm={vi.fn()} category="ml_tensor_algebra" />);
+    render(<ProblemList onSelectAlgorithm={vi.fn()} topic="ml_tensor_algebra" />);
 
     expect(screen.getByText("PyTorch-Style Tensor Contiguity Verifier")).toBeInTheDocument();
   });

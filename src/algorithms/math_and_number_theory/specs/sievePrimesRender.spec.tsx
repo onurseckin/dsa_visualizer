@@ -1,17 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { VectorVisualizer } from "../../../components/primitives/VectorVisualizer";
+import { ArrayVisualizer } from "../../../components/primitives/ArrayVisualizer";
 import { MainLayout } from "../../../ui";
 import { ALGORITHM_REGISTRY } from "../../registry";
 import { generateSieveSteps, DEFAULT_SIEVE_INPUT } from "../sievePrimes";
-import type { VectorVisualSnapshot } from "../../../types/dsa";
+import type { ArrayVisualSnapshot } from "../../../types/dsa";
 
 describe("sievePrimes React component spec", () => {
-  it("renders VectorVisualizer with sieve snapshot", () => {
+  it("renders ArrayVisualizer with sieve snapshot", () => {
     const steps = generateSieveSteps(DEFAULT_SIEVE_INPUT);
-    const snapshot = steps[0].primarySnapshot as VectorVisualSnapshot;
+    const snapshot = steps[0].primarySnapshot as ArrayVisualSnapshot;
 
-    render(<VectorVisualizer vectors={snapshot.vectors} planeTitle="Sieve of Eratosthenes" />);
+    render(<ArrayVisualizer elements={snapshot.elements} title="Sieve of Eratosthenes" />);
 
     expect(screen.getByText("Sieve of Eratosthenes")).toBeInTheDocument();
   });

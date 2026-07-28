@@ -1,13 +1,12 @@
-import type { TopicRoadmapNode } from "./nodesGroup1";
+import type { DsaCurriculumPlacement } from "./nodesGroup1";
 
-export const NODES_GROUP_2: TopicRoadmapNode[] = [
+export const DSA_PLACEMENTS_GROUP_2: DsaCurriculumPlacement[] = [
   {
     id: "graph-traversal",
     title: "11. Graph Traversal",
-    categoryFolder: "graph_traversal",
+    topicId: "graph_traversal",
     description: "BFS, DFS, Number of Islands, Bipartite Check, Cycles",
     prerequisites: ["backtracking", "tree-fundamentals"],
-    algorithmCount: 24,
     difficulty: "Medium",
     family: "graphs",
     x: 415,
@@ -16,10 +15,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "graph-shortest-paths",
     title: "12. Graph Shortest Paths",
-    categoryFolder: "graph_shortest_paths",
+    topicId: "graph_shortest_paths",
     description: "Dijkstra, Bellman-Ford, Floyd-Warshall All-Pairs",
     prerequisites: ["graph-traversal"],
-    algorithmCount: 3,
     difficulty: "Hard",
     family: "graphs",
     x: 155,
@@ -28,10 +26,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "graph-spanning-trees",
     title: "13. Spanning Trees & DSU",
-    categoryFolder: "graph_spanning_trees",
+    topicId: "graph_spanning_trees",
     description: "Kruskal MST, Union-Find / DSU, Prim MST",
     prerequisites: ["graph-traversal"],
-    algorithmCount: 3,
     difficulty: "Medium",
     family: "graphs",
     x: 415,
@@ -40,10 +37,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "graph-directed-and-scc",
     title: "14. Directed & SCC Graphs",
-    categoryFolder: "graph_directed_and_scc",
+    topicId: "graph_directed_and_scc",
     description: "Topological Sort (Kahn), Kosaraju SCC, Tarjan SCC",
     prerequisites: ["graph-traversal"],
-    algorithmCount: 7,
     difficulty: "Hard",
     family: "graphs",
     x: 675,
@@ -52,10 +48,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "graph-flows-and-cuts",
     title: "15. Network Flows & Cuts",
-    categoryFolder: "graph_flows_and_cuts",
+    topicId: "graph_flows_and_cuts",
     description: "Ford-Fulkerson Max Flow, Edmonds-Karp, Bipartite Matching",
     prerequisites: ["graph-shortest-paths"],
-    algorithmCount: 3,
     difficulty: "Hard",
     family: "graphs",
     x: 155,
@@ -64,10 +59,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "dp-1d",
     title: "16. 1-D Dynamic Programming",
-    categoryFolder: "dp_1d",
+    topicId: "dp_1d",
     description: "Climbing Stairs, House Robber, Coin Change, LIS DP",
     prerequisites: ["backtracking"],
-    algorithmCount: 5,
     difficulty: "Medium",
     family: "dynamic-programming",
     x: 935,
@@ -76,10 +70,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "dp-2d",
     title: "17. 2-D Dynamic Programming",
-    categoryFolder: "dp_2d",
+    topicId: "dp_2d",
     description: "Grid Unique Paths, LCS, Edit Distance, 0/1 Knapsack",
     prerequisites: ["dp-1d"],
-    algorithmCount: 4,
     difficulty: "Hard",
     family: "dynamic-programming",
     x: 935,
@@ -88,10 +81,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "advanced-range-queries",
     title: "18. Advanced Range Queries",
-    categoryFolder: "advanced_range_queries",
+    topicId: "advanced_range_queries",
     description: "Fenwick Tree (BIT), Segment Tree, Lazy Propagation",
     prerequisites: ["dp-2d"],
-    algorithmCount: 23,
     difficulty: "Hard",
     family: "dynamic-programming",
     x: 935,
@@ -100,10 +92,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "bit-manipulation",
     title: "19. Bit Manipulation",
-    categoryFolder: "bit_manipulation",
+    topicId: "bit_manipulation",
     description: "Single Number, Counting Bits, Reverse Bits, Bitmask DP",
     prerequisites: ["arrays-and-hashing"],
-    algorithmCount: 17,
     difficulty: "Easy",
     family: "math-and-geometry",
     x: 935,
@@ -112,10 +103,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "math-and-number-theory",
     title: "20. Math & Number Theory",
-    categoryFolder: "math_and_number_theory",
+    topicId: "math_and_number_theory",
     description: "Sieve of Eratosthenes, Euclid GCD, Modular Inverse",
     prerequisites: ["arrays-and-hashing"],
-    algorithmCount: 21,
     difficulty: "Medium",
     family: "math-and-geometry",
     x: 1195,
@@ -124,10 +114,9 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
   {
     id: "geometry-and-sweep-line",
     title: "21. Geometry & Sweep Line",
-    categoryFolder: "geometry_and_sweep_line",
+    topicId: "geometry_and_sweep_line",
     description: "Shoelace Polygon Area, Convex Hull (Monotone Chain)",
     prerequisites: ["math-and-number-theory"],
-    algorithmCount: 5,
     difficulty: "Hard",
     family: "math-and-geometry",
     x: 1195,

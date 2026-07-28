@@ -9,10 +9,9 @@ import {
 describe("softmax-row-normalize (Softmax Row Normalizer)", () => {
   it("should have correct metadata", () => {
     expect(softmaxRowNormalize.id).toBe("softmax-row-normalize");
-    expect(softmaxRowNormalize.isMlInfra).toBe(true);
-    expect(softmaxRowNormalize.mlInfraLevel).toBe(7);
-    expect(softmaxRowNormalize.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(softmaxRowNormalize.categories).toContain("ml_attention_geometry");
+    expect(softmaxRowNormalize.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(softmaxRowNormalize.topicIds).toContain("ml_attention_geometry");
+    expect(softmaxRowNormalize.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps", () => {

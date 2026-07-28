@@ -187,12 +187,7 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
 const REVERSE_LINKED_LIST_TRIVIA: TriviaMeta = {
   skipLines: [4],
-  distractors: [
-    "curr.next = nxt",
-    "prev = nxt",
-    "curr = prev",
-    "return curr",
-  ],
+  distractors: ["curr.next = nxt", "prev = nxt", "curr = prev", "return curr"],
   hints: [
     {
       line: 5,
@@ -227,8 +222,7 @@ const REVERSE_LINKED_LIST_TRIVIA: TriviaMeta = {
 export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   id: "reverse-linked-list",
   title: "Reverse Linked List",
-  category: "linked_list",
-  categories: ["linked_list"],
+  topicIds: ["linked_list"],
   difficulty: "Easy",
   description: `Master Reverse Linked List: invert pointer directions of a singly linked list in-place in $O(N)$ time and $O(1)$ space.
 

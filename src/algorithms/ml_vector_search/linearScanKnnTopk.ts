@@ -25,11 +25,6 @@ def l2_distance(v1: list[float], v2: list[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(v1, v2)))
 
 def linear_scan_knn_topk(query: list[float], database: list[list[float]], k: int) -> list[tuple[float, int]]:
-    """
-    Exact K-Nearest Neighbor (kNN) search via brute-force linear scan.
-    Maintains a max-heap of size K to store the K smallest distance candidates in O(N log K) time.
-    """
-    # max-heap stores (-distance, vector_id)
     max_heap = []
 
     for idx, vec in enumerate(database):
@@ -49,12 +44,15 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
   let stepIndex = 0;
 
   const l2Dist = (v1: number[], v2: number[]) =>
-    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - v2[idx]) ** 2, 0));
+    Math.sqrt(v1.reduce((sum, val, idx) => sum + (val - (v2[idx] ?? 0)) ** 2, 0));
+
+  // Computed distances cache for cleaner labels
+  const computedDists: (number | null)[] = new Array(database.length).fill(null);
 
   // Step 0: Init
   steps.push({
     stepIndex: stepIndex++,
-    codeLine: 7,
+    codeLine: 8,
     explanation: {
       what: `Initialize Exact Linear Scan kNN Search Engine (K = ${k})`,
       why: `Searching for K = ${k} nearest neighbors to query [${query.join(
@@ -86,6 +84,7 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
   for (let i = 0; i < database.length; i++) {
     const vec = database[i];
     const dist = l2Dist(query, vec);
+    computedDists[i] = dist;
     const maxDistInHeap = topHeap.length > 0 ? Math.max(...topHeap.map((h) => h.dist)) : Infinity;
 
     if (topHeap.length < k) {
@@ -94,23 +93,25 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 14,
+        codeLine: 13,
         explanation: {
-          what: `Scan Vector V${i} [${vec.join(", ")}] (dist=${dist.toFixed(3)}) -> Added to Heap`,
-          why: `Heap size (${topHeap.length}) < K (${k}). Inserted candidate into top-K heap.`,
+          what: `Scan Vector V${i} [${vec.join(", ")}] (dist=${dist.toFixed(3)}) -> Added to Max-Heap`,
+          why: `Heap size (${topHeap.length}) < K (${k}). Inserted candidate (-dist, V${i}) into top-K max-heap.`,
         },
         primarySnapshot: {
           kind: "array",
-          elements: database.map((v, idx) => ({
+          elements: database.map((_, idx) => ({
             id: `v-${idx}`,
             value: idx,
-            label: `V${idx} (d=${idx <= i ? l2Dist(query, v).toFixed(2) : "?"})`,
+            label: `V${idx} (d=${computedDists[idx] !== null ? computedDists[idx]!.toFixed(2) : "?"})`,
             state:
               idx === i
                 ? ("active" as ElementState)
                 : topHeap.some((h) => h.idx === idx)
                   ? ("sorted" as ElementState)
-                  : ("visited" as ElementState),
+                  : idx < i
+                    ? ("visited" as ElementState)
+                    : ("default" as ElementState),
             pointers: idx === i ? [`In Heap (dist=${dist.toFixed(2)})`] : [],
           })),
         },
@@ -125,13 +126,13 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
         variables: { i, dist: Math.round(dist * 100) / 100 },
       });
     } else if (dist < maxDistInHeap) {
-      const evicted = topHeap.shift()!; // remove max
+      const evicted = topHeap.shift()!; // remove max element
       topHeap.push({ dist, idx: i });
       topHeap.sort((a, b) => b.dist - a.dist);
 
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 16,
+        codeLine: 15,
         explanation: {
           what: `Scan Vector V${i} (dist=${dist.toFixed(3)}) -> Replaced Worst Candidate V${evicted.idx}`,
           why: `Distance ${dist.toFixed(3)} < worst heap distance ${evicted.dist.toFixed(
@@ -143,7 +144,7 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
           elements: database.map((_, idx) => ({
             id: `v-${idx}`,
             value: idx,
-            label: `V${idx}`,
+            label: `V${idx} (d=${computedDists[idx] !== null ? computedDists[idx]!.toFixed(2) : "?"})`,
             state:
               idx === i
                 ? ("active" as ElementState)
@@ -166,25 +167,27 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
     } else {
       steps.push({
         stepIndex: stepIndex++,
-        codeLine: 12,
+        codeLine: 14,
         explanation: {
           what: `Scan Vector V${i} (dist=${dist.toFixed(3)}) -> Discarded`,
           why: `Distance ${dist.toFixed(3)} >= worst heap candidate distance (${maxDistInHeap.toFixed(
             3,
-          )}). Discarded.`,
+          )}). Discarded candidate.`,
         },
         primarySnapshot: {
           kind: "array",
           elements: database.map((_, idx) => ({
             id: `v-${idx}`,
             value: idx,
-            label: `V${idx}`,
+            label: `V${idx} (d=${computedDists[idx] !== null ? computedDists[idx]!.toFixed(2) : "?"})`,
             state:
               idx === i
                 ? ("visited" as ElementState)
                 : topHeap.some((h) => h.idx === idx)
                   ? ("sorted" as ElementState)
-                  : ("default" as ElementState),
+                  : idx < i
+                    ? ("visited" as ElementState)
+                    : ("default" as ElementState),
           })),
         },
         auxiliaryState: {
@@ -228,21 +231,17 @@ export const generateLinearScanKnnSteps = (input: LinearScanKnnTopkInput): Algor
         status: "Completed",
       },
     },
-    variables: { topIdx: topHeap[0]?.idx, complete: true },
+    variables: { topIdx: topHeap[0]?.idx ?? 0, complete: true },
   });
 
   return steps;
 };
 
 export const linearScanKnnTopk: AlgorithmDefinition<LinearScanKnnTopkInput> = {
-  id: "linearScanKnnTopk",
+  id: "linear-scan-knn-topk",
   title: "Linear Scan Exact K-Nearest Neighbors (kNN Top-K)",
-  category: "ml_vector_search",
-  categories: ["ml_vector_search"],
+  topicIds: ["ml_vector_search"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 5,
-  mlInfraCategory: "ml_vector_search",
   description:
     "Executes brute-force exact K-Nearest Neighbor (kNN) search across N database vectors. Evaluates pairwise distances sequentially and uses a max-heap of capacity K to track top candidates in O(N log K) total time. Provides 100% ground-truth recall for benchmarking approximate search indexes.\n\nInput Format:\n- query: D-dimensional query embedding vector.\n- database: Array of N database embedding vectors.\n- k: Number of top nearest neighbors K to retrieve.\n\nOutput Format:\n- Returns sorted list of (distance, vectorIndex) of size K.\n\nEdge Cases & Constraints:\n- K >= N: Returns all N database vectors sorted by distance.",
   constraints: ["1 <= k <= database.length.", "All vectors must have identical dimension D."],

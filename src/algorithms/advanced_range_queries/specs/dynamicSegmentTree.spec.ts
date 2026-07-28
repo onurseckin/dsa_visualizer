@@ -6,7 +6,7 @@ describe("dynamicSegmentTree algorithm spec", () => {
   it("should have correct algorithm metadata", () => {
     expect(dynamicSegmentTree.id).toBe("dynamic-segment-tree");
     expect(dynamicSegmentTree.title).toContain("Dynamic Segment Tree");
-    expect(dynamicSegmentTree.category).toBe("advanced_range_queries");
+    expect(dynamicSegmentTree.topicIds).toContain("advanced_range_queries");
     expect(dynamicSegmentTree.timeComplexity.average).toContain("log C");
     expect(dynamicSegmentTree.spaceComplexity).toBe("O(Q log C)");
   });

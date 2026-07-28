@@ -1,128 +1,86 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { Button } from "../../ui";
 import { getAllAlgorithms } from "../../algorithms/registry";
-import { getAlgorithmCategories } from "../../app/categories";
+import { getAlgorithmTopics, isMlInfraAlgorithm } from "../../app/topics";
 import {
   ML_INFRA_FAMILIES,
-  ML_INFRA_NODES,
-  ML_INFRA_NODE_MAP,
+  ML_INFRA_TREE_PLACEMENTS,
+  ML_INFRA_TREE_PLACEMENT_MAP,
   MLInfraFamily,
-  MLInfraNode,
-  MLInfraQuestionItem,
+  MLInfraCurriculumPlacement,
   mlInfraFamilyColor,
   mlInfraFamilyFill,
   mlInfraFamilyFillHover,
-} from "./mlInfraGraphData";
+} from "./mlInfraTree";
 
 export {
   ML_INFRA_FAMILIES,
-  ML_INFRA_NODES,
-  ML_INFRA_NODE_MAP,
+  ML_INFRA_TREE_PLACEMENTS,
+  ML_INFRA_TREE_PLACEMENT_MAP,
   mlInfraFamilyColor,
   mlInfraFamilyFill,
   mlInfraFamilyFillHover,
   mlInfraFamilyLabel,
-} from "./mlInfraGraphData";
-export type {
-  MLInfraNode,
-  MLInfraFamily,
-  MLInfraFamilyId,
-  MLInfraQuestionItem,
-} from "./mlInfraGraphData";
+} from "./mlInfraTree";
+export type { MLInfraCurriculumPlacement, MLInfraFamily, MLInfraFamilyId } from "./mlInfraTree";
 
 export interface MLInfraKnowledgeGraphProps {
-  onSelectCategoryFolder?: (folder: string) => void;
+  onSelectTopic?: (topicId: string) => void;
   onNavigateToAlgorithm?: (algorithmId: string) => void;
 }
 
 export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
-  onSelectCategoryFolder,
+  onSelectTopic,
   onNavigateToAlgorithm,
 }) => {
-  let navigate: ((opts: { to: string; params?: Record<string, string> }) => void) | null = null;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    navigate = useNavigate();
-  } catch {
-    navigate = null;
-  }
-
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
 
-  const allAlgsCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    const allAlgs = getAllAlgorithms();
-    allAlgs.forEach((alg) => {
-      // Collect unique category ids for this algorithm to prevent multi-counting
-      const algCats = new Set<string>();
-      getAlgorithmCategories(alg).forEach((c) => algCats.add(c));
-      if (alg.category) algCats.add(alg.category);
-      if (alg.mlInfraCategory) algCats.add(alg.mlInfraCategory);
-      algCats.forEach((cat) => {
-        map.set(cat, (map.get(cat) || 0) + 1);
+  const problemCountByTopicId = useMemo(() => {
+    const counts = new Map<string, number>();
+    getAllAlgorithms().forEach((algorithm) => {
+      getAlgorithmTopics(algorithm).forEach((topicId) => {
+        counts.set(topicId, (counts.get(topicId) ?? 0) + 1);
       });
     });
-    return map;
+    return counts;
   }, []);
 
   const activeDrawerTopic = useMemo(() => {
-    return drawerTopicId ? ML_INFRA_NODE_MAP.get(drawerTopicId) || null : null;
+    return drawerTopicId ? ML_INFRA_TREE_PLACEMENT_MAP.get(drawerTopicId) || null : null;
   }, [drawerTopicId]);
 
   const drawerQuestions = useMemo(() => {
     if (!activeDrawerTopic) return [];
-    const catFolder = activeDrawerTopic.categoryFolder || activeDrawerTopic.id;
+    const topicId = activeDrawerTopic.topicId;
     const allAlgs = getAllAlgorithms();
-    const matchingAlgs = allAlgs.filter((alg) => {
-      const algCats = new Set<string>();
-      getAlgorithmCategories(alg).forEach((c) => algCats.add(c));
-      if (alg.category) algCats.add(alg.category);
-      if (alg.mlInfraCategory) algCats.add(alg.mlInfraCategory);
-      return algCats.has(catFolder);
-    });
-
-    const staticMap = new Map<string, MLInfraQuestionItem>(
-      (activeDrawerTopic.questions || []).map((q) => [q.algorithmId, q]),
+    const matchingAlgs = allAlgs.filter((algorithm) =>
+      getAlgorithmTopics(algorithm).includes(topicId),
     );
 
-    if (matchingAlgs.length > 0) {
-      return matchingAlgs.map((alg) => {
-        const staticQ = staticMap.get(alg.id);
-        return {
-          id: alg.id,
-          title: alg.title,
-          algorithmId: alg.id,
-          difficulty: alg.difficulty ?? "Medium",
-          type: staticQ?.type ?? (alg.isMlInfra ? "ML Systems Implementation" : "Foundational Math & DSA"),
-          description: alg.description,
-        };
-      });
-    }
-
-    return activeDrawerTopic.questions;
+    return matchingAlgs.map((alg) => ({
+      id: alg.id,
+      title: alg.title,
+      algorithmId: alg.id,
+      difficulty: alg.difficulty ?? "Medium",
+      type: isMlInfraAlgorithm(alg) ? "ML Systems Implementation" : "Foundational Math & DSA",
+      description: alg.description,
+    }));
   }, [activeDrawerTopic]);
 
-  const handleSelectNode = (node: MLInfraNode) => {
+  const handleSelectNode = (node: MLInfraCurriculumPlacement) => {
     setDrawerTopicId(node.id);
-    if (onSelectCategoryFolder) {
-      onSelectCategoryFolder(node.categoryFolder || node.id);
+    if (onSelectTopic) {
+      onSelectTopic(node.topicId);
     }
   };
 
   const handleNavigateQuestion = (algorithmId: string) => {
-    if (onNavigateToAlgorithm) {
-      onNavigateToAlgorithm(algorithmId);
-    } else if (navigate) {
-      navigate({ to: "/workspace/$algorithmId", params: { algorithmId } });
-    } else if (typeof window !== "undefined") {
-      window.location.href = `/workspace/${algorithmId}`;
-    }
+    onNavigateToAlgorithm?.(algorithmId);
   };
 
-  const hoveredNode = hoveredNodeId ? ML_INFRA_NODE_MAP.get(hoveredNodeId) : undefined;
+  const hoveredNode = hoveredNodeId ? ML_INFRA_TREE_PLACEMENT_MAP.get(hoveredNodeId) : undefined;
 
   return (
     <div
@@ -180,11 +138,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
             </button>
           </div>
 
-          <Button
-            onClick={() =>
-              onSelectCategoryFolder?.(activeDrawerTopic.categoryFolder || activeDrawerTopic.id)
-            }
-          >
+          <Button onClick={() => onSelectTopic?.(activeDrawerTopic.topicId)}>
             View {activeDrawerTopic.title} Problems in Problem List →
           </Button>
 
@@ -193,7 +147,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
             <div className="text-xs text-[var(--text-muted)] flex flex-wrap items-center gap-1.5">
               <span className="font-semibold text-[var(--text-secondary)]">Prerequisites:</span>
               {activeDrawerTopic.prerequisites.map((pId: string) => {
-                const pTopic = ML_INFRA_NODE_MAP.get(pId);
+                const pTopic = ML_INFRA_TREE_PLACEMENT_MAP.get(pId);
                 return (
                   <span
                     key={pId}
@@ -212,7 +166,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
               Curated Problems ({drawerQuestions.length})
             </h3>
 
-            {drawerQuestions.map((q: MLInfraQuestionItem) => {
+            {drawerQuestions.map((q) => {
               const isFoundational = q.type === "Foundational Math & DSA";
 
               return (
@@ -307,9 +261,9 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
           {/* Connectors Group */}
           <g className="connectors">
-            {ML_INFRA_NODES.map((node: MLInfraNode) =>
+            {ML_INFRA_TREE_PLACEMENTS.map((node: MLInfraCurriculumPlacement) =>
               node.prerequisites.map((prereqId: string) => {
-                const parent = ML_INFRA_NODE_MAP.get(prereqId);
+                const parent = ML_INFRA_TREE_PLACEMENT_MAP.get(prereqId);
                 if (!parent) return null;
 
                 const isConnectedToDrawer =
@@ -371,7 +325,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
           {/* Nodes Group */}
           <g className="nodes">
-            {ML_INFRA_NODES.map((node: MLInfraNode) => {
+            {ML_INFRA_TREE_PLACEMENTS.map((node: MLInfraCurriculumPlacement) => {
               const isHovered = hoveredNodeId === node.id;
               const isFocused = focusedNodeId === node.id;
               const activeFocusOrHover = isHovered || isFocused;
@@ -389,9 +343,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                 }
               };
 
-              const problemCount =
-                allAlgsCountMap.get(node.categoryFolder) ??
-                (node.questions.length > 0 ? node.questions.length : node.algorithmCount);
+              const problemCount = problemCountByTopicId.get(node.topicId) ?? 0;
 
               return (
                 <g

@@ -9,7 +9,7 @@ import {
 describe("tspBitmaskDp algorithm logic spec", () => {
   it("has categories ['dp_2d'] and valid metadata", () => {
     expect(tspBitmaskDp.id).toBe("tsp-bitmask-dp");
-    expect(tspBitmaskDp.categories).toEqual(["dp_2d"]);
+    expect(tspBitmaskDp.topicIds).toEqual(["dp_2d"]);
     expect(tspBitmaskDp.difficulty).toBe("Hard");
     expect(tspBitmaskDp.code).toContain("def tsp_bitmask");
   });

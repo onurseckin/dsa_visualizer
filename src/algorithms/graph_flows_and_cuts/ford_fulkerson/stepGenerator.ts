@@ -184,7 +184,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
           edges: getGraphEdges(),
         },
         auxiliaryState: {
-          visited: rawNodes,
+          visited: Array.from(visited),
           customState: getFormattedCustomState({ "Current Path": path.join(" → ") }),
         },
         variables: { currentNode: u, currentFlow: currentFlow === Infinity ? "inf" : currentFlow },
@@ -225,7 +225,10 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         },
         auxiliaryState: {
           visited: Array.from(visited),
-          customState: getFormattedCustomState({ Status: "Terminated", "Final Max Flow": currentMaxFlow }),
+          customState: getFormattedCustomState({
+            Status: "Terminated",
+            "Final Max Flow": currentMaxFlow,
+          }),
         },
         variables: { maxFlow: currentMaxFlow, completed: true },
       });
@@ -244,7 +247,10 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         },
         auxiliaryState: {
           visited: Array.from(visited),
-          customState: getFormattedCustomState({ Status: "Completed", "Final Max Flow": currentMaxFlow }),
+          customState: getFormattedCustomState({
+            Status: "Completed",
+            "Final Max Flow": currentMaxFlow,
+          }),
         },
         variables: { maxFlow: currentMaxFlow, completed: true },
       });
@@ -277,7 +283,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         edges: getGraphEdges(pathEdges),
       },
       auxiliaryState: {
-        visited: rawNodes,
+        visited: Array.from(visited),
         customState: getFormattedCustomState({
           "Augmenting Path": pathNodes.join(" → "),
           Bottleneck: bottleneck,
@@ -318,7 +324,7 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
         edges: getGraphEdges(pathEdges),
       },
       auxiliaryState: {
-        visited: rawNodes,
+        visited: Array.from(visited),
         customState: getFormattedCustomState({
           "Last Bottleneck": bottleneck,
           "Total Max Flow": currentMaxFlow,

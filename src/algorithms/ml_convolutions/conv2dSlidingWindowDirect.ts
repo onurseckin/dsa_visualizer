@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition, AlgorithmStep, GridCellNode, MatrixCellItem, MatrixVisualSnapshot } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, GridCellNode } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
 
 export interface Conv2dInput {
@@ -11,14 +11,9 @@ export interface Conv2dInput {
 }
 
 export const CONV2DSLIDINGWINDOWDIRECT_CODE = `def conv2d_sliding_window_direct(image, kernel, stride=1, padding=0):
-    """
-    Executes 2D direct sliding window convolution (cross-correlation)
-    on a 2D image matrix using a 2D filter kernel.
-    """
     h_in, w_in = len(image), len(image[0])
     k_h, k_w = len(kernel), len(kernel[0])
 
-    # Apply zero padding to spatial boundaries
     padded = [[0] * (w_in + 2 * padding) for _ in range(h_in + 2 * padding)]
     for r in range(h_in):
         for c in range(w_in):
@@ -102,7 +97,12 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
         let state: "default" | "active" | "compare" | "visited" = "default";
         if (windowR >= 0 && windowC >= 0) {
           if (r >= windowR && r < windowR + k_h && c >= windowC && c < windowC + k_w) {
-            if (activeKr >= 0 && activeKc >= 0 && r === windowR + activeKr && c === windowC + activeKc) {
+            if (
+              activeKr >= 0 &&
+              activeKc >= 0 &&
+              r === windowR + activeKr &&
+              c === windowC + activeKc
+            ) {
               state = "active";
             } else {
               state = "compare";
@@ -161,7 +161,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Step 2: Measure input
   addStep(
-    6,
+    2,
     "Measure Input Image Dimensions",
     `Input spatial image dimensions: h_in = ${h_in}, w_in = ${w_in}.`,
     { h_in, w_in },
@@ -169,7 +169,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Step 3: Measure kernel
   addStep(
-    7,
+    3,
     "Measure Kernel Dimensions",
     `Kernel filter matrix dimensions: k_h = ${k_h}, k_w = ${k_w}.`,
     { k_h, k_w },
@@ -177,7 +177,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Step 4: Allocate padded matrix
   addStep(
-    10,
+    5,
     "Allocate Padded Image Buffer",
     `Created ${h_pad}x${w_pad} zero-padded image matrix.`,
     { h_pad, w_pad, padding },
@@ -185,7 +185,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Step 5: Calculate h_out
   addStep(
-    15,
+    10,
     "Calculate Output Height Dimension",
     `Output feature height h_out = (${h_pad} - ${k_h}) // ${stride} + 1 = ${h_out}.`,
     { h_out, h_pad, k_h, stride },
@@ -193,7 +193,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Step 6: Calculate w_out
   addStep(
-    16,
+    11,
     "Calculate Output Width Dimension",
     `Output feature width w_out = (${w_pad} - ${k_w}) // ${stride} + 1 = ${w_out}.`,
     { w_out, w_pad, k_w, stride },
@@ -201,7 +201,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Step 7: Allocate output matrix
   addStep(
-    18,
+    13,
     "Initialize Output Matrix Buffer",
     `Allocated ${h_out}x${w_out} output feature map filled with zeros.`,
     { h_out, w_out },
@@ -210,7 +210,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
   // Nested 2D spatial loop
   for (let r = 0; r < h_out; r++) {
     addStep(
-      20,
+      15,
       `Outer Row Loop: r = ${r}`,
       `Processing output feature map row r = ${r} of ${h_out - 1}.`,
       { r, h_out },
@@ -221,7 +221,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
       const top_left_c = c * stride;
 
       addStep(
-        21,
+        16,
         `Inner Column Loop: c = ${c}`,
         `Processing window at output coordinate (${r}, ${c}) anchored at padded top-left (${top_left_r}, ${top_left_c}).`,
         { r, c, top_left_r, top_left_c },
@@ -231,7 +231,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
       let acc_sum = 0.0;
       addStep(
-        22,
+        17,
         `Reset Dot Product Accumulator`,
         `Initialized acc_sum = 0.0 for window (${r}, ${c}).`,
         { r, c, acc_sum },
@@ -241,7 +241,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
       for (let kr = 0; kr < k_h; kr++) {
         addStep(
-          23,
+          18,
           `Kernel Row Loop: kr = ${kr}`,
           `Scanning kernel row kr = ${kr} of ${k_h - 1}.`,
           { r, c, kr },
@@ -259,7 +259,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
           const prod = img_val * ker_val;
 
           addStep(
-            24,
+            19,
             `Kernel Col Loop: kc = ${kc}`,
             `Multiplying padded image cell (${pr}, ${pc}) [val = ${img_val}] with kernel cell (${kr}, ${kc}) [weight = ${ker_val}].`,
             { r, c, kr, kc, pr, pc, img_val, ker_val },
@@ -271,7 +271,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
           acc_sum += prod;
           addStep(
-            25,
+            20,
             `Accumulate Product: ${img_val} * ${ker_val} = ${prod}`,
             `Updated acc_sum = ${acc_sum.toFixed(1)} for coordinate (${r}, ${c}).`,
             { r, c, kr, kc, prod, acc_sum },
@@ -285,7 +285,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
       output[r][c] = acc_sum;
       addStep(
-        26,
+        21,
         `Store Feature Map Value: output[${r}][${c}] = ${acc_sum.toFixed(1)}`,
         `Wrote accumulated dot product ${acc_sum.toFixed(1)} into output grid at (${r}, ${c}).`,
         { r, c, "output[r][c]": acc_sum },
@@ -297,7 +297,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 
   // Final return step
   addStep(
-    28,
+    23,
     "Convolution Complete",
     `Finished 2D direct sliding window convolution. Output shape ${h_out}x${w_out}.`,
     { done: true, h_out, w_out },
@@ -307,7 +307,7 @@ export const generateConv2dSlidingWindowDirectSteps = (input: Conv2dInput): Algo
 };
 
 const CONV2DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
-  skipLines: [2, 3, 4, 8, 9, 12, 13, 14, 17, 19, 27],
+  skipLines: [4, 9, 12, 14, 22],
   distractors: [
     "output[r][c] = sum(image * kernel)",
     "padded[r][c] = image[r + padding][c + padding]",
@@ -315,50 +315,41 @@ const CONV2DSLIDINGWINDOWDIRECT_TRIVIA: TriviaMeta = {
     "acc_sum *= padded[r * stride + kr][c * stride + kc]",
   ],
   hints: [
-    { line: 15, hint: "Spatial output height formula: (len(padded) - k_h) // stride + 1." },
-    { line: 25, hint: "Index padded matrix at r * stride + kr and c * stride + kc." },
+    { line: 10, hint: "Spatial output height formula: (len(padded) - k_h) // stride + 1." },
+    { line: 20, hint: "Index padded matrix at r * stride + kr and c * stride + kc." },
   ],
   lineExplanations: {
     1: "Defines entry point for 2D direct sliding window convolution function.",
-    2: "Docstring opening delimiter tag.",
-    3: "Describes 2D direct sliding window cross-correlation spatial image filtering.",
-    4: "Docstring closing delimiter tag.",
-    5: "Blank line before shape extraction.",
-    6: "Measures height h_in and width w_in of input image matrix.",
-    7: "Measures height k_h and width k_w of filter weight matrix.",
-    8: "Blank line before zero-padding section.",
-    9: "Comment explaining spatial boundary zero-padding application.",
-    10: "Allocates zero-padded image matrix of shape (h_in + 2*padding) x (w_in + 2*padding).",
-    11: "Iterates over each row index r of unpadded input image.",
-    12: "Iterates over each column index c of unpadded input image.",
-    13: "Copies input image pixel value to padded grid with offset padding.",
-    14: "Blank line before output dimension calculation.",
-    15: "Calculates output feature height h_out using spatial dimension formula.",
-    16: "Calculates output feature width w_out using spatial dimension formula.",
-    17: "Blank line before output buffer initialization.",
-    18: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
-    19: "Blank line separating buffer allocation from spatial loops.",
-    20: "Iterates over output feature map row coordinate r from 0 to h_out - 1.",
-    21: "Iterates over output feature map column coordinate c from 0 to w_out - 1.",
-    22: "Resets dot product accumulator acc_sum to 0.0 for spatial coordinate (r, c).",
-    23: "Iterates over filter kernel row tap kr from 0 to k_h - 1.",
-    24: "Iterates over filter kernel column tap kc from 0 to k_w - 1.",
-    25: "Multiplies padded image pixel with kernel weight and accumulates into acc_sum.",
-    26: "Stores completed dot product accumulation acc_sum into output matrix at (r, c).",
-    27: "Blank line separating spatial loops from return statement.",
-    28: "Returns computed 2D feature map matrix output.",
+    2: "Measures height h_in and width w_in of input image matrix.",
+    3: "Measures height k_h and width k_w of filter weight matrix.",
+    4: "Blank line before zero-padding matrix allocation.",
+    5: "Allocates zero-padded image matrix of shape (h_in + 2*padding) x (w_in + 2*padding).",
+    6: "Iterates over each row index r of unpadded input image.",
+    7: "Iterates over each column index c of unpadded input image.",
+    8: "Copies input image pixel value to padded grid with offset padding.",
+    9: "Blank line before output dimension calculation.",
+    10: "Calculates output feature height h_out using spatial dimension formula.",
+    11: "Calculates output feature width w_out using spatial dimension formula.",
+    12: "Blank line before output buffer initialization.",
+    13: "Allocates output feature map matrix of shape h_out x w_out filled with zero floats.",
+    14: "Blank line separating buffer allocation from spatial loops.",
+    15: "Iterates over output feature map row coordinate r from 0 to h_out - 1.",
+    16: "Iterates over output feature map column coordinate c from 0 to w_out - 1.",
+    17: "Resets dot product accumulator acc_sum to 0.0 for spatial coordinate (r, c).",
+    18: "Iterates over filter kernel row tap kr from 0 to k_h - 1.",
+    19: "Iterates over filter kernel column tap kc from 0 to k_w - 1.",
+    20: "Multiplies padded image pixel with kernel weight and accumulates into acc_sum.",
+    21: "Stores completed dot product accumulation acc_sum into output matrix at (r, c).",
+    22: "Blank line separating spatial loops from return statement.",
+    23: "Returns computed 2D feature map matrix output.",
   },
 };
 
 export const conv2dSlidingWindowDirect: AlgorithmDefinition<Conv2dInput> = {
-  id: "conv2dSlidingWindowDirect",
+  id: "conv2d-sliding-window-direct",
   title: "2D Direct Sliding Window Convolution",
-  category: "ml_convolutions",
-  categories: ["ml_convolutions", "ml_gemm_roofline"],
+  topicIds: ["ml_convolutions", "ml_gemm_roofline"],
   difficulty: "Easy",
-  isMlInfra: true,
-  mlInfraLevel: 8,
-  mlInfraCategory: "ml_convolutions",
   description:
     "Direct **2D sliding window convolution** computes spatial output feature maps by systematically sliding a 2D filter kernel across an activation matrix, computing local element-wise dot products, and writing sums into output coordinates. While intuitive, nested 4D loops ($N \\times C_{out} \\times H_{out} \\times W_{out}$) exhibit low operational intensity and high loop overhead, motivating `im2col` and Winograd lowering in production deep learning compilers.\n\n### Why It Exists\n2D convolution is the core spatial feature extraction primitive in Computer Vision architectures (ResNet, ConvNeXt, EfficientNet). Direct sliding window convolution serves as the reference gold-standard implementation against which optimized GEMM, FFT, and Winograd kernels are validated.\n\n### Mathematical Formulation\nGiven an input activation matrix $X \\in \\mathbb{R}^{H \\times W}$, kernel weights $W \\in \\mathbb{R}^{K_h \\times K_w}$, stride $S$, and padding $P$, spatial output dimensions $(H_{out}, W_{out})$ and feature map values $Y[r, c]$ are defined as:\n\n$$H_{out} = \\left\\lfloor \\frac{H + 2P - K_h}{S} \\right\\rfloor + 1, \\quad W_{out} = \\left\\lfloor \\frac{W + 2P - K_w}{S} \\right\\rfloor + 1$$\n\n$$Y[r, c] = \\sum_{kr=0}^{K_h-1} \\sum_{kc=0}^{K_w-1} X_{\\text{pad}}[r \\cdot S + kr, \\, c \\cdot S + kc] \\cdot W[kr, kc]$$\n\n### Step-by-Step Intuition\n1. **Zero-Padding**: Surround the input activation grid with $P$ layers of zero values.\n2. **Anchor Window**: Place the top-left of the $K_h \\times K_w$ kernel at $(r \\cdot S, c \\cdot S)$ in the padded grid.\n3. **Element-wise Multiplication**: Multiply each kernel weight by its overlapping padded image pixel.\n4. **Accumulation**: Sum all $K_h \\cdot K_w$ product terms and store into output location $Y[r, c]$.\n\n### Key Trade-Offs & Hardware Execution\n- **Memory Efficiency**: Direct sliding window requires zero extra memory buffers ($O(1)$ auxiliary space), unlike `im2col` which duplicates receptive fields and consumes $O(K_h K_w H_{out} W_{out})$ extra RAM.\n- **Compute Efficiency**: Direct 2D loops perform non-contiguous memory access patterns, resulting in poor SIMD vectorization and cache line thrashing. High-performance engines lower convolution to GEMM matrix multiplication.",
   constraints: ["1 <= K_h, K_w <= H, W <= 100", "stride >= 1", "padding >= 0"],

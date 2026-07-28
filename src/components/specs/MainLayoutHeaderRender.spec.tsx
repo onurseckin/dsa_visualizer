@@ -97,7 +97,7 @@ const dummyTopicGuide: TopicGuide = {
 const dummyAlgorithm: AlgorithmDefinition = {
   id: "bubble-sort",
   title: "Bubble Sort Algorithm",
-  category: "arrays_and_hashing",
+  topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
     "Repeatedly steps through the list, compares adjacent elements and swaps them if they are in the wrong order.",
@@ -159,14 +159,14 @@ afterEach(() => {
 });
 
 describe("MainLayoutHeaderRender Component Spec", () => {
-  it("renders the workspace header bar with algorithm title, difficulty badge and category tag always, even when panels.problem is false", () => {
+  it("renders the workspace header bar with algorithm title, difficulty badge and topic tag always, even when panels.problem is false", () => {
     const { rerender } = renderLayout({ panels: { ...allPanels(), problem: true } });
 
     const header = screen.getByTestId("workspace-header");
     expect(header).toBeInTheDocument();
     expect(header).toHaveTextContent("Bubble Sort Algorithm");
     expect(header).toHaveTextContent("Easy");
-    expect(header).toHaveTextContent("Arrays and hashing");
+    expect(header).toHaveTextContent("Arrays & Hashing");
     expect(screen.getByTestId("problem-description-card")).toBeInTheDocument();
 
     // Now toggle problem panel OFF via panels.problem = false
@@ -183,7 +183,7 @@ describe("MainLayoutHeaderRender Component Spec", () => {
     expect(headerAfterToggle).toBeInTheDocument();
     expect(headerAfterToggle).toHaveTextContent("Bubble Sort Algorithm");
     expect(headerAfterToggle).toHaveTextContent("Easy");
-    expect(headerAfterToggle).toHaveTextContent("Arrays and hashing");
+    expect(headerAfterToggle).toHaveTextContent("Arrays & Hashing");
 
     // Problem description card container is hidden
     expect(screen.queryByTestId("problem-description-card")).not.toBeInTheDocument();

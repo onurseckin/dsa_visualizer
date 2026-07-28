@@ -10,10 +10,11 @@ describe("zero3-parameter-sharding-dynamic-allgather (DeepSpeed ZeRO-3 Parameter
     expect(zero3ParameterShardingDynamicAllgather.id).toBe(
       "zero3-parameter-sharding-dynamic-allgather",
     );
-    expect(zero3ParameterShardingDynamicAllgather.isMlInfra).toBe(true);
-    expect(zero3ParameterShardingDynamicAllgather.mlInfraLevel).toBe(11);
-    expect(zero3ParameterShardingDynamicAllgather.mlInfraCategory).toBe("ml_distributed_systems");
-    expect(zero3ParameterShardingDynamicAllgather.categories).toContain("ml_distributed_systems");
+    expect(
+      zero3ParameterShardingDynamicAllgather.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(zero3ParameterShardingDynamicAllgather.topicIds).toContain("ml_distributed_systems");
+    expect(zero3ParameterShardingDynamicAllgather.topicIds).toContain("ml_distributed_systems");
     expect(zero3ParameterShardingDynamicAllgather.defaultInput).toEqual(
       DEFAULT_ZERO3PARAMETERSHARDINGDYNAMICALLGATHER_INPUT,
     );

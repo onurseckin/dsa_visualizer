@@ -88,15 +88,16 @@ export const generateGeneratingPermutationsSteps = (
       codeLine: 6,
       explanation: {
         what: `Check base case: current perm length (${currPerm.length}) == N (${n})?`,
-        why: currPerm.length === n
-          ? `All ${n} positions filled — we reached a complete permutation.`
-          : `Permutation currently has ${currPerm.length} elements; need ${n} total elements to complete.`,
+        why:
+          currPerm.length === n
+            ? `All ${n} positions filled — we reached a complete permutation.`
+            : `Permutation currently has ${currPerm.length} elements; need ${n} total elements to complete.`,
       },
       primarySnapshot: buildArraySnapshot(-1),
       auxiliaryState: {
         customState: {
           "Current Permutation": `[${currPerm.join(", ")}]`,
-          "Length": currPerm.length,
+          Length: currPerm.length,
         },
       },
       variables: {
@@ -242,8 +243,7 @@ function factorial(n: number): number {
 export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsInput> = {
   id: "generating-permutations",
   title: "Generating Permutations",
-  category: "backtracking",
-  categories: ["backtracking"],
+  topicIds: ["backtracking"],
   difficulty: "Medium",
   description:
     "Generate all $N!$ distinct permutations of an array of unique elements using recursive backtracking with state restoration.\n\n### Problem Statement\nGiven an array `nums` of $N$ distinct integers, return all possible permutations (distinct linear orderings) of the array elements in any order.\n\nA permutation represents a distinct ordering of all $N$ elements. The algorithm constructs each arrangement element by element from left to right using depth-first search. A boolean tracking array `used` prevents selecting an element multiple times in the same branch, and state restoration (pop + unmark) allows reusing a single buffer across all $N!$ recursive paths.\n\n### Input Parameters\n- `elements` (list[int]): An array of $N$ unique integers.\n\n### Output\n- list[list[int]]: A list containing all $N!$ unique permutations.\n\n### Constraints & Edge Cases\n- `1 <= elements.length <= 8`\n- `-10 <= elements[i] <= 10`\n- All elements of `elements` are unique.",

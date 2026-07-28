@@ -1,7 +1,8 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  ArrayElement,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
   ProblemExample,
 } from "../../types/dsa";
 
@@ -41,7 +42,7 @@ export const IM2COL_CONV_TILING_CODE = `def im2col_conv_tiling(
                         patch.append(val)
             col_matrix.append(patch)
             
-    return col_matrix # Shape: (out_h * out_w) x (C * kernel_size^2)`;
+    return col_matrix`;
 
 export const DEFAULT_IM2COL_INPUT: Im2colInput = {
   inputHeight: 4,
@@ -136,6 +137,60 @@ export const IM2COL_EXAMPLES: ProblemExample<Im2colInput>[] = [
   },
 ];
 
+function createMatrixSnapshot(
+  colMatrix: number[][],
+  totalPatches: number,
+  patchDim: number,
+  currentPatchRow?: number,
+  currentPatchValues?: number[],
+): MatrixVisualSnapshot {
+  const rowHeaders: string[] = [];
+  for (let r = 0; r < totalPatches; r++) {
+    rowHeaders.push(`P#${r}`);
+  }
+
+  const colHeaders: string[] = [];
+  for (let c = 0; c < patchDim; c++) {
+    colHeaders.push(`v${c}`);
+  }
+
+  const cells: MatrixCellItem[] = [];
+
+  for (let r = 0; r < totalPatches; r++) {
+    const isCurrentRow = r === currentPatchRow;
+    const isRowCompleted = r < colMatrix.length;
+    const rowData = isRowCompleted ? colMatrix[r] : isCurrentRow ? currentPatchValues : undefined;
+
+    for (let c = 0; c < patchDim; c++) {
+      if (rowData && c < rowData.length) {
+        cells.push({
+          row: r,
+          col: c,
+          value: rowData[c],
+          state: isCurrentRow ? "active" : "sorted",
+        });
+      } else {
+        cells.push({
+          row: r,
+          col: c,
+          value: "-",
+          state: "inactive",
+        });
+      }
+    }
+  }
+
+  return {
+    kind: "matrix",
+    rows: Math.max(totalPatches, 1),
+    cols: Math.max(patchDim, 1),
+    cells,
+    rowHeaders: totalPatches > 0 ? rowHeaders : undefined,
+    colHeaders: patchDim > 0 ? colHeaders : undefined,
+    title: `im2col GEMM Matrix (${totalPatches} × ${patchDim})`,
+  };
+}
+
 export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -159,8 +214,11 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
         why: "Height, width, channels, kernel size, and stride must be positive.",
       },
       primarySnapshot: {
-        kind: "array",
-        elements: [],
+        kind: "matrix",
+        rows: 1,
+        cols: 1,
+        cells: [{ row: 0, col: 0, value: "Invalid", state: "inactive" }],
+        title: "Invalid Dimensions",
       },
       auxiliaryState: {
         customState: { error: "Invalid dimensions" },
@@ -175,46 +233,31 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
   const totalPatches = outH * outW;
   const patchDim = C * K * K;
 
-  const flatInput: number[] = [];
-  for (let c = 0; c < C; c++) {
-    for (let r = 0; r < H; r++) {
-      for (let w = 0; w < W; w++) {
-        flatInput.push(image[c]?.[r]?.[w] ?? 0);
-      }
-    }
-  }
-
-  const elements: ArrayElement[] = flatInput.map((val, idx) => ({
-    id: `img-${idx}`,
-    value: val,
-    state: "default",
-  }));
-
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     colMatrix: number[][],
-    currentPatch: number[],
-    vars: Record<string, string | number | boolean>,
+    currentPatchRow?: number,
+    currentPatchValues?: number[],
+    vars: Record<string, string | number | boolean> = {},
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
+      primarySnapshot: createMatrixSnapshot(
+        colMatrix,
+        totalPatches,
+        patchDim,
+        currentPatchRow,
+        currentPatchValues,
+      ),
       auxiliaryState: {
         customState: {
           outputDimensions: `${outH}x${outW} (${totalPatches} patches)`,
-          patchSize: `${patchDim} values per column`,
-          currentPatch: currentPatch.join(", "),
-          extractedColumnsCount: colMatrix.length,
+          patchSize: `${patchDim} values per unrolled row`,
+          extractedPatchesCount: colMatrix.length,
         },
       },
       variables: vars,
@@ -226,34 +269,38 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
     "Initialize im2col Patch Extraction",
     `Input tensor shape: C=${C}, H=${H}, W=${W}. Kernel size K=${K}, stride S=${S}, padding P=${P}.`,
     [],
-    [],
+    undefined,
+    undefined,
     { C, H, W, K, S, P },
   );
 
   addStep(
     7,
     `Compute Input Dimensions: C=${C}, H=${H}, W=${W}`,
-    "Reading spatial dimensions from the input image tensor.",
+    "Reading spatial and channel dimensions from the input image tensor.",
     [],
-    [],
+    undefined,
+    undefined,
     { C, H, W },
   );
 
   addStep(
     11,
     `Compute Output Dimensions: out_h=${outH}, out_w=${outW}`,
-    `out_h = (${H} + 2×${P} - ${K}) // ${S} + 1 = ${outH}. out_w = (${W} + 2×${P} - ${K}) // ${S} + 1 = ${outW}. Total patches: ${totalPatches}.`,
+    `out_h = (${H} + 2×${P} - ${K}) // ${S} + 1 = ${outH}. out_w = (${W} + 2×${P} - ${K}) // ${S} + 1 = ${outW}. Total receptive field patches: ${totalPatches}.`,
     [],
-    [],
+    undefined,
+    undefined,
     { outH, outW, totalPatches },
   );
 
   addStep(
     14,
     `Initialize col_matrix = [] (${totalPatches} patches expected)`,
-    `Will build a ${totalPatches}×${patchDim} matrix where each column is one kernel receptive field.`,
+    `Allocating container to build a ${totalPatches}×${patchDim} GEMM matrix. Each row will represent an unrolled patch.`,
     [],
-    [],
+    undefined,
+    undefined,
     { totalPatches, patchDim },
   );
 
@@ -264,10 +311,15 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
       const patchIndex = r * outW + c;
       const patch: number[] = [];
 
-      elements.forEach((el) => {
-        el.state = "default";
-        el.pointers = undefined;
-      });
+      addStep(
+        17,
+        `Start Patch Extraction #${patchIndex} at Output (${r}, ${c})`,
+        `Initializing empty patch vector for receptive field window at top-left coordinate (r=${r * S}, c=${c * S}).`,
+        colMatrix,
+        patchIndex,
+        [],
+        { r, c, patchIndex },
+      );
 
       for (let ch = 0; ch < C; ch++) {
         for (let kh = 0; kh < K; kh++) {
@@ -277,51 +329,44 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
             let val = 0;
             if (ih >= 0 && ih < H && iw >= 0 && iw < W) {
               val = image[ch]?.[ih]?.[iw] ?? 0;
-              const flatIdx = ch * (H * W) + ih * W + iw;
-              if (elements[flatIdx]) {
-                elements[flatIdx].state = "active";
-                elements[flatIdx].pointers = [`P#${patchIndex}`];
-              }
             }
             patch.push(val);
           }
         }
       }
 
+      addStep(
+        24,
+        `Gather Receptive Field Patch #${patchIndex} [${patch.slice(0, 4).join(", ")}${patch.length > 4 ? ", ..." : ""}]`,
+        `Unrolled ${patch.length} elements across ${C} channel(s) and ${K}x${K} kernel window into a 1D vector.`,
+        colMatrix,
+        patchIndex,
+        patch,
+        { patchIndex, r, c, patchSize: patch.length },
+      );
+
       colMatrix.push(patch);
 
       addStep(
-        20,
-        `Extract Receptive Field Patch #${patchIndex} at Output (${r}, ${c})`,
-        `Iterating over all C×K×K elements of kernel window. Patch has ${patch.length} values: [${patch.slice(0,5).join(", ")}${patch.length > 5 ? "..." : ""}].`,
+        25,
+        `col_matrix.append(patch) — Append Row #${patchIndex}`,
+        `Appended patch #${patchIndex} to col_matrix. Matrix now has ${colMatrix.length}/${totalPatches} unrolled rows.`,
         colMatrix,
-        patch,
-        { patchIndex, r, c, patchSize: patch.length },
+        undefined,
+        undefined,
+        { patchIndex, totalRows: colMatrix.length },
       );
     }
   }
 
-  elements.forEach((el) => {
-    el.state = "sorted";
-    el.pointers = undefined;
-  });
-
-  addStep(
-    25,
-    `col_matrix.append(patch) — im2col Matrix Complete (${colMatrix.length}×${patchDim})`,
-    `All ${colMatrix.length} patches extracted. col_matrix shape: (${colMatrix.length}, ${patchDim}). Ready for BLAS matrix multiplication.`,
-    colMatrix,
-    [],
-    { totalColumns: colMatrix.length, columnWidth: patchDim },
-  );
-
   addStep(
     27,
-    `return col_matrix`,
-    `Returning dense 2D GEMM matrix of shape (${colMatrix.length}, ${patchDim}).`,
+    `return col_matrix — im2col GEMM Matrix Complete (${colMatrix.length}×${patchDim})`,
+    `All ${colMatrix.length} patches extracted and flattened into dense 2D matrix of shape (${colMatrix.length}, ${patchDim}). Ready for GPU GEMM execution.`,
     colMatrix,
-    [],
-    { totalColumns: colMatrix.length, columnWidth: patchDim },
+    undefined,
+    undefined,
+    { totalRows: colMatrix.length, rowWidth: patchDim },
   );
 
   return steps;
@@ -330,12 +375,10 @@ export function generateIm2colSteps(input: Im2colInput): AlgorithmStep[] {
 export const im2colConvTiling: AlgorithmDefinition<Im2colInput> = {
   id: "im2col-conv-tiling",
   title: "im2col Convolution Patch to GEMM Flattening",
-  category: "ml_convolutions",
+  topicIds: ["ml_convolutions"],
   difficulty: "Medium",
   description:
     "Transforms high-dimensional 2D/3D image convolution receptive fields into flattened matrix columns, lowering convolution operations to high-performance General Matrix Multiplication (GEMM).",
-  isMlInfra: true,
-  mlInfraLevel: 6,
   constraints: [
     "Input spatial height H > 0, width W > 0",
     "Channels C >= 1",

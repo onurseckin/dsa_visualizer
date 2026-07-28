@@ -9,10 +9,11 @@ import {
 describe("rotary-embedding-attention-cuda-kernel (Fused RoPE & Attention CUDA Kernel Simulator)", () => {
   it("should have correct metadata", () => {
     expect(rotaryEmbeddingAttentionCudaKernel.id).toBe("rotary-embedding-attention-cuda-kernel");
-    expect(rotaryEmbeddingAttentionCudaKernel.isMlInfra).toBe(true);
-    expect(rotaryEmbeddingAttentionCudaKernel.mlInfraLevel).toBe(7);
-    expect(rotaryEmbeddingAttentionCudaKernel.mlInfraCategory).toBe("ml_attention_geometry");
-    expect(rotaryEmbeddingAttentionCudaKernel.categories).toContain("ml_attention_geometry");
+    expect(
+      rotaryEmbeddingAttentionCudaKernel.topicIds.some((topicId) => topicId.startsWith("ml_")),
+    ).toBe(true);
+    expect(rotaryEmbeddingAttentionCudaKernel.topicIds).toContain("ml_attention_geometry");
+    expect(rotaryEmbeddingAttentionCudaKernel.topicIds).toContain("ml_attention_geometry");
   });
 
   it("should generate at least 20 algorithm steps with matrix visual snapshots", () => {

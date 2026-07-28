@@ -10,9 +10,8 @@ import type { GraphVisualSnapshot } from "../../../types/dsa";
 describe("topologicalSortDag algorithm spec", () => {
   it("should have correct ML Infra Level 2 metadata", () => {
     expect(topologicalSortDag.id).toBe("topological-sort-dag");
-    expect(topologicalSortDag.isMlInfra).toBe(true);
-    expect(topologicalSortDag.mlInfraLevel).toBe(2);
-    expect(topologicalSortDag.category).toBe("ml_autograd_dags");
+    expect(topologicalSortDag.topicIds.some((topicId) => topicId.startsWith("ml_"))).toBe(true);
+    expect(topologicalSortDag.topicIds).toContain("ml_autograd_dags");
     expect(topologicalSortDag.defaultInput).toEqual(DEFAULT_TOPOLOGICAL_SORT_DAG_INPUT);
     expect(topologicalSortDag.sources).toEqual([
       { type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" },

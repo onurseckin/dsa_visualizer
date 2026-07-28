@@ -1,6 +1,6 @@
 import React from "react";
 import { boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
-import { VectorVisualSnapshot } from "../../types/dsa";
+import { elementStateToken, VectorVisualSnapshot } from "../../types/dsa";
 
 export interface VectorVisualizerProps {
   vectors: VectorVisualSnapshot["vectors"];
@@ -9,10 +9,7 @@ export interface VectorVisualizerProps {
   dimensions?: "2d" | "3d";
 }
 
-export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({
-  vectors,
-  planeTitle,
-}) => {
+export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({ vectors, planeTitle }) => {
   const { ref, box } = useCanvasBox({ width: 800, height: 500 });
   const centerX = box.width / 2;
   const centerY = box.height / 2;
@@ -20,14 +17,14 @@ export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({
 
   const getColor = (vec: VectorVisualSnapshot["vectors"][0]) => {
     if (vec.color) return vec.color;
-    switch (vec.state) {
+    switch (vec.state ? elementStateToken(vec.state) : "default") {
       case "active":
         return "var(--accent)";
-      case "compared":
+      case "compare":
         return "#f59e0b";
-      case "result":
+      case "sorted":
         return "#10b981";
-      case "inactive":
+      case "visited":
         return "var(--text-muted)";
       default:
         return "#3b82f6";
