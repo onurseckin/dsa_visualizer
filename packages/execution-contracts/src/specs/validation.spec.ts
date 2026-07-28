@@ -299,6 +299,121 @@ describe("execution contract validation", () => {
     expect(validatePythonExecutionSpec(spec).ok).toBe(false);
   });
 
+  it("rejects aggregate expected stdout above an overridden maxOutputBytes", () => {
+    const spec = {
+      ...functionRequest.spec,
+      limits: { maxOutputBytes: 5 },
+      cases: [
+        {
+          ...functionRequest.spec.cases[0],
+          id: "stdout-a",
+          comparison: "stdout",
+          expected: "abc",
+        },
+        {
+          ...functionRequest.spec.cases[0],
+          id: "stdout-b",
+          comparison: "stdout",
+          expected: "def",
+        },
+      ],
+    };
+
+    expect(validatePythonExecutionSpec(spec)).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ message: expect.stringContaining("maxOutputBytes") }),
+      ]),
+    });
+  });
+
+  it("applies expected stdout accounting only to selected cases", () => {
+    const request = {
+      ...functionRequest,
+      caseIds: ["stdout-a"],
+      spec: {
+        ...functionRequest.spec,
+        limits: { maxOutputBytes: 5 },
+        cases: [
+          {
+            ...functionRequest.spec.cases[0],
+            id: "stdout-a",
+            comparison: "stdout",
+            expected: "abc",
+          },
+          {
+            ...functionRequest.spec.cases[0],
+            id: "stdout-b",
+            comparison: "stdout",
+            expected: "def",
+          },
+        ],
+      },
+    };
+
+    expect(validatePythonRunRequest(request).ok).toBe(true);
+    expect(
+      validatePythonRunRequest({ ...request, caseIds: ["stdout-a", "stdout-b"] }),
+    ).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ message: expect.stringContaining("maxOutputBytes") }),
+      ]),
+    });
+  });
+
+  it("uses the default maxOutputBytes for expected stdout accounting", () => {
+    const spec = {
+      ...functionRequest.spec,
+      cases: [
+        {
+          ...functionRequest.spec.cases[0],
+          comparison: "stdout",
+          expected: "x".repeat(DEFAULT_PYTHON_EXECUTION_LIMITS.maxOutputBytes + 1),
+        },
+      ],
+    };
+
+    expect(validatePythonExecutionSpec(spec)).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ message: expect.stringContaining("maxOutputBytes") }),
+      ]),
+    });
+  });
+
+  it("rejects Python source containing a lone surrogate", () => {
+    expect(validatePythonRunRequest({ ...functionRequest, code: "\ud800" })).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({
+          path: "$.code",
+          message: expect.stringContaining("UTF-8"),
+        }),
+      ]),
+    });
+  });
+
+  it("rejects lone surrogates nested in JSON case values", () => {
+    const request = {
+      ...functionRequest,
+      spec: {
+        ...functionRequest.spec,
+        cases: [{ ...functionRequest.spec.cases[0], input: { nested: "\udfff" } }],
+      },
+    };
+
+    expect(validatePythonRunRequest(request)).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({
+          path: "$.spec.cases[0].input.nested",
+          message: expect.stringContaining("UTF-8"),
+        }),
+      ]),
+    });
+  });
+
   it("rejects non-finite execution limits and invalid identifiers", () => {
     const infiniteLimit = {
       ...functionRequest.spec,

@@ -237,6 +237,31 @@ describe("API HTTP handler", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
+  it("rejects lone-surrogate Python source before forwarding", async () => {
+    const run = vi.fn();
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      pythonRunner: { run },
+    });
+    const response = await handle(
+      new Request("http://api.local/api/python/run", {
+        method: "POST",
+        body: JSON.stringify({ ...PYTHON_REQUEST, code: "print('\ud800')" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await json(response)).toMatchObject({
+      error: {
+        code: "invalid_python_run",
+        issues: expect.arrayContaining([
+          expect.objectContaining({ path: "$.code", message: expect.stringContaining("UTF-8") }),
+        ]),
+      },
+    });
+    expect(run).not.toHaveBeenCalled();
+  });
+
   it("requires POST and a configured Python runner for the run route", async () => {
     const handle = handlerForTest();
     const method = await handle(new Request("http://api.local/api/python/run"));
