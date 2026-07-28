@@ -88,12 +88,12 @@ afterEach(() => {
 });
 
 describe("TriviaSession Component Spec - Rendering & Layout", () => {
-  it("names the algorithm, states the level and explains the mode", () => {
+  it("names the algorithm and states the hidden lines count", () => {
     setup(choiceRound());
 
     expect(roundHeading()).toBeInTheDocument();
     expect(screen.getByText("Hiding 2 lines")).toBeInTheDocument();
-    expect(screen.getByText(/Drag the matching line into each blank/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Drag the matching line into each blank/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("Tiles").length).toBeGreaterThan(0);
   });
 
@@ -102,15 +102,15 @@ describe("TriviaSession Component Spec - Rendering & Layout", () => {
     expect(screen.getByText("Hiding 1 line")).toBeInTheDocument();
   });
 
-  it('shows the trailing "Level N · X% covered" line instead of a badge row', () => {
+  it('does not render the removed "Level N · X% covered" line', () => {
     setup(choiceRound());
-    expect(screen.getByText("Level 2 · 43% covered")).toBeInTheDocument();
+    expect(screen.queryByText(/Level \d+ · \d+% covered/i)).not.toBeInTheDocument();
   });
 
-  it("renders the drilled algorithm's problem description above the puzzle", () => {
+  it("renders the drilled algorithm's problem description merged inside the top section", () => {
     setup(choiceRound());
 
-    expect(screen.getByRole("heading", { level: 1, name: "Two Sum" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Two Sum" })).toBeInTheDocument();
     expect(screen.getByTestId("problem-description-details")).toBeInTheDocument();
   });
 

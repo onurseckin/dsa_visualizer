@@ -94,18 +94,18 @@ describe("/trivia route drilling flow", () => {
     expect(screen.getByRole("button", { name: /^Check answers/ })).toBeDisabled();
     expect(screen.queryByText("Build your deck")).not.toBeInTheDocument();
 
-    expect(screen.getByText("Level 1 · 0% covered")).toBeInTheDocument();
+    expect(screen.queryByText(/Level \d+ · \d+% covered/)).not.toBeInTheDocument();
     expect(screen.getByText("Hiding 1 line")).toBeInTheDocument();
     expect(revealButtons()).toHaveLength(1);
     expect(readActiveSessionRecord().lastScreen).toBe("drill");
   });
 
-  it("restores a session seeded mid-Drill and reports the configured minBlanks as the level", async () => {
+  it("restores a session seeded mid-Drill and reports the hidden lines count", async () => {
     seedActiveSession("Session 1", DECK, createProgress(DECK), "drill");
 
     await renderTriviaRoute();
 
-    expect(await screen.findByText("Level 3 · 0% covered")).toBeInTheDocument();
+    expect(screen.queryByText(/Level \d+ · \d+% covered/)).not.toBeInTheDocument();
     expect(await screen.findByTestId("code-puzzle-well")).toBeInTheDocument();
     expect(screen.getByText("Hiding 3 lines")).toBeInTheDocument();
     expect(revealButtons()).toHaveLength(3);
@@ -158,10 +158,7 @@ describe("/trivia route drilling flow", () => {
     const drilled = readActiveSessionRecord().progress.drilled["bubble-sort"]?.["3"] ?? [];
     expect(drilled).toHaveLength(3);
 
-    await waitFor(() => {
-      expect(screen.getByText(/^Level 3 · \d+% covered$/)).toBeInTheDocument();
-      expect(screen.queryByText("Level 3 · 0% covered")).not.toBeInTheDocument();
-    });
+    expect(screen.queryByText(/Level \d+ · \d+% covered/)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /^(Next round|Try again)/ }));
 

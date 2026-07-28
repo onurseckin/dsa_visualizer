@@ -32,9 +32,9 @@
    value is not carried forward — the panel simply reopens at its true
    default (expanded). */
 
-export const TRIVIA_LAYOUT_KEY = "dsa_visualizer_trivia_layout_v5";
+export const TRIVIA_LAYOUT_KEY = "dsa_visualizer_trivia_layout_v6";
 
-export const TRIVIA_LAYOUT_VERSION = 5;
+export const TRIVIA_LAYOUT_VERSION = 6;
 
 /* Reset is a navbar action but the layout state lives in the trivia route, so
    the two are joined by a window event rather than a shared React parent —
@@ -78,8 +78,8 @@ export interface TriviaLayout {
   version: typeof TRIVIA_LAYOUT_VERSION;
   /** Left column width for Problem vs Puzzle */
   problemSplitPercent: number;
-  /** Left (puzzle) column width as a percentage of the drill screen's
-      puzzle+TileTray row. */
+  /** Left (tiles) column width as a percentage of the drill screen's
+      tiles+puzzle row. */
   puzzleSplitPercent: number;
   /** Pixel height per panel; null = automatic (hug content). */
   panelHeights: TriviaPanelHeights;
@@ -100,18 +100,17 @@ export interface TriviaLayoutPatch {
   panelVisibility?: Partial<TriviaPanelVisibility>;
 }
 
-export const MIN_SPLIT_PERCENT = 40;
-export const MAX_SPLIT_PERCENT = 85;
+export const MIN_SPLIT_PERCENT = 20;
+export const MAX_SPLIT_PERCENT = 80;
 
 /* Bounds for a user-pinned panel — identical to workspaceLayout.ts's, so a
    drag anywhere in the app stays inside the same storable range. */
 export const MIN_PANEL_HEIGHT_PX = 64;
 export const MAX_PANEL_HEIGHT_PX = 2000;
 
-/* The puzzle is the thing actually being drilled, so it gets the bulk of the
-   row's width by default; TileTray only needs enough room for a tile list. */
-const DEFAULT_SPLIT_PERCENT = 65;
-const DEFAULT_PROBLEM_SPLIT_PERCENT = 40;
+/* The tiles column gets 35% of the row width by default; CodePuzzle gets 65%. */
+const DEFAULT_SPLIT_PERCENT = 35;
+const DEFAULT_PROBLEM_SPLIT_PERCENT = 35;
 
 const DEFAULT_LAYOUT: TriviaLayout = {
   version: TRIVIA_LAYOUT_VERSION,

@@ -127,10 +127,10 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     });
     expect(drawer).toBeInTheDocument();
 
-    expect(screen.getByText(/PyTorch-Style Tensor Contiguity Verifier/i)).toBeInTheDocument();
-    expect(screen.getByText(/Strided 1D Vector Dot Product/i)).toBeInTheDocument();
-    expect(screen.getByText(/Anti-Diagonal Matrix Traversal/i)).toBeInTheDocument();
-    expect(screen.getByText(/In-Place Square Matrix Transpose/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PyTorch-Style Tensor Contiguity Verifier/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Strided 1D Vector Dot Product/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Anti-Diagonal Matrix Traversal/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/In-Place Square Matrix Transpose/i).length).toBeGreaterThan(0);
 
     expect(screen.getAllByText(/Foundational Math & DSA/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/ML Systems Implementation/i).length).toBeGreaterThan(0);

@@ -126,18 +126,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="h-18 px-8 py-4 bg-[var(--bg-surface)] border-b border-[var(--border-default)] flex items-center justify-between gap-6 shrink-0">
       <nav aria-label="Main Navigation" className="flex items-center gap-6 min-w-0">
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label="DSA Visualizer home"
-          onClick={() => onSetAppView("tree")}
-          className="flex items-center gap-3 p-2 hover:bg-[var(--bg-hover)] min-h-[44px] rounded-xl transition-all"
-        >
-          <div className="w-8 h-8 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] shadow-sm">
-            <Network className="w-4 h-4" />
-          </div>
-        </Button>
-
         <Segmented
           aria-label="App view"
           options={APP_VIEW_OPTIONS}

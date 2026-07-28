@@ -1,10 +1,6 @@
 import React from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ResizableLayout, ResizableRows } from "../../ui";
 import type { TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
-import { getAlgorithm } from "../../algorithms/registry";
-import { ProblemDescriptionCard } from "../../ui";
-import { getAlgorithmPrimaryCategory } from "../../app/categories";
 
 import { useTriviaSessionState } from "./hooks/useTriviaSessionState";
 import { TriviaSessionHeader } from "./components/TriviaSessionHeader";
@@ -50,7 +46,6 @@ export function TriviaSession({
   };
 
   const hiddenLabel = `Hiding ${round.level} ${round.level === 1 ? "line" : "lines"}`;
-  const algorithm = getAlgorithm(round.algorithmId);
 
   return (
     <section
@@ -73,52 +68,12 @@ export function TriviaSession({
       />
 
       <div style={{ flex: "1 1 0%", minHeight: 0, display: "flex", flexDirection: "column" }}>
-        <ResizableLayout
-          splitPercent={session.layout.problemSplitPercent}
-          onSplitChange={session.handleProblemSplitChange}
-          onSplitCommit={session.handleProblemSplitCommit}
-          showLeft={session.layout.panelVisibility.problem && algorithm !== undefined}
-          showRight={
-            session.layout.panelVisibility.puzzle ||
-            (mode === "choice" && session.layout.panelVisibility.tiles)
-          }
-          handleLabel="Resize problem description and puzzle columns"
-          leftPanel={
-            algorithm ? (
-              <ResizableRows
-                rows={[
-                  {
-                    id: "problem",
-                    label: "Problem description",
-                    greedy: true,
-                    content: (
-                      <ProblemDescriptionCard
-                        title={algorithm.title}
-                        category={getAlgorithmPrimaryCategory(algorithm)}
-                        difficulty={algorithm.difficulty}
-                        description={algorithm.description}
-                        constraints={algorithm.constraints}
-                        examples={algorithm.examples}
-                        expanded={session.problemExpanded}
-                        onToggleExpanded={session.handleToggleProblemExpanded}
-                      />
-                    ),
-                    height: null,
-                  },
-                ]}
-                onHeightsChange={() => {}}
-              />
-            ) : null
-          }
-          rightPanel={
-            <TriviaSessionStage
-              round={round}
-              mode={mode}
-              session={session}
-              hints={hints}
-              lineExplanations={lineExplanations}
-            />
-          }
+        <TriviaSessionStage
+          round={round}
+          mode={mode}
+          session={session}
+          hints={hints}
+          lineExplanations={lineExplanations}
         />
       </div>
 

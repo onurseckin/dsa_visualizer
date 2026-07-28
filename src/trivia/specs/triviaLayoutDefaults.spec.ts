@@ -48,10 +48,10 @@ afterEach(() => {
 });
 
 describe("triviaLayout defaults & schema contract", () => {
-  it("uses the v5 versioned localStorage key", () => {
-    expect(TRIVIA_LAYOUT_KEY).toBe("dsa_visualizer_trivia_layout_v5");
-    expect(TRIVIA_LAYOUT_VERSION).toBe(5);
-    expect(DEFAULT_TRIVIA_LAYOUT.version).toBe(5);
+  it("uses the v6 versioned localStorage key", () => {
+    expect(TRIVIA_LAYOUT_KEY).toBe("dsa_visualizer_trivia_layout_v6");
+    expect(TRIVIA_LAYOUT_VERSION).toBe(6);
+    expect(DEFAULT_TRIVIA_LAYOUT.version).toBe(6);
   });
 
   it("keeps a height slot for every trivia panel across Home, Setup, and Drill, all automatic by default", () => {
@@ -73,8 +73,8 @@ describe("triviaLayout defaults & schema contract", () => {
     ]);
   });
 
-  it("gives the puzzle column the wider default share of the drill row", () => {
-    expect(DEFAULT_TRIVIA_LAYOUT.puzzleSplitPercent).toBe(65);
+  it("gives the tiles column 35% default share of the drill row", () => {
+    expect(DEFAULT_TRIVIA_LAYOUT.puzzleSplitPercent).toBe(35);
   });
 
   it("opens the problem panel by default", () => {

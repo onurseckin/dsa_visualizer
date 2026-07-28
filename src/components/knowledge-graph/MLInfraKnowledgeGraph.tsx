@@ -72,6 +72,39 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
     return drawerTopicId ? ML_INFRA_NODE_MAP.get(drawerTopicId) || null : null;
   }, [drawerTopicId]);
 
+  const drawerQuestions = useMemo(() => {
+    if (!activeDrawerTopic) return [];
+    const catFolder = activeDrawerTopic.categoryFolder || activeDrawerTopic.id;
+    const allAlgs = getAllAlgorithms();
+    const matchingAlgs = allAlgs.filter((alg) => {
+      const algCats = new Set<string>();
+      getAlgorithmCategories(alg).forEach((c) => algCats.add(c));
+      if (alg.category) algCats.add(alg.category);
+      if (alg.mlInfraCategory) algCats.add(alg.mlInfraCategory);
+      return algCats.has(catFolder);
+    });
+
+    const staticMap = new Map<string, MLInfraQuestionItem>(
+      (activeDrawerTopic.questions || []).map((q) => [q.algorithmId, q]),
+    );
+
+    if (matchingAlgs.length > 0) {
+      return matchingAlgs.map((alg) => {
+        const staticQ = staticMap.get(alg.id);
+        return {
+          id: alg.id,
+          title: alg.title,
+          algorithmId: alg.id,
+          difficulty: alg.difficulty ?? "Medium",
+          type: staticQ?.type ?? (alg.isMlInfra ? "ML Systems Implementation" : "Foundational Math & DSA"),
+          description: alg.description,
+        };
+      });
+    }
+
+    return activeDrawerTopic.questions;
+  }, [activeDrawerTopic]);
+
   const handleSelectNode = (node: MLInfraNode) => {
     setDrawerTopicId(node.id);
     if (onSelectCategoryFolder) {
@@ -176,10 +209,10 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
           {/* Curated Questions List */}
           <div className="flex-1 overflow-y-auto pr-1 space-y-4 scrollbar-thin">
             <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Curated Problems ({activeDrawerTopic.questions.length})
+              Curated Problems ({drawerQuestions.length})
             </h3>
 
-            {activeDrawerTopic.questions.map((q: MLInfraQuestionItem) => {
+            {drawerQuestions.map((q: MLInfraQuestionItem) => {
               const isFoundational = q.type === "Foundational Math & DSA";
 
               return (

@@ -50,7 +50,7 @@ describe("TriviaSession extra coverage", () => {
     fireEvent.keyDown(section, { key: "Escape" });
   });
 
-  it("applies explicit problem panel height style when set in layout", () => {
+  it("renders tiles and puzzle separator when choice mode is enabled", () => {
     writeTriviaLayout({
       panelHeights: {
         problem: 180,
@@ -58,6 +58,7 @@ describe("TriviaSession extra coverage", () => {
         sessionList: null,
         deckBuilder: null,
         settings: null,
+        tiles: null,
       },
     });
     render(
@@ -72,7 +73,7 @@ describe("TriviaSession extra coverage", () => {
       />,
     );
     expect(
-      screen.getByRole("separator", { name: "Resize problem description and puzzle columns" }),
+      screen.getByRole("separator", { name: "Resize tiles and puzzle columns" }),
     ).toBeInTheDocument();
   });
 

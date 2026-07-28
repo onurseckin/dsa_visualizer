@@ -60,7 +60,7 @@ describe("useSessionLayoutState hook", () => {
     act(() => {
       resetTriviaLayout();
     });
-    expect(result.current.layout.puzzleSplitPercent).toBe(65);
+    expect(result.current.layout.puzzleSplitPercent).toBe(35);
     expect(result.current.problemExpanded).toBe(true);
   });
 });
