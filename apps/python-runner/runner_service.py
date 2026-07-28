@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -23,10 +24,13 @@ DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
 DEFAULT_READ_TIMEOUT_SECONDS = 2.0
 DEFAULT_MAX_ACTIVE = 2
 DEFAULT_MAX_REQUEST_THREADS = 8
-MAX_PROTOCOL_RESPONSE_BYTES = 5 * 1024 * 1024
 MAX_PROTOCOL_STDERR_BYTES = 64 * 1024
+MAX_RUN_ID_BYTES = 128
+MAX_CASE_ID_BYTES = 96
+CANCEL_REQUEST_MAX_BODY_BYTES = 256
 DEFAULT_CANCELLATION_TOMBSTONE_TTL_SECONDS = 5.0
 DEFAULT_MAX_CANCELLATION_TOMBSTONES = 256
+DEFAULT_MAX_CANCELLATION_TOMBSTONE_IDENTIFIER_BYTES = 16 * 1024
 POLICY_DEFAULTS = {
     "wallTimeMs": 10_000,
     "maxSourceBytes": 64 * 1024,
@@ -43,7 +47,20 @@ POLICY_CEILINGS = {
     "maxResultBytes": 1024 * 1024,
     "maxCases": 250,
 }
+# Captured output occurs once in case records and once in the aggregate fields.
+# JSON can expand a UTF-8 control byte to six ASCII bytes. Actual results have
+# their own encoded aggregate budget, and each bounded case ID/status envelope
+# receives a conservative 512-byte allowance. Round the derived floor to the
+# next power of two for schema headroom (currently 8 MiB).
+_MIN_PROTOCOL_RESPONSE_BYTES = (
+    2 * 6 * POLICY_CEILINGS["maxOutputBytes"]
+    + POLICY_CEILINGS["maxResultBytes"]
+    + 512 * POLICY_CEILINGS["maxCases"]
+    + 64 * 1024
+)
+MAX_PROTOCOL_RESPONSE_BYTES = 1 << (_MIN_PROTOCOL_RESPONSE_BYTES - 1).bit_length()
 HARNESS_PATH = Path(__file__).with_name("execution_harness.py").resolve()
+CANONICAL_ID = re.compile(r"^[A-Za-z0-9._:-]+$")
 
 
 class _RunControl:
@@ -102,6 +119,20 @@ class _BoundedPipeCapture:
             self._pipe.close()
 
 
+def _utf8_size(value: str) -> int | None:
+    try:
+        return len(value.encode("utf-8"))
+    except UnicodeEncodeError:
+        return None
+
+
+def _is_canonical_id(value: Any, max_bytes: int) -> bool:
+    if not isinstance(value, str) or CANONICAL_ID.fullmatch(value) is None:
+        return False
+    size = _utf8_size(value)
+    return size is not None and size <= max_bytes
+
+
 class ExecutionManager:
     """Bounded registry of active process groups, keyed by canonical run ID."""
 
@@ -111,6 +142,9 @@ class ExecutionManager:
         max_active: int = DEFAULT_MAX_ACTIVE,
         cancellation_tombstone_ttl_seconds: float = DEFAULT_CANCELLATION_TOMBSTONE_TTL_SECONDS,
         max_cancellation_tombstones: int = DEFAULT_MAX_CANCELLATION_TOMBSTONES,
+        max_cancellation_tombstone_identifier_bytes: int = (
+            DEFAULT_MAX_CANCELLATION_TOMBSTONE_IDENTIFIER_BYTES
+        ),
     ) -> None:
         self._slots = threading.BoundedSemaphore(max(1, max_active))
         self._lock = threading.Lock()
@@ -121,7 +155,12 @@ class ExecutionManager:
             cancellation_tombstone_ttl_seconds,
         )
         self._max_cancellation_tombstones = max(1, max_cancellation_tombstones)
-        self._cancellation_tombstones: dict[str, float] = {}
+        self._max_cancellation_tombstone_identifier_bytes = max(
+            1,
+            max_cancellation_tombstone_identifier_bytes,
+        )
+        self._cancellation_tombstone_identifier_bytes = 0
+        self._cancellation_tombstones: dict[str, tuple[float, int]] = {}
 
     def run(self, request: dict[str, Any]) -> dict[str, Any]:
         started = time.monotonic()
@@ -174,16 +213,30 @@ class ExecutionManager:
             self._slots.release()
 
     def cancel(self, run_id: str) -> bool:
+        run_id_bytes = _utf8_size(run_id)
+        if (
+            not _is_canonical_id(run_id, MAX_RUN_ID_BYTES)
+            or run_id_bytes is None
+            or run_id_bytes > self._max_cancellation_tombstone_identifier_bytes
+        ):
+            return False
         with self._lock:
             self._prune_cancellation_tombstones()
             control = self._active.get(run_id)
             if control is None:
-                self._cancellation_tombstones.pop(run_id, None)
-                while len(self._cancellation_tombstones) >= self._max_cancellation_tombstones:
-                    self._cancellation_tombstones.pop(next(iter(self._cancellation_tombstones)))
+                self._pop_cancellation_tombstone(run_id)
+                while (
+                    len(self._cancellation_tombstones) >= self._max_cancellation_tombstones
+                    or self._cancellation_tombstone_identifier_bytes + run_id_bytes
+                    > self._max_cancellation_tombstone_identifier_bytes
+                ):
+                    oldest = next(iter(self._cancellation_tombstones))
+                    self._pop_cancellation_tombstone(oldest)
                 self._cancellation_tombstones[run_id] = (
-                    time.monotonic() + self._cancellation_tombstone_ttl_seconds
+                    time.monotonic() + self._cancellation_tombstone_ttl_seconds,
+                    run_id_bytes,
                 )
+                self._cancellation_tombstone_identifier_bytes += run_id_bytes
         if control is None:
             return True
         control.cancel()
@@ -191,17 +244,24 @@ class ExecutionManager:
 
     def _consume_cancellation_tombstone(self, run_id: str) -> bool:
         self._prune_cancellation_tombstones()
-        return self._cancellation_tombstones.pop(run_id, None) is not None
+        return self._pop_cancellation_tombstone(run_id)
 
     def _prune_cancellation_tombstones(self) -> None:
         now = time.monotonic()
         expired = [
             run_id
-            for run_id, expires_at in self._cancellation_tombstones.items()
+            for run_id, (expires_at, _size) in self._cancellation_tombstones.items()
             if expires_at <= now
         ]
         for run_id in expired:
-            self._cancellation_tombstones.pop(run_id, None)
+            self._pop_cancellation_tombstone(run_id)
+
+    def _pop_cancellation_tombstone(self, run_id: str) -> bool:
+        tombstone = self._cancellation_tombstones.pop(run_id, None)
+        if tombstone is None:
+            return False
+        self._cancellation_tombstone_identifier_bytes -= tombstone[1]
+        return True
 
     def cancel_all(self) -> None:
         with self._lock:
@@ -403,17 +463,35 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
     class RunnerRequestHandler(BaseHTTPRequestHandler):
         server_version = "DSAPythonRunner/1"
 
+        def setup(self) -> None:
+            super().setup()
+            self._request_deadline_lock = threading.Lock()
+            self._request_deadline_active = True
+            self._request_deadline_expired = False
+            self._request_deadline_timer = threading.Timer(
+                self.runner_server.read_timeout_seconds,
+                self._expire_request_read,
+            )
+            self._request_deadline_timer.daemon = True
+            self._request_deadline_timer.start()
+
+        def finish(self) -> None:
+            self._cancel_request_deadline()
+            super().finish()
+
         @property
         def runner_server(self) -> RunnerHttpServer:
             return self.server  # type: ignore[return-value]
 
         def do_GET(self) -> None:
+            self._cancel_request_deadline()
             self._with_request_slot(self._do_get)
 
         def do_POST(self) -> None:
             self._with_request_slot(self._do_post)
 
         def do_OPTIONS(self) -> None:
+            self._cancel_request_deadline()
             self._with_request_slot(
                 lambda: self._error(
                     HTTPStatus.METHOD_NOT_ALLOWED,
@@ -438,9 +516,15 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
 
         def _do_post(self) -> None:
             if self.path not in {"/run", "/cancel"}:
+                self._cancel_request_deadline()
                 self._error(HTTPStatus.NOT_FOUND, "not_found", "Route not found.")
                 return
-            body = self._read_json_body(max_body_bytes)
+            body_limit = (
+                min(max_body_bytes, CANCEL_REQUEST_MAX_BODY_BYTES)
+                if self.path == "/cancel"
+                else max_body_bytes
+            )
+            body = self._read_json_body(body_limit)
             if body is None:
                 return
             if self.path == "/cancel":
@@ -450,6 +534,13 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
                         HTTPStatus.BAD_REQUEST,
                         "invalid_request",
                         "Cancel request requires a non-empty runId.",
+                    )
+                    return
+                if not _is_canonical_id(run_id, MAX_RUN_ID_BYTES):
+                    self._error(
+                        HTTPStatus.BAD_REQUEST,
+                        "invalid_request",
+                        f"Cancel runId must be a canonical ID within {MAX_RUN_ID_BYTES} bytes.",
                     )
                     return
                 cancelled = self.runner_server.execution_manager.cancel(run_id)
@@ -469,6 +560,12 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
             self._write_json(HTTPStatus.OK, result)
 
         def _read_json_body(self, body_limit: int) -> Any | None:
+            try:
+                return self._read_json_body_before_deadline(body_limit)
+            finally:
+                self._cancel_request_deadline()
+
+        def _read_json_body_before_deadline(self, body_limit: int) -> Any | None:
             declared = self.headers.get("Content-Length")
             try:
                 length = int(declared) if declared is not None else -1
@@ -503,6 +600,14 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
             finally:
                 self.connection.settimeout(previous_timeout)
             if len(body) != length:
+                if self._request_deadline_did_expire():
+                    self.close_connection = True
+                    self._error(
+                        HTTPStatus.REQUEST_TIMEOUT,
+                        "read_timeout",
+                        "Request body read timed out.",
+                    )
+                    return None
                 self._error(
                     HTTPStatus.BAD_REQUEST,
                     "incomplete_body",
@@ -518,6 +623,32 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
                     "Request body must be valid JSON.",
                 )
                 return None
+
+        def _cancel_request_deadline(self) -> None:
+            lock = getattr(self, "_request_deadline_lock", None)
+            if lock is None:
+                return
+            with lock:
+                if not self._request_deadline_active:
+                    return
+                self._request_deadline_active = False
+                self._request_deadline_timer.cancel()
+
+        def _expire_request_read(self) -> None:
+            with self._request_deadline_lock:
+                if not self._request_deadline_active:
+                    return
+                self._request_deadline_active = False
+                self._request_deadline_expired = True
+            self.close_connection = True
+            try:
+                self.connection.shutdown(socket.SHUT_RD)
+            except OSError:
+                pass
+
+        def _request_deadline_did_expire(self) -> bool:
+            with self._request_deadline_lock:
+                return self._request_deadline_expired
 
         def _with_request_slot(self, operation: Any) -> None:
             slots = (
@@ -578,8 +709,8 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
 
 
 def _validate_request_policy(request: dict[str, Any]) -> str | None:
-    if not isinstance(request.get("runId"), str) or not request["runId"]:
-        return "Run request requires a non-empty runId."
+    if not _is_canonical_id(request.get("runId"), MAX_RUN_ID_BYTES):
+        return f"Run ID must be canonical and at most {MAX_RUN_ID_BYTES} bytes."
     code = request.get("code")
     spec = request.get("spec")
     if not isinstance(code, str) or not isinstance(spec, dict):
@@ -621,10 +752,28 @@ def _validate_request_policy(request: dict[str, Any]) -> str | None:
     expected_size = 0
     expected_stdout_size = 0
     selected_ids = request.get("caseIds")
-    selected = set(selected_ids) if isinstance(selected_ids, list) else None
+    if selected_ids is None:
+        selected = None
+    elif not isinstance(selected_ids, list) or not selected_ids:
+        return "caseIds must be a non-empty array when provided."
+    else:
+        selected = set()
+        for case_id in selected_ids:
+            if not _is_canonical_id(case_id, MAX_CASE_ID_BYTES):
+                return f"Each caseIds value must be canonical within {MAX_CASE_ID_BYTES} bytes."
+            if case_id in selected:
+                return "caseIds values must be unique."
+            selected.add(case_id)
+    case_ids: set[str] = set()
     for test_case in cases:
         if not isinstance(test_case, dict):
             return "Each execution case must be an object."
+        case_id = test_case.get("id")
+        if not _is_canonical_id(case_id, MAX_CASE_ID_BYTES):
+            return f"Each case ID must be canonical within {MAX_CASE_ID_BYTES} bytes."
+        if case_id in case_ids:
+            return "Execution case IDs must be unique."
+        case_ids.add(case_id)
         input_size += _json_size(test_case.get("input"), effective["maxInputBytes"] - input_size)
         expected_size += _json_size(
             test_case.get("expected"),
@@ -647,6 +796,8 @@ def _validate_request_policy(request: dict[str, Any]) -> str | None:
                 return "Expected stdout must be valid UTF-8."
             if expected_stdout_size > effective["maxOutputBytes"]:
                 return "Combined expected stdout exceeds maxOutputBytes."
+    if selected is not None and not selected.issubset(case_ids):
+        return "caseIds must reference execution cases."
     return None
 
 

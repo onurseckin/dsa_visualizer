@@ -20,6 +20,7 @@ from runner_service import (  # noqa: E402
     ExecutionManager,
     MAX_PROTOCOL_RESPONSE_BYTES,
     MAX_PROTOCOL_STDERR_BYTES,
+    POLICY_CEILINGS,
     create_server,
     run_in_subprocess,
 )
@@ -95,10 +96,13 @@ class SubprocessRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             pid_path = Path(directory) / "descendant.pid"
             code = (
-                "import pathlib, subprocess, sys\n"
+                "import ctypes, os, pathlib, time\n"
                 "def solve(value):\n"
-                f"    child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\n"
-                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child.pid))\n"
+                "    child_pid = ctypes.CDLL(None).fork()\n"
+                "    if child_pid == 0:\n"
+                "        time.sleep(30)\n"
+                "        os._exit(0)\n"
+                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
                 "    while True: pass"
             )
             result = run_in_subprocess(request_for(code, wall_time_ms=250))
@@ -112,10 +116,13 @@ class SubprocessRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             pid_path = Path(directory) / "descendant.pid"
             code = (
-                "import pathlib, subprocess, sys\n"
+                "import ctypes, os, pathlib, time\n"
                 "def solve(value):\n"
-                f"    child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'])\n"
-                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child.pid))\n"
+                "    child_pid = ctypes.CDLL(None).fork()\n"
+                "    if child_pid == 0:\n"
+                "        time.sleep(30)\n"
+                "        os._exit(0)\n"
+                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
                 "    return value * 2"
             )
 
@@ -125,14 +132,14 @@ class SubprocessRunnerTests(unittest.TestCase):
             self.assertEqual(result["status"], "passed")
             self.assertTrue(wait_until_dead(descendant_pid), f"descendant {descendant_pid} survived")
 
-    @unittest.skipUnless(hasattr(os, "fork"), "inherited-FD assertion requires fork")
+    @unittest.skipUnless(os.name == "posix", "inherited-FD assertion requires POSIX")
     def test_forked_descendant_cannot_hold_protocol_fds_or_extend_success(self):
         with tempfile.TemporaryDirectory() as directory:
             pid_path = Path(directory) / "descendant.pid"
             code = (
-                "import os, pathlib, time\n"
+                "import ctypes, os, pathlib, time\n"
                 "def solve(value):\n"
-                "    child_pid = os.fork()\n"
+                "    child_pid = ctypes.CDLL(None).fork()\n"
                 "    if child_pid == 0:\n"
                 "        time.sleep(30)\n"
                 "        os._exit(0)\n"
@@ -163,6 +170,70 @@ class SubprocessRunnerTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "error")
         self.assertIn("UTF-8", result["stderr"])
+
+    def test_rejects_subprocess_creation_before_a_detached_session_can_escape(self):
+        result = run_in_subprocess(
+            request_for(
+                (
+                    "import subprocess, sys\n"
+                    "def solve(value):\n"
+                    "    subprocess.Popen("
+                    "[sys.executable, '-c', 'import time; time.sleep(30)'], "
+                    "start_new_session=True)\n"
+                    "    return value * 2"
+                )
+            )
+        )
+
+        self.assertEqual(result["status"], "error")
+        self.assertIn("process creation is disabled", result["stderr"])
+
+    def test_rejects_native_ctypes_process_escape_but_allows_safe_ctypes_values(self):
+        rejected = run_in_subprocess(
+            request_for(
+                "import ctypes\ndef solve(value):\n    return ctypes.CDLL(None).fork()"
+            )
+        )
+        allowed = run_in_subprocess(
+            request_for(
+                "import ctypes\ndef solve(value):\n    return ctypes.c_int(value * 2).value"
+            )
+        )
+
+        self.assertEqual(rejected["status"], "error")
+        self.assertIn("Native process/session APIs are disabled", rejected["stderr"])
+        self.assertEqual(allowed["status"], "passed")
+
+    def test_accepts_a_worst_case_validator_valid_escaped_response_envelope(self):
+        max_output = POLICY_CEILINGS["maxOutputBytes"]
+        max_result = POLICY_CEILINGS["maxResultBytes"]
+        expected_result = "r" * (max_result - 2)
+        request = request_for(
+            (
+                "def solve(value):\n"
+                f"    print(chr(1) * {max_output}, end='')\n"
+                f"    return 'r' * {max_result - 2}"
+            ),
+            wall_time_ms=5_000,
+        )
+        request["spec"]["limits"].update(
+            {
+                "maxOutputBytes": max_output,
+                "maxResultBytes": max_result,
+            }
+        )
+        request["spec"]["cases"][0]["expected"] = expected_result
+
+        result = run_in_subprocess(request)
+        serialized = json.dumps(
+            result,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+        self.assertEqual(result["status"], "passed")
+        self.assertGreater(len(serialized), 4 * 1024 * 1024)
+        self.assertLessEqual(len(serialized), MAX_PROTOCOL_RESPONSE_BYTES)
 
     def test_normalizes_protocol_output_above_the_parent_response_cap(self):
         code = (
@@ -251,6 +322,31 @@ class SubprocessRunnerTests(unittest.TestCase):
         self.assertIn("cancelled", manager.run(request)["stderr"])
         request["runId"] = "newest"
         self.assertIn("cancelled", manager.run(request)["stderr"])
+
+    def test_execution_manager_bounds_pending_cancellation_identifier_bytes(self):
+        manager = ExecutionManager(max_active=1)
+        request = request_for("def solve(value):\n    return value * 2")
+        run_ids = [f"{index:03d}-" + "x" * 96 for index in range(200)]
+
+        for run_id in run_ids:
+            self.assertTrue(manager.cancel(run_id))
+
+        request["runId"] = run_ids[0]
+        self.assertEqual(manager.run(request)["status"], "passed")
+        request["runId"] = run_ids[-1]
+        self.assertIn("cancelled", manager.run(request)["stderr"])
+
+    def test_rejects_noncanonical_run_case_and_case_selection_ids(self):
+        invalid_run = request_for("def solve(value):\n    return value * 2")
+        invalid_run["runId"] = "spaces are not canonical"
+        duplicate_case = request_for("def solve(value):\n    return value * 2")
+        duplicate_case["spec"]["cases"].append(dict(duplicate_case["spec"]["cases"][0]))
+        unknown_selection = request_for("def solve(value):\n    return value * 2")
+        unknown_selection["caseIds"] = ["missing"]
+
+        self.assertIn("Run ID", run_in_subprocess(invalid_run)["stderr"])
+        self.assertIn("unique", run_in_subprocess(duplicate_case)["stderr"])
+        self.assertIn("caseIds", run_in_subprocess(unknown_selection)["stderr"])
 
     def test_execution_manager_expires_pending_cancellation_tombstones(self):
         manager = ExecutionManager(
@@ -341,6 +437,11 @@ class RunnerHttpServiceTests(unittest.TestCase):
         method_status, method = self.request("/run")
         invalid_status, invalid = self.request("/run", method="POST", body="{")
         large_status, large = self.request("/run", method="POST", body="x" * 1_025)
+        cancel_status, cancel = self.request(
+            "/cancel",
+            method="POST",
+            body=json.dumps({"runId": "x" * 2_048}),
+        )
 
         self.assertEqual(method_status, 405)
         self.assertEqual(method["error"]["code"], "method_not_allowed")
@@ -348,6 +449,8 @@ class RunnerHttpServiceTests(unittest.TestCase):
         self.assertEqual(invalid["error"]["code"], "invalid_json")
         self.assertEqual(large_status, 413)
         self.assertEqual(large["error"]["code"], "body_too_large")
+        self.assertEqual(cancel_status, 413)
+        self.assertEqual(cancel["error"]["code"], "body_too_large")
 
     def test_cancel_endpoint_stops_the_registered_run(self):
         result_box = {}
@@ -384,6 +487,39 @@ class RunnerHttpServiceTests(unittest.TestCase):
         self.assertEqual(result_box["response"][1]["status"], "error")
         self.assertEqual(self.server.execution_manager.active_run_ids(), ())
 
+    def test_cancel_uses_a_small_body_cap_without_reducing_the_run_cap(self):
+        server = create_server(
+            "127.0.0.1",
+            0,
+            max_body_bytes=4_096,
+            read_timeout_seconds=0.1,
+            max_active=1,
+            max_request_threads=1,
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        base_url = f"http://127.0.0.1:{server.server_address[1]}"
+        try:
+            run_status, result = request_json(
+                base_url,
+                "/run",
+                json.dumps(request_for("def solve(value):\n    return value * 2")),
+            )
+            cancel_status, cancel = request_json(
+                base_url,
+                "/cancel",
+                json.dumps({"runId": "x" * 300}),
+            )
+
+            self.assertEqual(run_status, 200)
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(cancel_status, 413)
+            self.assertEqual(cancel["error"]["code"], "body_too_large")
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+
     def test_partial_body_read_times_out_with_a_normalized_error(self):
         connection = socket.create_connection(self.server.server_address, timeout=1)
         try:
@@ -400,6 +536,39 @@ class RunnerHttpServiceTests(unittest.TestCase):
 
         self.assertIn(b"408 Request Timeout", response)
         self.assertIn(b'"code":"read_timeout"', response)
+
+    def test_slow_header_drip_cannot_extend_the_absolute_request_deadline(self):
+        connection = socket.create_connection(self.server.server_address, timeout=1)
+        try:
+            connection.sendall(b"POST /run HTTP/1.1\r\nHost: runner")
+            self.assertTrue(wait_until(lambda: self.server.active_connection_count == 1))
+
+            drip_bytes(connection, b"xxxxxxxx", interval=0.03)
+
+            self.assertTrue(
+                wait_until(lambda: self.server.active_connection_count == 0, timeout=0.05)
+            )
+        finally:
+            connection.close()
+
+    def test_slow_body_drip_cannot_extend_the_absolute_request_deadline(self):
+        connection = socket.create_connection(self.server.server_address, timeout=1)
+        try:
+            connection.sendall(
+                b"POST /run HTTP/1.1\r\n"
+                b"Host: runner\r\n"
+                b"Content-Type: application/json\r\n"
+                b"Content-Length: 100\r\n\r\n"
+            )
+            self.assertTrue(wait_until(lambda: self.server.active_connection_count == 1))
+
+            drip_bytes(connection, b"{       ", interval=0.03)
+
+            self.assertTrue(
+                wait_until(lambda: self.server.active_connection_count == 0, timeout=0.05)
+            )
+        finally:
+            connection.close()
 
     def test_slow_headers_cannot_create_unbounded_request_threads(self):
         server = create_server(
@@ -465,6 +634,32 @@ def receive_until_closed(connection):
             break
         chunks.append(chunk)
     return b"".join(chunks)
+
+
+def request_json(base_url, path, body):
+    request = urllib.request.Request(
+        f"{base_url}{path}",
+        data=body.encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=2) as response:
+            return response.status, json.loads(response.read())
+    except urllib.error.HTTPError as error:
+        try:
+            return error.code, json.loads(error.read())
+        finally:
+            error.close()
+
+
+def drip_bytes(connection, payload, *, interval):
+    for byte in payload:
+        try:
+            connection.sendall(bytes([byte]))
+        except OSError:
+            return
+        time.sleep(interval)
 
 
 if __name__ == "__main__":
