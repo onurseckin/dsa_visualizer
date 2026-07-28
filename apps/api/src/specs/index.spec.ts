@@ -25,6 +25,8 @@ function harness() {
       dataDirectory: "/tmp/dsa-api",
       maxBodyBytes: 123,
       allowedOrigins: ["http://localhost:5173"],
+      pythonRunnerUrl: "http://runner.internal:8080",
+      pythonRunnerTimeoutMs: 456,
     }),
     createStore,
     serve,
@@ -50,6 +52,8 @@ describe("startApiServer", () => {
           dataDirectory: undefined,
           maxBodyBytes: 123,
           allowedOrigins: [],
+          pythonRunnerUrl: "http://runner.internal:8080",
+          pythonRunnerTimeoutMs: 456,
         }),
         createStore: () => store,
         process: {

@@ -6,6 +6,7 @@ import {
   type KeyValueStore,
   type SqliteKeyValueStoreOptions,
 } from "./persistence";
+import { createPythonRunnerClient } from "./pythonRunnerClient";
 
 type ShutdownSignal = "SIGTERM" | "SIGINT";
 
@@ -47,6 +48,10 @@ export function startApiServer(dependencies: ApiServerDependencies = {}): Runnin
     store,
     maxBodyBytes: config.maxBodyBytes,
     allowedOrigins: config.allowedOrigins,
+    pythonRunner: createPythonRunnerClient({
+      baseUrl: config.pythonRunnerUrl,
+      timeoutMs: config.pythonRunnerTimeoutMs,
+    }),
   });
   const server = (dependencies.serve ?? serveWithBun)({
     hostname: config.host,
