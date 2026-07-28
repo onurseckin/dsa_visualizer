@@ -46,6 +46,25 @@ const PASSED_RESULT: PythonRunResult = {
 };
 
 describe("Python runner client", () => {
+  it("posts an explicit cancellation envelope", async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 202 }));
+    const client = createPythonRunnerClient({
+      baseUrl: "http://runner.internal:8080/",
+      fetch,
+    });
+
+    expect(client.cancel).toEqual(expect.any(Function));
+    await client.cancel(REQUEST.runId);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://runner.internal:8080/cancel",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ runId: REQUEST.runId }),
+      }),
+    );
+  });
+
   it("posts the shared request and accepts a normalized result", async () => {
     const fetch = vi.fn(async () => Response.json(PASSED_RESULT));
     const client = createPythonRunnerClient({

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import * as executionContracts from "../index";
 import {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
   isJsonValue,
@@ -163,6 +164,61 @@ describe("execution contract validation", () => {
 
     expect(validatePythonExecutionSpec(spec).ok).toBe(false);
   });
+
+  it("exports stable run and case identifier limits", () => {
+    expect(executionContracts.PYTHON_RUN_ID_MAX_BYTES).toBe(128);
+    expect(executionContracts.PYTHON_CASE_ID_MAX_BYTES).toBe(96);
+    expect(executionContracts.PYTHON_ID_PATTERN_SOURCE).toBe("[A-Za-z0-9._:-]+");
+  });
+
+  it("accepts canonical identifiers at their maximum lengths", () => {
+    const request = {
+      ...functionRequest,
+      runId: "r".repeat(128),
+      spec: {
+        ...functionRequest.spec,
+        cases: [{ ...functionRequest.spec.cases[0], id: "c".repeat(96) }],
+      },
+    };
+
+    expect(validatePythonRunRequest(request).ok).toBe(true);
+  });
+
+  it("exports and validates the bounded Python cancellation envelope", () => {
+    const contracts = executionContracts as unknown as {
+      PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES?: number;
+      validatePythonCancelRequest?: (input: unknown) => { readonly ok: boolean };
+    };
+
+    expect(contracts.PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES).toBe(256);
+    expect(contracts.validatePythonCancelRequest?.({ runId: "run:current_1" })).toMatchObject({
+      ok: true,
+    });
+    expect(contracts.validatePythonCancelRequest?.({ runId: "contains space" })).toMatchObject({
+      ok: false,
+    });
+    expect(contracts.validatePythonCancelRequest?.({ runId: "r".repeat(129) })).toMatchObject({
+      ok: false,
+    });
+  });
+
+  it.each(["contains space", "contains/slash", "snowman-☃", "r".repeat(129)])(
+    "rejects a non-canonical run identifier: %s",
+    (runId) => {
+      expect(validatePythonRunRequest({ ...functionRequest, runId }).ok).toBe(false);
+    },
+  );
+
+  it.each(["contains space", "contains/slash", "snowman-☃", "c".repeat(97)])(
+    "rejects a non-canonical case identifier: %s",
+    (id) => {
+      const spec = {
+        ...functionRequest.spec,
+        cases: [{ ...functionRequest.spec.cases[0], id }],
+      };
+      expect(validatePythonExecutionSpec(spec).ok).toBe(false);
+    },
+  );
 
   it("rejects torch in the browser runtime", () => {
     const spec = { ...functionRequest.spec, packages: ["torch"] };

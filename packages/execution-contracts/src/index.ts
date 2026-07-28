@@ -62,6 +62,10 @@ export interface PythonRunRequest {
   readonly caseIds?: readonly string[];
 }
 
+export interface PythonCancelRequest {
+  readonly runId: string;
+}
+
 export type PythonExecutionStatus = "passed" | "failed" | "error" | "timeout";
 
 export interface PythonCaseResult {
@@ -85,9 +89,16 @@ export interface PythonRunResult {
 
 export {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
+  isPythonCaseId,
+  isPythonRunId,
+  PYTHON_CASE_ID_MAX_BYTES,
+  PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES,
   PYTHON_EXECUTION_POLICY_CEILINGS,
+  PYTHON_ID_PATTERN_SOURCE,
+  PYTHON_RUN_ID_MAX_BYTES,
   PYTHON_RUN_REQUEST_BODY_CEILING_BYTES,
   validatePythonExecutionSpec,
+  validatePythonCancelRequest,
   validatePythonRunRequest,
 } from "./validation.ts";
 export type { ValidationIssue, ValidationResult } from "./validation.ts";

@@ -7,6 +7,7 @@ import {
 } from "@dsa-visualizer/execution-contracts";
 
 export interface PythonRunnerClient {
+  cancel(runId: string): Promise<void>;
   run(request: PythonRunRequest, options?: PythonRunnerRunOptions): Promise<PythonRunResult>;
 }
 
@@ -28,8 +29,20 @@ export function createPythonRunnerClient(options: PythonRunnerClientOptions): Py
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
   const runUrl = `${baseUrl}/run`;
   const cancelUrl = `${baseUrl}/cancel`;
+  const sendCancellation = async (runId: string) => {
+    try {
+      await fetchRequest(cancelUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId }),
+      });
+    } catch {
+      // Cancellation is best-effort across runner shutdowns and network failures.
+    }
+  };
 
   return {
+    cancel: sendCancellation,
     async run(request, runOptions = {}) {
       const started = Date.now();
       const controller = new AbortController();
@@ -37,21 +50,17 @@ export function createPythonRunnerClient(options: PythonRunnerClientOptions): Py
       let requestStarted = false;
       let completed = false;
       let cancellationSent = false;
-      const cancel = () => {
+      const abortRun = () => {
         controller.abort();
         if (!requestStarted || completed || cancellationSent) return;
         cancellationSent = true;
-        void fetchRequest(cancelUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ runId: request.runId }),
-        }).catch(() => undefined);
+        void sendCancellation(request.runId);
       };
-      if (runOptions.signal?.aborted) cancel();
-      else runOptions.signal?.addEventListener("abort", cancel, { once: true });
+      if (runOptions.signal?.aborted) abortRun();
+      else runOptions.signal?.addEventListener("abort", abortRun, { once: true });
       const timeout = setTimeout(() => {
         timedOut = true;
-        cancel();
+        abortRun();
       }, timeoutMs);
 
       try {
@@ -90,7 +99,7 @@ export function createPythonRunnerClient(options: PythonRunnerClientOptions): Py
         return executionError(request.runId, "error", "Python runner is unavailable.", started);
       } finally {
         clearTimeout(timeout);
-        runOptions.signal?.removeEventListener("abort", cancel);
+        runOptions.signal?.removeEventListener("abort", abortRun);
       }
     },
   };
