@@ -10,6 +10,15 @@ export const DEFAULT_PYTHON_EXECUTION_LIMITS: Readonly<PythonExecutionLimits> = 
   maxCases: 100,
 };
 
+export const PYTHON_EXECUTION_POLICY_CEILINGS: Readonly<PythonExecutionLimits> = Object.freeze({
+  wallTimeMs: 30_000,
+  maxSourceBytes: 256 * 1024,
+  maxInputBytes: 1024 * 1024,
+  maxOutputBytes: 256 * 1024,
+  maxResultBytes: 1024 * 1024,
+  maxCases: 250,
+});
+
 export interface ValidationIssue {
   readonly path: string;
   readonly message: string;
@@ -106,7 +115,8 @@ function validateSpec(input: unknown, path: string, issues: ValidationIssue[]): 
   validateInvocation(input.invocation, `${path}.invocation`, issues);
   validatePackages(input.packages, input.runtime, `${path}.packages`, issues);
   const limits = validateLimits(input.limits, `${path}.limits`, issues);
-  validateCases(input.cases, limits, `${path}.cases`, issues);
+  const requiresStringInput = isRecord(input.invocation) && input.invocation.kind === "stdin";
+  validateCases(input.cases, limits, requiresStringInput, `${path}.cases`, issues);
 }
 
 function validateInvocation(input: unknown, path: string, issues: ValidationIssue[]): void {
@@ -217,6 +227,9 @@ function validateLimits(
     ) {
       issue(issues, `${path}.${name}`, "must be a positive finite number");
       valid = false;
+    } else if (value > PYTHON_EXECUTION_POLICY_CEILINGS[name]) {
+      issue(issues, `${path}.${name}`, "exceeds the server policy ceiling");
+      valid = false;
     }
   }
   return valid ? parsedLimits(input) : undefined;
@@ -238,7 +251,8 @@ function parsedLimits(input: unknown): PythonExecutionLimits | undefined {
       typeof value === "number" &&
       Number.isFinite(value) &&
       value > 0 &&
-      (name !== "maxCases" || Number.isInteger(value))
+      (name !== "maxCases" || Number.isInteger(value)) &&
+      value <= PYTHON_EXECUTION_POLICY_CEILINGS[name]
     ) {
       overrides[name] = value;
       continue;
@@ -251,6 +265,7 @@ function parsedLimits(input: unknown): PythonExecutionLimits | undefined {
 function validateCases(
   input: unknown,
   limits: PythonExecutionLimits | undefined,
+  requiresStringInput: boolean,
   path: string,
   issues: ValidationIssue[],
 ): void {
@@ -262,6 +277,7 @@ function validateCases(
 
   const ids = new Set<string>();
   let inputBytes = 0;
+  let expectedBytes = 0;
   input.forEach((testCase, index) => {
     const casePath = `${path}[${index}]`;
     if (!isRecord(testCase)) {
@@ -277,9 +293,14 @@ function validateCases(
     }
     if (!isNonEmptyString(testCase.label))
       issue(issues, `${casePath}.label`, "must be a non-empty string");
-    if (!isJsonValue(testCase.input)) issue(issues, `${casePath}.input`, "must be a JSON value");
-    if (!isJsonValue(testCase.expected))
-      issue(issues, `${casePath}.expected`, "must be a JSON value");
+    const caseInput = testCase.input;
+    const expected = testCase.expected;
+    if (!isJsonValue(caseInput)) issue(issues, `${casePath}.input`, "must be a JSON value");
+    if (!isJsonValue(expected)) issue(issues, `${casePath}.expected`, "must be a JSON value");
+
+    if (requiresStringInput && typeof caseInput !== "string") {
+      issue(issues, `${casePath}.input`, "must be a string for stdin invocation");
+    }
 
     if (
       testCase.comparison !== "deep-equal" &&
@@ -290,6 +311,9 @@ function validateCases(
       issue(issues, `${casePath}.comparison`, "is not supported");
     }
     if (testCase.comparison === "float") {
+      if (typeof expected !== "number" || !Number.isFinite(expected)) {
+        issue(issues, `${casePath}.expected`, "must be a finite number for float comparison");
+      }
       if (
         typeof testCase.tolerance !== "number" ||
         !Number.isFinite(testCase.tolerance) ||
@@ -301,15 +325,28 @@ function validateCases(
           "must be a non-negative finite number for float comparison",
         );
       }
+    } else if (testCase.comparison === "stdout" && typeof expected !== "string") {
+      issue(issues, `${casePath}.expected`, "must be a string for stdout comparison");
     } else if (testCase.tolerance !== undefined) {
       issue(issues, `${casePath}.tolerance`, "is only allowed for float comparison");
     }
 
-    if (isJsonValue(testCase.input)) inputBytes += byteLength(JSON.stringify(testCase.input));
+    if (isJsonValue(caseInput)) {
+      const size = serializedJsonByteLength(caseInput);
+      if (size === undefined) issue(issues, `${casePath}.input`, "must be safely serializable");
+      else inputBytes += size;
+    }
+    if (isJsonValue(expected)) {
+      const size = serializedJsonByteLength(expected);
+      if (size === undefined) issue(issues, `${casePath}.expected`, "must be safely serializable");
+      else expectedBytes += size;
+    }
   });
 
   if (limits && inputBytes > limits.maxInputBytes)
     issue(issues, path, "inputs exceed maxInputBytes");
+  if (limits && expectedBytes > limits.maxResultBytes)
+    issue(issues, path, "expected values exceed maxResultBytes");
 }
 
 function validateCaseSelection(selection: unknown, spec: unknown, issues: ValidationIssue[]): void {
@@ -349,6 +386,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function byteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
+}
+
+function serializedJsonByteLength(value: unknown): number | undefined {
+  try {
+    const serialized = JSON.stringify(value);
+    return typeof serialized === "string" ? byteLength(serialized) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function issue(issues: ValidationIssue[], path: string, message: string): void {

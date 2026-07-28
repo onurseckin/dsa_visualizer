@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
   isJsonValue,
+  PYTHON_EXECUTION_POLICY_CEILINGS,
   validatePythonExecutionSpec,
   validatePythonRunRequest,
 } from "../index";
@@ -74,10 +75,31 @@ describe("execution contract validation", () => {
         ...functionRequest.spec,
         entrypoint: "main",
         invocation: { kind: "stdin", output: "text" },
+        cases: [{ ...functionRequest.spec.cases[0], input: "2 3" }],
       },
     };
 
     expect(validatePythonRunRequest(request).ok).toBe(true);
+  });
+
+  it("keeps partial limits below immutable server policy ceilings", () => {
+    for (const [name, ceiling] of Object.entries(PYTHON_EXECUTION_POLICY_CEILINGS)) {
+      const spec = {
+        ...functionRequest.spec,
+        limits: { [name]: ceiling + 1 },
+      };
+
+      expect(validatePythonExecutionSpec(spec).ok).toBe(false);
+    }
+  });
+
+  it("accepts authorable limit overrides at or below server policy ceilings", () => {
+    const spec = {
+      ...functionRequest.spec,
+      limits: { wallTimeMs: PYTHON_EXECUTION_POLICY_CEILINGS.wallTimeMs },
+    };
+
+    expect(validatePythonExecutionSpec(spec).ok).toBe(true);
   });
 
   it("accepts a one-field execution limit override", () => {
@@ -166,6 +188,39 @@ describe("execution contract validation", () => {
     expect(validatePythonExecutionSpec(invalidTolerance).ok).toBe(false);
   });
 
+  it("enforces comparison-specific expected values and stdin input", () => {
+    const stdoutWithNonStringExpected = {
+      ...functionRequest.spec,
+      cases: [{ ...functionRequest.spec.cases[0], comparison: "stdout", expected: 5 }],
+    };
+    const floatWithNonNumericExpected = {
+      ...functionRequest.spec,
+      cases: [
+        {
+          ...functionRequest.spec.cases[0],
+          comparison: "float",
+          expected: "5",
+          tolerance: 0.01,
+        },
+      ],
+    };
+    const stdinWithNonStringInput = {
+      ...functionRequest.spec,
+      invocation: { kind: "stdin", output: "text" },
+    };
+    const validFloat = {
+      ...functionRequest.spec,
+      cases: [
+        { ...functionRequest.spec.cases[0], comparison: "float", expected: 5, tolerance: 0.01 },
+      ],
+    };
+
+    expect(validatePythonExecutionSpec(stdoutWithNonStringExpected).ok).toBe(false);
+    expect(validatePythonExecutionSpec(floatWithNonNumericExpected).ok).toBe(false);
+    expect(validatePythonExecutionSpec(stdinWithNonStringInput).ok).toBe(false);
+    expect(validatePythonExecutionSpec(validFloat).ok).toBe(true);
+  });
+
   it("rejects a case selection that does not exist", () => {
     expect(validatePythonRunRequest({ ...functionRequest, caseIds: ["missing"] }).ok).toBe(false);
   });
@@ -193,6 +248,16 @@ describe("execution contract validation", () => {
     expect(validatePythonRunRequest(tooMuchSource).ok).toBe(false);
     expect(validatePythonRunRequest(tooMuchInput).ok).toBe(false);
     expect(validatePythonRunRequest(tooManyCases).ok).toBe(false);
+  });
+
+  it("rejects expected payloads that exceed maxResultBytes", () => {
+    const spec = {
+      ...functionRequest.spec,
+      limits: { maxResultBytes: 10 },
+      cases: [{ ...functionRequest.spec.cases[0], expected: "x".repeat(20) }],
+    };
+
+    expect(validatePythonExecutionSpec(spec).ok).toBe(false);
   });
 
   it("rejects non-finite execution limits and invalid identifiers", () => {
