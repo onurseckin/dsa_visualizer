@@ -23,6 +23,8 @@ DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
 DEFAULT_READ_TIMEOUT_SECONDS = 2.0
 DEFAULT_MAX_ACTIVE = 2
 DEFAULT_MAX_REQUEST_THREADS = 8
+DEFAULT_CANCELLATION_TOMBSTONE_TTL_SECONDS = 5.0
+DEFAULT_MAX_CANCELLATION_TOMBSTONES = 256
 POLICY_DEFAULTS = {
     "wallTimeMs": 10_000,
     "maxSourceBytes": 64 * 1024,
@@ -71,11 +73,23 @@ class _RunControl:
 class ExecutionManager:
     """Bounded registry of active process groups, keyed by canonical run ID."""
 
-    def __init__(self, *, max_active: int = DEFAULT_MAX_ACTIVE) -> None:
+    def __init__(
+        self,
+        *,
+        max_active: int = DEFAULT_MAX_ACTIVE,
+        cancellation_tombstone_ttl_seconds: float = DEFAULT_CANCELLATION_TOMBSTONE_TTL_SECONDS,
+        max_cancellation_tombstones: int = DEFAULT_MAX_CANCELLATION_TOMBSTONES,
+    ) -> None:
         self._slots = threading.BoundedSemaphore(max(1, max_active))
         self._lock = threading.Lock()
         self._idle = threading.Condition(self._lock)
         self._active: dict[str, _RunControl] = {}
+        self._cancellation_tombstone_ttl_seconds = max(
+            0.01,
+            cancellation_tombstone_ttl_seconds,
+        )
+        self._max_cancellation_tombstones = max(1, max_cancellation_tombstones)
+        self._cancellation_tombstones: dict[str, float] = {}
 
     def run(self, request: dict[str, Any]) -> dict[str, Any]:
         started = time.monotonic()
@@ -83,6 +97,14 @@ class ExecutionManager:
         validation_error = _validate_request_policy(request)
         if validation_error is not None:
             return _execution_error(run_id, "error", validation_error, started)
+        with self._lock:
+            if self._consume_cancellation_tombstone(run_id):
+                return _execution_error(
+                    run_id,
+                    "error",
+                    "Python execution was cancelled.",
+                    started,
+                )
         if not self._slots.acquire(blocking=False):
             return _execution_error(
                 run_id,
@@ -93,6 +115,14 @@ class ExecutionManager:
 
         control = _RunControl()
         with self._lock:
+            if self._consume_cancellation_tombstone(run_id):
+                self._slots.release()
+                return _execution_error(
+                    run_id,
+                    "error",
+                    "Python execution was cancelled.",
+                    started,
+                )
             if run_id in self._active:
                 self._slots.release()
                 return _execution_error(
@@ -113,11 +143,33 @@ class ExecutionManager:
 
     def cancel(self, run_id: str) -> bool:
         with self._lock:
+            self._prune_cancellation_tombstones()
             control = self._active.get(run_id)
+            if control is None:
+                self._cancellation_tombstones.pop(run_id, None)
+                while len(self._cancellation_tombstones) >= self._max_cancellation_tombstones:
+                    self._cancellation_tombstones.pop(next(iter(self._cancellation_tombstones)))
+                self._cancellation_tombstones[run_id] = (
+                    time.monotonic() + self._cancellation_tombstone_ttl_seconds
+                )
         if control is None:
-            return False
+            return True
         control.cancel()
         return True
+
+    def _consume_cancellation_tombstone(self, run_id: str) -> bool:
+        self._prune_cancellation_tombstones()
+        return self._cancellation_tombstones.pop(run_id, None) is not None
+
+    def _prune_cancellation_tombstones(self) -> None:
+        now = time.monotonic()
+        expired = [
+            run_id
+            for run_id, expires_at in self._cancellation_tombstones.items()
+            if expires_at <= now
+        ]
+        for run_id in expired:
+            self._cancellation_tombstones.pop(run_id, None)
 
     def cancel_all(self) -> None:
         with self._lock:

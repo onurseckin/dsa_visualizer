@@ -136,6 +136,46 @@ class SubprocessRunnerTests(unittest.TestCase):
         self.assertTrue(manager.wait_for_idle(timeout=1))
         self.assertEqual(manager.active_run_ids(), ())
 
+    def test_execution_manager_consumes_cancel_requested_before_run_registration(self):
+        manager = ExecutionManager(max_active=1)
+        request = request_for("def solve(value):\n    return value * 2")
+
+        self.assertTrue(manager.cancel("service-run"))
+
+        cancelled = manager.run(request)
+        next_run = manager.run(request)
+
+        self.assertEqual(cancelled["status"], "error")
+        self.assertIn("cancelled", cancelled["stderr"])
+        self.assertEqual(next_run["status"], "passed")
+
+    def test_execution_manager_bounds_pending_cancellation_tombstones(self):
+        manager = ExecutionManager(max_active=1, max_cancellation_tombstones=2)
+        request = request_for("def solve(value):\n    return value * 2")
+
+        self.assertTrue(manager.cancel("oldest"))
+        self.assertTrue(manager.cancel("middle"))
+        self.assertTrue(manager.cancel("newest"))
+
+        request["runId"] = "oldest"
+        self.assertEqual(manager.run(request)["status"], "passed")
+        request["runId"] = "middle"
+        self.assertIn("cancelled", manager.run(request)["stderr"])
+        request["runId"] = "newest"
+        self.assertIn("cancelled", manager.run(request)["stderr"])
+
+    def test_execution_manager_expires_pending_cancellation_tombstones(self):
+        manager = ExecutionManager(
+            max_active=1,
+            cancellation_tombstone_ttl_seconds=0.01,
+        )
+        request = request_for("def solve(value):\n    return value * 2")
+
+        self.assertTrue(manager.cancel("service-run"))
+        time.sleep(0.02)
+
+        self.assertEqual(manager.run(request)["status"], "passed")
+
     def test_execution_manager_normalizes_capacity_without_starting_an_extra_child(self):
         manager = ExecutionManager(max_active=1)
         first_box = {}
