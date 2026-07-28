@@ -172,4 +172,15 @@ describe("useProblemListState hook", () => {
     expect(result.current.filteredAlgorithms.length).toBeGreaterThan(0);
     expect(result.current.filteredAlgorithms.every((a) => a.category === "backtracking")).toBe(true);
   });
+
+  it("preserves exact full problem count (e.g. 5 for dp_1d) when navigating to category with stored Hard difficulty filter", () => {
+    // Simulate stored selectedDifficulty = "Hard"
+    window.localStorage.setItem("dsa_visualizer_problem_list_difficulty", '"Hard"');
+
+    const { result } = renderHook(() => useProblemListState({ category: "dp_1d" }));
+
+    expect(result.current.selectedCategory).toBe("dp_1d");
+    // dp_1d registered algorithms total 5 (3 Medium + 2 Hard)
+    expect(result.current.filteredAlgorithms.length).toBe(5);
+  });
 });

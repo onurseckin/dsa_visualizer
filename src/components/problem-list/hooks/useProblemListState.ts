@@ -106,31 +106,12 @@ export function useProblemListState({
       return true;
     });
 
-    // Check if selectedSource or selectedDifficulty would wipe out all problems in a non-All category
-    let effectiveSource = selectedSource;
-    if (selectedCategory !== "All" && selectedSource !== "All" && categoryFiltered.length > 0) {
-      const sourceMatchCount = categoryFiltered.filter((alg) => {
-        const cats = getAlgorithmCategories(alg);
-        const isMlAlg = Boolean(alg.isMlInfra) || cats.some((c) => c.startsWith("ml_"));
-        const sources = getAlgorithmSources(alg);
-        const matchesSource = sources.some((s) => getSourceKind(s) === selectedSource);
-        const matchesMlSource = selectedSource === "ml_infra" && isMlAlg;
-        return matchesSource || matchesMlSource;
-      }).length;
-      if (sourceMatchCount === 0) {
-        effectiveSource = "All";
-      }
-    }
-
-    let effectiveDifficulty = selectedDifficulty;
-    if (selectedCategory !== "All" && selectedDifficulty !== "All" && categoryFiltered.length > 0) {
-      const diffMatchCount = categoryFiltered.filter(
-        (alg) => alg.difficulty === selectedDifficulty,
-      ).length;
-      if (diffMatchCount === 0) {
-        effectiveDifficulty = "All";
-      }
-    }
+    // When a specific category is requested (e.g., navigating from a Knowledge Tree node),
+    // default effective source & difficulty filters to "All" so the problem list view
+    // matches the full category problem count promised by the Knowledge Tree node badge.
+    const isCategoryScoped = selectedCategory !== "All";
+    const effectiveSource = isCategoryScoped ? "All" : selectedSource;
+    const effectiveDifficulty = isCategoryScoped ? "All" : selectedDifficulty;
 
     const filtered = categoryFiltered.filter((alg) => {
       if (effectiveDifficulty !== "All" && alg.difficulty !== effectiveDifficulty) return false;
