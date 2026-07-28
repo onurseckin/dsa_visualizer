@@ -3,12 +3,14 @@ export interface ApiConfig {
   readonly port: number;
   readonly dataDirectory: string | undefined;
   readonly maxBodyBytes: number;
+  readonly pythonMaxBodyBytes: number;
   readonly allowedOrigins: readonly string[];
   readonly pythonRunnerUrl: string;
   readonly pythonRunnerTimeoutMs: number;
 }
 
-const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
+export const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
+export const DEFAULT_PYTHON_MAX_BODY_BYTES = 3 * 1024 * 1024;
 const DEFAULT_PYTHON_RUNNER_TIMEOUT_MS = 31_000;
 
 export function readApiConfig(
@@ -19,6 +21,10 @@ export function readApiConfig(
     port: parsePositiveInteger(environment.API_PORT, 3000),
     dataDirectory: environment.API_DATA_DIR,
     maxBodyBytes: parsePositiveInteger(environment.API_MAX_BODY_BYTES, DEFAULT_MAX_BODY_BYTES),
+    pythonMaxBodyBytes: parsePositiveInteger(
+      environment.API_PYTHON_MAX_BODY_BYTES,
+      DEFAULT_PYTHON_MAX_BODY_BYTES,
+    ),
     allowedOrigins: parseOrigins(environment.API_ALLOWED_ORIGINS),
     pythonRunnerUrl: environment.PYTHON_RUNNER_URL || "http://python-runner:8080",
     pythonRunnerTimeoutMs: parsePositiveInteger(

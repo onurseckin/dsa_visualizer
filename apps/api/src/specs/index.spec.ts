@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { createApiHandler } from "../http";
 import { startApiServer } from "../index";
 import { createMemoryKeyValueStore } from "../persistence";
 
@@ -17,6 +18,7 @@ function harness() {
     }),
   };
   const createStore = vi.fn(() => store);
+  const createHandler = vi.fn(createApiHandler);
 
   const api = startApiServer({
     readConfig: () => ({
@@ -24,16 +26,18 @@ function harness() {
       port: 4123,
       dataDirectory: "/tmp/dsa-api",
       maxBodyBytes: 123,
+      pythonMaxBodyBytes: 789,
       allowedOrigins: ["http://localhost:5173"],
       pythonRunnerUrl: "http://runner.internal:8080",
       pythonRunnerTimeoutMs: 456,
     }),
+    createHandler,
     createStore,
     serve,
     process: processPort,
   });
 
-  return { api, close, createStore, listeners, processPort, serve, stop };
+  return { api, close, createHandler, createStore, listeners, processPort, serve, stop };
 }
 
 describe("startApiServer", () => {
@@ -51,6 +55,7 @@ describe("startApiServer", () => {
           port: 4123,
           dataDirectory: undefined,
           maxBodyBytes: 123,
+          pythonMaxBodyBytes: 789,
           allowedOrigins: [],
           pythonRunnerUrl: "http://runner.internal:8080",
           pythonRunnerTimeoutMs: 456,
@@ -75,9 +80,12 @@ describe("startApiServer", () => {
   });
 
   it("wires config, store, handler, and Bun.serve without binding a real port", async () => {
-    const { api, createStore, serve, stop } = harness();
+    const { api, createHandler, createStore, serve, stop } = harness();
 
     expect(createStore).toHaveBeenCalledWith({ dataDirectory: "/tmp/dsa-api" });
+    expect(createHandler).toHaveBeenCalledWith(
+      expect.objectContaining({ maxBodyBytes: 123, pythonMaxBodyBytes: 789 }),
+    );
     expect(serve).toHaveBeenCalledWith(
       expect.objectContaining({ hostname: "127.0.0.1", port: 4123, fetch: expect.any(Function) }),
     );

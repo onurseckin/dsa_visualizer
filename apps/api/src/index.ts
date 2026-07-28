@@ -47,6 +47,7 @@ export function startApiServer(dependencies: ApiServerDependencies = {}): Runnin
   const fetch = (dependencies.createHandler ?? createApiHandler)({
     store,
     maxBodyBytes: config.maxBodyBytes,
+    pythonMaxBodyBytes: config.pythonMaxBodyBytes,
     allowedOrigins: config.allowedOrigins,
     pythonRunner: createPythonRunnerClient({
       baseUrl: config.pythonRunnerUrl,

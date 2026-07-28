@@ -1,3 +1,4 @@
+import { validatePythonRunRequest } from "@dsa-visualizer/execution-contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import { createApiHandler, createViteApiMiddleware } from "../http";
@@ -31,6 +32,25 @@ const PYTHON_REQUEST = {
     ],
   },
 } as const;
+
+const DATABASE_BODY_LIMIT = 256 * 1024;
+const PYTHON_BODY_LIMIT = 3 * 1024 * 1024;
+
+function largeValidPythonRequest() {
+  return {
+    ...PYTHON_REQUEST,
+    spec: {
+      ...PYTHON_REQUEST.spec,
+      limits: { maxInputBytes: 1024 * 1024 },
+      cases: [
+        {
+          ...PYTHON_REQUEST.spec.cases[0],
+          input: "x".repeat(DATABASE_BODY_LIMIT + 1),
+        },
+      ],
+    },
+  };
+}
 
 async function json(response: Response): Promise<unknown> {
   return response.json();
@@ -108,6 +128,73 @@ describe("API HTTP handler", () => {
     expect(response.status).toBe(200);
     expect(await json(response)).toMatchObject({ runId: "api-run", status: "passed" });
     expect(run).toHaveBeenCalledWith(PYTHON_REQUEST, { signal: expect.any(AbortSignal) });
+  });
+
+  it("forwards a validator-valid Python request above the database body cap through Vite", async () => {
+    const request = largeValidPythonRequest();
+    expect(validatePythonRunRequest(request).ok).toBe(true);
+    const run = vi.fn(async () => ({
+      runId: request.runId,
+      status: "passed" as const,
+      stdout: "",
+      stderr: "",
+      cases: [],
+      durationMs: 1,
+      runtime: "server" as const,
+    }));
+    const handler = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      maxBodyBytes: DATABASE_BODY_LIMIT,
+      pythonRunner: { run },
+    });
+    const middleware = createViteApiMiddleware(handler, DATABASE_BODY_LIMIT);
+    const response = nodeResponse();
+    const body = JSON.stringify(request);
+    const nodeRequest = nodeRequestFor("/api/python/run", body);
+
+    await middleware(nodeRequest as never, response as never, () => undefined);
+
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.ended[0] ?? "{}")).toMatchObject({ status: "passed" });
+    expect(run).toHaveBeenCalledWith(request, { signal: expect.any(AbortSignal) });
+  });
+
+  it("rejects Python bodies above the Python route limit", async () => {
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      maxBodyBytes: DATABASE_BODY_LIMIT,
+      pythonRunner: { run: vi.fn() },
+    });
+    const response = await handle(
+      new Request("http://api.local/api/python/run", {
+        method: "POST",
+        body: "x".repeat(PYTHON_BODY_LIMIT + 1),
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await json(response)).toEqual({
+      error: {
+        code: "body_too_large",
+        message: `Request body exceeds the ${PYTHON_BODY_LIMIT} byte limit.`,
+      },
+    });
+  });
+
+  it("keeps the database route capped at 256 KiB", async () => {
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      maxBodyBytes: DATABASE_BODY_LIMIT,
+    });
+    const response = await handle(
+      new Request("http://api.local/api/db/state", {
+        method: "POST",
+        body: JSON.stringify({ entries: { oversized: "x".repeat(DATABASE_BODY_LIMIT) } }),
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await json(response)).toMatchObject({ error: { code: "body_too_large" } });
   });
 
   it("rejects invalid, browser, and policy-exceeding Python requests before forwarding", async () => {
@@ -311,4 +398,33 @@ function byteStream(chunks: readonly string[]): ReadableStream<Uint8Array> {
       controller.close();
     },
   });
+}
+
+function nodeResponse() {
+  const ended: string[] = [];
+  return {
+    ended,
+    statusCode: 0,
+    setHeader: () => undefined,
+    end: (body: Buffer) => ended.push(body.toString()),
+  };
+}
+
+function nodeRequestFor(url: string, body: string) {
+  const listeners = new Map<string, (chunk?: string) => void>();
+  return {
+    url,
+    method: "POST",
+    headers: {},
+    on: (event: string, listener: (chunk?: string) => void) => {
+      listeners.set(event, listener);
+      if (event === "error") {
+        setTimeout(() => {
+          listeners.get("data")?.(body);
+          listeners.get("end")?.();
+        }, 0);
+      }
+    },
+    resume: () => undefined,
+  };
 }
