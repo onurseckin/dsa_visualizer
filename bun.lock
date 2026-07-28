@@ -35,6 +35,13 @@
         "vitest": "1.6.1",
       },
     },
+    "apps/api": {
+      "name": "@dsa-visualizer/api",
+      "version": "0.0.0",
+      "dependencies": {
+        "@dsa-visualizer/execution-contracts": "workspace:*",
+      },
+    },
     "packages/execution-contracts": {
       "name": "@dsa-visualizer/execution-contracts",
       "version": "0.0.0",
@@ -102,6 +109,8 @@
     "@csstools/css-parser-algorithms": ["@csstools/css-parser-algorithms@3.0.5", "", { "peerDependencies": { "@csstools/css-tokenizer": "^3.0.4" } }, "sha512-DaDeUkXZKjdGhgYaHNJTV9pV7Y9B3b644jCLs9Upc3VeNGg6LWARAT6O+Q+/COo+2gg/bM5rhpMAtf70WqfBdQ=="],
 
     "@csstools/css-tokenizer": ["@csstools/css-tokenizer@3.0.4", "", {}, "sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw=="],
+
+    "@dsa-visualizer/api": ["@dsa-visualizer/api@workspace:apps/api"],
 
     "@dsa-visualizer/execution-contracts": ["@dsa-visualizer/execution-contracts@workspace:packages/execution-contracts"],
 

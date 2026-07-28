@@ -57,7 +57,8 @@ describe("sqliteServer and sqliteVitePlugin", () => {
       plugin.configureServer(mockDevServer as unknown as import("vite").ViteDevServer);
     }
 
-    expect(headers["Content-Type"]).toBe("application/json");
+    await flushApiMiddleware();
+    expect(headers["content-type"] ?? headers["Content-Type"]).toContain("application/json");
     expect(JSON.parse(bodyEnded)).toBeDefined();
 
     // Test POST state
@@ -88,6 +89,7 @@ describe("sqliteServer and sqliteVitePlugin", () => {
       plugin.configurePreviewServer(mockPreviewServer as unknown as import("vite").PreviewServer);
     }
 
+    await flushApiMiddleware();
     expect(getAllState()["test_p1"]).toBe("v2");
 
     // Test POST reset
@@ -117,6 +119,8 @@ describe("sqliteServer and sqliteVitePlugin", () => {
       plugin.configureServer(mockResetServer as unknown as import("vite").ViteDevServer);
     }
 
+    await flushApiMiddleware();
+
     // Test non-matching URL falls through to next()
     const otherReq = {
       url: "/other",
@@ -138,3 +142,7 @@ describe("sqliteServer and sqliteVitePlugin", () => {
     expect(next).toHaveBeenCalled();
   });
 });
+
+function flushApiMiddleware(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
