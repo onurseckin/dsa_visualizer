@@ -29,34 +29,41 @@ export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    const pathname = new URL(request.url).pathname;
-    let response: Response;
-    if (pathname === "/api/health") {
-      response =
-        request.method === "GET"
-          ? jsonResponse({ ok: true, service: "api" })
-          : methodNotAllowed(request.method, "GET");
-    } else if (pathname === "/api/db/state") {
-      response = await handleState(request, options.store, maxBodyBytes);
-    } else if (pathname === "/api/db/reset") {
-      response = await handlePrefixReset(
-        request,
-        options.store,
-        ["dsa_visualizer_workspace_layout", "dsa_trivia_layout"],
-        maxBodyBytes,
-      );
-    } else if (pathname === "/api/db/clear-trivia") {
-      response = await handlePrefixReset(request, options.store, ["dsa_trivia"], maxBodyBytes);
-    } else {
-      response = errorResponse(404, "not_found", "Route not found.");
-    }
+    try {
+      const pathname = new URL(request.url).pathname;
+      let response: Response;
+      if (pathname === "/api/health") {
+        response =
+          request.method === "GET"
+            ? jsonResponse({ ok: true, service: "api" })
+            : methodNotAllowed(request.method, "GET");
+      } else if (pathname === "/api/db/state") {
+        response = await handleState(request, options.store, maxBodyBytes);
+      } else if (pathname === "/api/db/reset") {
+        response = await handlePrefixReset(
+          request,
+          options.store,
+          ["dsa_visualizer_workspace_layout", "dsa_trivia_layout"],
+          maxBodyBytes,
+        );
+      } else if (pathname === "/api/db/clear-trivia") {
+        response = await handlePrefixReset(request, options.store, ["dsa_trivia"], maxBodyBytes);
+      } else {
+        response = errorResponse(404, "not_found", "Route not found.");
+      }
 
-    return withCors(response, corsHeaders);
+      return withCors(response, corsHeaders);
+    } catch {
+      return withCors(errorResponse(500, "internal_error", "Unexpected API error."), corsHeaders);
+    }
   };
 }
 
 /** Adapt the same Fetch handler for Vite's Connect middleware in development. */
-export function createViteApiMiddleware(handler: ApiHandler): Connect.NextHandleFunction {
+export function createViteApiMiddleware(
+  handler: ApiHandler,
+  maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
+): Connect.NextHandleFunction {
   return async (request, response, next) => {
     if (!request.url?.startsWith("/api/")) {
       next();
@@ -64,7 +71,11 @@ export function createViteApiMiddleware(handler: ApiHandler): Connect.NextHandle
     }
 
     try {
-      const body = await readNodeBody(request);
+      const body = await readNodeBody(request, maxBodyBytes);
+      if (body.kind === "too_large") {
+        await writeNodeResponse(response, bodyTooLarge(maxBodyBytes));
+        return;
+      }
       const headers = new Headers();
       for (const [name, value] of Object.entries(request.headers ?? {})) {
         if (Array.isArray(value)) headers.set(name, value.join(", "));
@@ -76,17 +87,14 @@ export function createViteApiMiddleware(handler: ApiHandler): Connect.NextHandle
       const apiRequest = new Request(`${protocol}://${host}${request.url}`, {
         method: request.method ?? "GET",
         headers,
-        body: body.byteLength > 0 ? new TextDecoder().decode(body) : undefined,
+        body: body.value.byteLength > 0 ? new TextDecoder().decode(body.value) : undefined,
       });
       const apiResponse = await handler(apiRequest);
-      response.statusCode = apiResponse.status;
-      apiResponse.headers.forEach((value, name) => response.setHeader(name, value));
-      response.end(Buffer.from(await apiResponse.arrayBuffer()));
+      await writeNodeResponse(response, apiResponse);
     } catch {
-      response.statusCode = 500;
-      response.setHeader("Content-Type", JSON_HEADERS["Content-Type"]);
-      response.end(
-        JSON.stringify({ error: { code: "internal_error", message: "Unexpected API error." } }),
+      await writeNodeResponse(
+        response,
+        errorResponse(500, "internal_error", "Unexpected API error."),
       );
     }
   };
@@ -150,10 +158,9 @@ async function parseJsonBody(
     return { ok: false, response: bodyTooLarge(maxBodyBytes) };
   }
 
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > maxBodyBytes) {
-    return { ok: false, response: bodyTooLarge(maxBodyBytes) };
-  }
+  const body = await readFetchBody(request, maxBodyBytes);
+  if (body.kind === "too_large") return { ok: false, response: bodyTooLarge(maxBodyBytes) };
+  const text = new TextDecoder().decode(body.value);
   if (!text.trim()) return { ok: true, value: {} };
   try {
     return { ok: true, value: JSON.parse(text) as unknown };
@@ -238,11 +245,71 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function readNodeBody(request: Connect.IncomingMessage): Promise<Buffer> {
+async function readFetchBody(
+  request: Request,
+  maxBodyBytes: number,
+): Promise<{ kind: "body"; value: Uint8Array } | { kind: "too_large" }> {
+  if (!request.body) return { kind: "body", value: new Uint8Array() };
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      length += value.byteLength;
+      if (length > maxBodyBytes) {
+        await reader.cancel();
+        return { kind: "too_large" };
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const body = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { kind: "body", value: body };
+}
+
+function readNodeBody(
+  request: Connect.IncomingMessage,
+  maxBodyBytes: number,
+): Promise<{ kind: "body"; value: Buffer } | { kind: "too_large" }> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    request.on("data", (chunk: Buffer | string) => chunks.push(Buffer.from(chunk)));
-    request.on("end", () => resolve(Buffer.concat(chunks)));
-    request.on("error", reject);
+    let length = 0;
+    let resolved = false;
+    request.on("data", (chunk: Buffer | string) => {
+      if (resolved) return;
+      const buffer = Buffer.from(chunk);
+      length += buffer.byteLength;
+      if (length > maxBodyBytes) {
+        resolved = true;
+        request.resume?.();
+        resolve({ kind: "too_large" });
+        return;
+      }
+      chunks.push(buffer);
+    });
+    request.on("end", () => {
+      if (!resolved) resolve({ kind: "body", value: Buffer.concat(chunks) });
+    });
+    request.on("error", (error) => {
+      if (!resolved) reject(error);
+    });
   });
+}
+
+async function writeNodeResponse(
+  response: import("http").ServerResponse,
+  apiResponse: Response,
+): Promise<void> {
+  response.statusCode = apiResponse.status;
+  apiResponse.headers.forEach((value, name) => response.setHeader(name, value));
+  response.end(Buffer.from(await apiResponse.arrayBuffer()));
 }

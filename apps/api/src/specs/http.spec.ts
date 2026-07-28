@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createApiHandler } from "../http";
+import { createApiHandler, createViteApiMiddleware } from "../http";
 import { createMemoryKeyValueStore } from "../persistence";
 
 const LOCAL_ORIGIN = "http://localhost:5173";
@@ -33,6 +33,21 @@ describe("API HTTP handler", () => {
     expect(await json(response)).toEqual({
       error: { code: "body_too_large", message: "Request body exceeds the 512 byte limit." },
     });
+  });
+
+  it("stops a chunked Fetch body at the limit before buffering the full request", async () => {
+    const init = {
+      method: "POST",
+      body: byteStream(["x".repeat(300), "x".repeat(300)]),
+      duplex: "half",
+    } as RequestInit & { duplex: string };
+    const request = new Request("http://api.local/api/db/state", {
+      ...init,
+    });
+
+    const response = await handlerForTest()(request);
+    expect(response.status).toBe(413);
+    expect(await json(response)).toMatchObject({ error: { code: "body_too_large" } });
   });
 
   it("normalizes malformed JSON errors", async () => {
@@ -138,4 +153,67 @@ describe("API HTTP handler", () => {
       error: { code: "origin_not_allowed", message: "This origin is not allowed." },
     });
   });
+
+  it.each([
+    ["getAll", new Request("http://api.local/api/db/state")],
+    [
+      "set",
+      new Request("http://api.local/api/db/state", {
+        method: "POST",
+        body: JSON.stringify({ key: "one", value: "1" }),
+      }),
+    ],
+    ["clearPrefix", new Request("http://api.local/api/db/reset", { method: "POST" })],
+  ] as const)("normalizes store %s failures", async (method, request) => {
+    const store = createMemoryKeyValueStore();
+    Object.assign(store, {
+      [method]: () => {
+        throw new Error("storage failed");
+      },
+    });
+    const response = await createApiHandler({ store })(request);
+
+    expect(response.status).toBe(500);
+    expect(await json(response)).toEqual({
+      error: { code: "internal_error", message: "Unexpected API error." },
+    });
+  });
+
+  it("returns a 413 response for a capped Connect stream without waiting for an end event", async () => {
+    const middleware = createViteApiMiddleware(handlerForTest(), 512);
+    const ended: string[] = [];
+    const listeners = new Map<string, (chunk?: string) => void>();
+    const response = {
+      statusCode: 0,
+      setHeader: () => undefined,
+      end: (body: Buffer) => ended.push(body.toString()),
+    };
+    const request = {
+      url: "/api/db/state",
+      method: "POST",
+      headers: {},
+      on: (event: string, listener: (chunk?: string) => void) => {
+        listeners.set(event, listener);
+        if (event === "error") {
+          setTimeout(() => listeners.get("data")?.("x".repeat(600)), 0);
+        }
+      },
+      resume: () => undefined,
+    };
+
+    await middleware(request as never, response as never, () => undefined);
+
+    expect(response.statusCode).toBe(413);
+    expect(JSON.parse(ended[0] ?? "{}")).toMatchObject({ error: { code: "body_too_large" } });
+  });
 });
+
+function byteStream(chunks: readonly string[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      controller.close();
+    },
+  });
+}
