@@ -1,4 +1,7 @@
-import { validatePythonRunRequest } from "@dsa-visualizer/execution-contracts";
+import {
+  PYTHON_EXECUTION_POLICY_CEILINGS,
+  validatePythonRunRequest,
+} from "@dsa-visualizer/execution-contracts";
 import { describe, expect, it, vi } from "vitest";
 
 import { createApiHandler, createViteApiMiddleware } from "../http";
@@ -34,18 +37,24 @@ const PYTHON_REQUEST = {
 } as const;
 
 const DATABASE_BODY_LIMIT = 256 * 1024;
-const PYTHON_BODY_LIMIT = 3 * 1024 * 1024;
+const PYTHON_BODY_LIMIT = 5 * 1024 * 1024;
 
 function largeValidPythonRequest() {
   return {
     ...PYTHON_REQUEST,
+    code: "\u0001".repeat(PYTHON_EXECUTION_POLICY_CEILINGS.maxSourceBytes),
     spec: {
       ...PYTHON_REQUEST.spec,
-      limits: { maxInputBytes: 1024 * 1024 },
+      limits: {
+        maxSourceBytes: PYTHON_EXECUTION_POLICY_CEILINGS.maxSourceBytes,
+        maxInputBytes: PYTHON_EXECUTION_POLICY_CEILINGS.maxInputBytes,
+        maxResultBytes: PYTHON_EXECUTION_POLICY_CEILINGS.maxResultBytes,
+      },
       cases: [
         {
           ...PYTHON_REQUEST.spec.cases[0],
-          input: "x".repeat(DATABASE_BODY_LIMIT + 1),
+          input: "i".repeat(PYTHON_EXECUTION_POLICY_CEILINGS.maxInputBytes - 2),
+          expected: "e".repeat(PYTHON_EXECUTION_POLICY_CEILINGS.maxResultBytes - 2),
         },
       ],
     },
@@ -150,6 +159,7 @@ describe("API HTTP handler", () => {
     const middleware = createViteApiMiddleware(handler, DATABASE_BODY_LIMIT);
     const response = nodeResponse();
     const body = JSON.stringify(request);
+    expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(3 * 1024 * 1024);
     const nodeRequest = nodeRequestFor("/api/python/run", body);
 
     await middleware(nodeRequest as never, response as never, () => undefined);

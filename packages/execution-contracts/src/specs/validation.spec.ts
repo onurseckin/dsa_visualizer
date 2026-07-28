@@ -4,6 +4,7 @@ import {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
   isJsonValue,
   PYTHON_EXECUTION_POLICY_CEILINGS,
+  PYTHON_RUN_REQUEST_BODY_CEILING_BYTES,
   validatePythonExecutionSpec,
   validatePythonRunRequest,
 } from "../index";
@@ -248,6 +249,44 @@ describe("execution contract validation", () => {
     expect(validatePythonRunRequest(tooMuchSource).ok).toBe(false);
     expect(validatePythonRunRequest(tooMuchInput).ok).toBe(false);
     expect(validatePythonRunRequest(tooManyCases).ok).toBe(false);
+  });
+
+  it("accepts the worst-case escaped policy envelope and caps all valid request bodies", () => {
+    const request = {
+      ...functionRequest,
+      code: "\u0001".repeat(PYTHON_EXECUTION_POLICY_CEILINGS.maxSourceBytes),
+      spec: {
+        ...functionRequest.spec,
+        limits: {
+          maxSourceBytes: PYTHON_EXECUTION_POLICY_CEILINGS.maxSourceBytes,
+          maxInputBytes: PYTHON_EXECUTION_POLICY_CEILINGS.maxInputBytes,
+          maxResultBytes: PYTHON_EXECUTION_POLICY_CEILINGS.maxResultBytes,
+        },
+        cases: [
+          {
+            ...functionRequest.spec.cases[0],
+            input: "i".repeat(PYTHON_EXECUTION_POLICY_CEILINGS.maxInputBytes - 2),
+            expected: "e".repeat(PYTHON_EXECUTION_POLICY_CEILINGS.maxResultBytes - 2),
+          },
+        ],
+      },
+    };
+    const serializedBytes = new TextEncoder().encode(JSON.stringify(request)).byteLength;
+
+    expect(serializedBytes).toBeGreaterThan(3 * 1024 * 1024);
+    expect(serializedBytes).toBeLessThanOrEqual(PYTHON_RUN_REQUEST_BODY_CEILING_BYTES);
+    expect(validatePythonRunRequest(request).ok).toBe(true);
+
+    const oversizedMetadata = {
+      ...functionRequest,
+      runId: "r".repeat(PYTHON_RUN_REQUEST_BODY_CEILING_BYTES),
+    };
+    expect(validatePythonRunRequest(oversizedMetadata)).toMatchObject({
+      ok: false,
+      issues: expect.arrayContaining([
+        expect.objectContaining({ path: "$", message: expect.stringContaining("body ceiling") }),
+      ]),
+    });
   });
 
   it("rejects expected payloads that exceed maxResultBytes", () => {

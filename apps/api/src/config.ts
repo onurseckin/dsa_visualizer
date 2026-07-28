@@ -1,3 +1,5 @@
+import { PYTHON_RUN_REQUEST_BODY_CEILING_BYTES } from "@dsa-visualizer/execution-contracts";
+
 export interface ApiConfig {
   readonly host: string;
   readonly port: number;
@@ -10,7 +12,7 @@ export interface ApiConfig {
 }
 
 export const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
-export const DEFAULT_PYTHON_MAX_BODY_BYTES = 3 * 1024 * 1024;
+export const DEFAULT_PYTHON_MAX_BODY_BYTES = PYTHON_RUN_REQUEST_BODY_CEILING_BYTES;
 const DEFAULT_PYTHON_RUNNER_TIMEOUT_MS = 31_000;
 
 export function readApiConfig(
@@ -21,7 +23,7 @@ export function readApiConfig(
     port: parsePositiveInteger(environment.API_PORT, 3000),
     dataDirectory: environment.API_DATA_DIR,
     maxBodyBytes: parsePositiveInteger(environment.API_MAX_BODY_BYTES, DEFAULT_MAX_BODY_BYTES),
-    pythonMaxBodyBytes: parsePositiveInteger(
+    pythonMaxBodyBytes: parseIntegerAtLeast(
       environment.API_PYTHON_MAX_BODY_BYTES,
       DEFAULT_PYTHON_MAX_BODY_BYTES,
     ),
@@ -38,6 +40,11 @@ function parsePositiveInteger(raw: string | undefined, fallback: number): number
   if (!raw) return fallback;
   const value = Number(raw);
   return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function parseIntegerAtLeast(raw: string | undefined, minimum: number): number {
+  const value = parsePositiveInteger(raw, minimum);
+  return value >= minimum ? value : minimum;
 }
 
 function parseOrigins(raw: string | undefined): readonly string[] {

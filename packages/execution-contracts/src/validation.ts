@@ -19,6 +19,8 @@ export const PYTHON_EXECUTION_POLICY_CEILINGS: Readonly<PythonExecutionLimits> =
   maxCases: 250,
 });
 
+export const PYTHON_RUN_REQUEST_BODY_CEILING_BYTES = 5 * 1024 * 1024;
+
 export interface ValidationIssue {
   readonly path: string;
   readonly message: string;
@@ -95,6 +97,12 @@ export function validatePythonRunRequest(input: unknown): ValidationResult<Pytho
     }
 
     validateCaseSelection(input.caseIds, input.spec, issues);
+    const bodyBytes = serializedJsonByteLength(input);
+    if (bodyBytes === undefined) {
+      issue(issues, "$", "must be safely serializable");
+    } else if (bodyBytes > PYTHON_RUN_REQUEST_BODY_CEILING_BYTES) {
+      issue(issues, "$", "exceeds the Python run request body ceiling");
+    }
     return result(input, issues);
   });
 }
