@@ -52,7 +52,7 @@ export interface PythonExecutionSpec {
   readonly invocation: PythonInvocation;
   readonly packages: readonly PythonPackage[];
   readonly cases: readonly PythonTestCase[];
-  readonly limits?: PythonExecutionLimits;
+  readonly limits?: Partial<PythonExecutionLimits>;
 }
 
 export interface PythonRunRequest {

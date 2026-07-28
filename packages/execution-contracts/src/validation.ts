@@ -199,7 +199,14 @@ function validateLimits(
 
   const names = Object.keys(DEFAULT_PYTHON_EXECUTION_LIMITS) as (keyof PythonExecutionLimits)[];
   let valid = true;
+  for (const name of Object.keys(input)) {
+    if (!names.includes(name as keyof PythonExecutionLimits)) {
+      issue(issues, `${path}.${name}`, "is not a supported limit");
+      valid = false;
+    }
+  }
   for (const name of names) {
+    if (!Object.hasOwn(input, name)) continue;
     const value = input[name];
     const isCaseLimit = name === "maxCases";
     if (
@@ -212,24 +219,33 @@ function validateLimits(
       valid = false;
     }
   }
-  return valid ? (input as unknown as PythonExecutionLimits) : undefined;
+  return valid ? parsedLimits(input) : undefined;
 }
 
 function parsedLimits(input: unknown): PythonExecutionLimits | undefined {
   if (input === undefined) return DEFAULT_PYTHON_EXECUTION_LIMITS;
   if (!isRecord(input)) return undefined;
-  const values = Object.keys(DEFAULT_PYTHON_EXECUTION_LIMITS) as (keyof PythonExecutionLimits)[];
-  return values.every((name) => {
+  const names = Object.keys(DEFAULT_PYTHON_EXECUTION_LIMITS) as (keyof PythonExecutionLimits)[];
+  if (Object.keys(input).some((name) => !names.includes(name as keyof PythonExecutionLimits))) {
+    return undefined;
+  }
+
+  const overrides: { -readonly [Name in keyof PythonExecutionLimits]?: number } = {};
+  for (const name of names) {
+    if (!Object.hasOwn(input, name)) continue;
     const value = input[name];
-    return (
+    if (
       typeof value === "number" &&
       Number.isFinite(value) &&
       value > 0 &&
       (name !== "maxCases" || Number.isInteger(value))
-    );
-  })
-    ? (input as unknown as PythonExecutionLimits)
-    : undefined;
+    ) {
+      overrides[name] = value;
+      continue;
+    }
+    return undefined;
+  }
+  return { ...DEFAULT_PYTHON_EXECUTION_LIMITS, ...overrides };
 }
 
 function validateCases(
