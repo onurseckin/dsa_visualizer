@@ -250,12 +250,12 @@ const LSTM_CONSTANT_ERROR_CAROUSEL_TRIVIA: TriviaMeta = {
 export const lstmConstantErrorCarousel: AlgorithmDefinition<LstmConstantErrorCarouselInput> = {
   id: "lstm-constant-error-carousel",
   title: "LSTM Constant Error Carousel (CEC) & Gate Activations",
-  category: "ml_recurrent_gates",
-  categories: ["ml_recurrent_gates"],
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "ml_recurrent_gates"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 6,
-  mlInfraCategory: "ml_recurrent_gates",
+  mlInfraCategory: "ml_attention_geometry",
   description:
     "Long Short-Term Memory (LSTM) networks introduced by Hochreiter & Schmidhuber (1997) solve the vanishing gradient problem using the Constant Error Carousel (CEC). The CEC provides an linear additive shortcut for internal cell memory $c_t = f_t \\odot c_{t-1} + i_t \\odot \\tilde{c}_t$, preserving error signals through backpropagation across arbitrary sequence lengths.\n\nInput Format:\n- x: Input vector at time step t.\n- hPrev: Hidden state vector from step t-1.\n- cPrev: Internal cell state vector from step t-1.\n- weights: Dict containing weight matrices (Wf, Wi, Wc, Wo) and bias vectors (bf, bi, bc, bo).\n\nOutput Format:\n- Returns tuple (c_t, h_t) containing updated cell state $c_t$ and output hidden state $h_t$.\n\nEdge Cases & Constraints:\n- Extreme bias values: Forget bias $b_f \\ll 0$ flushes cell state memory, resetting history context.\n- Vanishing candidate input: Input gate $i_t \\to 0$ blocks new input information from altering cell state.\n- Dimension matching: Dimensionality of inputs and weights must be consistent across state vectors.",
   constraints: ["len(x) == len(cPrev)", "weights dimensions match state vector length"],

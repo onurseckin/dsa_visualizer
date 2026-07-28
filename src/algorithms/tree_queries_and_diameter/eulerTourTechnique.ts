@@ -331,8 +331,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
 export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   id: "euler-tour-technique",
   title: "Euler Tour Technique (Tree Flattening)",
-  category: "tree_queries_and_diameter",
-  categories: ["tree_queries_and_diameter"],
+  category: "tree_fundamentals",
+  categories: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Medium",
   description:
     "Flatten a 2D tree hierarchy into a linear 1D array using DFS entry (`tin`) and exit (`tout`) timestamps, enabling subtree updates and range queries in $O(1)$ mapping time.\n\n### Problem Statement\nGiven a rooted tree with $N$ vertices, compute entry timestamp `tin[u]` and exit timestamp `tout[u]` for every vertex $u$ during a Depth-First Search traversal.\n\nBecause DFS visits all descendants of node $u$ continuously before backtracking out of $u$, the entire subtree rooted at $u$ corresponds to a contiguous subsegment $[tin[u], tout[u]]$ in the flattened Euler Tour array. Subtree queries (sum, min, max, point/range updates) can thus be answered using standard range data structures (Fenwick Tree / Segment Tree) in $O(\\log N)$ time.\n\n### Input Parameters\n- `numNodes`: Total number of vertices $N$.\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `values`: Optional array of node values.\n\n### Output\n- Returns arrays `tin`, `tout`, and `flat_order` where node $u$'s subtree is mapped to index slice $[tin[u], tout[u]]$.\n\n### Constraints & Edge Cases\n- $1 \\le N \\le 10^5$.\n- Single node tree ($N=1$): `tin[0] = 0, tout[0] = 0` (slice of length $1$).\n- Deep chain graph ($N=10^5$): `tin` spans $[0, N-1]$, `tout` spans $[0, N-1]$ accordingly.",

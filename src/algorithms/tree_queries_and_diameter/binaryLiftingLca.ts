@@ -413,8 +413,8 @@ export const generateBinaryLiftingLcaSteps = (input: BinaryLiftingLcaInput): Alg
 export const binaryLiftingLca: AlgorithmDefinition<BinaryLiftingLcaInput> = {
   id: "binary-lifting-lca",
   title: "Binary Lifting for LCA",
-  category: "tree_queries_and_diameter",
-  categories: ["tree_queries_and_diameter"],
+  category: "tree_fundamentals",
+  categories: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
     "Compute the Lowest Common Ancestor (LCA) of nodes $u$ and $v$ in $O(\\log N)$ time per query after an $O(N \\log N)$ binary lifting precomputation.\n\n### Problem Statement\nGiven a tree with $N$ nodes rooted at node $0$ and a query pair of nodes $(u, v)$, find their Lowest Common Ancestor (LCA) using Binary Lifting (doubling dynamic programming).\n\nBinary Lifting precomputes a 2D dynamic programming table `up[u][j]` representing the $2^j$-th ancestor of node $u$. Query execution first equalizes the depths of $u$ and $v$ using powers-of-two jump steps, then lifts both nodes in parallel until they sit directly beneath their lowest common ancestor.\n\n### Input Parameters\n- `numNodes`: Integer $N$, total number of vertices ($0$ to $N-1$).\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `query`: A tuple `[u, v]` specifying the two target nodes for LCA evaluation.\n\n### Output\n- Returns the node index of the Lowest Common Ancestor $LCA(u, v)$.\n\n### Constraints & Edge Cases\n- $1 \\le N \\le 10^5$.\n- $0 \\le u, v < N$.\n- Root node is fixed at `0`.\n- Single node tree ($N=1$): returns `0`.\n- Ancestor query ($u$ is direct ancestor of $v$): returns $u$.",
