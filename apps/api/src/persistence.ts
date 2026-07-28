@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 /** The small persistence seam used by both Bun production and Vite development. */
 export interface KeyValueStore {
@@ -25,6 +25,8 @@ interface DatabaseInstance {
 export interface SqliteKeyValueStoreOptions {
   readonly dataDirectory?: string;
   readonly databasePath?: string;
+  /** Test-only seam for validating the filesystem fallback on any runtime. */
+  readonly forceJsonFallback?: boolean;
 }
 
 /**
@@ -51,13 +53,17 @@ export function createMemoryKeyValueStore(initial: Record<string, string> = {}):
  * the existing Vite development fallback semantics.
  */
 export function createSqliteKeyValueStore(options: SqliteKeyValueStoreOptions = {}): KeyValueStore {
-  const dataDirectory = options.dataDirectory ?? join(process.cwd(), "data");
-  const databasePath = options.databasePath ?? join(dataDirectory, "dsa_visualizer.sqlite");
-  mkdirSync(dataDirectory, { recursive: true });
+  const databasePath =
+    options.databasePath ??
+    join(options.dataDirectory ?? join(process.cwd(), "data"), "dsa_visualizer.sqlite");
+  const storageDirectory = dirname(databasePath);
+  mkdirSync(storageDirectory, { recursive: true });
+  const fallbackPath = join(storageDirectory, "kv_fallback.json");
 
   try {
+    if (options.forceJsonFallback) return createJsonFileKeyValueStore(fallbackPath);
     const Database = loadBunDatabase();
-    if (!Database) return createJsonFileKeyValueStore(join(dataDirectory, "kv_fallback.json"));
+    if (!Database) return createJsonFileKeyValueStore(fallbackPath);
 
     const database = new Database(databasePath, { create: true }) as DatabaseInstance;
     database.exec(`
@@ -69,7 +75,7 @@ export function createSqliteKeyValueStore(options: SqliteKeyValueStoreOptions = 
     `);
     return sqliteStore(database);
   } catch {
-    return createJsonFileKeyValueStore(join(dataDirectory, "kv_fallback.json"));
+    return createJsonFileKeyValueStore(fallbackPath);
   }
 }
 

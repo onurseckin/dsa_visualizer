@@ -29,13 +29,16 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       all: true,
-      include: ["src/**/*.{ts,tsx}"],
+      include: ["src/**/*.{ts,tsx}", "apps/api/src/**/*.ts"],
       exclude: [
         "src/**/*.d.ts",
         "src/**/*.spec.{ts,tsx}",
         "src/**/specs/**",
         "src/test/**",
         "src/routeTree.gen.ts",
+        // Bun process entrypoint; its behavior is covered by the Docker/API smoke
+        // check while all reusable API modules remain under the per-file gate.
+        "apps/api/src/index.ts",
       ],
       reporter: ["text", "json", "html"],
       thresholds: {
