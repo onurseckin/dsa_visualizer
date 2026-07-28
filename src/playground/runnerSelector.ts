@@ -5,7 +5,12 @@ import type {
   PythonRuntime,
 } from "@dsa-visualizer/execution-contracts";
 
-import type { PythonRunner, PythonRunnerRunOptions, PythonRuntimePreference } from "./types";
+import {
+  executionErrorResult,
+  type PythonRunner,
+  type PythonRunnerRunOptions,
+  type PythonRuntimePreference,
+} from "./types";
 
 export interface HybridPythonRunnerOptions {
   readonly browser: PythonRunner;
@@ -28,25 +33,79 @@ export function selectPythonRuntime(
 }
 
 export function createHybridPythonRunner(options: HybridPythonRunnerOptions): PythonRunner {
-  return {
-    async run(request, runOptions = {}) {
-      const primaryRuntime = selectPythonRuntime(request.spec, runOptions.runtime ?? "auto");
-      const primary = runnerFor(primaryRuntime, options);
-      const primaryResult = await primary.run(
-        cloneRequestRuntime(request, primaryRuntime),
+  let generation = 0;
+  let activeChild:
+    | {
+        readonly generation: number;
+        readonly runId: string;
+        readonly runner: PythonRunner;
+      }
+    | undefined;
+
+  async function runChild(
+    request: PythonRunRequest,
+    runtime: PythonRuntime,
+    runOptions: PythonRunnerRunOptions,
+    runGeneration: number,
+  ): Promise<PythonRunResult> {
+    const runner = runnerFor(runtime, options);
+    const child = {
+      generation: runGeneration,
+      runId: request.runId,
+      runner,
+    };
+    activeChild = child;
+
+    try {
+      const childResult = await runner.run(
+        cloneRequestRuntime(request, runtime),
         withoutRuntimePreference(runOptions),
       );
+      return runGeneration === generation ? childResult : supersededResult(request.runId, runtime);
+    } catch (error) {
+      if (runGeneration !== generation) {
+        return supersededResult(request.runId, runtime);
+      }
+      throw error;
+    } finally {
+      if (activeChild === child) {
+        activeChild = undefined;
+      }
+    }
+  }
 
-      if (!isInfrastructureFailure(primaryResult) || !isBrowserCompatible(request.spec)) {
+  return {
+    async run(request, runOptions = {}) {
+      const runGeneration = ++generation;
+      const previousChild = activeChild;
+      if (previousChild) {
+        activeChild = undefined;
+        try {
+          await previousChild.runner.cancel(previousChild.runId);
+        } catch {
+          // A failed best-effort cancellation must not block the newer run.
+        }
+      }
+
+      const preference = runOptions.runtime ?? "auto";
+      const primaryRuntime = selectPythonRuntime(request.spec, preference);
+      if (runGeneration !== generation) {
+        return supersededResult(request.runId, primaryRuntime);
+      }
+
+      const primaryResult = await runChild(request, primaryRuntime, runOptions, runGeneration);
+
+      if (
+        runGeneration !== generation ||
+        preference !== "auto" ||
+        !isInfrastructureFailure(primaryResult) ||
+        !isBrowserCompatible(request.spec)
+      ) {
         return primaryResult;
       }
 
       const fallbackRuntime = primaryRuntime === "browser" ? "server" : "browser";
-      const fallback = runnerFor(fallbackRuntime, options);
-      return fallback.run(
-        cloneRequestRuntime(request, fallbackRuntime),
-        withoutRuntimePreference(runOptions),
-      );
+      return runChild(request, fallbackRuntime, runOptions, runGeneration);
     },
     async cancel(runId) {
       await Promise.all([options.browser.cancel(runId), options.server.cancel(runId)]);
@@ -56,6 +115,10 @@ export function createHybridPythonRunner(options: HybridPythonRunnerOptions): Py
       options.server.dispose();
     },
   };
+}
+
+function supersededResult(runId: string, runtime: PythonRuntime): PythonRunResult {
+  return executionErrorResult(runId, runtime, "Python execution was superseded by a newer run.");
 }
 
 function runnerFor(runtime: PythonRuntime, options: HybridPythonRunnerOptions): PythonRunner {

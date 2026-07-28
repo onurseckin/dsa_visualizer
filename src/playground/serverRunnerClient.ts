@@ -1,12 +1,15 @@
 import {
-  isJsonValue,
-  type PythonCaseResult,
-  type PythonExecutionStatus,
+  validatePythonRunRequest,
   type PythonRunRequest,
   type PythonRunResult,
 } from "@dsa-visualizer/execution-contracts";
 
-import { executionErrorResult, type PythonRunner, type PythonRunnerRunOptions } from "./types";
+import {
+  executionErrorResult,
+  type PythonRunner,
+  type PythonRunnerRunOptions,
+  validatePythonRunResult,
+} from "./types";
 
 export interface ServerPythonRunnerClientOptions {
   readonly cancelEndpoint?: string;
@@ -81,13 +84,21 @@ export function createServerPythonRunnerClient(
 
   return {
     run(request, runOptions: PythonRunnerRunOptions = {}) {
+      const clonedRequest = cloneAsServerRequest(request);
+      const requestValidation = validatePythonRunRequest(clonedRequest);
+      if (!requestValidation.ok) {
+        return Promise.resolve(
+          executionErrorResult(request.runId, "server", "Python execution request is invalid."),
+        );
+      }
+      const serverRequest = requestValidation.value;
+
       if (active) {
         interruptActive("Python execution was superseded by a newer run.");
       }
 
       return new Promise<PythonRunResult>((resolve) => {
         const abortController = new AbortController();
-        const serverRequest = cloneAsServerRequest(request);
         const record: ActiveServerRun = {
           abortController,
           request: serverRequest,
@@ -146,10 +157,11 @@ export function createServerPythonRunnerClient(
             } catch {
               value = undefined;
             }
+            const resultValidation = validatePythonRunResult(serverRequest, value, "server");
             settle(
               record,
-              isPythonRunResult(value, request.runId)
-                ? value
+              resultValidation.ok
+                ? resultValidation.value
                 : executionErrorResult(
                     request.runId,
                     "server",
@@ -195,43 +207,4 @@ function cloneAsServerRequest(request: PythonRunRequest): PythonRunRequest {
       runtime: "server",
     },
   };
-}
-
-function isPythonRunResult(value: unknown, runId: string): value is PythonRunResult {
-  if (!isRecord(value)) return false;
-  return (
-    value.runId === runId &&
-    isExecutionStatus(value.status) &&
-    typeof value.stdout === "string" &&
-    typeof value.stderr === "string" &&
-    Array.isArray(value.cases) &&
-    value.cases.every(isPythonCaseResult) &&
-    isNonNegativeFiniteNumber(value.durationMs) &&
-    value.runtime === "server"
-  );
-}
-
-function isPythonCaseResult(value: unknown): value is PythonCaseResult {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.id === "string" &&
-    value.id.length > 0 &&
-    isExecutionStatus(value.status) &&
-    typeof value.stdout === "string" &&
-    typeof value.stderr === "string" &&
-    isNonNegativeFiniteNumber(value.durationMs) &&
-    (!Object.hasOwn(value, "actual") || isJsonValue(value.actual))
-  );
-}
-
-function isExecutionStatus(value: unknown): value is PythonExecutionStatus {
-  return value === "passed" || value === "failed" || value === "error" || value === "timeout";
-}
-
-function isNonNegativeFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
