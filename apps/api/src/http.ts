@@ -1,6 +1,7 @@
 import type { Connect } from "vite";
 import { validatePythonRunRequest } from "@dsa-visualizer/execution-contracts";
 
+import { DEFAULT_MAX_BODY_BYTES, DEFAULT_PYTHON_MAX_BODY_BYTES } from "./config";
 import type { KeyValueStore } from "./persistence";
 import { serializeStateValue } from "./persistence";
 import type { PythonRunnerClient } from "./pythonRunnerClient";
@@ -8,17 +9,18 @@ import type { PythonRunnerClient } from "./pythonRunnerClient";
 export interface ApiHandlerOptions {
   readonly store: KeyValueStore;
   readonly maxBodyBytes?: number;
+  readonly pythonMaxBodyBytes?: number;
   readonly allowedOrigins?: readonly string[];
   readonly pythonRunner?: PythonRunnerClient;
 }
 
 export type ApiHandler = (request: Request) => Promise<Response>;
 
-const DEFAULT_MAX_BODY_BYTES = 256 * 1024;
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 
 export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+  const pythonMaxBodyBytes = options.pythonMaxBodyBytes ?? DEFAULT_PYTHON_MAX_BODY_BYTES;
   const allowedOrigins = options.allowedOrigins ?? [];
 
   return async (request) => {
@@ -52,7 +54,7 @@ export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
       } else if (pathname === "/api/db/clear-trivia") {
         response = await handlePrefixReset(request, options.store, ["dsa_trivia"], maxBodyBytes);
       } else if (pathname === "/api/python/run") {
-        response = await handlePythonRun(request, options.pythonRunner, maxBodyBytes);
+        response = await handlePythonRun(request, options.pythonRunner, pythonMaxBodyBytes);
       } else {
         response = errorResponse(404, "not_found", "Route not found.");
       }
@@ -95,6 +97,7 @@ async function handlePythonRun(
 export function createViteApiMiddleware(
   handler: ApiHandler,
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
+  pythonMaxBodyBytes = DEFAULT_PYTHON_MAX_BODY_BYTES,
 ): Connect.NextHandleFunction {
   return async (request, response, next) => {
     if (!request.url?.startsWith("/api/")) {
@@ -103,9 +106,10 @@ export function createViteApiMiddleware(
     }
 
     try {
-      const body = await readNodeBody(request, maxBodyBytes);
+      const bodyLimit = isPythonRunUrl(request.url) ? pythonMaxBodyBytes : maxBodyBytes;
+      const body = await readNodeBody(request, bodyLimit);
       if (body.kind === "too_large") {
-        await writeNodeResponse(response, bodyTooLarge(maxBodyBytes));
+        await writeNodeResponse(response, bodyTooLarge(bodyLimit));
         return;
       }
       const headers = new Headers();
@@ -130,6 +134,10 @@ export function createViteApiMiddleware(
       );
     }
   };
+}
+
+function isPythonRunUrl(url: string | undefined): boolean {
+  return url?.split("?", 1)[0] === "/api/python/run";
 }
 
 async function handleState(

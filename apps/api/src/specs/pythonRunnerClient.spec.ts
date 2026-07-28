@@ -109,6 +109,13 @@ describe("Python runner client", () => {
         status: "timeout",
         stderr: "Python runner exceeded the 50 ms parent timeout.",
       });
+      expect(fetch).toHaveBeenCalledWith(
+        "http://runner.internal:8080/cancel",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ runId: REQUEST.runId }),
+        }),
+      );
     } finally {
       vi.useRealTimers();
     }
@@ -167,5 +174,35 @@ describe("Python runner client", () => {
       status: "error",
       stderr: "Python execution was cancelled.",
     });
+    expect(fetch).toHaveBeenCalledWith(
+      "http://runner.internal:8080/cancel",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ runId: REQUEST.runId }),
+      }),
+    );
+  });
+
+  it("does not cancel work after the runner response has completed", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const fetch = vi.fn(async () => Response.json(PASSED_RESULT));
+      const client = createPythonRunnerClient({
+        baseUrl: "http://runner.internal:8080",
+        fetch,
+        timeoutMs: 50,
+      });
+
+      await expect(client.run(REQUEST, { signal: controller.signal })).resolves.toEqual(
+        PASSED_RESULT,
+      );
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(51);
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

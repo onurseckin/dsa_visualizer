@@ -25,28 +25,44 @@ const DEFAULT_TIMEOUT_MS = 31_000;
 export function createPythonRunnerClient(options: PythonRunnerClientOptions): PythonRunnerClient {
   const fetchRequest = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const runUrl = `${options.baseUrl.replace(/\/+$/, "")}/run`;
+  const baseUrl = options.baseUrl.replace(/\/+$/, "");
+  const runUrl = `${baseUrl}/run`;
+  const cancelUrl = `${baseUrl}/cancel`;
 
   return {
     async run(request, runOptions = {}) {
       const started = Date.now();
       const controller = new AbortController();
       let timedOut = false;
-      const cancel = () => controller.abort();
+      let requestStarted = false;
+      let completed = false;
+      let cancellationSent = false;
+      const cancel = () => {
+        controller.abort();
+        if (!requestStarted || completed || cancellationSent) return;
+        cancellationSent = true;
+        void fetchRequest(cancelUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ runId: request.runId }),
+        }).catch(() => undefined);
+      };
       if (runOptions.signal?.aborted) cancel();
       else runOptions.signal?.addEventListener("abort", cancel, { once: true });
       const timeout = setTimeout(() => {
         timedOut = true;
-        controller.abort();
+        cancel();
       }, timeoutMs);
 
       try {
+        requestStarted = true;
         const response = await fetchRequest(runUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(request),
           signal: controller.signal,
         });
+        completed = true;
         if (!response.ok) {
           return invalidResponse(request.runId, started);
         }
