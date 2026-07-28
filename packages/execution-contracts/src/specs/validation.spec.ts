@@ -80,6 +80,29 @@ describe("execution contract validation", () => {
     expect(validatePythonRunRequest(request).ok).toBe(true);
   });
 
+  it("accepts a one-field execution limit override", () => {
+    const spec = {
+      ...functionRequest.spec,
+      limits: { wallTimeMs: 500 },
+    };
+
+    expect(validatePythonExecutionSpec(spec).ok).toBe(true);
+  });
+
+  it("rejects unknown and malformed limit overrides", () => {
+    const unknownLimit = {
+      ...functionRequest.spec,
+      limits: { madeUpLimit: 1 },
+    };
+    const malformedLimit = {
+      ...functionRequest.spec,
+      limits: { maxCases: Number.NaN },
+    };
+
+    expect(validatePythonExecutionSpec(unknownLimit).ok).toBe(false);
+    expect(validatePythonExecutionSpec(malformedLimit).ok).toBe(false);
+  });
+
   it.each([
     Number.NaN,
     Number.POSITIVE_INFINITY,
