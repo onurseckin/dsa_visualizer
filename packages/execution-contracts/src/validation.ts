@@ -1,5 +1,5 @@
-import { isJsonValue } from "./json";
-import type { PythonExecutionLimits, PythonExecutionSpec, PythonRunRequest } from "./index";
+import { isJsonValue } from "./json.ts";
+import type { PythonExecutionLimits, PythonExecutionSpec, PythonRunRequest } from "./index.ts";
 
 export const DEFAULT_PYTHON_EXECUTION_LIMITS: Readonly<PythonExecutionLimits> = {
   wallTimeMs: 10_000,

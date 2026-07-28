@@ -7,3 +7,5 @@ coverage_dir/
 .tmp/
 data/
 *.sqlite
+__pycache__/
+*.pyc

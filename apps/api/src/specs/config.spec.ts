@@ -9,6 +9,8 @@ describe("readApiConfig", () => {
       port: 3000,
       maxBodyBytes: 262_144,
       allowedOrigins: [],
+      pythonRunnerUrl: "http://python-runner:8080",
+      pythonRunnerTimeoutMs: 31_000,
     });
     expect(
       readApiConfig({
@@ -17,6 +19,8 @@ describe("readApiConfig", () => {
         API_DATA_DIR: "/tmp/data",
         API_MAX_BODY_BYTES: "123",
         API_ALLOWED_ORIGINS: "http://localhost:5173, http://127.0.0.1:5173",
+        PYTHON_RUNNER_URL: "http://runner.local:9000/",
+        PYTHON_RUNNER_TIMEOUT_MS: "456",
       }),
     ).toEqual({
       host: "127.0.0.1",
@@ -24,13 +28,22 @@ describe("readApiConfig", () => {
       dataDirectory: "/tmp/data",
       maxBodyBytes: 123,
       allowedOrigins: ["http://localhost:5173", "http://127.0.0.1:5173"],
+      pythonRunnerUrl: "http://runner.local:9000/",
+      pythonRunnerTimeoutMs: 456,
     });
   });
 
   it("falls back for invalid numeric configuration", () => {
-    expect(readApiConfig({ API_PORT: "0", API_MAX_BODY_BYTES: "nope" })).toMatchObject({
+    expect(
+      readApiConfig({
+        API_PORT: "0",
+        API_MAX_BODY_BYTES: "nope",
+        PYTHON_RUNNER_TIMEOUT_MS: "-1",
+      }),
+    ).toMatchObject({
       port: 3000,
       maxBodyBytes: 262_144,
+      pythonRunnerTimeoutMs: 31_000,
     });
   });
 });

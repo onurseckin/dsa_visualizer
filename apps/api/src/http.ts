@@ -1,12 +1,15 @@
 import type { Connect } from "vite";
+import { validatePythonRunRequest } from "@dsa-visualizer/execution-contracts";
 
 import type { KeyValueStore } from "./persistence";
 import { serializeStateValue } from "./persistence";
+import type { PythonRunnerClient } from "./pythonRunnerClient";
 
 export interface ApiHandlerOptions {
   readonly store: KeyValueStore;
   readonly maxBodyBytes?: number;
   readonly allowedOrigins?: readonly string[];
+  readonly pythonRunner?: PythonRunnerClient;
 }
 
 export type ApiHandler = (request: Request) => Promise<Response>;
@@ -48,6 +51,8 @@ export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
         );
       } else if (pathname === "/api/db/clear-trivia") {
         response = await handlePrefixReset(request, options.store, ["dsa_trivia"], maxBodyBytes);
+      } else if (pathname === "/api/python/run") {
+        response = await handlePythonRun(request, options.pythonRunner, maxBodyBytes);
       } else {
         response = errorResponse(404, "not_found", "Route not found.");
       }
@@ -57,6 +62,33 @@ export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
       return withCors(errorResponse(500, "internal_error", "Unexpected API error."), corsHeaders);
     }
   };
+}
+
+async function handlePythonRun(
+  request: Request,
+  pythonRunner: PythonRunnerClient | undefined,
+  maxBodyBytes: number,
+): Promise<Response> {
+  if (request.method !== "POST") return methodNotAllowed(request.method, "POST");
+  const body = await parseJsonBody(request, maxBodyBytes);
+  if (!body.ok) return body.response;
+
+  const validation = validatePythonRunRequest(body.value);
+  if (!validation.ok) {
+    return pythonValidationError(validation.issues);
+  }
+  if (validation.value.spec.runtime !== "server") {
+    return pythonValidationError([
+      { path: "$.spec.runtime", message: "must be server for the API runner" },
+    ]);
+  }
+  if (!pythonRunner) {
+    return errorResponse(503, "runner_unavailable", "Python runner is unavailable.");
+  }
+  const result = await pythonRunner.run(validation.value, {
+    signal: request.signal,
+  });
+  return jsonResponse(result);
 }
 
 /** Adapt the same Fetch handler for Vite's Connect middleware in development. */
@@ -208,6 +240,24 @@ function errorResponse(
     status,
     headers: { ...JSON_HEADERS, ...headers },
   });
+}
+
+function pythonValidationError(
+  issues: readonly { readonly path: string; readonly message: string }[],
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: "invalid_python_run",
+        message: "Python run request is invalid.",
+        issues,
+      },
+    }),
+    {
+      status: 400,
+      headers: JSON_HEADERS,
+    },
+  );
 }
 
 function withCors(response: Response, corsHeaders: Headers | undefined): Response {

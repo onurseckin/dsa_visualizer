@@ -1,5 +1,5 @@
-export type { JsonObject, JsonPrimitive, JsonValue } from "./json";
-export { isJsonValue } from "./json";
+export type { JsonObject, JsonPrimitive, JsonValue } from "./json.ts";
+export { isJsonValue } from "./json.ts";
 
 export type PythonRuntime = "browser" | "server";
 
@@ -88,5 +88,5 @@ export {
   PYTHON_EXECUTION_POLICY_CEILINGS,
   validatePythonExecutionSpec,
   validatePythonRunRequest,
-} from "./validation";
-export type { ValidationIssue, ValidationResult } from "./validation";
+} from "./validation.ts";
+export type { ValidationIssue, ValidationResult } from "./validation.ts";

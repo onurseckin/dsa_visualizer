@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createApiHandler, createViteApiMiddleware } from "../http";
 import { createMemoryKeyValueStore } from "../persistence";
@@ -8,6 +8,29 @@ const LOCAL_ORIGIN = "http://localhost:5173";
 function handlerForTest() {
   return createApiHandler({ store: createMemoryKeyValueStore(), maxBodyBytes: 512 });
 }
+
+const PYTHON_REQUEST = {
+  runId: "api-run",
+  code: "def solve(value):\n    return value",
+  spec: {
+    runtime: "server",
+    entrypoint: "solve",
+    invocation: {
+      kind: "function",
+      arguments: [{ from: "input", path: [] }],
+    },
+    packages: [],
+    cases: [
+      {
+        id: "identity",
+        label: "identity",
+        input: 1,
+        expected: 1,
+        comparison: "deep-equal",
+      },
+    ],
+  },
+} as const;
 
 async function json(response: Response): Promise<unknown> {
   return response.json();
@@ -59,6 +82,78 @@ describe("API HTTP handler", () => {
     expect(await json(response)).toEqual({
       error: { code: "invalid_json", message: "Request body must be valid JSON." },
     });
+  });
+
+  it("validates and forwards a server Python run through the internal client", async () => {
+    const run = vi.fn(async () => ({
+      runId: "api-run",
+      status: "passed" as const,
+      stdout: "",
+      stderr: "",
+      cases: [],
+      durationMs: 1,
+      runtime: "server" as const,
+    }));
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      pythonRunner: { run },
+    });
+    const response = await handle(
+      new Request("http://api.local/api/python/run", {
+        method: "POST",
+        body: JSON.stringify(PYTHON_REQUEST),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await json(response)).toMatchObject({ runId: "api-run", status: "passed" });
+    expect(run).toHaveBeenCalledWith(PYTHON_REQUEST, { signal: expect.any(AbortSignal) });
+  });
+
+  it("rejects invalid, browser, and policy-exceeding Python requests before forwarding", async () => {
+    const run = vi.fn();
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      pythonRunner: { run },
+    });
+    const values = [
+      {},
+      { ...PYTHON_REQUEST, spec: { ...PYTHON_REQUEST.spec, runtime: "browser" } },
+      {
+        ...PYTHON_REQUEST,
+        spec: { ...PYTHON_REQUEST.spec, limits: { wallTimeMs: 30_001 } },
+      },
+    ];
+
+    for (const value of values) {
+      const response = await handle(
+        new Request("http://api.local/api/python/run", {
+          method: "POST",
+          body: JSON.stringify(value),
+        }),
+      );
+      expect(response.status).toBe(400);
+      expect(await json(response)).toMatchObject({
+        error: { code: "invalid_python_run", issues: expect.any(Array) },
+      });
+    }
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it("requires POST and a configured Python runner for the run route", async () => {
+    const handle = handlerForTest();
+    const method = await handle(new Request("http://api.local/api/python/run"));
+    const missing = await handle(
+      new Request("http://api.local/api/python/run", {
+        method: "POST",
+        body: JSON.stringify(PYTHON_REQUEST),
+      }),
+    );
+
+    expect(method.status).toBe(405);
+    expect(method.headers.get("Allow")).toBe("POST");
+    expect(missing.status).toBe(503);
+    expect(await json(missing)).toMatchObject({ error: { code: "runner_unavailable" } });
   });
 
   it("gets, sets, batch sets, and deletes persisted state", async () => {
