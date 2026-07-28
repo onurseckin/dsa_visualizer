@@ -1,0 +1,12 @@
+.git
+.DS_Store
+node_modules
+dist
+coverage
+.coverage_dir
+data
+*.sqlite
+*.log
+__pycache__
+*.pyc
+.tmp
