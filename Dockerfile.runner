@@ -6,8 +6,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     HOME=/tmp
 
-RUN pip install --no-cache-dir numpy==2.2.5 \
-    && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.6.0+cpu \
+ARG TARGETARCH
+COPY docker/python-runner/requirements-linux-amd64.txt /tmp/requirements-linux-amd64.txt
+COPY docker/python-runner/requirements-linux-arm64.txt /tmp/requirements-linux-arm64.txt
+RUN case "$TARGETARCH" in \
+      amd64) requirements=/tmp/requirements-linux-amd64.txt ;; \
+      arm64) requirements=/tmp/requirements-linux-arm64.txt ;; \
+      *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && pip install --no-cache-dir --require-hashes -r "$requirements" \
     && groupadd --gid 10001 runner \
     && useradd --uid 10001 --gid runner --create-home --home-dir /home/runner --shell /usr/sbin/nologin runner
 
