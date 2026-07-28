@@ -115,7 +115,7 @@ export const NODES_GROUP_2: TopicRoadmapNode[] = [
     categoryFolder: "math_and_number_theory",
     description: "Sieve of Eratosthenes, Euclid GCD, Modular Inverse",
     prerequisites: ["arrays-and-hashing"],
-    algorithmCount: 19,
+    algorithmCount: 21,
     difficulty: "Medium",
     family: "math-and-geometry",
     x: 1195,

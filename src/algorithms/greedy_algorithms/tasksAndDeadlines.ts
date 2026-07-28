@@ -407,8 +407,8 @@ export const TASKS_AND_DEADLINES_TRIVIA: TriviaMeta = {
 export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   id: "tasks-and-deadlines",
   title: "Tasks and Deadlines",
-  category: "greedy_algorithms",
-  categories: ["greedy_algorithms"],
+  category: "heap_and_priority_queue",
+  categories: ["heap_and_priority_queue", "greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Given $n$ tasks with durations $d_i$ and deadlines $D_i$, find an execution order on a single processor that maximizes total reward $\\sum_{i=1}^n (D_i - X_i)$.\n\n" +

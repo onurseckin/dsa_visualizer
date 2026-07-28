@@ -264,12 +264,12 @@ export const RECURRENT_UNROLLING_BPTT_TRIVIA: TriviaMeta = {
 export const recurrentUnrollingBptt: AlgorithmDefinition<RecurrentUnrollingBpttInput> = {
   id: "recurrent-unrolling-bptt",
   title: "Recurrent Unrolling & Backpropagation Through Time (BPTT)",
-  category: "ml_recurrent_gates",
-  categories: ["ml_recurrent_gates"],
+  category: "ml_attention_geometry",
+  categories: ["ml_attention_geometry", "ml_recurrent_gates"],
   difficulty: "Hard",
   isMlInfra: true,
   mlInfraLevel: 6,
-  mlInfraCategory: "ml_recurrent_gates",
+  mlInfraCategory: "ml_attention_geometry",
   sources: [{ type: "ml_infra", kind: "ml_infra", label: "Foundational Math & DSA" }],
   description: `### Recurrent Unrolling & Backpropagation Through Time (BPTT)
 

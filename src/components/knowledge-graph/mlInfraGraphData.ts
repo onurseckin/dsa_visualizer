@@ -914,7 +914,7 @@ export const ML_INFRA_NODES: MLInfraNode[] = [
     prerequisites: ["ml_gemm_roofline", "ml_autograd_dags"],
     x: 640,
     y: 460,
-    algorithmCount: 29,
+    algorithmCount: 31,
     questions: [
       {
         id: "causalLowerTriangularMask",

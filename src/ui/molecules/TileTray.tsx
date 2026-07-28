@@ -49,7 +49,7 @@ export function TileTray({
       <p className="mb-2 text-xs leading-relaxed text-[var(--text-muted)]">
         Click a tile to fill the next empty line — or drag it to a specific one.
       </p>
-      <div className="flex flex-wrap gap-3 items-center justify-start">
+      <div className="flex flex-wrap gap-3 items-center justify-end">
         {tiles.map((tile) => {
           const isUsed = used.has(tile.id);
           const isSelected = tile.id === selectedTileId && !isUsed;
@@ -68,7 +68,7 @@ export function TileTray({
               onClick={() => onActivate(tile.id)}
               onDragStart={handleDragStart(tile.id)}
               onDragEnd={handleDragEnd}
-              className={`px-4 py-2.5 rounded-xl font-mono text-sm shadow-sm cursor-pointer transition-transform active:scale-95 overflow-hidden text-ellipsis ${
+              className={`px-4 py-2.5 rounded-xl font-mono text-sm shadow-sm cursor-pointer transition-transform active:scale-95 overflow-hidden text-ellipsis text-right justify-end flex items-center ${
                 isUsed
                   ? "cursor-not-allowed line-through opacity-40 bg-[var(--bg-subtle)] border-transparent shadow-none"
                   : "bg-[#1e1e28] hover:bg-indigo-600 hover:text-white border border-white/10"
@@ -79,6 +79,8 @@ export function TileTray({
                 padding: "var(--space-2) var(--space-3)",
                 textDecoration: isUsed ? "line-through" : "none",
                 cursor: isUsed ? "not-allowed" : isDragging ? "grabbing" : "grab",
+                textAlign: "right",
+                justifyContent: "flex-end",
               }}
             >
               {tile.text}

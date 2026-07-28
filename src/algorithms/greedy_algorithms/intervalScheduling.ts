@@ -431,8 +431,8 @@ export const INTERVAL_SCHEDULING_TRIVIA: TriviaMeta = {
 export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = {
   id: "interval-scheduling",
   title: "Interval Scheduling",
-  category: "greedy_algorithms",
-  categories: ["greedy_algorithms"],
+  category: "two_pointers",
+  categories: ["two_pointers", "greedy_algorithms"],
   difficulty: "Medium",
   description:
     "Given a collection of intervals each defined by a start time and end time, find a maximum-cardinality subset of mutually compatible (non-overlapping) intervals.\n\n" +

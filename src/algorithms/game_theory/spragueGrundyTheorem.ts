@@ -436,8 +436,8 @@ export const generateSpragueGrundySteps = (input: SpragueGrundyInput): Algorithm
 export const spragueGrundyTheorem: AlgorithmDefinition<SpragueGrundyInput> = {
   id: "sprague-grundy-theorem",
   title: "Sprague-Grundy Theorem & Grundy Values",
-  category: "game_theory",
-  categories: ["game_theory"],
+  category: "math_and_number_theory",
+  categories: ["math_and_number_theory", "game_theory"],
   difficulty: "Medium",
   description:
     "The Sprague-Grundy Theorem states that every impartial game position is mathematically equivalent to a Nim pile of size equal to its Grundy value:\n$$G(u) = \\text{mex}(\\{G(v) : u \\to v\\})$$\nFor games composed of independent subgame components, the combined game's winning status is determined by the bitwise XOR sum (Nim-sum) of their individual Grundy values:\n$$G_{\\text{total}} = G(P_1) \\oplus G(P_2) \\oplus \\dots \\oplus G(P_k)$$",
