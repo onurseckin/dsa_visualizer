@@ -22,6 +22,22 @@ bun run dev
 
 Open `http://localhost:5173`.
 
+## Local full-stack runtime
+
+Docker Compose is the supported local runtime for the API and Python playground.
+It starts an Nginx web server, a Bun API with persistent SQLite state, and an
+internal-only CPython 3.12 runner with pinned NumPy and CPU PyTorch.
+
+```bash
+docker compose up --build --wait
+```
+
+Open `http://localhost:5173`. The runner is never published to the host; the web
+container proxies `/api` to the Bun API, which reaches the runner over an internal
+network. Stop the stack with `docker compose down`. This preserves the `api_data`
+named volume and its local state. Use `docker compose down -v` only when you intend
+to remove that saved state.
+
 ## Common commands
 
 | Command | Purpose |
@@ -33,6 +49,7 @@ Open `http://localhost:5173`.
 | `bun run test` | Full test suite |
 | `bun run test:coverage` | Full suite with enforced coverage floors |
 | `bun run build` | Production build |
+| `bun run compose:check` | Validate Compose topology and runner hardening |
 | `bun run check` | Typecheck, format, lint, Intent, coverage, and build |
 
 Use Bun for every command in this repository. Do not add npm, pnpm, or yarn lockfiles.

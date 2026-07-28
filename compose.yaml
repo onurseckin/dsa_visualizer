@@ -1,0 +1,99 @@
+name: dsa-visualizer
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      API_DATA_DIR: /data
+      API_HOST: 0.0.0.0
+      API_PORT: "3000"
+      PYTHON_RUNNER_URL: http://python-runner:8080
+    volumes:
+      - api_data:/data
+    depends_on:
+      python-runner:
+        condition: service_healthy
+    networks:
+      - app
+      - runner
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "bun",
+          "-e",
+          "const response = await fetch('http://127.0.0.1:3000/api/health'); process.exit(response.ok ? 0 : 1)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  python-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.runner
+    environment:
+      RUNNER_HOST: 0.0.0.0
+      RUNNER_PORT: "8080"
+      RUNNER_MAX_ACTIVE: "2"
+      RUNNER_MAX_REQUEST_THREADS: "4"
+    user: "10001:10001"
+    networks:
+      - runner
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /run:rw,noexec,nosuid,size=8m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 768M
+          pids: 64
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=2); raise SystemExit(0 if response.status == 200 else 1)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+networks:
+  app:
+    internal: true
+  runner:
+    internal: true
+
+volumes:
+  api_data:

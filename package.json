@@ -15,6 +15,7 @@
     "format": "oxfmt --write --threads 8",
     "format:check": "oxfmt --check --threads 8",
     "intent:check": "bun run scripts/checkIntentSkills.ts",
+    "compose:check": "bun run scripts/checkCompose.ts",
     "test": "vitest run --maxConcurrency 8",
     "test:coverage": "vitest run --coverage --maxConcurrency 8 && bun run scripts/checkCoverageFiles.ts",
     "build": "tsc && vite build",
