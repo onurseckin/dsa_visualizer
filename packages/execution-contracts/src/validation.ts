@@ -1,5 +1,10 @@
 import { isJsonValue } from "./json.ts";
-import type { PythonExecutionLimits, PythonExecutionSpec, PythonRunRequest } from "./index.ts";
+import type {
+  PythonCancelRequest,
+  PythonExecutionLimits,
+  PythonExecutionSpec,
+  PythonRunRequest,
+} from "./index.ts";
 
 export const DEFAULT_PYTHON_EXECUTION_LIMITS: Readonly<PythonExecutionLimits> = {
   wallTimeMs: 10_000,
@@ -20,6 +25,10 @@ export const PYTHON_EXECUTION_POLICY_CEILINGS: Readonly<PythonExecutionLimits> =
 });
 
 export const PYTHON_RUN_REQUEST_BODY_CEILING_BYTES = 5 * 1024 * 1024;
+export const PYTHON_RUN_ID_MAX_BYTES = 128;
+export const PYTHON_CASE_ID_MAX_BYTES = 96;
+export const PYTHON_ID_PATTERN_SOURCE = "[A-Za-z0-9._:-]+";
+export const PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES = PYTHON_RUN_ID_MAX_BYTES + 128;
 
 export interface ValidationIssue {
   readonly path: string;
@@ -31,6 +40,7 @@ export type ValidationResult<T> =
   | { readonly ok: false; readonly issues: readonly ValidationIssue[] };
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const PYTHON_ID_PATTERN = new RegExp(`^(?:${PYTHON_ID_PATTERN_SOURCE})$`);
 const PYTHON_KEYWORDS = new Set([
   "False",
   "None",
@@ -87,7 +97,13 @@ export function validatePythonRunRequest(input: unknown): ValidationResult<Pytho
       return result(input, issues);
     }
 
-    if (!isNonEmptyString(input.runId)) issue(issues, "$.runId", "must be a non-empty string");
+    if (!isPythonRunId(input.runId)) {
+      issue(
+        issues,
+        "$.runId",
+        `must be a canonical ID of at most ${PYTHON_RUN_ID_MAX_BYTES} bytes`,
+      );
+    }
     if (typeof input.code !== "string") issue(issues, "$.code", "must be a string");
 
     validateSpec(input.spec, "$.spec", issues, input.caseIds);
@@ -105,6 +121,24 @@ export function validatePythonRunRequest(input: unknown): ValidationResult<Pytho
       issue(issues, "$", "must be safely serializable");
     } else if (bodyBytes > PYTHON_RUN_REQUEST_BODY_CEILING_BYTES) {
       issue(issues, "$", "exceeds the Python run request body ceiling");
+    }
+    return result(input, issues);
+  });
+}
+
+export function validatePythonCancelRequest(input: unknown): ValidationResult<PythonCancelRequest> {
+  return safely(() => {
+    const issues: ValidationIssue[] = [];
+    if (!isRecord(input)) {
+      issue(issues, "$", "must be an object");
+      return result(input, issues);
+    }
+    if (!isPythonRunId(input.runId)) {
+      issue(
+        issues,
+        "$.runId",
+        `must be a canonical ID of at most ${PYTHON_RUN_ID_MAX_BYTES} bytes`,
+      );
     }
     return result(input, issues);
   });
@@ -304,8 +338,12 @@ function validateCases(
       issue(issues, casePath, "must be an object");
       return;
     }
-    if (!isNonEmptyString(testCase.id)) {
-      issue(issues, `${casePath}.id`, "must be a non-empty string");
+    if (!isPythonCaseId(testCase.id)) {
+      issue(
+        issues,
+        `${casePath}.id`,
+        `must be a canonical ID of at most ${PYTHON_CASE_ID_MAX_BYTES} bytes`,
+      );
     } else if (ids.has(testCase.id)) {
       issue(issues, `${casePath}.id`, "must be unique");
     } else {
@@ -390,8 +428,12 @@ function validateCaseSelection(selection: unknown, spec: unknown, issues: Valida
       : new Set<unknown>();
   const selected = new Set<string>();
   selection.forEach((id, index) => {
-    if (!isNonEmptyString(id)) {
-      issue(issues, `$.caseIds[${index}]`, "must be a non-empty string");
+    if (!isPythonCaseId(id)) {
+      issue(
+        issues,
+        `$.caseIds[${index}]`,
+        `must be a canonical ID of at most ${PYTHON_CASE_ID_MAX_BYTES} bytes`,
+      );
     } else if (selected.has(id)) {
       issue(issues, `$.caseIds[${index}]`, "must not contain duplicates");
     } else if (!available.has(id)) {
@@ -403,6 +445,20 @@ function validateCaseSelection(selection: unknown, spec: unknown, issues: Valida
 
 function isPythonIdentifier(value: unknown): value is string {
   return typeof value === "string" && IDENTIFIER.test(value) && !PYTHON_KEYWORDS.has(value);
+}
+
+export function isPythonRunId(value: unknown): value is string {
+  return isBoundedPythonId(value, PYTHON_RUN_ID_MAX_BYTES);
+}
+
+export function isPythonCaseId(value: unknown): value is string {
+  return isBoundedPythonId(value, PYTHON_CASE_ID_MAX_BYTES);
+}
+
+function isBoundedPythonId(value: unknown, maxBytes: number): value is string {
+  if (typeof value !== "string" || !PYTHON_ID_PATTERN.test(value)) return false;
+  const bytes = utf8ByteLength(value);
+  return bytes !== undefined && bytes <= maxBytes;
 }
 
 function isNonEmptyString(value: unknown): value is string {

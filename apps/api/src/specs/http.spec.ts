@@ -1,4 +1,5 @@
 import {
+  PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES,
   PYTHON_EXECUTION_POLICY_CEILINGS,
   validatePythonRunRequest,
 } from "@dsa-visualizer/execution-contracts";
@@ -125,7 +126,7 @@ describe("API HTTP handler", () => {
     }));
     const handle = createApiHandler({
       store: createMemoryKeyValueStore(),
-      pythonRunner: { run },
+      pythonRunner: { run, cancel: vi.fn() },
     });
     const response = await handle(
       new Request("http://api.local/api/python/run", {
@@ -154,7 +155,7 @@ describe("API HTTP handler", () => {
     const handler = createApiHandler({
       store: createMemoryKeyValueStore(),
       maxBodyBytes: DATABASE_BODY_LIMIT,
-      pythonRunner: { run },
+      pythonRunner: { run, cancel: vi.fn() },
     });
     const middleware = createViteApiMiddleware(handler, DATABASE_BODY_LIMIT);
     const response = nodeResponse();
@@ -173,7 +174,7 @@ describe("API HTTP handler", () => {
     const handle = createApiHandler({
       store: createMemoryKeyValueStore(),
       maxBodyBytes: DATABASE_BODY_LIMIT,
-      pythonRunner: { run: vi.fn() },
+      pythonRunner: { run: vi.fn(), cancel: vi.fn() },
     });
     const response = await handle(
       new Request("http://api.local/api/python/run", {
@@ -187,6 +188,66 @@ describe("API HTTP handler", () => {
       error: {
         code: "body_too_large",
         message: `Request body exceeds the ${PYTHON_BODY_LIMIT} byte limit.`,
+      },
+    });
+  });
+
+  it("validates and forwards Python cancellation through the internal client", async () => {
+    const cancel = vi.fn(async () => undefined);
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      pythonRunner: { run: vi.fn(), cancel },
+    });
+    const response = await handle(
+      new Request("http://api.local/api/python/cancel", {
+        method: "POST",
+        body: JSON.stringify({ runId: PYTHON_REQUEST.runId }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await json(response)).toEqual({ ok: true });
+    expect(cancel).toHaveBeenCalledWith(PYTHON_REQUEST.runId);
+  });
+
+  it("rejects an invalid Python cancellation identifier before forwarding", async () => {
+    const cancel = vi.fn();
+    const handle = createApiHandler({
+      store: createMemoryKeyValueStore(),
+      pythonRunner: { run: vi.fn(), cancel },
+    });
+    const response = await handle(
+      new Request("http://api.local/api/python/cancel", {
+        method: "POST",
+        body: JSON.stringify({ runId: "contains space" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await json(response)).toMatchObject({
+      error: {
+        code: "invalid_python_cancel",
+        issues: expect.arrayContaining([expect.objectContaining({ path: "$.runId" })]),
+      },
+    });
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized Python cancellation in Vite before buffering it as a run body", async () => {
+    const middleware = createViteApiMiddleware(handlerForTest(), 512);
+    const response = nodeResponse();
+    const nodeRequest = nodeRequestFor(
+      "/api/python/cancel",
+      "x".repeat(PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES + 1),
+    );
+
+    await middleware(nodeRequest as never, response as never, () => undefined);
+
+    expect(response.statusCode).toBe(413);
+    expect(JSON.parse(response.ended[0] ?? "{}")).toEqual({
+      error: {
+        code: "body_too_large",
+        message: `Request body exceeds the ${PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES} byte limit.`,
       },
     });
   });
@@ -211,7 +272,7 @@ describe("API HTTP handler", () => {
     const run = vi.fn();
     const handle = createApiHandler({
       store: createMemoryKeyValueStore(),
-      pythonRunner: { run },
+      pythonRunner: { run, cancel: vi.fn() },
     });
     const values = [
       {},
@@ -241,7 +302,7 @@ describe("API HTTP handler", () => {
     const run = vi.fn();
     const handle = createApiHandler({
       store: createMemoryKeyValueStore(),
-      pythonRunner: { run },
+      pythonRunner: { run, cancel: vi.fn() },
     });
     const response = await handle(
       new Request("http://api.local/api/python/run", {

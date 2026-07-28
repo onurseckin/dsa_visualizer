@@ -1,5 +1,9 @@
 import type { Connect } from "vite";
-import { validatePythonRunRequest } from "@dsa-visualizer/execution-contracts";
+import {
+  PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES,
+  validatePythonCancelRequest,
+  validatePythonRunRequest,
+} from "@dsa-visualizer/execution-contracts";
 
 import { DEFAULT_MAX_BODY_BYTES, DEFAULT_PYTHON_MAX_BODY_BYTES } from "./config";
 import type { KeyValueStore } from "./persistence";
@@ -9,6 +13,7 @@ import type { PythonRunnerClient } from "./pythonRunnerClient";
 export interface ApiHandlerOptions {
   readonly store: KeyValueStore;
   readonly maxBodyBytes?: number;
+  readonly pythonCancelMaxBodyBytes?: number;
   readonly pythonMaxBodyBytes?: number;
   readonly allowedOrigins?: readonly string[];
   readonly pythonRunner?: PythonRunnerClient;
@@ -20,6 +25,8 @@ const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 
 export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
   const maxBodyBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
+  const pythonCancelMaxBodyBytes =
+    options.pythonCancelMaxBodyBytes ?? PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES;
   const pythonMaxBodyBytes = options.pythonMaxBodyBytes ?? DEFAULT_PYTHON_MAX_BODY_BYTES;
   const allowedOrigins = options.allowedOrigins ?? [];
 
@@ -55,6 +62,12 @@ export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
         response = await handlePrefixReset(request, options.store, ["dsa_trivia"], maxBodyBytes);
       } else if (pathname === "/api/python/run") {
         response = await handlePythonRun(request, options.pythonRunner, pythonMaxBodyBytes);
+      } else if (pathname === "/api/python/cancel") {
+        response = await handlePythonCancel(
+          request,
+          options.pythonRunner,
+          pythonCancelMaxBodyBytes,
+        );
       } else {
         response = errorResponse(404, "not_found", "Route not found.");
       }
@@ -64,6 +77,23 @@ export function createApiHandler(options: ApiHandlerOptions): ApiHandler {
       return withCors(errorResponse(500, "internal_error", "Unexpected API error."), corsHeaders);
     }
   };
+}
+
+async function handlePythonCancel(
+  request: Request,
+  pythonRunner: PythonRunnerClient | undefined,
+  maxBodyBytes: number,
+): Promise<Response> {
+  if (request.method !== "POST") return methodNotAllowed(request.method, "POST");
+  const body = await parseJsonBody(request, maxBodyBytes);
+  if (!body.ok) return body.response;
+  const validation = validatePythonCancelRequest(body.value);
+  if (!validation.ok) return pythonCancelValidationError(validation.issues);
+  if (!pythonRunner) {
+    return errorResponse(503, "runner_unavailable", "Python runner is unavailable.");
+  }
+  await pythonRunner.cancel(validation.value.runId);
+  return jsonResponse({ ok: true });
 }
 
 async function handlePythonRun(
@@ -98,6 +128,7 @@ export function createViteApiMiddleware(
   handler: ApiHandler,
   maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
   pythonMaxBodyBytes = DEFAULT_PYTHON_MAX_BODY_BYTES,
+  pythonCancelMaxBodyBytes = PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES,
 ): Connect.NextHandleFunction {
   return async (request, response, next) => {
     if (!request.url?.startsWith("/api/")) {
@@ -106,7 +137,12 @@ export function createViteApiMiddleware(
     }
 
     try {
-      const bodyLimit = isPythonRunUrl(request.url) ? pythonMaxBodyBytes : maxBodyBytes;
+      const bodyLimit = bodyLimitForApiUrl(
+        request.url,
+        maxBodyBytes,
+        pythonMaxBodyBytes,
+        pythonCancelMaxBodyBytes,
+      );
       const body = await readNodeBody(request, bodyLimit);
       if (body.kind === "too_large") {
         await writeNodeResponse(response, bodyTooLarge(bodyLimit));
@@ -136,8 +172,16 @@ export function createViteApiMiddleware(
   };
 }
 
-function isPythonRunUrl(url: string | undefined): boolean {
-  return url?.split("?", 1)[0] === "/api/python/run";
+function bodyLimitForApiUrl(
+  url: string | undefined,
+  maxBodyBytes: number,
+  pythonMaxBodyBytes: number,
+  pythonCancelMaxBodyBytes: number,
+): number {
+  const pathname = url?.split("?", 1)[0];
+  if (pathname === "/api/python/run") return pythonMaxBodyBytes;
+  if (pathname === "/api/python/cancel") return pythonCancelMaxBodyBytes;
+  return maxBodyBytes;
 }
 
 async function handleState(
@@ -258,6 +302,24 @@ function pythonValidationError(
       error: {
         code: "invalid_python_run",
         message: "Python run request is invalid.",
+        issues,
+      },
+    }),
+    {
+      status: 400,
+      headers: JSON_HEADERS,
+    },
+  );
+}
+
+function pythonCancelValidationError(
+  issues: readonly { readonly path: string; readonly message: string }[],
+): Response {
+  return new Response(
+    JSON.stringify({
+      error: {
+        code: "invalid_python_cancel",
+        message: "Python cancellation request is invalid.",
         issues,
       },
     }),
