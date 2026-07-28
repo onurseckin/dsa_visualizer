@@ -1,7 +1,9 @@
 """Trusted protocol harness for one authored Python exercise request.
 
 The service and Docker container provide the process boundary. This module
-deliberately does not claim to turn Python ``exec`` into a hostile-code sandbox.
+adds stability containment for authored exercises, including process-creation
+blocking, but deliberately does not claim to turn Python ``exec`` into a
+hostile-code sandbox.
 """
 
 from __future__ import annotations
@@ -36,6 +38,70 @@ POLICY_CEILINGS = {
     "maxCases": 250,
 }
 TRUNCATION_MARKER = b"\n...[truncated]"
+BLOCKED_PROCESS_AUDIT_EVENTS = frozenset(
+    {
+        "os.exec",
+        "os.fork",
+        "os.forkpty",
+        "os.kill",
+        "os.killpg",
+        "os.posix_spawn",
+        "os.spawn",
+        "os.system",
+        "pty.spawn",
+        "subprocess.Popen",
+    }
+)
+BLOCKED_CTYPES_PROCESS_SYMBOLS = frozenset(
+    {
+        "daemon",
+        "dlmopen",
+        "dlopen",
+        "dlsym",
+        "dlvsym",
+        "getprocaddress",
+        "kill",
+        "killpg",
+        "login_tty",
+        "loadlibrarya",
+        "loadlibraryex",
+        "loadlibraryw",
+        "nsaddressofsymbol",
+        "nslookupsymbolinimage",
+        "pidfd_open",
+        "pidfd_send_signal",
+        "process_vm_readv",
+        "process_vm_writev",
+        "ptrace",
+        "setns",
+        "setpgid",
+        "setpgrp",
+        "setsid",
+        "syscall",
+        "system",
+        "tgkill",
+        "tkill",
+        "unshare",
+        "wordexp",
+    }
+)
+BLOCKED_CTYPES_PROCESS_TOKENS = ("clone", "exec", "fork", "popen", "spawn")
+BLOCKED_OS_PROCESS_NAMES = frozenset(
+    {
+        "daemon",
+        "fork",
+        "forkpty",
+        "kill",
+        "killpg",
+        "popen",
+        "posix_spawn",
+        "posix_spawnp",
+        "setpgid",
+        "setpgrp",
+        "setsid",
+        "system",
+    }
+)
 
 
 class OutputBudget:
@@ -73,6 +139,37 @@ class OutputBudget:
                 return
 
 
+class ExpectedStdoutComparator:
+    """Compare semantic stdout incrementally without retaining learner output."""
+
+    def __init__(self, expected: str) -> None:
+        self._expected = expected.encode("utf-8")
+        self._offset = 0
+        self._matches = True
+        self._overflowed = False
+
+    def write_text(self, value: str) -> None:
+        for offset in range(0, len(value), 1_024):
+            self.write_bytes(value[offset : offset + 1_024].encode("utf-8"))
+
+    def write_bytes(self, value: bytes) -> None:
+        remaining = len(self._expected) - self._offset
+        compared = min(len(value), max(0, remaining))
+        if value[:compared] != self._expected[self._offset : self._offset + compared]:
+            self._matches = False
+        self._offset += compared
+        if len(value) > compared:
+            self._overflowed = True
+
+    @property
+    def matches(self) -> bool:
+        return (
+            self._matches
+            and not self._overflowed
+            and self._offset == len(self._expected)
+        )
+
+
 class CappedBinaryWriter:
     def __init__(self, text_writer: "CappedTextWriter") -> None:
         self._text_writer = text_writer
@@ -87,9 +184,15 @@ class CappedBinaryWriter:
 class CappedTextWriter(io.TextIOBase):
     """UTF-8-aware writer that never retains more than its shared budget."""
 
-    def __init__(self, budget: OutputBudget) -> None:
+    def __init__(
+        self,
+        budget: OutputBudget,
+        *,
+        stdout_comparator: ExpectedStdoutComparator | None = None,
+    ) -> None:
         super().__init__()
         self._budget = budget
+        self._stdout_comparator = stdout_comparator
         self._data = bytearray()
         self._binary = CappedBinaryWriter(self)
         self._truncated = False
@@ -109,6 +212,8 @@ class CappedTextWriter(io.TextIOBase):
     def write(self, value: str) -> int:
         if not isinstance(value, str):
             raise TypeError("write() argument must be str")
+        if self._stdout_comparator is not None:
+            self._stdout_comparator.write_text(value)
         available = self._budget.remaining
         encoded, complete = _utf8_prefix(value, available)
         accepted = self._budget.consume(len(encoded))
@@ -118,6 +223,8 @@ class CappedTextWriter(io.TextIOBase):
         return len(value)
 
     def write_bytes(self, value: bytes) -> int:
+        if self._stdout_comparator is not None:
+            self._stdout_comparator.write_bytes(value)
         accepted = self._budget.consume(len(value))
         self._data.extend(value[:accepted])
         if accepted < len(value):
@@ -283,7 +390,17 @@ def _execute_case(
     output_budget: OutputBudget,
 ) -> dict[str, Any]:
     started = time.monotonic()
-    stdout_writer = CappedTextWriter(output_budget)
+    comparison = str(test_case.get("comparison"))
+    expected = test_case.get("expected")
+    stdout_comparator = (
+        ExpectedStdoutComparator(expected)
+        if comparison == "stdout" and isinstance(expected, str)
+        else None
+    )
+    stdout_writer = CappedTextWriter(
+        output_budget,
+        stdout_comparator=stdout_comparator,
+    )
     stderr_writer = CappedTextWriter(output_budget)
     case_id = str(test_case.get("id", "unknown"))
     result: dict[str, Any] = {
@@ -297,10 +414,12 @@ def _execute_case(
     try:
         with contextlib.redirect_stdout(stdout_writer), contextlib.redirect_stderr(stderr_writer):
             actual = _invoke(code, spec, test_case.get("input"))
-        comparison = str(test_case.get("comparison"))
-        expected = test_case.get("expected")
         compared_actual = stdout_writer.getvalue() if comparison == "stdout" else actual
-        passed = _compare(compared_actual, expected, comparison, test_case.get("tolerance"))
+        passed = (
+            stdout_comparator.matches
+            if stdout_comparator is not None
+            else _compare(compared_actual, expected, comparison, test_case.get("tolerance"))
+        )
         result["status"] = "passed" if passed else "failed"
         result["actual"] = compared_actual
     except BaseException:
@@ -686,6 +805,72 @@ def _apply_os_resource_limits(limits: Mapping[str, int]) -> None:
         return
 
 
+def _install_stability_audit_hook() -> None:
+    def reject_process_creation(event: str, arguments: tuple[Any, ...]) -> None:
+        if event == "ctypes.call_function":
+            raise PermissionError(
+                "Native function-pointer calls are disabled in the exercise runner."
+            )
+        if event in BLOCKED_PROCESS_AUDIT_EVENTS or event.startswith("os.spawn"):
+            raise PermissionError(
+                f"Python process creation is disabled in the exercise runner ({event})."
+            )
+        if (
+            event in {"ctypes.dlsym", "ctypes.dlsym/handle"}
+            and arguments
+            and _is_blocked_ctypes_process_symbol(arguments[-1])
+        ):
+            raise PermissionError(
+                "Native process/session APIs are disabled in the exercise runner "
+                f"({arguments[-1]})."
+            )
+
+    sys.addaudithook(reject_process_creation)
+    _disable_process_os_apis()
+
+
+def _is_blocked_ctypes_process_symbol(value: Any) -> bool:
+    if isinstance(value, bytes):
+        symbol = value.decode("ascii", errors="ignore")
+    elif isinstance(value, str):
+        symbol = value
+    else:
+        return False
+    normalized = symbol.lower().lstrip("_")
+    if normalized.startswith("libc_"):
+        normalized = normalized.removeprefix("libc_")
+    return normalized in BLOCKED_CTYPES_PROCESS_SYMBOLS or any(
+        token in normalized for token in BLOCKED_CTYPES_PROCESS_TOKENS
+    )
+
+
+def _disable_process_os_apis() -> None:
+    modules = [os]
+    native_os_module = sys.modules.get(os.name)
+    if native_os_module is not None and native_os_module is not os:
+        modules.append(native_os_module)
+    for module in modules:
+        for name in dir(module):
+            if not _is_blocked_os_process_name(name):
+                continue
+
+            def blocked(*_args: Any, _name: str = name, **_kwargs: Any) -> Any:
+                raise PermissionError(
+                    f"Python process/session API is disabled in the exercise runner ({_name})."
+                )
+
+            setattr(module, name, blocked)
+
+
+def _is_blocked_os_process_name(name: str) -> bool:
+    normalized = name.lower()
+    return (
+        normalized in BLOCKED_OS_PROCESS_NAMES
+        or normalized.startswith("exec")
+        or normalized.startswith("spawn")
+    )
+
+
 def _set_resource_limit(resource_module: Any, name: int, requested: int) -> None:
     _soft, hard = resource_module.getrlimit(name)
     if hard == resource_module.RLIM_INFINITY:
@@ -739,6 +924,7 @@ def main() -> int:
             spec = request.get("spec")
             limits = _limits(spec.get("limits") if isinstance(spec, Mapping) else None)
             _apply_os_resource_limits(limits)
+            _install_stability_audit_hook()
             result = execute_request(request)
         except BaseException:
             diagnostic = _exception_diagnostic(

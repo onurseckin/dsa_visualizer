@@ -300,6 +300,31 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertEqual(result["cases"], [])
         self.assertIn("expected stdout", result["stderr"])
 
+    def test_stdout_grading_is_independent_of_prior_display_budget_exhaustion(self):
+        code = (
+            "def solve(value):\n"
+            "    if value == 'noisy': print('x' * 1_000)\n"
+            "    else: print('ok')"
+        )
+        noisy = case("noisy", "noisy", "ok\n", "stdout")
+        quiet = case("quiet", "quiet", "ok\n", "stdout")
+
+        noisy_first = execute_request(
+            request_for(code, [noisy, quiet], limits={"maxOutputBytes": 16})
+        )
+        quiet_first = execute_request(
+            request_for(code, [quiet, noisy], limits={"maxOutputBytes": 16})
+        )
+
+        self.assertEqual(
+            {item["id"]: item["status"] for item in noisy_first["cases"]},
+            {"noisy": "failed", "quiet": "passed"},
+        )
+        self.assertEqual(
+            {item["id"]: item["status"] for item in quiet_first["cases"]},
+            {"noisy": "failed", "quiet": "passed"},
+        )
+
     def test_applies_the_result_byte_budget_across_all_selected_cases(self):
         result = execute_request(
             request_for(

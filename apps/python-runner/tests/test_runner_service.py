@@ -95,17 +95,24 @@ class SubprocessRunnerTests(unittest.TestCase):
     def test_timeout_kills_and_reaps_a_learner_spawned_descendant(self):
         with tempfile.TemporaryDirectory() as directory:
             pid_path = Path(directory) / "descendant.pid"
-            code = (
-                "import ctypes, os, pathlib, time\n"
-                "def solve(value):\n"
-                "    child_pid = ctypes.CDLL(None).fork()\n"
-                "    if child_pid == 0:\n"
-                "        time.sleep(30)\n"
-                "        os._exit(0)\n"
-                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
-                "    while True: pass"
+            harness = Path(directory) / "timeout_harness.py"
+            harness.write_text(
+                "import json, os, pathlib, sys, time\n"
+                "json.load(sys.stdin)\n"
+                "child_pid = os.fork()\n"
+                "if child_pid == 0:\n"
+                "    time.sleep(30)\n"
+                "    os._exit(0)\n"
+                f"pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
+                "while True: pass\n"
             )
-            result = run_in_subprocess(request_for(code, wall_time_ms=250))
+            with patch("runner_service.HARNESS_PATH", harness):
+                result = run_in_subprocess(
+                    request_for(
+                        "def solve(value):\n    return value * 2",
+                        wall_time_ms=250,
+                    )
+                )
             descendant_pid = int(pid_path.read_text())
 
             self.assertEqual(result["status"], "timeout")
@@ -115,18 +122,13 @@ class SubprocessRunnerTests(unittest.TestCase):
     def test_success_kills_and_reaps_a_learner_spawned_descendant(self):
         with tempfile.TemporaryDirectory() as directory:
             pid_path = Path(directory) / "descendant.pid"
-            code = (
-                "import ctypes, os, pathlib, time\n"
-                "def solve(value):\n"
-                "    child_pid = ctypes.CDLL(None).fork()\n"
-                "    if child_pid == 0:\n"
-                "        time.sleep(30)\n"
-                "        os._exit(0)\n"
-                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
-                "    return value * 2"
-            )
+            harness = Path(directory) / "success_harness.py"
+            harness.write_text(success_harness_source(pid_path))
 
-            result = run_in_subprocess(request_for(code))
+            with patch("runner_service.HARNESS_PATH", harness):
+                result = run_in_subprocess(
+                    request_for("def solve(value):\n    return value * 2")
+                )
             descendant_pid = int(pid_path.read_text())
 
             self.assertEqual(result["status"], "passed")
@@ -136,19 +138,14 @@ class SubprocessRunnerTests(unittest.TestCase):
     def test_forked_descendant_cannot_hold_protocol_fds_or_extend_success(self):
         with tempfile.TemporaryDirectory() as directory:
             pid_path = Path(directory) / "descendant.pid"
-            code = (
-                "import ctypes, os, pathlib, time\n"
-                "def solve(value):\n"
-                "    child_pid = ctypes.CDLL(None).fork()\n"
-                "    if child_pid == 0:\n"
-                "        time.sleep(30)\n"
-                "        os._exit(0)\n"
-                f"    pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
-                "    return value * 2"
-            )
+            harness = Path(directory) / "inherited_fd_harness.py"
+            harness.write_text(success_harness_source(pid_path))
             started = time.monotonic()
 
-            result = run_in_subprocess(request_for(code))
+            with patch("runner_service.HARNESS_PATH", harness):
+                result = run_in_subprocess(
+                    request_for("def solve(value):\n    return value * 2")
+                )
             elapsed = time.monotonic() - started
             descendant_pid = int(pid_path.read_text())
 
@@ -203,6 +200,93 @@ class SubprocessRunnerTests(unittest.TestCase):
         self.assertEqual(rejected["status"], "error")
         self.assertIn("Native process/session APIs are disabled", rejected["stderr"])
         self.assertEqual(allowed["status"], "passed")
+
+    def test_rejects_native_process_aliases_and_python_process_signals(self):
+        symbols = [
+            "daemon",
+            "execl",
+            "execv",
+            "forkpty",
+            "posix_spawnp",
+            "setpgrp",
+            "popen64",
+            "_Fork",
+            "dlsym",
+            "dlvsym",
+        ]
+        request = request_for(
+            (
+                "import ctypes, os\n"
+                "def solve(value):\n"
+                f"    symbols = {symbols!r}\n"
+                "    blocked = []\n"
+                "    for symbol in symbols:\n"
+                "        try: getattr(ctypes.CDLL(None), symbol)\n"
+                "        except PermissionError: blocked.append(symbol)\n"
+                "    try: os.kill(os.getpid(), 0)\n"
+                "    except PermissionError: blocked.append('os.kill')\n"
+                "    return blocked"
+            )
+        )
+        expected = symbols + ["os.kill"]
+        request["spec"]["cases"][0]["expected"] = expected
+        result = run_in_subprocess(request)
+
+        self.assertEqual(result["status"], "passed")
+        self.assertEqual(result["cases"][0]["actual"], expected)
+
+    def test_replaces_os_process_alias_families_and_preserves_threads(self):
+        names = [
+            "execl",
+            "execle",
+            "execlp",
+            "execlpe",
+            "execv",
+            "execve",
+            "execvp",
+            "execvpe",
+            "fork",
+            "forkpty",
+            "kill",
+            "killpg",
+            "popen",
+            "posix_spawn",
+            "posix_spawnp",
+            "setpgid",
+            "setpgrp",
+            "setsid",
+            "spawnl",
+            "spawnle",
+            "spawnlp",
+            "spawnlpe",
+            "spawnv",
+            "spawnve",
+            "spawnvp",
+            "spawnvpe",
+            "system",
+        ]
+        available = [name for name in names if hasattr(os, name)]
+        request = request_for(
+            (
+                "import os, threading\n"
+                "def solve(value):\n"
+                f"    names = {names!r}\n"
+                "    blocked = []\n"
+                "    for name in names:\n"
+                "        if not hasattr(os, name): continue\n"
+                "        try: getattr(os, name)()\n"
+                "        except PermissionError: blocked.append(name)\n"
+                "    values = []\n"
+                "    thread = threading.Thread(target=lambda: values.append(value * 2))\n"
+                "    thread.start(); thread.join()\n"
+                "    return [blocked, values]"
+            )
+        )
+        request["spec"]["cases"][0]["expected"] = [available, [4]]
+
+        result = run_in_subprocess(request)
+
+        self.assertEqual(result["status"], "passed")
 
     def test_accepts_a_worst_case_validator_valid_escaped_response_envelope(self):
         max_output = POLICY_CEILINGS["maxOutputBytes"]
@@ -609,6 +693,28 @@ def wait_until(predicate, timeout=2.0):
             return True
         time.sleep(0.01)
     return predicate()
+
+
+def success_harness_source(pid_path):
+    return (
+        "import json, os, pathlib, sys, time\n"
+        "request = json.load(sys.stdin)\n"
+        "child_pid = os.fork()\n"
+        "if child_pid == 0:\n"
+        "    time.sleep(30)\n"
+        "    os._exit(0)\n"
+        f"pathlib.Path({str(pid_path)!r}).write_text(str(child_pid))\n"
+        "json.dump({\n"
+        "    'runId': request['runId'],\n"
+        "    'status': 'passed',\n"
+        "    'stdout': '',\n"
+        "    'stderr': '',\n"
+        "    'cases': [],\n"
+        "    'durationMs': 0,\n"
+        "    'runtime': 'server',\n"
+        "}, sys.stdout)\n"
+        "sys.stdout.flush()\n"
+    )
 
 
 def wait_until_dead(pid, timeout=2.0):
