@@ -4,60 +4,203 @@ from __future__ import annotations
 
 import json
 import os
+import signal
+import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from execution_harness import json_encoded_size
 
-DEFAULT_MAX_BODY_BYTES = 2 * 1024 * 1024
-DEFAULT_WALL_TIME_MS = 10_000
-MAX_WALL_TIME_MS = 30_000
+
+DEFAULT_MAX_BODY_BYTES = 5 * 1024 * 1024
+DEFAULT_READ_TIMEOUT_SECONDS = 2.0
+DEFAULT_MAX_ACTIVE = 2
+DEFAULT_MAX_REQUEST_THREADS = 8
+POLICY_DEFAULTS = {
+    "wallTimeMs": 10_000,
+    "maxSourceBytes": 64 * 1024,
+    "maxInputBytes": 256 * 1024,
+    "maxOutputBytes": 64 * 1024,
+    "maxResultBytes": 256 * 1024,
+    "maxCases": 100,
+}
+POLICY_CEILINGS = {
+    "wallTimeMs": 30_000,
+    "maxSourceBytes": 256 * 1024,
+    "maxInputBytes": 1024 * 1024,
+    "maxOutputBytes": 256 * 1024,
+    "maxResultBytes": 1024 * 1024,
+    "maxCases": 250,
+}
 HARNESS_PATH = Path(__file__).with_name("execution_harness.py").resolve()
 
 
-def run_in_subprocess(request: dict[str, Any]) -> dict[str, Any]:
-    """Run one request in a fresh isolated-mode child and temporary cwd."""
+class _RunControl:
+    def __init__(self) -> None:
+        self.cancelled = threading.Event()
+        self._lock = threading.Lock()
+        self._process: subprocess.Popen[bytes] | None = None
 
-    started = time.monotonic()
-    run_id = request.get("runId") if isinstance(request.get("runId"), str) else "unknown"
-    timeout_ms = _wall_time_ms(request)
-    payload = json.dumps(request, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
-    try:
-        with tempfile.TemporaryDirectory(prefix="dsa-python-run-") as working_directory:
-            completed = subprocess.run(
-                [sys.executable, "-I", str(HARNESS_PATH)],
-                input=payload,
-                text=True,
-                capture_output=True,
-                cwd=working_directory,
-                timeout=timeout_ms / 1_000,
-                check=False,
+    def attach(self, process: subprocess.Popen[bytes]) -> None:
+        with self._lock:
+            self._process = process
+            cancelled = self.cancelled.is_set()
+        if cancelled:
+            _kill_process_tree(process)
+
+    def detach(self, process: subprocess.Popen[bytes]) -> None:
+        with self._lock:
+            if self._process is process:
+                self._process = None
+
+    def cancel(self) -> None:
+        self.cancelled.set()
+        with self._lock:
+            process = self._process
+        if process is not None:
+            _kill_process_tree(process)
+
+
+class ExecutionManager:
+    """Bounded registry of active process groups, keyed by canonical run ID."""
+
+    def __init__(self, *, max_active: int = DEFAULT_MAX_ACTIVE) -> None:
+        self._slots = threading.BoundedSemaphore(max(1, max_active))
+        self._lock = threading.Lock()
+        self._idle = threading.Condition(self._lock)
+        self._active: dict[str, _RunControl] = {}
+
+    def run(self, request: dict[str, Any]) -> dict[str, Any]:
+        started = time.monotonic()
+        run_id = _run_id(request)
+        validation_error = _validate_request_policy(request)
+        if validation_error is not None:
+            return _execution_error(run_id, "error", validation_error, started)
+        if not self._slots.acquire(blocking=False):
+            return _execution_error(
+                run_id,
+                "error",
+                "Python runner is at capacity.",
+                started,
             )
-    except subprocess.TimeoutExpired:
-        return _execution_error(
-            run_id,
-            "timeout",
-            f"Execution exceeded the {timeout_ms} ms time limit.",
-            started,
-        )
-    except (OSError, ValueError) as error:
-        return _execution_error(run_id, "error", f"Runner failed: {error}", started)
 
-    if completed.returncode != 0:
-        detail = completed.stderr.strip() or f"Runner exited with code {completed.returncode}."
-        return _execution_error(run_id, "error", detail, started)
-    try:
-        result = json.loads(completed.stdout)
-    except (json.JSONDecodeError, TypeError):
-        return _execution_error(run_id, "error", "Runner returned invalid JSON.", started)
-    if not _looks_like_result(result, run_id):
-        return _execution_error(run_id, "error", "Runner returned an invalid result.", started)
-    return result
+        control = _RunControl()
+        with self._lock:
+            if run_id in self._active:
+                self._slots.release()
+                return _execution_error(
+                    run_id,
+                    "error",
+                    "A Python run with this runId is already active.",
+                    started,
+                )
+            self._active[run_id] = control
+        try:
+            return _run_child(request, control, started)
+        finally:
+            with self._idle:
+                if self._active.get(run_id) is control:
+                    self._active.pop(run_id, None)
+                self._idle.notify_all()
+            self._slots.release()
+
+    def cancel(self, run_id: str) -> bool:
+        with self._lock:
+            control = self._active.get(run_id)
+        if control is None:
+            return False
+        control.cancel()
+        return True
+
+    def cancel_all(self) -> None:
+        with self._lock:
+            controls = list(self._active.values())
+        for control in controls:
+            control.cancel()
+
+    def active_run_ids(self) -> tuple[str, ...]:
+        with self._lock:
+            return tuple(sorted(self._active))
+
+    def wait_for_idle(self, timeout: float) -> bool:
+        with self._idle:
+            return self._idle.wait_for(lambda: not self._active, timeout=timeout)
+
+
+class RunnerHttpServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def __init__(
+        self,
+        address: tuple[str, int],
+        handler: type[BaseHTTPRequestHandler],
+        *,
+        max_active: int,
+        max_request_threads: int,
+        read_timeout_seconds: float,
+    ) -> None:
+        self.execution_manager = ExecutionManager(max_active=max_active)
+        request_threads = max(1, max_request_threads)
+        self.request_slots = threading.BoundedSemaphore(request_threads)
+        self.control_slots = threading.BoundedSemaphore(2)
+        self.read_timeout_seconds = max(0.01, read_timeout_seconds)
+        self.max_connection_threads = request_threads + 2
+        self._connection_slots = threading.BoundedSemaphore(self.max_connection_threads)
+        self._connection_count_lock = threading.Lock()
+        self._active_connection_count = 0
+        self.peak_connection_count = 0
+        super().__init__(address, handler)
+
+    @property
+    def active_connection_count(self) -> int:
+        with self._connection_count_lock:
+            return self._active_connection_count
+
+    def process_request(self, request: socket.socket, client_address: Any) -> None:
+        if not self._connection_slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            request.settimeout(self.read_timeout_seconds)
+            with self._connection_count_lock:
+                self._active_connection_count += 1
+                self.peak_connection_count = max(
+                    self.peak_connection_count,
+                    self._active_connection_count,
+                )
+            super().process_request(request, client_address)
+        except BaseException:
+            self._release_connection_slot()
+            raise
+
+    def process_request_thread(self, request: socket.socket, client_address: Any) -> None:
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._release_connection_slot()
+
+    def _release_connection_slot(self) -> None:
+        with self._connection_count_lock:
+            self._active_connection_count -= 1
+        self._connection_slots.release()
+
+    def server_close(self) -> None:
+        self.execution_manager.cancel_all()
+        self.execution_manager.wait_for_idle(timeout=2)
+        super().server_close()
+
+
+def run_in_subprocess(request: dict[str, Any]) -> dict[str, Any]:
+    """Run one request through the same bounded manager used by HTTP."""
+
+    return ExecutionManager(max_active=1).run(request)
 
 
 def create_server(
@@ -65,33 +208,174 @@ def create_server(
     port: int,
     *,
     max_body_bytes: int = DEFAULT_MAX_BODY_BYTES,
-) -> ThreadingHTTPServer:
+    read_timeout_seconds: float = DEFAULT_READ_TIMEOUT_SECONDS,
+    max_active: int = DEFAULT_MAX_ACTIVE,
+    max_request_threads: int = DEFAULT_MAX_REQUEST_THREADS,
+) -> RunnerHttpServer:
     handler = _handler_class(max_body_bytes)
-    return ThreadingHTTPServer((host, port), handler)
+    return RunnerHttpServer(
+        (host, port),
+        handler,
+        max_active=max_active,
+        max_request_threads=max_request_threads,
+        read_timeout_seconds=read_timeout_seconds,
+    )
+
+
+def _run_child(
+    request: dict[str, Any],
+    control: _RunControl,
+    started: float,
+) -> dict[str, Any]:
+    run_id = _run_id(request)
+    timeout_ms = _effective_limits(request)["wallTimeMs"]
+    try:
+        payload = json.dumps(
+            request,
+            allow_nan=False,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    except (TypeError, ValueError, OverflowError):
+        return _execution_error(run_id, "error", "Run request must be valid JSON.", started)
+
+    process: subprocess.Popen[bytes] | None = None
+    try:
+        with tempfile.TemporaryDirectory(prefix="dsa-python-run-") as working_directory:
+            process = subprocess.Popen(
+                [sys.executable, "-I", str(HARNESS_PATH)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=working_directory,
+                start_new_session=os.name == "posix",
+            )
+            control.attach(process)
+            if control.cancelled.is_set():
+                _kill_and_reap(process)
+                return _execution_error(
+                    run_id,
+                    "error",
+                    "Python execution was cancelled.",
+                    started,
+                )
+            try:
+                stdout, stderr = process.communicate(payload, timeout=timeout_ms / 1_000)
+            except subprocess.TimeoutExpired:
+                _kill_and_reap(process)
+                if control.cancelled.is_set():
+                    return _execution_error(
+                        run_id,
+                        "error",
+                        "Python execution was cancelled.",
+                        started,
+                    )
+                return _execution_error(
+                    run_id,
+                    "timeout",
+                    f"Execution exceeded the {timeout_ms} ms time limit.",
+                    started,
+                )
+            if control.cancelled.is_set():
+                _kill_and_reap(process)
+                return _execution_error(
+                    run_id,
+                    "error",
+                    "Python execution was cancelled.",
+                    started,
+                )
+    except (OSError, ValueError) as error:
+        if process is not None:
+            _kill_and_reap(process)
+        return _execution_error(run_id, "error", f"Runner failed: {error}", started)
+    finally:
+        if process is not None:
+            control.detach(process)
+
+    if process.returncode != 0:
+        detail = _bounded_decode(stderr, 64 * 1024).strip()
+        if not detail:
+            detail = f"Runner exited with code {process.returncode}."
+        return _execution_error(run_id, "error", detail, started)
+    try:
+        result = json.loads(stdout)
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        return _execution_error(run_id, "error", "Runner returned invalid JSON.", started)
+    if not _looks_like_result(result, run_id):
+        return _execution_error(run_id, "error", "Runner returned an invalid result.", started)
+    return result
 
 
 def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
     class RunnerRequestHandler(BaseHTTPRequestHandler):
         server_version = "DSAPythonRunner/1"
 
+        @property
+        def runner_server(self) -> RunnerHttpServer:
+            return self.server  # type: ignore[return-value]
+
         def do_GET(self) -> None:
+            self._with_request_slot(self._do_get)
+
+        def do_POST(self) -> None:
+            self._with_request_slot(self._do_post)
+
+        def do_OPTIONS(self) -> None:
+            self._with_request_slot(
+                lambda: self._error(
+                    HTTPStatus.METHOD_NOT_ALLOWED,
+                    "method_not_allowed",
+                    "Method OPTIONS is not allowed for this route.",
+                )
+            )
+
+        def _do_get(self) -> None:
             if self.path == "/health":
                 self._write_json(HTTPStatus.OK, {"ok": True, "service": "python-runner"})
                 return
-            if self.path == "/run":
+            if self.path in {"/run", "/cancel"}:
                 self._error(
                     HTTPStatus.METHOD_NOT_ALLOWED,
                     "method_not_allowed",
-                    "Method GET is not allowed for this route.",
+                    f"Method GET is not allowed for {self.path}.",
                     allow="POST",
                 )
                 return
             self._error(HTTPStatus.NOT_FOUND, "not_found", "Route not found.")
 
-        def do_POST(self) -> None:
-            if self.path != "/run":
+        def _do_post(self) -> None:
+            if self.path not in {"/run", "/cancel"}:
                 self._error(HTTPStatus.NOT_FOUND, "not_found", "Route not found.")
                 return
+            body = self._read_json_body(max_body_bytes)
+            if body is None:
+                return
+            if self.path == "/cancel":
+                run_id = body.get("runId") if isinstance(body, dict) else None
+                if not isinstance(run_id, str) or not run_id:
+                    self._error(
+                        HTTPStatus.BAD_REQUEST,
+                        "invalid_request",
+                        "Cancel request requires a non-empty runId.",
+                    )
+                    return
+                cancelled = self.runner_server.execution_manager.cancel(run_id)
+                self._write_json(
+                    HTTPStatus.OK,
+                    {"ok": True, "cancelled": cancelled, "runId": run_id},
+                )
+                return
+            if not isinstance(body, dict):
+                self._error(
+                    HTTPStatus.BAD_REQUEST,
+                    "invalid_request",
+                    "Run request must be an object.",
+                )
+                return
+            result = self.runner_server.execution_manager.run(body)
+            self._write_json(HTTPStatus.OK, result)
+
+        def _read_json_body(self, body_limit: int) -> Any | None:
             declared = self.headers.get("Content-Length")
             try:
                 length = int(declared) if declared is not None else -1
@@ -103,39 +387,62 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
                     "length_required",
                     "Content-Length is required.",
                 )
-                return
-            if length > max_body_bytes:
+                return None
+            if length > body_limit:
                 self._error(
                     HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
                     "body_too_large",
-                    f"Request body exceeds the {max_body_bytes} byte limit.",
+                    f"Request body exceeds the {body_limit} byte limit.",
                 )
-                return
-            body = self.rfile.read(length)
+                return None
+            previous_timeout = self.connection.gettimeout()
+            self.connection.settimeout(self.runner_server.read_timeout_seconds)
             try:
-                request = json.loads(body)
+                body = self.rfile.read(length)
+            except (TimeoutError, socket.timeout):
+                self.close_connection = True
+                self._error(
+                    HTTPStatus.REQUEST_TIMEOUT,
+                    "read_timeout",
+                    "Request body read timed out.",
+                )
+                return None
+            finally:
+                self.connection.settimeout(previous_timeout)
+            if len(body) != length:
+                self._error(
+                    HTTPStatus.BAD_REQUEST,
+                    "incomplete_body",
+                    "Request body ended before Content-Length bytes were received.",
+                )
+                return None
+            try:
+                return json.loads(body)
             except (json.JSONDecodeError, UnicodeDecodeError):
                 self._error(
                     HTTPStatus.BAD_REQUEST,
                     "invalid_json",
                     "Request body must be valid JSON.",
                 )
-                return
-            if not isinstance(request, dict):
+                return None
+
+        def _with_request_slot(self, operation: Any) -> None:
+            slots = (
+                self.runner_server.control_slots
+                if self.path == "/cancel"
+                else self.runner_server.request_slots
+            )
+            if not slots.acquire(blocking=False):
                 self._error(
-                    HTTPStatus.BAD_REQUEST,
-                    "invalid_request",
-                    "Run request must be an object.",
+                    HTTPStatus.SERVICE_UNAVAILABLE,
+                    "runner_overloaded",
+                    "Runner request capacity is exhausted.",
                 )
                 return
-            self._write_json(HTTPStatus.OK, run_in_subprocess(request))
-
-        def do_OPTIONS(self) -> None:
-            self._error(
-                HTTPStatus.METHOD_NOT_ALLOWED,
-                "method_not_allowed",
-                "Method OPTIONS is not allowed for this route.",
-            )
+            try:
+                operation()
+            finally:
+                slots.release()
 
         def log_message(self, format: str, *args: object) -> None:
             return
@@ -163,24 +470,124 @@ def _handler_class(max_body_bytes: int) -> type[BaseHTTPRequestHandler]:
                 ensure_ascii=False,
                 separators=(",", ":"),
             ).encode("utf-8")
-            self.send_response(status)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            if allow is not None:
-                self.send_header("Allow", allow)
-            self.end_headers()
-            self.wfile.write(body)
+            try:
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                if allow is not None:
+                    self.send_header("Allow", allow)
+                self.end_headers()
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                self.close_connection = True
 
     return RunnerRequestHandler
 
 
-def _wall_time_ms(request: dict[str, Any]) -> int:
+def _validate_request_policy(request: dict[str, Any]) -> str | None:
+    if not isinstance(request.get("runId"), str) or not request["runId"]:
+        return "Run request requires a non-empty runId."
+    code = request.get("code")
     spec = request.get("spec")
-    limits = spec.get("limits") if isinstance(spec, dict) else None
-    value = limits.get("wallTimeMs") if isinstance(limits, dict) else None
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0:
-        return min(round(value), MAX_WALL_TIME_MS)
-    return DEFAULT_WALL_TIME_MS
+    if not isinstance(code, str) or not isinstance(spec, dict):
+        return "Run request requires code and spec."
+    if spec.get("runtime") != "server":
+        return "Runner only accepts the server runtime."
+
+    limits = spec.get("limits")
+    if limits is not None and not isinstance(limits, dict):
+        return "Execution limits must be an object."
+    if isinstance(limits, dict):
+        for name, value in limits.items():
+            if name not in POLICY_CEILINGS:
+                return f"Unsupported execution limit: {name}."
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not value > 0
+            ):
+                return f"Execution limit {name} must be positive."
+            if value > POLICY_CEILINGS[name]:
+                return f"Execution limit {name} exceeds the runner policy ceiling."
+            if name == "maxCases" and not float(value).is_integer():
+                return "Execution limit maxCases must be an integer."
+
+    effective = _effective_limits(request)
+    if len(code.encode("utf-8")) > effective["maxSourceBytes"]:
+        return "Learner code exceeds maxSourceBytes."
+    cases = spec.get("cases")
+    if not isinstance(cases, list) or not cases:
+        return "Execution cases must be a non-empty array."
+    if len(cases) > effective["maxCases"]:
+        return "Execution cases exceed maxCases."
+    input_size = 0
+    expected_size = 0
+    for test_case in cases:
+        if not isinstance(test_case, dict):
+            return "Each execution case must be an object."
+        input_size += _json_size(test_case.get("input"), effective["maxInputBytes"] - input_size)
+        expected_size += _json_size(
+            test_case.get("expected"),
+            effective["maxResultBytes"] - expected_size,
+        )
+        if input_size > effective["maxInputBytes"]:
+            return "Execution inputs exceed maxInputBytes."
+        if expected_size > effective["maxResultBytes"]:
+            return "Expected results exceed maxResultBytes."
+    return None
+
+
+def _effective_limits(request: dict[str, Any]) -> dict[str, int]:
+    spec = request.get("spec")
+    overrides = spec.get("limits") if isinstance(spec, dict) else None
+    limits = dict(POLICY_DEFAULTS)
+    if isinstance(overrides, dict):
+        for name in limits:
+            value = overrides.get(name)
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0:
+                limits[name] = min(int(value), POLICY_CEILINGS[name])
+    return limits
+
+
+def _json_size(value: Any, remaining: int) -> int:
+    size = json_encoded_size(value, max(0, remaining))
+    return max(0, remaining) + 1 if size is None else size
+
+
+def _kill_process_tree(process: subprocess.Popen[bytes]) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGKILL)
+        else:
+            process.kill()
+    except (ProcessLookupError, OSError):
+        try:
+            process.kill()
+        except (ProcessLookupError, OSError):
+            pass
+
+
+def _kill_and_reap(process: subprocess.Popen[bytes]) -> None:
+    _kill_process_tree(process)
+    try:
+        process.communicate(timeout=1)
+    except subprocess.TimeoutExpired:
+        try:
+            process.kill()
+        except (ProcessLookupError, OSError):
+            pass
+        process.communicate()
+
+
+def _bounded_decode(value: bytes, max_bytes: int) -> str:
+    return value[:max_bytes].decode("utf-8", errors="replace")
+
+
+def _run_id(request: dict[str, Any]) -> str:
+    value = request.get("runId")
+    return value if isinstance(value, str) and value else "unknown"
 
 
 def _looks_like_result(value: Any, run_id: str) -> bool:
@@ -216,11 +623,33 @@ def _execution_error(
 def main() -> int:
     host = os.environ.get("RUNNER_HOST", "0.0.0.0")
     port = _positive_integer(os.environ.get("RUNNER_PORT"), 8080)
-    max_body_bytes = _positive_integer(
-        os.environ.get("RUNNER_MAX_BODY_BYTES"),
+    max_body_bytes = max(
         DEFAULT_MAX_BODY_BYTES,
+        _positive_integer(
+            os.environ.get("RUNNER_MAX_BODY_BYTES"),
+            DEFAULT_MAX_BODY_BYTES,
+        ),
     )
-    server = create_server(host, port, max_body_bytes=max_body_bytes)
+    max_active = _positive_integer(
+        os.environ.get("RUNNER_MAX_ACTIVE"),
+        DEFAULT_MAX_ACTIVE,
+    )
+    max_request_threads = _positive_integer(
+        os.environ.get("RUNNER_MAX_REQUEST_THREADS"),
+        DEFAULT_MAX_REQUEST_THREADS,
+    )
+    read_timeout_ms = _positive_integer(
+        os.environ.get("RUNNER_READ_TIMEOUT_MS"),
+        round(DEFAULT_READ_TIMEOUT_SECONDS * 1_000),
+    )
+    server = create_server(
+        host,
+        port,
+        max_body_bytes=max_body_bytes,
+        read_timeout_seconds=read_timeout_ms / 1_000,
+        max_active=max_active,
+        max_request_threads=max_request_threads,
+    )
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -86,6 +86,7 @@ export interface PythonRunResult {
 export {
   DEFAULT_PYTHON_EXECUTION_LIMITS,
   PYTHON_EXECUTION_POLICY_CEILINGS,
+  PYTHON_RUN_REQUEST_BODY_CEILING_BYTES,
   validatePythonExecutionSpec,
   validatePythonRunRequest,
 } from "./validation.ts";

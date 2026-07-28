@@ -3,6 +3,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 RUNNER_DIRECTORY = Path(__file__).resolve().parents[1]
@@ -136,6 +137,31 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertEqual(result["status"], "passed")
         self.assertEqual([item["status"] for item in result["cases"]], ["passed"] * 4)
 
+    def test_json_comparisons_do_not_treat_booleans_as_numbers(self):
+        result = execute_request(
+            request_for(
+                "def solve(value):\n    return value",
+                [
+                    case("deep", True, 1),
+                    case("unordered", [True], [1], "unordered"),
+                ],
+            )
+        )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual([item["status"] for item in result["cases"]], ["failed", "failed"])
+
+    def test_stdout_comparison_ignores_a_non_json_return_value(self):
+        result = execute_request(
+            request_for(
+                "def solve(value):\n    print('correct')\n    return {value}",
+                [case("stdout-only", 1, "correct\n", "stdout")],
+            )
+        )
+
+        self.assertEqual(result["status"], "passed")
+        self.assertEqual(result["cases"][0]["actual"], "correct\n")
+
     def test_captures_stdout_stderr_and_respects_selected_cases(self):
         result = execute_request(
             request_for(
@@ -195,6 +221,69 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertIn("truncated", result["stdout"])
         self.assertNotIn("actual", result["cases"][0])
 
+    def test_bounds_output_during_writes_and_preserves_the_exception_tail(self):
+        result = execute_request(
+            request_for(
+                (
+                    "import sys\n"
+                    "def solve(value):\n"
+                    "    print('🙂' * 1_000_000)\n"
+                    "    print('noise-' * 1_000_000, file=sys.stderr)\n"
+                    "    raise ValueError('diagnostic-must-survive')"
+                ),
+                [case("noisy-error", 1, 1)],
+                limits={"maxOutputBytes": 160},
+            )
+        )
+
+        self.assertEqual(result["status"], "error")
+        self.assertLessEqual(
+            len(result["cases"][0]["stdout"].encode("utf-8"))
+            + len(result["cases"][0]["stderr"].encode("utf-8")),
+            160,
+        )
+        self.assertIn("ValueError: diagnostic-must-survive", result["cases"][0]["stderr"])
+
+    def test_streams_exception_diagnostics_without_formatting_the_full_traceback(self):
+        with patch(
+            "execution_harness.traceback.format_exc",
+            side_effect=AssertionError("tracebacks must be streamed into a bounded writer"),
+        ):
+            result = execute_request(
+                request_for(
+                    "def solve(value):\n    raise ValueError('x' * 500_000 + 'tail-marker')",
+                    [case("huge-error", 1, 1)],
+                    limits={"maxOutputBytes": 64},
+                )
+            )
+
+        self.assertEqual(result["status"], "error")
+        self.assertLessEqual(len(result["cases"][0]["stderr"].encode("utf-8")), 64)
+        self.assertIn("tail-marker", result["cases"][0]["stderr"])
+
+    def test_applies_one_output_budget_across_all_cases_and_streams(self):
+        result = execute_request(
+            request_for(
+                (
+                    "import sys\n"
+                    "def solve(value):\n"
+                    "    print('o' * 100)\n"
+                    "    print('e' * 100, file=sys.stderr)\n"
+                    "    return value"
+                ),
+                [case("one", 1, 1), case("two", 2, 2), case("three", 3, 3)],
+                limits={"maxOutputBytes": 96},
+            )
+        )
+
+        retained = sum(
+            len(item["stdout"].encode("utf-8")) + len(item["stderr"].encode("utf-8"))
+            for item in result["cases"]
+        )
+        self.assertLessEqual(retained, 96)
+        self.assertLessEqual(len(result["stdout"].encode("utf-8")), 96)
+        self.assertLessEqual(len(result["stderr"].encode("utf-8")), 96)
+
     def test_applies_the_result_byte_budget_across_all_selected_cases(self):
         result = execute_request(
             request_for(
@@ -210,8 +299,47 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertNotIn("actual", result["cases"][1])
         self.assertIn("maxResultBytes", result["cases"][1]["stderr"])
 
+    def test_measures_oversized_scalar_results_without_full_json_encoder_chunks(self):
+        with patch(
+            "execution_harness.json.JSONEncoder.iterencode",
+            side_effect=AssertionError("full encoder must not measure learner results"),
+        ):
+            result = execute_request(
+                request_for(
+                    "def solve(value):\n    return '\\\\u0001' * 1_000_000",
+                    [case("large-scalar", 1, "")],
+                    limits={"maxResultBytes": 64},
+                )
+            )
+
+        self.assertEqual(result["status"], "error")
+        self.assertNotIn("actual", result["cases"][0])
+
     def test_command_line_protocol_reads_and_writes_exactly_one_json_document(self):
         request = request_for("def solve(value):\n    return value * 2", [case("cli", 3, 6)])
+        completed = subprocess.run(
+            [sys.executable, "-I", str(RUNNER_DIRECTORY / "execution_harness.py")],
+            input=json.dumps(request),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(completed.returncode, 0)
+        self.assertEqual(json.loads(completed.stdout)["status"], "passed")
+        self.assertEqual(completed.stderr, "")
+
+    def test_command_line_protocol_survives_direct_file_descriptor_writes(self):
+        request = request_for(
+            (
+                "import os\n"
+                "def solve(value):\n"
+                "    os.write(1, b'raw-stdout')\n"
+                "    os.write(2, b'raw-stderr')\n"
+                "    return value"
+            ),
+            [case("raw", 3, 3)],
+        )
         completed = subprocess.run(
             [sys.executable, "-I", str(RUNNER_DIRECTORY / "execution_harness.py")],
             input=json.dumps(request),

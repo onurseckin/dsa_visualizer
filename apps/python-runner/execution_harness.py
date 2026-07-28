@@ -1,8 +1,7 @@
 """Trusted protocol harness for one authored Python exercise request.
 
-The surrounding service and Docker container provide the process boundary. This
-module deliberately does not claim to turn Python ``exec`` into a hostile-code
-sandbox.
+The service and Docker container provide the process boundary. This module
+deliberately does not claim to turn Python ``exec`` into a hostile-code sandbox.
 """
 
 from __future__ import annotations
@@ -11,6 +10,7 @@ import contextlib
 import io
 import json
 import math
+import os
 import sys
 import time
 import traceback
@@ -26,6 +26,203 @@ DEFAULT_LIMITS = {
     "maxResultBytes": 256 * 1024,
     "maxCases": 100,
 }
+POLICY_CEILINGS = {
+    "wallTimeMs": 30_000,
+    "maxSourceBytes": 256 * 1024,
+    "maxInputBytes": 1024 * 1024,
+    "maxOutputBytes": 256 * 1024,
+    "maxResultBytes": 1024 * 1024,
+    "maxCases": 250,
+}
+TRUNCATION_MARKER = b"\n...[truncated]"
+
+
+class OutputBudget:
+    """One aggregate retained-output budget shared by every case and stream."""
+
+    def __init__(self, capacity: int) -> None:
+        self.capacity = max(0, capacity)
+        self.used = 0
+        self.writers: list[CappedTextWriter] = []
+
+    @property
+    def remaining(self) -> int:
+        return max(0, self.capacity - self.used)
+
+    def register(self, writer: "CappedTextWriter") -> None:
+        self.writers.append(writer)
+
+    def consume(self, size: int) -> int:
+        accepted = min(max(0, size), self.remaining)
+        self.used += accepted
+        return accepted
+
+    def release(self, size: int) -> None:
+        self.used = max(0, self.used - max(0, size))
+
+    def reclaim_for_diagnostic(self, target: "CappedTextWriter", required: int) -> None:
+        target.clear()
+        if self.remaining >= required:
+            return
+        for writer in self.writers:
+            if writer is target:
+                continue
+            writer.clear()
+            if self.remaining >= required:
+                return
+
+
+class CappedBinaryWriter:
+    def __init__(self, text_writer: "CappedTextWriter") -> None:
+        self._text_writer = text_writer
+
+    def write(self, value: bytes | bytearray) -> int:
+        return self._text_writer.write_bytes(bytes(value))
+
+    def flush(self) -> None:
+        return
+
+
+class CappedTextWriter(io.TextIOBase):
+    """UTF-8-aware writer that never retains more than its shared budget."""
+
+    def __init__(self, budget: OutputBudget) -> None:
+        super().__init__()
+        self._budget = budget
+        self._data = bytearray()
+        self._binary = CappedBinaryWriter(self)
+        self._truncated = False
+        budget.register(self)
+
+    @property
+    def encoding(self) -> str:
+        return "utf-8"
+
+    @property
+    def buffer(self) -> CappedBinaryWriter:
+        return self._binary
+
+    def writable(self) -> bool:
+        return True
+
+    def write(self, value: str) -> int:
+        if not isinstance(value, str):
+            raise TypeError("write() argument must be str")
+        available = self._budget.remaining
+        encoded, complete = _utf8_prefix(value, available)
+        accepted = self._budget.consume(len(encoded))
+        self._data.extend(encoded[:accepted])
+        if not complete:
+            self._mark_truncated()
+        return len(value)
+
+    def write_bytes(self, value: bytes) -> int:
+        accepted = self._budget.consume(len(value))
+        self._data.extend(value[:accepted])
+        if accepted < len(value):
+            self._mark_truncated()
+        return len(value)
+
+    def flush(self) -> None:
+        return
+
+    def clear(self) -> None:
+        self._budget.release(len(self._data))
+        self._data.clear()
+        self._truncated = False
+
+    def set_diagnostic(self, diagnostic: str, *, reclaim_other_streams: bool = True) -> None:
+        encoded = _capped_diagnostic_bytes(diagnostic, self._budget.capacity)
+        self.set_diagnostic_bytes(encoded, reclaim_other_streams=reclaim_other_streams)
+
+    def set_exception(
+        self,
+        exception_info: tuple[type[BaseException], BaseException, Any],
+    ) -> None:
+        self.set_diagnostic_bytes(_exception_diagnostic(exception_info, self._budget.capacity))
+
+    def set_diagnostic_bytes(
+        self,
+        encoded: bytes,
+        *,
+        reclaim_other_streams: bool = True,
+    ) -> None:
+        self.clear()
+        if reclaim_other_streams:
+            self._budget.reclaim_for_diagnostic(self, len(encoded))
+        elif len(encoded) > self._budget.remaining:
+            encoded = _capped_bytes_suffix(encoded, self._budget.remaining)
+        accepted = self._budget.consume(len(encoded))
+        self._data.extend(encoded[:accepted])
+        self._truncated = len(encoded) > accepted
+
+    def getvalue(self) -> str:
+        return bytes(self._data).decode("utf-8", errors="ignore")
+
+    def _mark_truncated(self) -> None:
+        if self._truncated:
+            return
+        self._truncated = True
+        required = len(TRUNCATION_MARKER)
+        if self._budget.remaining >= required:
+            self._budget.consume(required)
+            self._data.extend(TRUNCATION_MARKER)
+            return
+        reclaim = required - self._budget.remaining
+        if reclaim > len(self._data):
+            return
+        if reclaim:
+            target_size = len(self._data) - reclaim
+            prefix = bytes(self._data[:target_size]).decode("utf-8", errors="ignore").encode("utf-8")
+            released = len(self._data) - len(prefix)
+            self._data[:] = prefix
+            self._budget.release(released)
+        accepted = self._budget.consume(required)
+        self._data.extend(TRUNCATION_MARKER[:accepted])
+
+
+class DiagnosticTailWriter(io.TextIOBase):
+    """Retain only the tail of incrementally formatted exception diagnostics."""
+
+    def __init__(self, capacity: int) -> None:
+        super().__init__()
+        self._capacity = max(0, capacity)
+        self._data = bytearray()
+        self._truncated = False
+
+    def writable(self) -> bool:
+        return True
+
+    def write(self, value: str) -> int:
+        if not isinstance(value, str):
+            raise TypeError("write() argument must be str")
+        encoded, complete = _utf8_suffix(value, self._capacity)
+        if not complete:
+            self._truncated = True
+            self._data[:] = encoded
+            return len(value)
+        combined = bytes(self._data) + encoded
+        if len(combined) > self._capacity:
+            self._truncated = True
+            combined = _capped_bytes_suffix(combined, self._capacity)
+        self._data[:] = combined
+        return len(value)
+
+    def flush(self) -> None:
+        return
+
+    def getvalue(self) -> bytes:
+        if not self._truncated:
+            return bytes(self._data)
+        if self._capacity == 0:
+            return b""
+        if self._capacity <= len(TRUNCATION_MARKER):
+            return TRUNCATION_MARKER[-self._capacity :]
+        suffix = _capped_bytes_suffix(
+            bytes(self._data),
+            self._capacity - len(TRUNCATION_MARKER),
+        )
+        return TRUNCATION_MARKER + suffix
 
 
 def execute_request(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -49,21 +246,17 @@ def execute_request(request: Mapping[str, Any]) -> dict[str, Any]:
         selected = set(selected_ids)
         cases = [test_case for test_case in cases if test_case.get("id") in selected]
 
+    output_budget = OutputBudget(limits["maxOutputBytes"])
     case_results = [
-        _execute_case(code, spec, test_case, limits)
+        _execute_case(code, spec, test_case, output_budget)
         for test_case in cases[: limits["maxCases"]]
         if isinstance(test_case, Mapping)
     ]
-    _apply_result_budget(case_results, limits["maxResultBytes"], limits["maxOutputBytes"])
+    _apply_result_budget(case_results, limits["maxResultBytes"])
+    _materialize_streams(case_results)
     status = _overall_status(case_results)
-    stdout = _truncate_text(
-        "".join(str(result.get("stdout", "")) for result in case_results),
-        limits["maxOutputBytes"],
-    )
-    stderr = _truncate_text(
-        "".join(str(result.get("stderr", "")) for result in case_results),
-        limits["maxOutputBytes"],
-    )
+    stdout = "".join(str(result.get("stdout", "")) for result in case_results)
+    stderr = "".join(str(result.get("stderr", "")) for result in case_results)
     return {
         "runId": run_id,
         "status": status,
@@ -79,62 +272,32 @@ def _execute_case(
     code: str,
     spec: Mapping[str, Any],
     test_case: Mapping[str, Any],
-    limits: Mapping[str, int],
+    output_budget: OutputBudget,
 ) -> dict[str, Any]:
     started = time.monotonic()
-    stdout_buffer = io.StringIO()
-    stderr_buffer = io.StringIO()
+    stdout_writer = CappedTextWriter(output_budget)
+    stderr_writer = CappedTextWriter(output_budget)
     case_id = str(test_case.get("id", "unknown"))
     result: dict[str, Any] = {
         "id": case_id,
         "status": "error",
-        "stdout": "",
-        "stderr": "",
         "durationMs": 0,
+        "_stdoutWriter": stdout_writer,
+        "_stderrWriter": stderr_writer,
     }
 
     try:
-        with contextlib.redirect_stdout(stdout_buffer), contextlib.redirect_stderr(stderr_buffer):
+        with contextlib.redirect_stdout(stdout_writer), contextlib.redirect_stderr(stderr_writer):
             actual = _invoke(code, spec, test_case.get("input"))
-        canonical_actual = _json_value(actual)
-        comparison = test_case.get("comparison")
+        comparison = str(test_case.get("comparison"))
         expected = test_case.get("expected")
-        compared_actual = stdout_buffer.getvalue() if comparison == "stdout" else canonical_actual
-        passed = _compare(
-            compared_actual,
-            expected,
-            str(comparison),
-            test_case.get("tolerance"),
-        )
+        compared_actual = stdout_writer.getvalue() if comparison == "stdout" else actual
+        passed = _compare(compared_actual, expected, comparison, test_case.get("tolerance"))
         result["status"] = "passed" if passed else "failed"
         result["actual"] = compared_actual
     except BaseException:
-        stderr_buffer.write(traceback.format_exc())
+        stderr_writer.set_exception(sys.exc_info())
 
-    stdout = _truncate_text(stdout_buffer.getvalue(), limits["maxOutputBytes"])
-    stderr = _truncate_text(stderr_buffer.getvalue(), limits["maxOutputBytes"])
-
-    if "actual" in result:
-        serialized_actual = _encoded_json(result["actual"])
-        if serialized_actual is None:
-            result.pop("actual", None)
-            result["status"] = "error"
-            stderr = _append_error(
-                stderr,
-                "Result must be JSON-serializable.",
-                limits["maxOutputBytes"],
-            )
-        elif len(serialized_actual) > limits["maxResultBytes"]:
-            result.pop("actual", None)
-            result["status"] = "error"
-            stderr = _append_error(
-                stderr,
-                "Result exceeds maxResultBytes.",
-                limits["maxOutputBytes"],
-            )
-
-    result["stdout"] = stdout
-    result["stderr"] = stderr
     result["durationMs"] = _elapsed_ms(started)
     return result
 
@@ -187,7 +350,7 @@ def _bound_values(bindings: Any, case_input: Any) -> list[Any]:
 
 def _compare(actual: Any, expected: Any, comparison: str, tolerance: Any) -> bool:
     if comparison in ("deep-equal", "stdout"):
-        return actual == expected
+        return _json_equal(actual, expected)
     if comparison == "unordered":
         return _unordered_signature(actual) == _unordered_signature(expected)
     if comparison == "float":
@@ -201,13 +364,57 @@ def _compare(actual: Any, expected: Any, comparison: str, tolerance: Any) -> boo
     raise ValueError(f"Unsupported comparison: {comparison!r}.")
 
 
-def _unordered_signature(value: Any) -> Any:
-    if isinstance(value, list):
-        signatures = [_unordered_signature(item) for item in value]
-        return ("list", tuple(sorted(signatures, key=repr)))
-    if isinstance(value, dict):
+def _json_equal(actual: Any, expected: Any) -> bool:
+    if actual is None or expected is None:
+        return actual is None and expected is None
+    if isinstance(actual, bool) or isinstance(expected, bool):
+        return isinstance(actual, bool) and isinstance(expected, bool) and actual is expected
+    if isinstance(actual, (int, float)) or isinstance(expected, (int, float)):
         return (
-            "dict",
+            isinstance(actual, (int, float))
+            and not isinstance(actual, bool)
+            and isinstance(expected, (int, float))
+            and not isinstance(expected, bool)
+            and math.isfinite(actual)
+            and math.isfinite(expected)
+            and actual == expected
+        )
+    if isinstance(actual, str) or isinstance(expected, str):
+        return isinstance(actual, str) and isinstance(expected, str) and actual == expected
+    if _is_json_array(actual) or _is_json_array(expected):
+        return (
+            _is_json_array(actual)
+            and _is_json_array(expected)
+            and len(actual) == len(expected)
+            and all(_json_equal(left, right) for left, right in zip(actual, expected))
+        )
+    if isinstance(actual, Mapping) or isinstance(expected, Mapping):
+        return (
+            isinstance(actual, Mapping)
+            and isinstance(expected, Mapping)
+            and all(isinstance(key, str) for key in actual)
+            and all(isinstance(key, str) for key in expected)
+            and actual.keys() == expected.keys()
+            and all(_json_equal(actual[key], expected[key]) for key in actual)
+        )
+    return False
+
+
+def _unordered_signature(value: Any) -> Any:
+    if value is None:
+        return ("null",)
+    if isinstance(value, bool):
+        return ("boolean", value)
+    if isinstance(value, (int, float)) and math.isfinite(value):
+        return ("number", value)
+    if isinstance(value, str):
+        return ("string", value)
+    if _is_json_array(value):
+        signatures = [_unordered_signature(item) for item in value]
+        return ("array", tuple(sorted(signatures, key=repr)))
+    if isinstance(value, Mapping) and all(isinstance(key, str) for key in value):
+        return (
+            "object",
             tuple(
                 sorted(
                     ((key, _unordered_signature(item)) for key, item in value.items()),
@@ -215,26 +422,127 @@ def _unordered_signature(value: Any) -> Any:
                 )
             ),
         )
-    return ("value", value)
+    return ("invalid", type(value).__name__)
 
 
-def _json_value(value: Any) -> Any:
-    encoded = _encoded_json(value)
-    if encoded is None:
-        raise TypeError("Result must be JSON-serializable.")
-    return json.loads(encoded)
+def _is_json_array(value: Any) -> bool:
+    return isinstance(value, (list, tuple))
 
 
-def _encoded_json(value: Any) -> bytes | None:
+def _apply_result_budget(case_results: Sequence[dict[str, Any]], max_result_bytes: int) -> None:
+    remaining = max_result_bytes
+    for result in case_results:
+        if "actual" not in result:
+            continue
+        size = json_encoded_size(result["actual"], remaining)
+        if size is not None and size <= remaining:
+            remaining -= size
+            continue
+        result.pop("actual", None)
+        result["status"] = "error"
+        stderr_writer = result["_stderrWriter"]
+        message = (
+            "Result must be JSON-serializable."
+            if size is None
+            else "Combined results exceed maxResultBytes."
+        )
+        stderr_writer.set_diagnostic(message, reclaim_other_streams=False)
+
+
+def json_encoded_size(value: Any, limit: int) -> int | None:
+    """Measure JSON incrementally and stop as soon as ``limit`` is exceeded."""
+
     try:
-        return json.dumps(
-            value,
+        return _measure_json(value, max(0, limit), set())
+    except (RecursionError, TypeError, ValueError, OverflowError, UnicodeError):
+        return None
+
+
+def _measure_json(value: Any, limit: int, active: set[int]) -> int | None:
+    if value is None:
+        return 4
+    if isinstance(value, bool):
+        return 4 if value else 5
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if isinstance(value, float) and not math.isfinite(value):
+            return None
+        return len(
+            json.dumps(value, allow_nan=False, ensure_ascii=False, separators=(",", ":")).encode(
+                "utf-8"
+            )
+        )
+    if isinstance(value, str):
+        return _measure_json_string(value, limit)
+    if _is_json_array(value):
+        identity = id(value)
+        if identity in active:
+            return None
+        active.add(identity)
+        size = 2
+        try:
+            for index, item in enumerate(value):
+                if index:
+                    size += 1
+                if size > limit:
+                    return limit + 1
+                item_size = _measure_json(item, max(0, limit - size), active)
+                if item_size is None:
+                    return None
+                size += item_size
+                if size > limit:
+                    return limit + 1
+            return size
+        finally:
+            active.remove(identity)
+    if isinstance(value, Mapping):
+        if not all(isinstance(key, str) for key in value):
+            return None
+        identity = id(value)
+        if identity in active:
+            return None
+        active.add(identity)
+        size = 2
+        try:
+            for index, (key, item) in enumerate(value.items()):
+                if index:
+                    size += 1
+                key_size = _measure_json_string(key, max(0, limit - size))
+                size += key_size + 1
+                if size > limit:
+                    return limit + 1
+                item_size = _measure_json(item, max(0, limit - size), active)
+                if item_size is None:
+                    return None
+                size += item_size
+                if size > limit:
+                    return limit + 1
+            return size
+        finally:
+            active.remove(identity)
+    return None
+
+
+def _measure_json_string(value: str, limit: int) -> int:
+    size = 2
+    for offset in range(0, len(value), 1_024):
+        encoded = json.dumps(
+            value[offset : offset + 1_024],
             allow_nan=False,
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode("utf-8")
-    except (TypeError, ValueError, OverflowError):
-        return None
+        size += len(encoded) - 2
+        if size > limit:
+            return limit + 1
+    return size
+
+
+def _materialize_streams(case_results: Sequence[dict[str, Any]]) -> None:
+    for result in case_results:
+        stdout_writer = result.pop("_stdoutWriter")
+        stderr_writer = result.pop("_stderrWriter")
+        result["stdout"] = stdout_writer.getvalue()
+        result["stderr"] = stderr_writer.getvalue()
 
 
 def _limits(overrides: Any) -> dict[str, int]:
@@ -243,7 +551,7 @@ def _limits(overrides: Any) -> dict[str, int]:
         for name, default in DEFAULT_LIMITS.items():
             value = overrides.get(name)
             if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0:
-                limits[name] = int(value)
+                limits[name] = min(int(value), POLICY_CEILINGS[name])
             else:
                 limits[name] = default
     return limits
@@ -256,29 +564,6 @@ def _overall_status(case_results: Sequence[Mapping[str, Any]]) -> str:
     if "failed" in statuses:
         return "failed"
     return "passed"
-
-
-def _apply_result_budget(
-    case_results: Sequence[dict[str, Any]],
-    max_result_bytes: int,
-    max_output_bytes: int,
-) -> None:
-    remaining = max_result_bytes
-    for result in case_results:
-        if "actual" not in result:
-            continue
-        encoded = _encoded_json(result["actual"])
-        size = len(encoded) if encoded is not None else max_result_bytes + 1
-        if size <= remaining:
-            remaining -= size
-            continue
-        result.pop("actual", None)
-        result["status"] = "error"
-        result["stderr"] = _append_error(
-            str(result.get("stderr", "")),
-            "Combined results exceed maxResultBytes.",
-            max_output_bytes,
-        )
 
 
 def _request_error(run_id: str, message: str, started: float) -> dict[str, Any]:
@@ -303,33 +588,127 @@ def _elapsed_ms(started: float) -> int:
     return max(0, round((time.monotonic() - started) * 1_000))
 
 
-def _append_error(existing: str, message: str, max_bytes: int) -> str:
-    separator = "" if not existing or existing.endswith("\n") else "\n"
-    return _truncate_text(f"{existing}{separator}{message}", max_bytes)
+def _utf8_prefix(value: str, max_bytes: int) -> tuple[bytes, bool]:
+    if max_bytes <= 0:
+        return b"", value == ""
+    candidate = value[:max_bytes]
+    encoded = candidate.encode("utf-8")
+    if len(encoded) <= max_bytes and len(candidate) == len(value):
+        return encoded, True
+    if len(encoded) > max_bytes:
+        encoded = encoded[:max_bytes]
+        encoded = encoded.decode("utf-8", errors="ignore").encode("utf-8")
+    return encoded, len(candidate) == len(value) and len(encoded) == len(value.encode("utf-8"))
 
 
-def _truncate_text(text: str, max_bytes: int) -> str:
-    encoded = text.encode("utf-8")
-    if len(encoded) <= max_bytes:
-        return text
-    marker = "\n...[truncated]"
-    marker_bytes = marker.encode("utf-8")
-    if max_bytes <= len(marker_bytes):
-        return marker_bytes[:max_bytes].decode("utf-8", errors="ignore")
-    prefix = encoded[: max_bytes - len(marker_bytes)]
-    return prefix.decode("utf-8", errors="ignore") + marker
+def _capped_diagnostic_bytes(value: str, max_bytes: int) -> bytes:
+    encoded, complete = _utf8_suffix(value, max_bytes)
+    if complete:
+        return encoded
+    if max_bytes <= 0:
+        return b""
+    if max_bytes <= len(TRUNCATION_MARKER):
+        return TRUNCATION_MARKER[-max_bytes:]
+    suffix = _capped_bytes_suffix(encoded, max_bytes - len(TRUNCATION_MARKER))
+    return TRUNCATION_MARKER + suffix
+
+
+def _utf8_suffix(value: str, max_bytes: int) -> tuple[bytes, bool]:
+    if max_bytes <= 0:
+        return b"", value == ""
+    candidate = value[-max_bytes:]
+    encoded = candidate.encode("utf-8")
+    complete = len(candidate) == len(value) and len(encoded) <= max_bytes
+    if len(encoded) > max_bytes:
+        encoded = _capped_bytes_suffix(encoded, max_bytes)
+    return encoded, complete
+
+
+def _capped_bytes_suffix(value: bytes, max_bytes: int) -> bytes:
+    if max_bytes <= 0:
+        return b""
+    if len(value) <= max_bytes:
+        return value
+    return value[-max_bytes:].decode("utf-8", errors="ignore").encode("utf-8")
+
+
+def _exception_diagnostic(
+    exception_info: tuple[type[BaseException], BaseException, Any],
+    max_bytes: int,
+) -> bytes:
+    diagnostic = DiagnosticTailWriter(max_bytes)
+    try:
+        traceback.print_exception(*exception_info, file=diagnostic)
+    except BaseException:
+        diagnostic.write(f"{exception_info[0].__name__}: traceback formatting failed")
+    return diagnostic.getvalue()
+
+
+def _apply_os_resource_limits(limits: Mapping[str, int]) -> None:
+    if os.name != "posix":
+        return
+    try:
+        import resource
+
+        cpu_seconds = max(1, math.ceil(limits["wallTimeMs"] / 1_000) + 1)
+        _set_resource_limit(resource, resource.RLIMIT_CPU, cpu_seconds)
+        _set_resource_limit(resource, resource.RLIMIT_FSIZE, 16 * 1024 * 1024)
+        _set_resource_limit(resource, resource.RLIMIT_NOFILE, 256)
+        if sys.platform.startswith("linux"):
+            address_space = 4 * 1024 * 1024 * 1024
+            _set_resource_limit(resource, resource.RLIMIT_AS, address_space)
+    except (ImportError, OSError, ValueError):
+        return
+
+
+def _set_resource_limit(resource_module: Any, name: int, requested: int) -> None:
+    _soft, hard = resource_module.getrlimit(name)
+    if hard == resource_module.RLIM_INFINITY:
+        bounded = requested
+    else:
+        bounded = min(requested, hard)
+    resource_module.setrlimit(name, (bounded, bounded))
+
+
+def _open_protocol_stream() -> io.TextIOWrapper:
+    sys.stdout.flush()
+    sys.stderr.flush()
+    protocol_fd = os.dup(sys.stdout.fileno())
+    null_fd = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(null_fd, 1)
+        os.dup2(null_fd, 2)
+    finally:
+        os.close(null_fd)
+    return os.fdopen(protocol_fd, "w", encoding="utf-8", closefd=True)
 
 
 def main() -> int:
     started = time.monotonic()
+    protocol = _open_protocol_stream()
     try:
-        request = json.load(sys.stdin)
-        if not isinstance(request, Mapping):
-            raise ValueError("Run request must be an object.")
-        result = execute_request(request)
-    except BaseException:
-        result = _request_error("unknown", traceback.format_exc(), started)
-    json.dump(result, sys.stdout, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+        try:
+            request = json.load(sys.stdin)
+            if not isinstance(request, Mapping):
+                raise ValueError("Run request must be an object.")
+            spec = request.get("spec")
+            limits = _limits(spec.get("limits") if isinstance(spec, Mapping) else None)
+            _apply_os_resource_limits(limits)
+            result = execute_request(request)
+        except BaseException:
+            diagnostic = _exception_diagnostic(
+                sys.exc_info(),
+                DEFAULT_LIMITS["maxOutputBytes"],
+            )
+            result = _request_error(
+                "unknown",
+                diagnostic.decode("utf-8", errors="ignore"),
+                started,
+            )
+        json.dump(result, protocol, allow_nan=False, ensure_ascii=False, separators=(",", ":"))
+        protocol.flush()
+    finally:
+        protocol.close()
     return 0
 
 
