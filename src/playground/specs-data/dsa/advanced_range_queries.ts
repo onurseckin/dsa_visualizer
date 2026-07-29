@@ -1,4 +1,4 @@
-import { cases, defineDsaExecution, input, instance } from "./helpers";
+import { cases, defineDsaExecution, extraCases, input, instance } from "./helpers";
 
 export const advancedRangeQueriesExecutions = [
   defineDsaExecution({
@@ -260,23 +260,52 @@ export const advancedRangeQueriesExecutions = [
       method: "query",
       arguments: [input("left"), input("right")],
     },
-    cases: cases(
-      {
-        label: "Middle block update",
-        input: { arr: [1, 2, 3, 4], index: 2, value: 10, left: 1, right: 3 },
-        expected: 16,
-      },
-      {
-        label: "Single element replacement",
-        input: { arr: [5], index: 0, value: -2, left: 0, right: 0 },
-        expected: -2,
-      },
-      {
-        label: "Cross-block signed range",
-        input: { arr: [2, -1, 4, 0, 3, 8], index: 4, value: 9, left: 2, right: 5 },
-        expected: 21,
-      },
-    ),
+    cases: [
+      ...cases(
+        {
+          label: "Middle block update",
+          input: { arr: [1, 2, 3, 4], index: 2, value: 10, left: 1, right: 3 },
+          expected: 16,
+        },
+        {
+          label: "Single element replacement",
+          input: { arr: [5], index: 0, value: -2, left: 0, right: 0 },
+          expected: -2,
+        },
+        {
+          label: "Cross-block signed range",
+          input: { arr: [2, -1, 4, 0, 3, 8], index: 4, value: 9, left: 2, right: 5 },
+          expected: 21,
+        },
+      ),
+      ...extraCases(
+        {
+          label: "No-op replacement",
+          input: { arr: [1, 2], index: 0, value: 1, left: 0, right: 1 },
+          expected: 3,
+        },
+        {
+          label: "Interior block boundary",
+          input: { arr: [1, 2, 3, 4, 5, 6, 7, 8, 9], index: 4, value: 1, left: 3, right: 5 },
+          expected: 11,
+        },
+        {
+          label: "Replace first element",
+          input: { arr: [9, 1, 1, 1], index: 0, value: -9, left: 0, right: 3 },
+          expected: -6,
+        },
+        {
+          label: "Replace last element",
+          input: { arr: [1, 2, 3, 4], index: 3, value: 0, left: 2, right: 3 },
+          expected: 3,
+        },
+        {
+          label: "Negative block total",
+          input: { arr: [-4, -3, -2, -1], index: 1, value: 5, left: 0, right: 2 },
+          expected: -1,
+        },
+      ),
+    ],
     audit: {
       signature: "SqrtDecomposition(arr).update(idx, val); query(left, right) -> int",
       defaultInputShape: "{ array: number[]; operations: SqrtOperation[] }",
@@ -289,32 +318,83 @@ export const advancedRangeQueriesExecutions = [
     id: "mo-algorithm",
     entrypoint: "mo_algorithm",
     invocation: { kind: "function", arguments: [input("arr"), input("queries")] },
-    cases: cases(
-      {
-        label: "Two reordered queries",
-        input: {
-          arr: [1, 2, 3, 4],
-          queries: [
-            [0, 1],
-            [1, 3],
-          ],
+    cases: [
+      ...cases(
+        {
+          label: "Two reordered queries",
+          input: {
+            arr: [1, 2, 3, 4],
+            queries: [
+              [0, 1],
+              [1, 3],
+            ],
+          },
+          expected: [3, 9],
         },
-        expected: [3, 9],
-      },
-      { label: "Empty array", input: { arr: [], queries: [[0, 0]] }, expected: [] },
-      {
-        label: "Signed overlapping ranges",
-        input: {
-          arr: [-2, 5, 1, -3, 4],
-          queries: [
-            [0, 4],
-            [1, 2],
-            [2, 3],
-          ],
+        { label: "Empty array", input: { arr: [], queries: [[0, 0]] }, expected: [] },
+        {
+          label: "Signed overlapping ranges",
+          input: {
+            arr: [-2, 5, 1, -3, 4],
+            queries: [
+              [0, 4],
+              [1, 2],
+              [2, 3],
+            ],
+          },
+          expected: [5, 6, -2],
         },
-        expected: [5, 6, -2],
-      },
-    ),
+      ),
+      ...extraCases(
+        { label: "Single element query", input: { arr: [42], queries: [[0, 0]] }, expected: [42] },
+        {
+          label: "Repeated identical query",
+          input: {
+            arr: [4, 1, 6],
+            queries: [
+              [0, 2],
+              [0, 2],
+            ],
+          },
+          expected: [11, 11],
+        },
+        {
+          label: "Original order survives sorting",
+          input: {
+            arr: [3, 1, 4, 1, 5],
+            queries: [
+              [3, 4],
+              [0, 0],
+              [1, 3],
+            ],
+          },
+          expected: [6, 3, 6],
+        },
+        {
+          label: "All zero values",
+          input: {
+            arr: [0, 0, 0, 0],
+            queries: [
+              [0, 3],
+              [2, 2],
+            ],
+          },
+          expected: [0, 0],
+        },
+        {
+          label: "Many block crossings",
+          input: {
+            arr: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            queries: [
+              [0, 8],
+              [2, 6],
+              [4, 8],
+            ],
+          },
+          expected: [45, 25, 35],
+        },
+      ),
+    ],
     audit: {
       signature: "mo_algorithm(arr, queries) -> list[int]",
       defaultInputShape: "{ array: number[]; queries: Array<[number, number]> }",
