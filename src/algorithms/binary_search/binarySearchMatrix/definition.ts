@@ -1,38 +1,33 @@
 import type { AlgorithmDefinition, TopicGuide } from "../../../types/dsa";
 import type { TriviaMeta } from "../../../types/trivia";
 import { BINARY_SEARCH_MATRIX_CODE } from "./pythonCode";
-import { generateBinarySearchMatrixSteps, type BinarySearchMatrixInput } from "./stepGenerator";
+import {
+  DEFAULT_BINARY_SEARCH_MATRIX_INPUT,
+  generateBinarySearchMatrixSteps,
+  type BinarySearchMatrixInput,
+} from "./stepGenerator";
 
-export const DEFAULT_BINARY_SEARCH_MATRIX_INPUT: BinarySearchMatrixInput = {
-  matrix: [
-    [1, 3, 5, 7, 9],
-    [10, 12, 14, 16, 18],
-    [20, 22, 24, 26, 28],
-    [30, 32, 34, 36, 38],
-    [40, 42, 44, 46, 48],
-  ],
-  target: 34,
-};
+export { DEFAULT_BINARY_SEARCH_MATRIX_INPUT };
 
 const BINARY_SEARCH_MATRIX_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Binary search is not limited to physical 1D arrays; it is a general technique applicable to any search domain that can be conceptually ordered. Search a 2D Matrix exploits this principle by interpreting an m x n grid — where each row is sorted and each row begins above the previous row's end — as a single virtual sorted 1D array. By converting virtual 1D indices (0 to m*n - 1) into 2D grid coordinates on the fly using integer division and modulo, the algorithm searches an m x n matrix in O(log(m * n)) time without spending memory or time to flatten the matrix.",
+    "<p>Binary search is not limited to physical 1D arrays; it is a general technique applicable to any search domain that can be conceptually ordered. Search a 2D Matrix exploits this principle by interpreting an <em>m</em> &times; <em>n</em> grid — where each row is sorted and each row begins above the previous row's end — as a single virtual sorted 1D array. By converting virtual 1D indices into 2D grid coordinates on the fly using integer division and modulo, the algorithm searches the grid in <em>O(log(m &middot; n))</em> time without extra memory.</p>",
   sections: [
     {
       heading: "Why It Exists & The Virtual Flattening Concept",
-      body: "Matrix search problems often tempt developers to perform nested searches: binary search rows first, then columns. However, when the matrix guarantees that matrix[r][0] > matrix[r-1][n-1], the entire grid forms one seamless monotonically increasing sequence of m * n elements. Virtual flattening treats index i as matrix[i // n][i % n], enabling O(log(m * n)) binary search directly.",
+      body: "<p>Matrix search problems often tempt developers to perform nested searches: binary search rows first, then columns. However, when the matrix guarantees globally sorted row boundaries, the entire grid forms one seamless monotonically increasing sequence. Virtual flattening treats index <em>i</em> as <code>matrix[i // n][i % n]</code>, enabling logarithmic binary search directly.</p>",
     },
     {
       heading: "Step-by-Step Coordinate Decomposition",
-      body: "Given virtual 1D midpoint `mid`, row coordinate `row = mid // n` recovers how many complete rows of length n precede `mid`. Column coordinate `col = mid % n` recovers the offset inside that row. The algorithm probes `matrix[row][col]` and contracts `low = mid + 1` or `high = mid - 1` just like standard 1D binary search.",
+      body: "<p>Given virtual 1D midpoint <code>mid</code>, row coordinate <code>row = mid // n</code> recovers how many complete rows of length <em>n</em> precede <code>mid</code>. Column coordinate <code>col = mid % n</code> recovers the offset inside that row. The algorithm probes <code>matrix[row][col]</code> and contracts the search window accordingly.</p>",
     },
     {
       heading: "Trade-offs & Alternative Matrix Formulations",
-      body: "Virtual flattening requires strictly sorted row boundaries. If rows are independently sorted but lack global ordering across rows (e.g. LeetCode #240: Search a 2D Matrix II), virtual flattening fails. In that variant, a top-right staircase search running in O(m + n) time or row-by-row binary search running in O(m log n) time must be used instead.",
+      body: "<p>Virtual flattening requires strictly sorted row boundaries. If rows are independently sorted but lack global ordering across rows, virtual flattening fails. In that variant, a staircase search running in <em>O(m + n)</em> time or row-by-row binary search running in <em>O(m log n)</em> time must be used instead.</p>",
     },
     {
       heading: "Edge Cases & Bounds Preservation",
-      body: "Empty matrices (`m == 0` or `n == 0`) must be guarded up front to prevent division-by-zero or negative index calculations. Additionally, integer floor division `mid // n` must consistently use column count `n` (the row length), not row count `m`, to avoid out-of-bounds array access on non-square matrices.",
+      body: "<p>Empty matrices must be guarded up front to prevent division-by-zero or negative index calculations. Additionally, integer floor division <code>mid // n</code> must consistently use column count <em>n</em> to avoid out-of-bounds array access on non-square matrices.</p>",
     },
   ],
   keyTerms: [
@@ -49,7 +44,7 @@ const BINARY_SEARCH_MATRIX_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Coordinate Decomposition",
       definition:
-        "Calculating 2D row and column indices from a flat 1D index using `row = mid // cols` and `col = mid % cols`.",
+        "Calculating 2D row and column indices from a flat 1D index using row = mid // cols and col = mid % cols.",
     },
   ],
 };
@@ -110,40 +105,43 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   title: "Search a 2D Matrix",
   topicIds: ["binary_search"],
   difficulty: "Medium",
-  description: `Locate a target value in an $m \\times n$ integer matrix with sorted rows and strictly increasing row transitions in $O(\\log(m \\cdot n))$ time.
-
-### Why It Exists & What It Solves
-Searching a 2D matrix element by element takes $O(m \\cdot n)$ linear time. When each row is sorted and the first element of each row is strictly greater than the last element of the previous row, the entire matrix forms one continuous sorted sequence. Instead of flattening the matrix into a new 1D array ($O(m \\cdot n)$ space/time cost), we can perform binary search on virtual 1D indices, calculating 2D coordinates on demand in $O(1)$ space and $O(\\log(m \\cdot n))$ time.
-
-### Step-by-Step Intuition
-1. **Virtual Index Range**: Map the $m \\times n$ cells to flat indices $0$ to $m \\cdot n - 1$. Set \`low = 0\` and \`high = m * n - 1\`.
-2. **Compute Midpoint**: Calculate 1D midpoint \`mid = (low + high) // 2\`.
-3. **Map to 2D Coordinates**:
-   - \`row = mid // n\` (number of full rows passed)
-   - \`col = mid % n\` (offset within the current row)
-4. **Compare & Branch**:
-   - If \`matrix[row][col] == target\`, return \`True\`.
-   - If \`matrix[row][col] < target\`, set \`low = mid + 1\`.
-   - If \`matrix[row][col] > target\`, set \`high = mid - 1\`.
-
-### Input Parameters
-- \`matrix\`: An $m \\times n$ integer grid where each row is sorted and \`matrix[i][0] > matrix[i-1][n-1]\`.
-- \`target\`: The integer target value to locate.
-
-### Output
-- Returns boolean \`true\` if target exists in matrix, otherwise \`false\`.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(\\log(m \\cdot n))$ worst/average case, $O(1)$ best case.
-- **Space Complexity**: $O(1)$ auxiliary space using virtual index mapping.
-- **Requirement**: Matrix must have globally sorted row transitions.
-
-### Edge Cases & Constraints
-- \`m == matrix.length\`, \`n == matrix[i].length\`
-- \`1 <= m, n <= 100\`
-- \`-10^4 <= matrix[i][j], target <= 10^4\`
-- Degenerate empty matrices (\`m == 0\` or \`n == 0\`).
-- Single element matrices ($1 \\times 1$).`,
+  description: `<p>Locate a target value in an <em>m</em> &times; <em>n</em> integer matrix with sorted rows and strictly increasing row transitions in <em>O(log(m &middot; n))</em> time.</p>
+<h3>Why It Exists &amp; What It Solves</h3>
+<p>Searching a 2D matrix element by element takes <em>O(m &middot; n)</em> linear time. When each row is sorted and the first element of each row is strictly greater than the last element of the previous row, the entire matrix forms one continuous sorted sequence. Instead of flattening the matrix into a new 1D array (which would require extra space and time), we can perform binary search on virtual 1D indices, calculating 2D coordinates on demand in <em>O(1)</em> space and <em>O(log(m &middot; n))</em> time.</p>
+<h3>Step-by-Step Intuition</h3>
+<ul>
+  <li><strong>Virtual Index Range</strong>: Map the <em>m</em> &times; <em>n</em> cells to flat indices 0 to <em>m &middot; n - 1</em>. Set <code>low = 0</code> and <code>high = m * n - 1</code>.</li>
+  <li><strong>Compute Midpoint</strong>: Calculate 1D midpoint <code>mid = (low + high) // 2</code>.</li>
+  <li><strong>Map to 2D Coordinates</strong>: Calculate <code>row = mid // n</code> and <code>col = mid % n</code>.</li>
+  <li><strong>Compare &amp; Branch</strong>:
+    <ul>
+      <li>If <code>matrix[row][col] == target</code>, return <code>True</code>.</li>
+      <li>If <code>matrix[row][col] &lt; target</code>, set <code>low = mid + 1</code>.</li>
+      <li>If <code>matrix[row][col] &gt; target</code>, set <code>high = mid - 1</code>.</li>
+    </ul>
+  </li>
+</ul>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>matrix</code>: An <em>m</em> &times; <em>n</em> integer grid where each row is sorted and <code>matrix[i][0] &gt; matrix[i-1][n-1]</code>.</li>
+  <li><code>target</code>: The integer target value to locate.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns boolean <code>true</code> if target exists in matrix, otherwise <code>false</code>.</p>
+<h3>Trade-offs &amp; Complexity</h3>
+<ul>
+  <li><strong>Time Complexity</strong>: <em>O(log(m &middot; n))</em> worst/average case, <em>O(1)</em> best case.</li>
+  <li><strong>Space Complexity</strong>: <em>O(1)</em> auxiliary space using virtual index mapping.</li>
+  <li><strong>Requirement</strong>: Matrix must have globally sorted row transitions.</li>
+</ul>
+<h3>Edge Cases &amp; Constraints</h3>
+<ul>
+  <li><code>m == matrix.length</code>, <code>n == matrix[i].length</code></li>
+  <li><code>1 &le; m, n &le; 100</code></li>
+  <li><code>-10<sup>4</sup> &le; matrix[i][j], target &le; 10<sup>4</sup></code></li>
+  <li>Degenerate empty matrices (<code>m == 0</code> or <code>n == 0</code>).</li>
+  <li>Single element matrices (1 &times; 1).</li>
+</ul>`,
   constraints: [
     "m == matrix.length",
     "n == matrix[i].length",

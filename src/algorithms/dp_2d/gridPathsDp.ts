@@ -326,16 +326,8 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   title: "Grid Paths Dynamic Programming",
   topicIds: ["dp_2d"],
   difficulty: "Medium",
-  description: `The **Grid Unique Paths with Obstacles** problem (LeetCode #63) asks for the total number of unique paths a robot can take from top-left $(0,0)$ to bottom-right $(m-1, n-1)$ on an $m \\times n$ grid while avoiding obstacle cells ($grid[r][c] = 1$).
-
-### Directional Traversal & 2D Recurrence
-Movement is strictly limited to **Right** and **Down**. By the Rule of Sum, the total number of unique paths reaching cell $(r, c)$ is:
-$$dp[r][c] = \\begin{cases} 0 & \\text{if } grid[r][c] = 1 \\text{ (obstacle)} \\\\ 1 & \\text{if } r = 0, c = 0 \\text{ and } grid[0][0] = 0 \\\\ dp[r-1][c] + dp[r][c-1] & \\text{otherwise} \\end{cases}$$
-
-### Key Interview Insights
-1. **Rule of Sum in DAGs**: Grid path counting models DAG reachability. Unblocked cell path count equals top neighbor paths plus left neighbor paths.
-2. **Obstacle Zeroing**: Any obstacle cell forces $dp[r][c] = 0$, preventing paths from flowing downstream.
-3. **Space Vector Optimization**: 2D memory $\\mathcal{O}(M \\times N)$ can be compressed to 1D vector space $\\mathcal{O}(N)$.`,
+  description:
+    "<p>The <strong>Grid Unique Paths with Obstacles</strong> problem (LeetCode #63) asks for the total number of unique paths a robot can take from top-left <code>(0,0)</code> to bottom-right <code>(m-1, n-1)</code> on an <code>m &times; n</code> grid while avoiding obstacle cells (<code>grid[r][c] = 1</code>).</p><p>Movement is strictly limited to <strong>Right</strong> and <strong>Down</strong>. By the Rule of Sum, the total number of unique paths reaching cell <code>(r, c)</code> is <code>dp[r][c] = dp[r-1][c] + dp[r][c-1]</code> if unblocked, and <code>0</code> for obstacle cells.</p>",
   constraints: [
     "1 <= m, n <= 100",
     "grid[i][j] is 0 or 1",
@@ -400,23 +392,23 @@ $$dp[r][c] = \\begin{cases} 0 & \\text{if } grid[r][c] = 1 \\text{ (obstacle)} \
   },
   topicGuide: {
     overview:
-      "Grid Unique Paths with Obstacles (LeetCode #63) is the fundamental benchmark for spatial 2D dynamic programming. A robot moves on an $m \\times n$ grid from $(0,0)$ to $(m-1, n-1)$ using only rightward and downward moves. Obstacles ($grid[r][c] = 1$) block traversal. 2D DP computes total paths in $\\mathcal{O}(M \\times N)$ time and $\\mathcal{O}(M \\times N)$ space.",
+      "<p>Grid Unique Paths with Obstacles (LeetCode #63) is the fundamental benchmark for spatial 2D dynamic programming. A robot moves on an <code>m &times; n</code> grid from <code>(0,0)</code> to <code>(m-1, n-1)</code> using only rightward and downward moves. Obstacles (<code>grid[r][c] = 1</code>) block traversal. 2D DP computes total paths in <code>O(M &times; N)</code> time and space.</p>",
     sections: [
       {
         heading: "1. 2D Recurrence & Rule of Sum",
-        body: "Let $dp[r][c]$ be the number of unique paths from $(0,0)$ to $(r, c)$.\n\n- **Base Case**: $dp[0][0] = 1$ if $grid[0][0] = 0$.\n- **Obstacle Rule**: $dp[r][c] = 0$ if $grid[r][c] = 1$.\n- **Transition**:\n  $$dp[r][c] = (r > 0 ? dp[r-1][c] : 0) + (c > 0 ? dp[r][c-1] : 0)$$\n- **Result**: $dp[m-1][n-1]$.",
+        body: "<p>Let <code>dp[r][c]</code> be the number of unique paths from <code>(0,0)</code> to <code>(r, c)</code>.</p><ul><li><strong>Base Case:</strong> <code>dp[0][0] = 1</code> if <code>grid[0][0] = 0</code>.</li><li><strong>Obstacle Rule:</strong> <code>dp[r][c] = 0</code> if <code>grid[r][c] = 1</code>.</li><li><strong>Transition:</strong> <code>dp[r][c] = (top neighbor paths) + (left neighbor paths)</code>.</li><li><strong>Result:</strong> <code>dp[m-1][n-1]</code>.</li></ul>",
       },
       {
-        heading: "2. Why Combinatorics (Binomial Coefficients) Fails Here",
-        body: "On an obstacle-free grid, total paths equals the binomial coefficient $\\binom{m+n-2}{m-1}$. However, obstacles break closed-form combinations, necessitating dynamic programming.",
+        heading: "2. Why Combinatorics Fails with Obstacles",
+        body: "<p>On an obstacle-free grid, total paths equals the binomial coefficient. However, obstacles break closed-form combinations, necessitating dynamic programming.</p>",
       },
       {
         heading: "3. Systems Applications",
-        body: "Spatial grid DP forms the foundation for:\n- **VLSI Microchip Routing**: Routing interconnect wires around physical component defect blocks.\n- **Warehouse AMR Navigation**: Autonomous mobile robot pathing on grid floors.\n- **Mesh Network Routing**: Packet delivery across 2D grid topologies.",
+        body: "<p>Spatial grid DP forms the foundation for:</p><ul><li><strong>VLSI Microchip Routing:</strong> Routing interconnect wires around physical component defect blocks.</li><li><strong>Warehouse AMR Navigation:</strong> Autonomous mobile robot pathing on grid floors.</li><li><strong>Mesh Network Routing:</strong> Packet delivery across 2D grid topologies.</li></ul>",
       },
       {
         heading: "4. Space Vector Compression",
-        body: "Because $dp[r][c]$ depends only on row $r-1$ (top) and current row cell $c-1$ (left), memory compresses from $\\mathcal{O}(M \\times N)$ to $\\mathcal{O}(N)$ using a single 1D array.",
+        body: "<p>Because <code>dp[r][c]</code> depends only on row <code>r-1</code> (top) and current row cell <code>c-1</code> (left), memory compresses from <code>O(M &times; N)</code> to <code>O(N)</code> using a single 1D array.</p>",
       },
     ],
     keyTerms: [

@@ -6,6 +6,8 @@ import { GraphDefs } from "./graph/GraphDefs";
 import { GraphEdge } from "./graph/GraphEdge";
 import { GraphNode } from "./graph/GraphNode";
 import { GraphLegend } from "./graph/GraphLegend";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
+import { resolvePrimitiveLabel } from "./primitiveLabels";
 
 export type { GraphVisualizerProps };
 
@@ -15,10 +17,14 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   width = 900,
   height = 560,
   isDirected = false,
+  name,
   title,
+  auxiliaryState,
+  variables,
 }) => {
   const { ref, box } = useCanvasBox({ width, height });
   const markerScope = React.useId().replace(/:/g, "");
+  const caption = resolvePrimitiveLabel("graph", name) ?? (title?.trim() || undefined);
 
   const metrics = computeGraphLayout(nodes, edges, box);
 
@@ -35,19 +41,6 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
         minWidth: 0,
       }}
     >
-      {title && (
-        <div
-          style={{
-            fontSize: "var(--text-xs)",
-            fontWeight: 600,
-            color: "var(--text-muted)",
-            marginBottom: "var(--space-1)",
-            textAlign: "center",
-          }}
-        >
-          {title}
-        </div>
-      )}
       <div
         ref={ref}
         data-testid="canvas-container"
@@ -58,15 +51,30 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "32px",
+          padding: 0,
         }}
       >
         <svg
           width="100%"
           height="100%"
           viewBox={viewBoxAttr(boxViewBox(box))}
+          role="img"
+          aria-label={caption ? `Graph visualization: ${caption}` : "Graph visualization"}
           style={{ display: "block" }}
         >
+          {caption && (
+            <text
+              x={12}
+              y={18}
+              fill="var(--text-muted)"
+              fontFamily="var(--font-code)"
+              fontSize="13px"
+              fontWeight="700"
+              letterSpacing="0.02em"
+            >
+              {caption}
+            </text>
+          )}
           <GraphDefs
             markerScope={markerScope}
             arrowW={metrics.arrowW}
@@ -109,6 +117,8 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
               slot={metrics.groupOf(node.id)}
             />
           ))}
+
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
 

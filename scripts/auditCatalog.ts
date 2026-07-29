@@ -62,20 +62,20 @@ function parsePython(label: string, source: string): void {
 function auditCountsAndTopics(): void {
   check(ALGORITHMS.length === 88, `expected 88 DSA algorithms, received ${ALGORITHMS.length}`);
   check(
-    ML_INFRA_LEARNING_ITEMS.length === 69,
-    `expected 69 ML items, received ${ML_INFRA_LEARNING_ITEMS.length}`,
+    ML_INFRA_LEARNING_ITEMS.length === 0,
+    `expected 0 ML items, received ${ML_INFRA_LEARNING_ITEMS.length}`,
   );
   check(
-    LEARNING_ITEMS.length === 157,
-    `expected 157 learning items, received ${LEARNING_ITEMS.length}`,
+    LEARNING_ITEMS.length === 88,
+    `expected 88 learning items, received ${LEARNING_ITEMS.length}`,
   );
   check(
     Object.keys(ALGORITHM_REGISTRY).length === 88,
     "algorithm registry does not contain exactly 88 entries",
   );
   check(
-    Object.keys(LEARNING_ITEM_REGISTRY).length === 157,
-    "learning registry does not contain exactly 157 entries",
+    Object.keys(LEARNING_ITEM_REGISTRY).length === 88,
+    "learning registry does not contain exactly 88 entries",
   );
   check(
     duplicateValues(LEARNING_ITEMS.map(({ id }) => id)).length === 0,
@@ -94,7 +94,7 @@ function auditCountsAndTopics(): void {
     const items = ML_INFRA_LEARNING_ITEMS.filter(({ topicIds }) =>
       topicIds.includes(placement.topicId),
     );
-    check(items.length === 3, `${placement.topicId}: expected 3 items, received ${items.length}`);
+    check(items.length === 0, `${placement.topicId}: expected 0 items, received ${items.length}`);
   }
 }
 

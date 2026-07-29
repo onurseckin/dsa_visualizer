@@ -39,16 +39,16 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   topicIds: ["two_pointers", "intervals"],
   difficulty: "Medium",
   description:
-    "Merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same range as the input intervals.\n\n" +
-    "### Problem Overview\n" +
-    "Given a collection of intervals, merge all overlapping ranges into a minimal set of disjoint intervals. Sorting intervals by start coordinate $start_i$ allows overlap detection in a single $O(N)$ linear scan after an $O(N \\log N)$ sort.\n\n" +
-    "### Key Insights & Invariants\n" +
-    "- **Sorting Order**: Sorting by start time $start_i$ guarantees that if interval $B$ overlaps with any prior interval, it MUST overlap with the most recently added interval in the merged list.\n" +
-    "- **Overlap Condition**: Two sorted intervals $[a, b]$ and $[c, d]$ overlap if $c \\le b$. They merge into $[a, \\max(b, d)]$.\n" +
-    "- **Nested Protection**: Using $\\max(b, d)$ ensures nested intervals like $[1, 10]$ and $[2, 5]$ do not shrink the merged span.\n\n" +
-    "### Complexity\n" +
-    "- **Time**: $O(N \\log N)$ where $N$ is the number of intervals, dominated by sorting.\n" +
-    "- **Space**: $O(N)$ auxiliary space for storing the merged output list.",
+    "<p>Merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same range as the input intervals.</p>" +
+    "<h3>Problem Overview</h3>" +
+    "<p>Given a collection of intervals, merge all overlapping ranges into a minimal set of disjoint intervals. Sorting intervals by start coordinate <code>start_i</code> allows overlap detection in a single <span>O(N)</span> linear scan after an <span>O(N log N)</span> sort.</p>" +
+    "<h3>Key Insights &amp; Invariants</h3>" +
+    "<ul><li><strong>Sorting Order:</strong> Sorting by start time guarantees that if interval B overlaps with any prior interval, it MUST overlap with the most recently added interval in the merged list.</li>" +
+    "<li><strong>Overlap Condition:</strong> Two sorted intervals <code>[a, b]</code> and <code>[c, d]</code> overlap if <code>c &le; b</code>. They merge into <code>[a, max(b, d)]</code>.</li>" +
+    "<li><strong>Nested Protection:</strong> Using <code>max(b, d)</code> ensures nested intervals like <code>[1, 10]</code> and <code>[2, 5]</code> do not shrink the merged span.</li></ul>" +
+    "<h3>Complexity</h3>" +
+    "<ul><li><strong>Time:</strong> <span>O(N log N)</span> where N is the number of intervals, dominated by sorting.</li>" +
+    "<li><strong>Space:</strong> <span>O(N)</span> auxiliary space for storing the merged output list.</li></ul>",
   constraints: [
     "1 <= intervals.length <= 10^4",
     "intervals[i].length == 2",
@@ -119,43 +119,43 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   },
   topicGuide: {
     overview:
-      "Interval problems come with a hidden gift: an interval is defined by two coordinates $[start_i, end_i]$, and sorting by start coordinate collapses 2D interval interaction into a 1D left-to-right sweep. Merging overlapping intervals is the foundational pattern — given a set of ranges, produce the minimal set of disjoint ranges covering the exact same points. The core technique sorts by start coordinate in $O(N \\log N)$ time, then sweeps forward in $O(N)$ time comparing each interval against the active merged block.",
+      "<p>Interval problems come with a structural advantage: an interval is defined by two coordinates <code>[start_i, end_i]</code>, and sorting by start coordinate collapses 2D interval interaction into a 1D left-to-right sweep. Merging overlapping intervals is the foundational pattern — given a set of ranges, produce the minimal set of disjoint ranges covering the exact same points. The core technique sorts by start coordinate in <span>O(N log N)</span> time, then sweeps forward in <span>O(N)</span> time comparing each interval against the active merged block.</p>",
     sections: [
       {
         heading: "The core idea: sorting turns pair comparison into a scan",
-        body: "Unsorted, deciding which ranges overlap requires checking $O(N^2)$ candidate pairs. Sorting by start coordinate $start_i$ guarantees that as you walk forward, every remaining interval begins at or after the current block's start. Therefore, a new interval can only ever touch or extend the active block currently being built, never anything sealed off earlier. One comparison per interval suffices, reducing overlap detection from $O(N^2)$ to a single $O(N)$ linear pass.",
+        body: "<p>Unsorted, deciding which ranges overlap requires checking <span>O(N&sup2;)</span> candidate pairs. Sorting by start coordinate <code>start_i</code> guarantees that as you walk forward, every remaining interval begins at or after the current block's start. Therefore, a new interval can only ever touch or extend the active block currently being built, never anything sealed off earlier. One comparison per interval suffices, reducing overlap detection from <span>O(N&sup2;)</span> to a single <span>O(N)</span> linear pass.</p>",
       },
       {
         heading: "How the sweep works: one comparison per interval",
-        body: "Initialize the merged result list with the first sorted interval $[start_0, end_0]$. For each subsequent interval $[start_i, end_i]$, compare $start_i$ against the active block's end coordinate $prev.end$. If $start_i \\le prev.end$, the two intervals overlap or touch, so extend the block to $\\max(prev.end, end_i)$. Otherwise, a gap exists: seal the previous block and append $[start_i, end_i]$ as the new active block.",
+        body: "<p>Initialize the merged result list with the first sorted interval <code>[start_0, end_0]</code>. For each subsequent interval <code>[start_i, end_i]</code>, compare <code>start_i</code> against the active block's end coordinate <code>prev.end</code>. If <code>start_i &le; prev.end</code>, the two intervals overlap or touch, so extend the block to <code>max(prev.end, end_i)</code>. Otherwise, a gap exists: seal the previous block and append <code>[start_i, end_i]</code> as the new active block.</p>",
       },
       {
         heading: "Why taking the maximum end is what makes it correct",
-        body: "Taking the maximum end $\\max(prev.end, end_i)$ correctly handles fully nested intervals. Merging $[1, 10]$ with $[3, 4]$ must retain the finish coordinate $10$, whereas blindly copying the newer interval's end $4$ would shrink the block and lose coverage. Maintaining the invariant that the merged list remains strictly sorted and disjoint guarantees total correctness without needing a post-processing pass.",
+        body: "<p>Taking the maximum end <code>max(prev.end, end_i)</code> correctly handles fully nested intervals. Merging <code>[1, 10]</code> with <code>[3, 4]</code> must retain the finish coordinate <code>10</code>, whereas blindly copying the newer interval's end <code>4</code> would shrink the block and lose coverage. Maintaining the invariant that the merged list remains strictly sorted and disjoint guarantees total correctness without needing a post-processing pass.</p>",
       },
       {
         heading: "Boundary cases that decide the answer",
-        body: "Boundary touching such as $[1, 4]$ and $[4, 5]$ merge into $[1, 5]$ under the inclusive comparison $start_i \\le prev.end$. Empty inputs must return an empty list `[]` immediately before accessing index $0$. Zero-length intervals where $start = end$ are valid points and merge naturally without requiring special-case filtering logic.",
+        body: "<p>Boundary touching such as <code>[1, 4]</code> and <code>[4, 5]</code> merge into <code>[1, 5]</code> under the inclusive comparison <code>start_i &le; prev.end</code>. Empty inputs must return an empty list <code>[]</code> immediately before accessing index 0. Zero-length intervals where <code>start = end</code> are valid points and merge naturally without requiring special-case filtering logic.</p>",
       },
       {
         heading: "When to sort by start versus other approaches",
-        body: "Sorting by start coordinate is optimal when generating merged output ranges in order. For point-query metrics like maximum simultaneous overlaps or meeting room count, a line-sweep event algorithm sorting start/end events is preferable. For dynamic streaming inputs where intervals arrive online, a balanced binary search tree or interval tree avoids re-sorting the full dataset.",
+        body: "<p>Sorting by start coordinate is optimal when generating merged output ranges in order. For point-query metrics like maximum simultaneous overlaps or meeting room count, a line-sweep event algorithm sorting start/end events is preferable. For dynamic streaming inputs where intervals arrive online, a balanced binary search tree or interval tree avoids re-sorting the full dataset.</p>",
       },
       {
         heading: "How the pattern generalises",
-        body: "This pattern extends seamlessly to related interval problems. Inserting a new interval into pre-sorted intervals skips the sort step and merges in $O(N)$ time. Finding non-overlapping interval coverage (Activity Selection) sorts by end coordinate $end_i$. Intersecting two sorted interval lists uses a two-pointer sweep to extract overlapping segments in $O(N + M)$ time.",
+        body: "<p>This pattern extends seamlessly to related interval problems. Inserting a new interval into pre-sorted intervals skips the sort step and merges in <span>O(N)</span> time. Finding non-overlapping interval coverage (Activity Selection) sorts by end coordinate <code>end_i</code>. Intersecting two sorted interval lists uses a two-pointer sweep to extract overlapping segments in <span>O(N + M)</span> time.</p>",
       },
     ],
     keyTerms: [
       {
-        term: "Overlap Condition ($c \\le b$)",
+        term: "Overlap Condition (c <= b)",
         definition:
-          "Two sorted intervals $[a, b]$ and $[c, d]$ overlap if and only if $c \\le b$, simplifying comparison to a single inequality.",
+          "Two sorted intervals [a, b] and [c, d] overlap if and only if c <= b, simplifying comparison to a single inequality.",
       },
       {
         term: "Closed Interval",
         definition:
-          "An interval including both endpoints $[start, end]$, allowing touching endpoints like $[1,4]$ and $[4,5]$ to merge.",
+          "An interval including both endpoints [start, end], allowing touching endpoints like [1,4] and [4,5] to merge.",
       },
       {
         term: "Sweep Line Strategy",
@@ -165,7 +165,7 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
       {
         term: "Coalesce",
         definition:
-          "Combining multiple overlapping or contiguous intervals into a single equivalent interval spanning $[\\min(start), \\max(end)]$.",
+          "Combining multiple overlapping or contiguous intervals into a single equivalent interval spanning [min(start), max(end)].",
       },
       {
         term: "Loop Invariant",

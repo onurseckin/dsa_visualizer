@@ -44,11 +44,17 @@ const EULER_TOUR_TRIVIA: TriviaMeta = {
 };
 
 export const generateEulerTourTechniqueSteps = (input: EulerTourInput): AlgorithmStep[] => {
-  const n = Math.max(1, Math.min(10, input.numNodes));
-  const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
+  const safeInput = input ?? DEFAULT_EULER_TOUR_INPUT;
+  const rawNumNodes = safeInput.numNodes ?? DEFAULT_EULER_TOUR_INPUT.numNodes;
+  const n = Math.max(1, Math.min(10, rawNumNodes));
+  const rawEdges = Array.isArray(safeInput.edges)
+    ? safeInput.edges
+    : DEFAULT_EULER_TOUR_INPUT.edges;
+  const edgeList = rawEdges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
+  const rawValues = safeInput.values;
   const nodeValues =
-    input.values && input.values.length === n
-      ? input.values
+    Array.isArray(rawValues) && rawValues.length === n
+      ? rawValues
       : Array.from({ length: n }, (_, i) => (i + 1) * 10);
 
   const adj: number[][] = Array.from({ length: n }, () => []);
@@ -110,8 +116,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
     stepIndex: stepIdx++,
     codeLine: 1,
     explanation: {
-      what: `Initialize Euler Tour for tree with $N = ${n}$ nodes.`,
-      why: "We set up adjacency structure and prepare entry/exit arrays for DFS traversal.",
+      what: `Initialize Euler Tour traversal for tree structure with N = ${n} nodes.`,
+      why: "Setting up entry timestamp (tin) and exit timestamp (tout) arrays to map 2D tree subtrees into contiguous 1D array ranges.",
     },
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
@@ -127,8 +133,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
     stepIndex: stepIdx++,
     codeLine: 7,
     explanation: {
-      what: "Initialize tin, tout arrays and flat_order list.",
-      why: "tin[u] stores entry timestamp, tout[u] stores exit timestamp, and flat_order records visit sequence.",
+      what: "Initialize discovery arrays tin, tout, and linear traversal sequence.",
+      why: "The entry time tin[u] marks where a node's subtree begins in the flattened array, while tout[u] marks where it ends.",
     },
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
@@ -145,8 +151,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
     stepIndex: stepIdx++,
     codeLine: 24,
     explanation: {
-      what: "Invoke dfs(u=0, p=-1) from root vertex 0.",
-      why: "The tree traversal starts at the root node 0 with no parent.",
+      what: "Start depth-first traversal at root Node 0.",
+      why: "Depth-first search systematically explores every sub-branch before completing a parent node, preserving contiguous subtree visit orders.",
     },
     primarySnapshot: buildTreeSnapshot(0),
     auxiliaryState: {
@@ -164,8 +170,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
       stepIndex: stepIdx++,
       codeLine: 14,
       explanation: {
-        what: `Record entry time tin[${u}] = ${tin[u]} for Node ${u} (val=${nodeValues[u]}).`,
-        why: "tin[u] marks the beginning of node u's subtree in the linearized array.",
+        what: `Record entry timestamp tin[${u}] = ${tin[u]} for Node ${u}.`,
+        why: `Timestamping node discovery establishes the lower boundary of Node ${u}'s subtree interval in the flattened array.`,
       },
       primarySnapshot: buildTreeSnapshot(u),
       auxiliaryState: {
@@ -185,8 +191,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
       stepIndex: stepIdx++,
       codeLine: 15,
       explanation: {
-        what: `Increment timer to ${timer}.`,
-        why: "Each entry timestamp uses a unique sequential integer.",
+        what: `Advance traversal clock to ${timer}.`,
+        why: "Monotonically increasing timestamps guarantee that every traversal event receives a unique index in the linearized order.",
       },
       primarySnapshot: buildTreeSnapshot(u),
       auxiliaryState: {
@@ -203,8 +209,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
       stepIndex: stepIdx++,
       codeLine: 16,
       explanation: {
-        what: `Append Node ${u} to flat_order list: [${eulerOrder.join(", ")}].`,
-        why: "Node u is positioned at index tin[u] in the flattened array.",
+        what: `Append Node ${u} to linear tour order.`,
+        why: `Placing nodes in arrival sequence positions Node ${u} at index tin[${u}] within the flattened array representation.`,
       },
       primarySnapshot: buildTreeSnapshot(u),
       auxiliaryState: {
@@ -222,8 +228,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
       stepIndex: stepIdx++,
       codeLine: 18,
       explanation: {
-        what: `Examine neighbors of Node ${u}: [${neighbors.join(", ")}].`,
-        why: "We iterate through all adjacent nodes to traverse child subtrees.",
+        what: `Inspect adjacent connections for Node ${u}.`,
+        why: "We process each unvisited child subtree sequentially to maintain structural interval boundaries.",
       },
       primarySnapshot: buildTreeSnapshot(u),
       auxiliaryState: {
@@ -240,11 +246,11 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
         stepIndex: stepIdx++,
         codeLine: 19,
         explanation: {
-          what: `Check if neighbor ${v} != parent ${p}.`,
+          what: `Evaluate neighbor edge (${u} -> ${v}).`,
           why:
             v !== p
-              ? `${v} is a child node. We will recurse into it.`
-              : `${v} is the parent node. We skip it to avoid backtracking.`,
+              ? `Node ${v} is an unvisited child. Recurse into its subtree to determine its entry and exit bounds.`
+              : `Node ${v} is the parent of Node ${u}. Skip it to prevent backtracking up the tree hierarchy.`,
         },
         primarySnapshot: buildTreeSnapshot(u),
         auxiliaryState: {
@@ -262,8 +268,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
           stepIndex: stepIdx++,
           codeLine: 20,
           explanation: {
-            what: `Recurse into dfs(u=${v}, p=${u}).`,
-            why: `Traverse into the child subtree of Node ${v}.`,
+            what: `Recurse into child Node ${v}.`,
+            why: `Depth-first exploration enters child subtrees prior to finishing Node ${u}'s entry-exit range.`,
           },
           primarySnapshot: buildTreeSnapshot(v),
           auxiliaryState: {
@@ -284,8 +290,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
       stepIndex: stepIdx++,
       codeLine: 22,
       explanation: {
-        what: `Assign exit time tout[${u}] = ${tout[u]}. Subtree range for Node ${u}: [${tin[u]}, ${tout[u]}].`,
-        why: "All descendants of node u have been processed. The range [tin[u], tout[u]] completely covers its subtree.",
+        what: `Record exit timestamp tout[${u}] = ${tout[u]} for Node ${u}.`,
+        why: `Having explored all descendants, closing Node ${u}'s interval defines its entire subtree as the contiguous range [tin[${u}], tout[${u}]].`,
       },
       primarySnapshot: buildTreeSnapshot(u),
       auxiliaryState: {
@@ -311,8 +317,8 @@ export const generateEulerTourTechniqueSteps = (input: EulerTourInput): Algorith
     stepIndex: stepIdx++,
     codeLine: 25,
     explanation: {
-      what: "Euler Tour Complete! Tree is fully flattened into 1D linear order.",
-      why: "Any subtree sum or update query on Node u now maps directly to the range query $[tin[u], tout[u]]$.",
+      what: "Euler Tour complete! Tree is fully flattened into a 1D range map.",
+      why: "Any subtree operation on Node u can now be executed as a range query over [tin[u], tout[u]] using range data structures.",
     },
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
@@ -337,7 +343,7 @@ export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Medium",
   description:
-    "Flatten a 2D tree hierarchy into a linear 1D array using DFS entry (`tin`) and exit (`tout`) timestamps, enabling subtree updates and range queries in $O(1)$ mapping time.\n\n### Problem Statement\nGiven a rooted tree with $N$ vertices, compute entry timestamp `tin[u]` and exit timestamp `tout[u]` for every vertex $u$ during a Depth-First Search traversal.\n\nBecause DFS visits all descendants of node $u$ continuously before backtracking out of $u$, the entire subtree rooted at $u$ corresponds to a contiguous subsegment $[tin[u], tout[u]]$ in the flattened Euler Tour array. Subtree queries (sum, min, max, point/range updates) can thus be answered using standard range data structures (Fenwick Tree / Segment Tree) in $O(\\log N)$ time.\n\n### Input Parameters\n- `numNodes`: Total number of vertices $N$.\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `values`: Optional array of node values.\n\n### Output\n- Returns arrays `tin`, `tout`, and `flat_order` where node $u$'s subtree is mapped to index slice $[tin[u], tout[u]]$.\n\n### Constraints & Edge Cases\n- $1 \\le N \\le 10^5$.\n- Single node tree ($N=1$): `tin[0] = 0, tout[0] = 0` (slice of length $1$).\n- Deep chain graph ($N=10^5$): `tin` spans $[0, N-1]$, `tout` spans $[0, N-1]$ accordingly.",
+    "<p>Flatten a 2D tree hierarchy into a linear 1D array using DFS entry (<code>tin</code>) and exit (<code>tout</code>) timestamps, enabling subtree updates and range queries in <code>O(1)</code> mapping time.</p><h3>Problem Statement</h3><p>Given a rooted tree with <code>N</code> vertices, compute entry timestamp <code>tin[u]</code> and exit timestamp <code>tout[u]</code> for every vertex <code>u</code> during a Depth-First Search traversal.</p><p>Because DFS visits all descendants of node <code>u</code> continuously before backtracking out of <code>u</code>, the entire subtree rooted at <code>u</code> corresponds to a contiguous subsegment <code>[tin[u], tout[u]]</code> in the flattened Euler Tour array. Subtree queries (sum, min, max, point/range updates) can thus be answered using standard range data structures (Fenwick Tree / Segment Tree) in <code>O(log N)</code> time.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>numNodes</code> (number of vertices), <code>edges</code> (tree edge pairs), and optional <code>values</code> array.</li><li><strong>Output:</strong> <code>tin</code>, <code>tout</code>, and <code>flat_order</code> arrays mapping node subtrees to 1D contiguous segments.</li></ul><h3>Constraints &amp; Edge Cases</h3><ul><li><code>1 &lt;= N &lt;= 10^5</code></li><li>Single node tree (<code>N = 1</code>): <code>tin[0] = 0, tout[0] = 0</code> (range of length 1).</li><li>Deep chain graph: entry and exit arrays form nested intervals spanning <code>[0, N-1]</code>.</li></ul>",
   constraints: ["1 <= N <= 10^5"],
   examples: [
     {
@@ -414,35 +420,35 @@ export const eulerTourTechnique: AlgorithmDefinition<EulerTourInput> = {
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Single DFS traversal visits every node and edge once, taking $O(N)$ linear time.",
-    space: "$O(N)$ space for tin, tout, and recursion stack.",
+    time: "Single DFS traversal visits every node and edge once, taking O(N) linear time.",
+    space: "O(N) space for tin, tout, and recursion stack.",
   },
   topicGuide: {
     overview:
-      "The Euler Tour Technique (Tree Flattening / Traversal Linearization) transforms hierarchical parent-child relationships into a contiguous 1D array interval. By storing DFS entry timestamp `tin[u]` and exit timestamp `tout[u]`, any node $u$'s entire subtree is mapped to the contiguous slice $[tin[u], tout[u]]$.\n\nIn real-life production systems, tree linearization is essential for high-performance spatial database indexing (R-Trees/B-Trees), database nested set model queries (SQL tree queries without recursive CTEs), and compiler AST optimizations.",
+      "<p>The Euler Tour Technique (Tree Flattening / Traversal Linearization) transforms hierarchical parent-child relationships into a contiguous 1D array interval. By storing DFS entry timestamp <code>tin[u]</code> and exit timestamp <code>tout[u]</code>, any node <code>u</code>'s entire subtree is mapped to the contiguous slice <code>[tin[u], tout[u]]</code>.</p><p>In production software systems, tree linearization is essential for spatial database indexing (R-Trees/B-Trees), relational database nested set model queries, and compiler AST transformations.</p>",
     sections: [
       {
         heading: "Core Concept: The Subtree Invariant",
-        body: "During DFS traversal, a node $u$ is entered at timestamp `tin[u]`. All descendants of $u$ are visited recursively before DFS exits node $u$ at timestamp `tout[u]`. Because no non-descendant node can be visited within this window, the range $[tin[u], tout[u]]$ contains strictly the subtree of $u$.",
+        body: "<p>During DFS traversal, a node <code>u</code> is entered at timestamp <code>tin[u]</code>. All descendants of <code>u</code> are visited recursively before DFS exits node <code>u</code> at timestamp <code>tout[u]</code>. Because no non-descendant node can be visited within this time window, the range <code>[tin[u], tout[u]]</code> strictly encompasses the entire subtree of <code>u</code>.</p>",
       },
       {
         heading: "Systems & Performance Impact: Linear Array vs Tree Pointers",
-        body: "Pointer-chasing tree traversals cause heavy L1/L2 cache misses due to non-contiguous node heap allocations. Flattening the tree into a linear array allows hardware prefetchers to achieve maximum memory bandwidth during range updates or sum aggregations via Fenwick Trees.",
+        body: "<p>Pointer-chasing tree traversals cause heavy L1/L2 cache misses due to non-contiguous node heap allocations. Flattening the tree into a linear array allows hardware prefetchers and cache lines to achieve maximum memory bandwidth during range updates or sum aggregations via Fenwick Trees.</p>",
       },
       {
         heading: "Implementation Nuances: 1-Pass vs 2-Pass Euler Tours",
-        body: "Standard Subtree Flattening (1 entry per node): `tin[u]` is assigned on entry, `tout[u]` is assigned after visiting all children. Length of array is $N$.\nLCA Euler Tour (RMQ reduction): Records node on entry AND after returning from every child branch. Length of array is $2N - 1$. RMQ over this array yields LCA in $O(1)$ query time.",
+        body: "<p>Standard Subtree Flattening records entry on discovery and exit after visiting all children, producing an array of length <code>N</code>. Range Minimum Query (RMQ) Euler Tours record node discovery and re-record after returning from every child branch, producing an array of length <code>2N - 1</code> that reduces Lowest Common Ancestor (LCA) queries to RMQ in <code>O(1)</code> time.</p>",
       },
       {
         heading: "Edge Case Analysis",
-        body: "1. Ancestor Checks: Node $u$ is an ancestor of node $v$ if and only if $tin[u] \\le tin[v]$ and $tout[u] \\ge tout[v]$.\n2. Subtree Size: The number of vertices in $u$'s subtree is exactly $tout[u] - tin[u] + 1$.\n3. Leaf Nodes: `tin[u] == tout[u]`, forming a 1-element slice.",
+        body: "<p><strong>Ancestor Relationships:</strong> Node <code>u</code> is an ancestor of node <code>v</code> if and only if <code>tin[u] &le; tin[v]</code> and <code>tout[u] &ge; tout[v]</code>.<br/><strong>Subtree Cardinality:</strong> The number of vertices in <code>u</code>'s subtree is exactly <code>tout[u] - tin[u] + 1</code>.<br/><strong>Leaf Nodes:</strong> <code>tin[u] == tout[u]</code>, forming a 1-element slice.</p>",
       },
     ],
     keyTerms: [
       {
-        term: "Euler Tour (`tin` / `tout`)",
+        term: "Euler Tour (tin / tout)",
         definition:
-          "Entry (`tin`) and exit (`tout`) timestamps assigned during a depth-first search of a tree.",
+          "Entry (tin) and exit (tout) timestamps assigned during a depth-first search of a tree.",
       },
       {
         term: "Tree Linearization",

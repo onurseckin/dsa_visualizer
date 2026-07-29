@@ -17,23 +17,23 @@ export const DEFAULT_CONVEX_HULL_INPUT: ConvexHullInput = {
 
 const CONVEX_HULL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The convex hull of a set of 2D points $S \\subset \\mathbb{R}^2$ is the minimal convex polygon $\\text{Conv}(S)$ containing all points in $S$ — visually corresponding to the shape formed by stretching a rubber band around pins set at each point. Andrew's Monotone Chain algorithm computes the convex hull in $\\mathcal{O}(N \\log N)$ time by sorting points lexicographically and executing two directional stack-based sweeps.",
+    "<p>The convex hull of a set of 2D points <code>S &subset; &mathbb;R&sup2;</code> is the minimal convex polygon containing all points in <code>S</code> &mdash; visually corresponding to the shape formed by stretching a rubber band around pins set at each point. Andrew's Monotone Chain algorithm computes the convex hull in <code>O(N log N)</code> time by sorting points lexicographically and executing two directional stack-based sweeps.</p>",
   sections: [
     {
-      heading: "Cross Product Orientation Test (Turn Primitive)",
-      body: "Convexity depends entirely on local turn directions. For three ordered 2D points $\\mathbf{o}, \\mathbf{a}, \\mathbf{b} \\in \\mathbb{R}^2$, the 2D cross product scalar represents the signed area of the parallelogram spanned by vectors $\\mathbf{a} - \\mathbf{o}$ and $\\mathbf{b} - \\mathbf{o}$. Positive cross product value indicates a counter-clockwise left turn. Negative cross product value indicates a clockwise right turn, while zero means collinear points.",
+      heading: "1. Cross Product Orientation Test (Turn Primitive)",
+      body: "<p>Convexity depends entirely on local turn directions. For three ordered 2D points <code>o, a, b</code>, the 2D cross product scalar represents the signed area of the parallelogram spanned by vectors <code>a - o</code> and <code>b - o</code>. Positive cross product value indicates a counter-clockwise left turn. Negative cross product value indicates a clockwise right turn, while zero means collinear points.</p>",
     },
     {
-      heading: "Monotone Chain Sweeping Architecture",
-      body: "The hull is split into two monotonic chains at the extreme leftmost Pmin and rightmost Pmax points. Lower Chain is formed by a left-to-right sweep across points sorted lexicographically by x and y coordinates. Upper Chain is formed by a right-to-left sweep across the same sorted sequence. Both passes maintain a stack of active hull vertices while popping middle points that fail left turn tests.",
+      heading: "2. Monotone Chain Sweeping Architecture",
+      body: "<p>The hull is split into two monotonic chains at the extreme leftmost P<sub>min</sub> and rightmost P<sub>max</sub> points. Lower Chain is formed by a left-to-right sweep across points sorted lexicographically by x and y coordinates. Upper Chain is formed by a right-to-left sweep across the same sorted sequence. Both passes maintain a stack of active hull vertices while popping middle points that fail left turn tests.</p>",
     },
     {
-      heading: "Amortized Complexity and Correctness Proof",
-      body: "Every point is pushed onto a stack exactly once per sweep and popped at most once ever. The total work performed across both sweeps is $\\mathcal{O}(N)$ amortized. Sorting $N$ points initially dominates the total time, yielding $\\mathcal{O}(N \\log N)$ overall runtime. Auxiliary memory required for the sorted array and lower and upper hull stacks is $\\mathcal{O}(N)$.",
+      heading: "3. Amortized Complexity and Correctness Proof",
+      body: "<p>Every point is pushed onto a stack exactly once per sweep and popped at most once ever. The total work performed across both sweeps is <code>O(N)</code> amortized. Sorting <code>N</code> points initially dominates the total time, yielding <code>O(N log N)</code> overall runtime. Auxiliary memory required for the sorted array and lower and upper hull stacks is <code>O(N)</code>.</p>",
     },
     {
-      heading: "Downstream Geometric Applications",
-      body: "Computing the convex hull is a standard pre-processing step for major computational geometry algorithms. Rotating Calipers computes polygon diameter, minimum bounding boxes, and maximum distance pairs in $\\mathcal{O}(N)$ time. Collision detection algorithms rely on convex hulls for rapid GJK polygon intersection queries.",
+      heading: "4. Downstream Geometric Applications",
+      body: "<p>Computing the convex hull is a standard pre-processing step for major computational geometry algorithms. Rotating Calipers computes polygon diameter, minimum bounding boxes, and maximum distance pairs in <code>O(N)</code> time. Collision detection algorithms rely on convex hulls for rapid GJK polygon intersection queries.</p>",
     },
   ],
   keyTerms: [
@@ -45,7 +45,7 @@ const CONVEX_HULL_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Cross Product Orientation Test",
       definition:
-        "The scalar formula $\\text{cross}(\\mathbf{o}, \\mathbf{a}, \\mathbf{b}) = (a_x - o_x)(b_y - o_y) - (a_y - o_y)(b_x - o_x)$ determining turn direction.",
+        "The scalar formula cross(o, a, b) = (a.x - o.x)(b.y - o.y) - (a.y - o.y)(b.x - o.x) determining turn direction.",
     },
     {
       term: "Lower and upper chain",
@@ -91,7 +91,7 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
-    "Finds the minimal convex polygon enclosing a set of 2D points $S \\subset \\mathbb{R}^2$ using Andrew's Monotone Chain algorithm in $\\mathcal{O}(N \\log N)$ time.\n\n$$\\text{cross}(\\mathbf{o}, \\mathbf{a}, \\mathbf{b}) = (a_x - o_x)(b_y - o_y) - (a_y - o_y)(b_x - o_x)$$\n\n### Graph Snapshot Representation\nThe point set and active hull boundary are rendered on a 2D graph coordinate plane, with active hull edges highlighted.\n\n### Input Parameters\n- `points` (`Point2D[]`): Array of 2D points with $x, y$ coordinates.\n\n### Output\n- `Point2D[]`: Vertices of the convex hull in counter-clockwise boundary order.\n\n### Edge Cases & Constraints\n- Base Case: $N \\le 3 \\implies$ return points directly.\n- Collinear Points: Non-extremal points on edges are discarded by $\\text{cross} \\le 0$.",
+    "<p>Finds the minimal convex polygon enclosing a set of 2D points <code>S &subset; &mathbb;R&sup2;</code> using Andrew's Monotone Chain algorithm in <code>O(N log N)</code> time.</p><p><code>cross(o, a, b) = (a.x - o.x)(b.y - o.y) - (a.y - o.y)(b.x - o.x)</code></p><h3>Graph Snapshot Representation</h3><p>The point set and active hull boundary are rendered on a 2D graph coordinate plane, with active hull edges highlighted.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of 2D points with <code>x, y</code> coordinates.</li></ul><h3>Output</h3><ul><li><code>Point2D[]</code>: Vertices of the convex hull in counter-clockwise boundary order.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li>Base Case: <code>N &le; 3 &rArr;</code> return points directly.</li><li>Collinear Points: Non-extremal points on edges are discarded by <code>cross &le; 0</code>.</li></ul>",
   constraints: ["1 <= points.length <= 1000", "-1000 <= x, y <= 1000"],
   examples: [
     {

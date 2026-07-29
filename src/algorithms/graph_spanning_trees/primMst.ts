@@ -61,8 +61,11 @@ def prim_mst(num_nodes, edges):
     return total_weight if nodes_visited == num_nodes else -1`;
 
 export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
-  const numNodes = Math.max(1, input?.numNodes ?? DEFAULT_PRIM_MST_INPUT.numNodes);
-  const edges = input?.edges ?? DEFAULT_PRIM_MST_INPUT.edges;
+  const numNodes = Math.max(
+    1,
+    typeof input?.numNodes === "number" ? input.numNodes : DEFAULT_PRIM_MST_INPUT.numNodes,
+  );
+  const edges = Array.isArray(input?.edges) ? input.edges : DEFAULT_PRIM_MST_INPUT.edges;
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -342,7 +345,7 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   topicIds: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
-    "Prim's algorithm constructs a **Minimum Spanning Tree (MST)** for a connected, undirected weighted graph $G = (V, E)$ by growing a single tree component outward from an initial seed vertex. At each step, a **Min-Priority Queue** extracts the cheapest edge $(u, v, w)$ connecting a node inside the current tree $S$ to an unvisited node $v \\in V \\setminus S$. It operates in $\\mathcal{O}(E \\log V)$ time with a binary min-heap, prioritizing frontier edges crossing the cut boundary.",
+    "<p><strong>Prim's algorithm</strong> constructs a Minimum Spanning Tree (MST) for a connected, undirected weighted graph <code>G = (V, E)</code> by growing a single tree component outward from an initial seed vertex.</p><p>At each step, a min-priority queue extracts the cheapest edge <code>(u, v, w)</code> connecting a node inside the current tree component <code>S</code> to an unvisited node <code>v ∉ S</code>. It operates in <code>O(E log V)</code> time with a binary min-heap, prioritizing frontier edges crossing the cut boundary.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 10^5",
@@ -395,58 +398,58 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   timeComplexity: { best: "O(E log V)", average: "O(E log V)", worst: "O(E log V)" },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Each edge is inserted and popped from priority queue at most once, resulting in $\\mathcal{O}(E \\log V)$ complexity.",
-    space: "Uses priority queue and adjacency list taking $\\mathcal{O}(V + E)$ auxiliary memory.",
+    time: "Each edge is inserted and popped from priority queue at most once, resulting in O(E log V) complexity.",
+    space: "Uses priority queue and adjacency list taking O(V + E) auxiliary memory.",
   },
   topicGuide: {
     overview:
-      "Prim's algorithm is a classic greedy graph algorithm that builds a **Minimum Spanning Tree (MST)** by growing a single connected tree $S$ from a seed vertex. By continuously absorbing the minimum-weight edge crossing the boundary between visited tree nodes $S$ and unvisited frontier nodes $V \\setminus S$ (the **Cut Property**), Prim's algorithm efficiently computes the optimal spanning tree in $\\mathcal{O}(E \\log V)$ time.",
+      "<p>Prim's algorithm is a classic greedy graph algorithm that builds a <strong>Minimum Spanning Tree (MST)</strong> by growing a single connected tree <code>S</code> from a seed vertex. By continuously absorbing the minimum-weight edge crossing the boundary between visited tree nodes <code>S</code> and unvisited frontier nodes <code>V \\ S</code> (the <strong>Cut Property</strong>), Prim's algorithm efficiently computes the optimal spanning tree in <code>O(E log V)</code> time.</p>",
     sections: [
       {
         heading: "Why It Exists & What It Solves",
-        body: "Finding the cheapest network connecting all $|V|$ nodes without loops occurs frequently in physical infrastructure (fiber-optic wiring, electrical grids, circuit routing). Prim's algorithm solves this by growing a tree locally, absorbing one node at a time via the cheapest available connection.",
+        body: "<p>Finding the cheapest network connecting all <code>|V|</code> nodes without loops occurs frequently in physical infrastructure (fiber-optic wiring, electrical grids, circuit routing). Prim's algorithm solves this by growing a tree locally, absorbing one node at a time via the cheapest available connection.</p>",
       },
       {
         heading: "The Cut Property & Greedy Selection",
-        body: "A cut $(S, V \\setminus S)$ splits graph nodes into tree nodes $S$ and non-tree nodes $V \\setminus S$. The **Cut Property** guarantees that the lightest edge $e = (u, v)$ crossing $(S, V \\setminus S)$ belongs to some MST. Prim's algorithm maintains $S$ and greedily picks the minimum-weight edge leaving $S$ at every step.",
+        body: "<p>A cut <code>(S, V \\ S)</code> splits graph nodes into tree nodes <code>S</code> and non-tree nodes <code>V \\ S</code>. The <strong>Cut Property</strong> guarantees that the lightest edge <code>e = (u, v)</code> crossing <code>(S, V \\ S)</code> belongs to an MST. Prim's algorithm maintains <code>S</code> and greedily picks the minimum-weight edge leaving <code>S</code> at every step.</p>",
       },
       {
         heading: "Implementation: Min-Priority Queue / Binary Heap",
-        body: "A min-heap tracks candidate edges `(weight, neighbor)`. When node $u$ joins $S$, all edges from $u$ to unvisited neighbors are pushed into the heap. Popping from the heap yields the next cheapest cross-cut edge, skipping nodes that were already visited.",
+        body: "<p>A min-heap tracks candidate edges <code>(weight, neighbor)</code>. When node <code>u</code> joins <code>S</code>, all edges from <code>u</code> to unvisited neighbors are pushed into the heap. Popping from the heap yields the next cheapest cross-cut edge, skipping nodes that were already visited.</p>",
       },
       {
         heading: "Step-by-Step Intuition",
-        body: "1. Start at Node 0. Set `visited[0] = True`, push candidate edges to PQ.\n2. Pop lightest edge `(w, u)` from PQ.\n3. If $u$ is already visited, discard (prevents cycles).\n4. Mark `visited[u] = True`, add edge to MST, and push $u$'s unvisited neighbors to PQ.\n5. Repeat until all $|V|$ nodes are visited.",
+        body: "<p>1. Start at Node 0. Set <code>visited[0] = True</code>, push candidate edges to priority queue.<br/>2. Pop lightest edge <code>(w, u)</code> from queue.<br/>3. If <code>u</code> is already visited, discard.<br/>4. Mark <code>visited[u] = True</code>, add edge to MST, and push <code>u</code>'s unvisited neighbors to queue.<br/>5. Repeat until all <code>|V|</code> nodes are visited.</p>",
       },
       {
         heading: "Trade-offs: Prim vs. Kruskal Algorithm",
-        body: "Prim's algorithm grows a single connected tree and performs exceptionally well on dense graphs ($E \\approx V^2$), running in $\\mathcal{O}(V^2)$ with an adjacency matrix or $\\mathcal{O}(E + V \\log V)$ with a Fibonacci heap. Kruskal's algorithm merges disconnected forest components and is preferable for sparse graphs ($E \\approx V$) or when edges are pre-sorted.",
+        body: "<p>Prim's algorithm grows a single connected tree and performs exceptionally well on dense graphs (<code>E ≈ V²</code>). Kruskal's algorithm merges disconnected forest components and is preferable for sparse graphs (<code>E ≈ V</code>).</p>",
       },
       {
         heading: "Complexity Analysis",
-        body: "$$\\text{Time Complexity}: \\mathcal{O}(E \\log V)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Each edge is added to and extracted from the priority queue at most once. Insertion and removal take $\\mathcal{O}(\\log V)$ time in a binary min-heap, yielding total time $\\mathcal{O}(E \\log V)$.\n- **Space**: Adjacency list requires $\\mathcal{O}(V + E)$ memory, while priority queue holds at most $\\mathcal{O}(E)$ edges.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(E log V)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>Each edge is inserted into and extracted from the priority queue at most once. Priority queue operations run in <code>O(log V)</code> time.</p>",
       },
     ],
     keyTerms: [
       {
         term: "Minimum Spanning Tree (MST)",
         definition:
-          "A spanning subgraph $T \\subseteq E$ connecting all vertices together with minimum total edge weight sum $\\sum_{e \\in T} w(e)$.",
+          "A spanning subgraph T ⊆ E connecting all vertices together with minimum total edge weight sum.",
       },
       {
         term: "Cut Property",
         definition:
-          "Theorem stating that the lightest edge crossing any vertex cut $(S, V \\setminus S)$ is guaranteed to be part of an MST.",
+          "Theorem stating that the lightest edge crossing any vertex cut (S, V \\ S) is guaranteed to be part of an MST.",
       },
       {
         term: "Min-Priority Queue",
         definition:
-          "Heap data structure allowing $\\mathcal{O}(1)$ minimum element retrieval and $\\mathcal{O}(\\log N)$ operations.",
+          "Heap data structure allowing O(1) minimum element retrieval and O(log N) operations.",
       },
       {
         term: "Frontier / Fringe",
         definition:
-          "The set of candidate edges connecting visited tree vertices $S$ to unvisited neighbors $V \\setminus S$.",
+          "The set of candidate edges connecting visited tree vertices S to unvisited neighbors V \\ S.",
       },
     ],
   },

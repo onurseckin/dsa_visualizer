@@ -34,31 +34,31 @@ export const DEFAULT_TOPO_SORT_INPUT: TopologicalSortInput = {
 
 const TOPOLOGICAL_SORT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Topological Sorting linearly arranges the vertices of a **Directed Acyclic Graph (DAG)** $G = (V, E)$ such that for every directed edge $u \\to v$, vertex $u$ precedes vertex $v$ in the ordering. **Kahn's algorithm** computes a topological sort by tracking in-degrees (incoming edge counts) and processing vertices with zero remaining prerequisites using a **Breadth-First Search (BFS)** queue. It runs in linear $\\mathcal{O}(V + E)$ time and serves as both a task scheduler and a cycle detector.",
+    "<p>Topological Sorting linearly arranges the vertices of a <strong>Directed Acyclic Graph (DAG)</strong> <code>G = (V, E)</code> such that for every directed edge <code>u → v</code>, vertex <code>u</code> precedes vertex <code>v</code> in the ordering. <strong>Kahn's algorithm</strong> computes a topological sort by tracking in-degrees (incoming edge counts) and processing vertices with zero remaining prerequisites using a <strong>Breadth-First Search (BFS)</strong> queue. It runs in linear <code>O(V + E)</code> time and serves as both a task scheduler and a cycle detector.</p>",
   sections: [
     {
       heading: "Why It Exists & What It Solves",
-      body: "Many real-world problems involve ordered task execution under constraints—such as compiling software packages with build dependencies, planning university course prerequisites, or resolving spreadsheet cell evaluation orders. Topological Sort flattens a complex dependency DAG into a valid sequential execution order.",
+      body: "<p>Many real-world problems involve ordered task execution under constraints — such as compiling software packages with build dependencies, planning university course prerequisites, or resolving spreadsheet cell evaluation orders. Topological Sort flattens a complex dependency DAG into a valid sequential execution order.</p>",
     },
     {
       heading: "Ready means nothing is pointing at you",
-      body: "A vertex's in-degree $\\text{in\\_degree}[v]$ represents how many unfulfilled prerequisites it must wait for. Vertices with in-degree $0$ have no remaining dependencies and can be scheduled immediately. Kahn's algorithm maintains a queue of ready vertices, removing one at a time and decrementing in-degrees of downstream neighbors.",
+      body: "<p>A vertex's in-degree <code>in_degree[v]</code> represents how many unfulfilled prerequisites it must wait for. Vertices with in-degree 0 have no remaining dependencies and can be scheduled immediately. Kahn's algorithm maintains a queue of ready vertices, removing one at a time and decrementing in-degrees of downstream neighbors.</p>",
     },
     {
       heading: "Cycle Detection Mechanism",
-      body: "If a directed graph contains a cycle (e.g., $A \\to B \\to C \\to A$), no vertex in the cycle can ever reach in-degree $0$ because each depends on another cycle member. Consequently, Kahn's queue empties before all $|V|$ vertices are scheduled. If the output order contains fewer than $|V|$ vertices, a cycle is detected and an empty order is returned.",
+      body: "<p>If a directed graph contains a cycle (e.g., <code>A → B → C → A</code>), no vertex in the cycle can ever reach in-degree 0 because each depends on another cycle member. Consequently, Kahn's queue empties before all <code>|V|</code> vertices are scheduled. If the output order contains fewer than <code>|V|</code> vertices, a cycle is detected and an empty order is returned.</p>",
     },
     {
       heading: "Step-by-Step Intuition",
-      body: "1. Calculate in-degrees $\\text{in\\_degree}[v]$ for all $|V|$ vertices.\n2. Enqueue all vertices with $\\text{in\\_degree}[v] = 0$.\n3. While queue is non-empty:\n   a. Dequeue vertex $u$ and append $u$ to topological order.\n   b. For each outgoing edge $u \\to v$, decrement $\\text{in\\_degree}[v]$.\n   c. If $\\text{in\\_degree}[v]$ becomes $0$, enqueue $v$.\n4. If order length equals $|V|$, return order; else report cycle.",
+      body: "<p>1. Calculate in-degrees for all <code>|V|</code> vertices.<br/>2. Enqueue all vertices with <code>in_degree === 0</code>.<br/>3. While queue is non-empty: dequeue vertex <code>u</code>, append to order, decrement in-degree for each outgoing neighbor <code>v</code>. If <code>in_degree[v] === 0</code>, enqueue <code>v</code>.<br/>4. If order length equals <code>|V|</code>, return order; else report cycle.</p>",
     },
     {
       heading: "Trade-offs: Kahn's BFS vs. DFS Topological Sort",
-      body: "Kahn's algorithm uses BFS/in-degrees, making it easy to detect cycles, implement parallel task scheduling (processing ready nodes in level-order batches), and customize tie-breaking via priority queues (e.g., lexicographical topo sort). DFS-based topo sort uses post-order finishing times but requires separate color tracking (white/gray/black) to detect cycles.",
+      body: "<p>Kahn's algorithm uses BFS/in-degrees, making it easy to detect cycles and implement parallel task scheduling. DFS-based topo sort uses post-order finishing times but requires separate color tracking to detect cycles.</p>",
     },
     {
       heading: "Complexity Analysis",
-      body: "$$\\text{Time Complexity}: \\mathcal{O}(V + E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Every vertex is enqueued and dequeued exactly once, and every directed edge is traversed once to decrement in-degrees, leading to linear $\\mathcal{O}(V + E)$ overall runtime.\n- **Space**: Adjacency list takes $\\mathcal{O}(V + E)$ memory; in-degree array and queue take $\\mathcal{O}(V)$ space.",
+      body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>Every vertex is enqueued and dequeued once, and every edge is traversed once to decrement in-degrees.</p>",
     },
   ],
   keyTerms: [
@@ -117,7 +117,7 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "Kahn's algorithm produces a linear ordering of the vertices in a **Directed Acyclic Graph (DAG)** $G = (V, E)$ such that for every edge $u \\to v$, vertex $u$ appears before vertex $v$. It works by tracking each node's in-degree $\\text{in\\_degree}[v]$ and repeatedly dequeuing nodes with no remaining prerequisites ($\text{in\\_degree} = 0$). This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning in $\\mathcal{O}(V + E)$ time.",
+    "<p><strong>Kahn's algorithm</strong> produces a linear ordering of the vertices in a Directed Acyclic Graph (DAG) <code>G = (V, E)</code> such that for every edge <code>u → v</code>, vertex <code>u</code> appears before vertex <code>v</code>.</p><p>It tracks each node's in-degree (<code>in_degree[v]</code>) and repeatedly dequeues nodes with no remaining prerequisites (<code>in_degree === 0</code>). This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning in <code>O(V + E)</code> time.</p>",
   constraints: [
     "1 <= V <= 10^4",
     "0 <= E <= 2 * 10^4",

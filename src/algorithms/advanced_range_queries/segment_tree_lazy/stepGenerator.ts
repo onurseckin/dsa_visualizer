@@ -1,19 +1,24 @@
 import type { AlgorithmStep, ElementState, TreeNodeItem } from "../../../types/dsa";
 import type { SegmentTreeLazyInput, InternalNode } from "./types";
+import { DEFAULT_SEGMENT_TREE_LAZY_INPUT } from "./types";
 
-export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): AlgorithmStep[] => {
+export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const n = input.array.length;
+  const safeInput = input ?? DEFAULT_SEGMENT_TREE_LAZY_INPUT;
+  const rawArray = Array.isArray(safeInput?.array)
+    ? safeInput.array
+    : DEFAULT_SEGMENT_TREE_LAZY_INPUT.array;
+  const n = rawArray.length;
 
   if (n === 0) {
     steps.push({
       stepIndex: 0,
       codeLine: 1,
       explanation: {
-        what: "Check the input array",
-        why: "The input array is empty, so there is no tree to build — we stop here.",
+        what: "Checking input array length.",
+        why: "The input array is empty, so there is no tree to build.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -67,7 +72,7 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
       hashMap: lazyTable,
       customState: {
         operation: currentOp,
-        array: input.array.join(", "),
+        array: rawArray.join(", "),
       },
     };
   };
@@ -96,28 +101,28 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
   addStep(
     4,
-    "Set up the tree and lazy arrays",
-    `We allocate 4 x ${n} = ${maxTreeNodes} slots for interval sums plus a parallel lazy array; the lazy tags will let us postpone range updates instead of touching every element right away.`,
+    `Initializing Segment Tree with Lazy Propagation for ${n} elements.`,
+    `Allocated 4N slots for interval sums alongside a parallel lazy tag array to defer range updates until needed.`,
     { n },
   );
 
   const buildTree = (node: number, start: number, end: number) => {
     addStep(
       8,
-      `Visit node ${node} for range [${start}..${end}]`,
+      `Visiting node ${node} for interval [${start}..${end}].`,
       start === end
-        ? `This interval is down to a single element, so node ${node} becomes a leaf holding arr[${start}] = ${input.array[start]}.`
-        : `This interval still spans several elements, so we split it in half and build both children before this node can know its sum.`,
+        ? `Single-element range reached leaf node holding arr[${start}] = ${rawArray[start]}.`
+        : `Multi-element interval requires splitting at mid = Math.floor((${start} + ${end}) / 2) to build subtrees first.`,
       { node, start, end },
       { [node]: "compare" },
     );
 
     if (start === end) {
-      treeValues[node] = input.array[start];
+      treeValues[node] = rawArray[start];
       addStep(
         10,
-        `Store ${treeValues[node]} in leaf ${node}`,
-        `This leaf now answers exactly index ${start}; its lazy slot stays 0 because leaves have no children to defer work to.`,
+        `Stored ${treeValues[node]} in leaf node ${node}.`,
+        `Leaf ${node} directly serves point queries for index ${start}; lazy slot remains 0.`,
         { node, start, end, val: treeValues[node] },
         { [node]: "sorted" },
       );
@@ -132,8 +137,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
     addStep(
       15,
-      `Sum the children into node ${node}`,
-      `With both halves built, node ${node} caches ${treeValues[2 * node]} + ${treeValues[2 * node + 1]} = ${treeValues[node]} for range [${start}..${end}].`,
+      `Merging child sums into node ${node}: ${treeValues[2 * node]} + ${treeValues[2 * node + 1]} = ${treeValues[node]}.`,
+      `Node ${node} caches interval sum for [${start}..${end}].`,
       { node, start, end, val: treeValues[node] },
       { [node]: "active", [2 * node]: "sorted", [2 * node + 1]: "sorted" },
     );
@@ -143,8 +148,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
   addStep(
     15,
-    "Finish building the tree",
-    `The root holds the full sum ${treeValues[1]}, and every lazy tag starts at 0 — no work is pending anywhere yet.`,
+    "Completed Segment Tree construction.",
+    `The root holds full-array sum ${treeValues[1]}, and all lazy tags are initialized to 0.`,
     { rootSum: treeValues[1] },
     undefined,
     "Build Complete",
@@ -170,8 +175,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
       addStep(
         18,
-        `Push lazy tag ${val} down from node ${node}`,
-        `Before working below node ${node} we settle its deferred update: the left child's sum grows by ${val * leftCount} and the right child's by ${val * rightCount}, each inheriting the tag for its own children, and lazy[${node}] resets to 0.`,
+        `Pushing pending lazy tag ${val} down from node ${node}.`,
+        `Propagating deferred update: left child sum increases by ${val * leftCount} and right child by ${val * rightCount}, pushing tags to children and clearing parent debt.`,
         {
           node,
           val,
@@ -199,8 +204,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
     if (r < start || end < l) {
       addStep(
         30,
-        `Skip node ${node} — outside update range`,
-        `Its range [${start}..${end}] doesn't touch [${l}..${r}], so nothing in this branch needs to change.`,
+        `Skipping node ${node} (interval [${start}..${end}] is disjoint from update [${l}..${r}]).`,
+        `Since [${start}..${end}] does not overlap [${l}..${r}], no modifications are needed in this branch.`,
         { node, start, end, l, r },
         { [node]: "visited" },
         `Range Update [${l}..${r}] += ${val}`,
@@ -218,12 +223,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
       addStep(
         34,
-        `Apply the update lazily at node ${node}`,
-        `Its whole range [${start}..${end}] is being increased, so we bump this sum by ${count} x ${val} = ${addTotal} and ${
-          start !== end
-            ? `park lazy[${node}] = ${lazyValues[node]} for the children to pick up later — we never descend further`
-            : "since this is a leaf there are no children to notify"
-        }.`,
+        `Applying range update lazily at node ${node} (interval [${start}..${end}]).`,
+        `Complete interval coverage allows updating node sum by ${count} * ${val} = ${addTotal} and storing pending lazy tag without descending further.`,
         { node, start, end, count, val, newSum: treeValues[node], lazyVal: lazyValues[node] },
         { [node]: "sorted" },
         `Range Update [${l}..${r}] += ${val}`,
@@ -234,8 +235,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
     const mid = Math.floor((start + end) / 2);
     addStep(
       39,
-      `Split the update at node ${node}`,
-      `Only part of [${start}..${end}] falls inside [${l}..${r}], so we recurse into the left half [${start}..${mid}] and the right half [${mid + 1}..${end}] and let each handle its own overlap.`,
+      `Splitting range update at node ${node} (interval [${start}..${end}] partially overlaps [${l}..${r}]).`,
+      `Recursing into left half [${start}..${mid}] and right half [${mid + 1}..${end}].`,
       { node, start, end, l, r, mid },
       { [node]: "compare" },
       `Range Update [${l}..${r}] += ${val}`,
@@ -248,8 +249,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
     addStep(
       42,
-      `Refresh node ${node}'s sum to ${treeValues[node]}`,
-      `With both children settled we recombine ${treeValues[2 * node]} + ${treeValues[2 * node + 1]} so this node's cached sum stays honest.`,
+      `Refreshed node ${node}'s cached sum to ${treeValues[node]} for range [${start}..${end}].`,
+      `Recomputed parent node sum after updating child subtrees.`,
       { node, start, end, newSum: treeValues[node] },
       { [node]: "active" },
       `Range Update [${l}..${r}] += ${val}`,
@@ -260,8 +261,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
     if (r < start || end < l) {
       addStep(
         45,
-        `Skip node ${node} — no overlap`,
-        `Its range [${start}..${end}] lies entirely outside the query [${l}..${r}], so this branch contributes 0.`,
+        `Skipping node ${node} (interval [${start}..${end}] is disjoint from query [${l}..${r}]).`,
+        `Non-overlapping interval returns identity sum 0.`,
         { node, start, end, l, r },
         { [node]: "visited" },
         `Range Query [${l}..${r}]`,
@@ -274,8 +275,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
     if (l <= start && end <= r) {
       addStep(
         52,
-        `Take node ${node}'s sum ${treeValues[node]}`,
-        `Its whole range [${start}..${end}] sits inside the query [${l}..${r}], and any pending tags above it were already pushed down on the way here, so the cached sum ${treeValues[node]} is up to date.`,
+        `Taking cached sum ${treeValues[node]} from node ${node} (range [${start}..${end}] is fully inside [${l}..${r}]).`,
+        `Interval is completely covered and all pending lazy tags on the path have been flushed, returning up-to-date sum immediately.`,
         { node, start, end, l, r, sum: treeValues[node] },
         { [node]: "sorted" },
         `Range Query [${l}..${r}]`,
@@ -286,8 +287,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
     const mid = Math.floor((start + end) / 2);
     addStep(
       54,
-      `Split the query at node ${node}`,
-      `The target [${l}..${r}] only partially covers [${start}..${end}], so we ask the left child about [${start}..${mid}] and the right child about [${mid + 1}..${end}].`,
+      `Splitting query at node ${node} (range [${start}..${end}] partially overlaps [${l}..${r}]).`,
+      `Recursing into left child [${start}..${mid}] and right child [${mid + 1}..${end}] to collect partial contributions.`,
       { node, start, end, l, r, mid },
       { [node]: "compare" },
       `Range Query [${l}..${r}]`,
@@ -299,8 +300,8 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
 
     addStep(
       57,
-      `Combine partial sums at node ${node}`,
-      `The left branch reported ${leftSum} and the right branch reported ${rightSum}, so this subtree contributes ${result} to the query.`,
+      `Combining partial sums at node ${node}: ${leftSum} + ${rightSum} = ${result}.`,
+      `Merging left branch sum ${leftSum} and right branch sum ${rightSum} yields total contribution for range query.`,
       { node, start, end, leftSum, rightSum, result },
       { [node]: "active" },
       `Range Query [${l}..${r}]`,
@@ -309,7 +310,7 @@ export const generateSegmentTreeLazySteps = (input: SegmentTreeLazyInput): Algor
     return result;
   };
 
-  const ops = input.operations ?? [];
+  const ops = safeInput.operations ?? [];
   for (const op of ops) {
     const isUpdate = op.type === "rangeUpdate" || op.type === "update";
     const isQuery = op.type === "rangeQuery" || op.type === "query";

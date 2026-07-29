@@ -29,7 +29,7 @@ const FALLBACK_POINTS: Required<Point2D>[] = [
 
 export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const rawPoints = input?.points || FALLBACK_POINTS;
+  const rawPoints = Array.isArray(input?.points) ? input.points : FALLBACK_POINTS;
   let stepIndex = 0;
 
   if (!rawPoints || rawPoints.length === 0) {

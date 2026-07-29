@@ -30,7 +30,7 @@ export const SolutionApproachCard: React.FC<SolutionApproachCardProps> = ({ topi
           data-testid="solution-approach-details"
           className="flex flex-col gap-6"
         >
-          <div className="m-0 text-lg leading-relaxed text-[var(--text-secondary)] pb-6 border-b border-[var(--border-default)]">
+          <div className="m-0 text-lg leading-relaxed text-[var(--text-secondary)]">
             <MarkdownRenderer content={topicGuide.overview} />
           </div>
 

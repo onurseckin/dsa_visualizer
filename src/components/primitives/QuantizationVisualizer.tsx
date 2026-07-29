@@ -1,6 +1,7 @@
 import React from "react";
 import { boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
-import { QuantizationVisualSnapshot } from "../../types/dsa";
+import { QuantizationVisualSnapshot, AuxiliaryState, DisplayValue } from "../../types/dsa";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
 
 export interface QuantizationVisualizerProps {
   originalValue?: number | string;
@@ -9,6 +10,8 @@ export interface QuantizationVisualizerProps {
   zeroPoint?: number | string;
   bits: QuantizationVisualSnapshot["bits"];
   title?: string;
+  auxiliaryState?: AuxiliaryState;
+  variables?: Record<string, DisplayValue>;
 }
 
 export const QuantizationVisualizer: React.FC<QuantizationVisualizerProps> = ({
@@ -18,6 +21,8 @@ export const QuantizationVisualizer: React.FC<QuantizationVisualizerProps> = ({
   zeroPoint,
   bits,
   title,
+  auxiliaryState,
+  variables,
 }) => {
   const { ref, box } = useCanvasBox({ width: 800, height: 450 });
 
@@ -93,7 +98,7 @@ export const QuantizationVisualizer: React.FC<QuantizationVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "16px",
+          padding: 0,
         }}
       >
         <svg
@@ -185,6 +190,7 @@ export const QuantizationVisualizer: React.FC<QuantizationVisualizerProps> = ({
               );
             })}
           </g>
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
     </div>

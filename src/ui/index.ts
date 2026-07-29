@@ -101,6 +101,28 @@ export type { ProblemExamplesCardProps } from "./organisms/ProblemExamplesCard";
 export { formatExampleInput, formatExampleOutput } from "./organisms/problemExampleUtils";
 export { ProblemHeader } from "../components/primitives/ProblemHeader";
 export type { ProblemHeaderProps } from "../components/primitives/ProblemHeader";
+export {
+  IntervalVisualizer,
+  HeapVisualizer,
+  DsuVisualizer,
+  HashTableVisualizer,
+  StateSpaceVisualizer,
+  CallStackVisualizer,
+  BitmaskVisualizer,
+  AttentionMapVisualizer,
+  TrieVisualizer,
+} from "../components/primitives";
+export type {
+  IntervalVisualizerProps,
+  HeapVisualizerProps,
+  DsuVisualizerProps,
+  HashTableVisualizerProps,
+  StateSpaceVisualizerProps,
+  CallStackVisualizerProps,
+  BitmaskVisualizerProps,
+  AttentionMapVisualizerProps,
+  TrieVisualizerProps,
+} from "../components/primitives";
 export { SolutionApproachCard } from "./organisms/SolutionApproachCard";
 export type { SolutionApproachCardProps } from "./organisms/SolutionApproachCard";
 export { ProblemListFilterToolbar } from "./organisms/ProblemListFilterToolbar";
@@ -120,13 +142,6 @@ export {
 export { ProblemList } from "./organisms/ProblemList";
 export { CodeWorkspace, defaultStarterCode } from "./organisms/code-workspace/CodeWorkspace";
 export type { CodeWorkspaceProps } from "./organisms/code-workspace/CodeWorkspace";
-export { AssessmentWorkspace } from "./organisms/assessment/AssessmentWorkspace";
-export { TraceAssessment } from "./organisms/assessment/TraceAssessment";
-export { CalculatorAssessment } from "./organisms/assessment/CalculatorAssessment";
-export { DebuggingAssessment } from "./organisms/assessment/DebuggingAssessment";
-export { ScenarioAssessment } from "./organisms/assessment/ScenarioAssessment";
-export { CodeCompletionAssessment } from "./organisms/assessment/CodeCompletionAssessment";
-export { CapstoneAssessment } from "./organisms/assessment/CapstoneAssessment";
 
 // Level 4: Templates
 export { MainLayout } from "./templates/MainLayout";

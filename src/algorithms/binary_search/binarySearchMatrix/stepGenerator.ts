@@ -5,20 +5,38 @@ export interface BinarySearchMatrixInput {
   target: number;
 }
 
+export const DEFAULT_BINARY_SEARCH_MATRIX_INPUT: BinarySearchMatrixInput = {
+  matrix: [
+    [1, 3, 5, 7, 9],
+    [10, 12, 14, 16, 18],
+    [20, 22, 24, 26, 28],
+    [30, 32, 34, 36, 38],
+    [40, 42, 44, 46, 48],
+  ],
+  target: 34,
+};
+
 export const generateBinarySearchMatrixSteps = (
   input: BinarySearchMatrixInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const { matrix, target } = input;
+  const rawMatrix = input?.matrix;
+  const target =
+    typeof input?.target === "number" ? input.target : DEFAULT_BINARY_SEARCH_MATRIX_INPUT.target;
 
-  if (!matrix || matrix.length === 0 || matrix[0].length === 0) {
+  if (
+    !Array.isArray(rawMatrix) ||
+    rawMatrix.length === 0 ||
+    !Array.isArray(rawMatrix[0]) ||
+    rawMatrix[0].length === 0
+  ) {
     steps.push({
       stepIndex: 0,
       codeLine: 2,
       explanation: {
-        what: "Check matrix bounds",
-        why: "The matrix has no elements, so the target cannot possibly be inside. We return False immediately.",
+        what: "Target not found: empty or invalid matrix",
+        why: "An empty matrix contains zero searchable elements. The algorithm immediately terminates with false.",
       },
       primarySnapshot: {
         kind: "grid",
@@ -29,6 +47,8 @@ export const generateBinarySearchMatrixSteps = (
     });
     return steps;
   }
+
+  const matrix = rawMatrix;
 
   const rows = matrix.length;
   const cols = matrix[0].length;
@@ -103,16 +123,16 @@ export const generateBinarySearchMatrixSteps = (
 
   addStep(
     1,
-    "Search 2D Matrix Entry Point",
-    `Searching for target = ${target} in an ${rows}x${cols} grid containing ${totalElements} total sorted elements.`,
+    "Initialize 2D matrix binary search",
+    `Preparing to search for target ${target} in an ${rows}x${cols} grid (${totalElements} total elements) using virtual 1D indexing.`,
     0,
     totalElements - 1,
   );
 
   addStep(
     4,
-    `Cache dimensions m = ${rows}, n = ${cols}`,
-    `Storing row count m = ${rows} and column count n = ${cols} for index coordinate mapping.`,
+    "Cache matrix dimensions",
+    `Storing row count m = ${rows} and column count n = ${cols} to perform arithmetic 1D-to-2D coordinate transformations on demand.`,
     0,
     totalElements - 1,
     undefined,
@@ -122,8 +142,8 @@ export const generateBinarySearchMatrixSteps = (
 
   addStep(
     5,
-    "Treat the matrix as one virtual sorted list",
-    `Each row is sorted and every row starts above where the previous one ended, so reading the ${rows}x${cols} grid row by row gives one sorted list of ${totalElements} values. We initialize low = 0 and high = ${totalElements - 1}.`,
+    "Establish virtual 1D search bounds",
+    `Because every row is sorted and globally strictly increasing, we treat the grid as one contiguous sorted 1D array spanning indices [0..${totalElements - 1}].`,
     0,
     totalElements - 1,
     undefined,
@@ -138,8 +158,8 @@ export const generateBinarySearchMatrixSteps = (
   while (low <= high) {
     addStep(
       7,
-      `Check search loop condition: low (${low}) <= high (${high})`,
-      `Active search space contains ${high - low + 1} candidate virtual cells between index ${low} and ${high}.`,
+      "Evaluate active virtual search window",
+      `Active search space contains ${high - low + 1} candidate virtual elements between flat index ${low} and ${high}.`,
       low,
       high,
       undefined,
@@ -150,8 +170,8 @@ export const generateBinarySearchMatrixSteps = (
     const mid = Math.floor((low + high) / 2);
     addStep(
       8,
-      `Compute virtual midpoint index: mid = (${low} + ${high}) // 2 = ${mid}`,
-      `Selected 1D virtual midpoint index ${mid}.`,
+      "Calculate 1D virtual midpoint index",
+      `Computing midpoint mid = (${low} + ${high}) // 2 = ${mid} to divide the remaining search domain in half.`,
       low,
       high,
       mid,
@@ -163,8 +183,8 @@ export const generateBinarySearchMatrixSteps = (
     const c = mid % cols;
     addStep(
       9,
-      `Compute row index: row = ${mid} // ${cols} = ${r}`,
-      `Virtual midpoint index ${mid} lands in grid row ${r}.`,
+      "Decompose 1D index to 2D row coordinate",
+      `Virtual index ${mid} divided by column width ${cols} maps to row ${r} (mid // cols = ${r}).`,
       low,
       high,
       mid,
@@ -174,8 +194,8 @@ export const generateBinarySearchMatrixSteps = (
 
     addStep(
       10,
-      `Compute col index: col = ${mid} % ${cols} = ${c}`,
-      `Virtual midpoint index ${mid} lands at column offset ${c} in row ${r}. Coordinate is (${r}, ${c}).`,
+      "Decompose 1D index to 2D column coordinate",
+      `Virtual index ${mid} modulo column width ${cols} maps to column ${c} (mid % cols = ${c}). Probing coordinate (${r}, ${c}).`,
       low,
       high,
       mid,
@@ -186,8 +206,8 @@ export const generateBinarySearchMatrixSteps = (
     const midVal = matrix[r][c];
     addStep(
       11,
-      `Read cell matrix[${r}][${c}] = ${midVal}`,
-      `Retrieved value ${midVal} at coordinate (${r}, ${c}) to compare with target ${target}.`,
+      "Probe grid cell value",
+      `Retrieved value ${midVal} at matrix[${r}][${c}] for target comparison.`,
       low,
       high,
       mid,
@@ -197,8 +217,8 @@ export const generateBinarySearchMatrixSteps = (
 
     addStep(
       13,
-      `Compare mid_val (${midVal}) with target (${target})`,
-      `Evaluating whether mid_val ${midVal} equals target ${target}.`,
+      "Compare probed element against target",
+      `Evaluating probed cell value ${midVal} against target ${target}.`,
       low,
       high,
       mid,
@@ -210,8 +230,8 @@ export const generateBinarySearchMatrixSteps = (
       found = true;
       addStep(
         14,
-        `Return True — target ${target} found at [${r}][${c}]`,
-        `matrix[${r}][${c}] is exactly ${target}, so the search is over. Located target in O(log(m*n)) steps.`,
+        "Target found in matrix",
+        `matrix[${r}][${c}] matches target ${target}. Search succeeds in logarithmic O(log(m*n)) steps.`,
         low,
         high,
         mid,
@@ -224,8 +244,8 @@ export const generateBinarySearchMatrixSteps = (
     if (midVal < target) {
       addStep(
         15,
-        `mid_val (${midVal}) < target (${target}): Search upper half`,
-        `${midVal} is strictly smaller than ${target}. Target must lie in higher index range.`,
+        "Probed value smaller than target",
+        `Probed value ${midVal} is strictly smaller than target ${target}. By monotonic sorting, target must lie in higher flat indices.`,
         low,
         high,
         mid,
@@ -235,8 +255,8 @@ export const generateBinarySearchMatrixSteps = (
       low = mid + 1;
       addStep(
         16,
-        `Set low = mid + 1 = ${low}`,
-        `Discarded lower half [0..${mid}]. Next active search window is [${low}..${high}].`,
+        "Contract lower search boundary",
+        `Updating low = mid + 1 (${low}). Discarding flat index range [0..${mid}]. Active window becomes [${low}..${high}].`,
         low,
         high,
         mid,
@@ -246,8 +266,8 @@ export const generateBinarySearchMatrixSteps = (
     } else {
       addStep(
         17,
-        `mid_val (${midVal}) > target (${target}): Search lower half`,
-        `${midVal} is strictly larger than ${target}. Target must lie in lower index range.`,
+        "Probed value larger than target",
+        `Probed value ${midVal} is strictly larger than target ${target}. Target must lie in lower flat indices.`,
         low,
         high,
         mid,
@@ -257,8 +277,8 @@ export const generateBinarySearchMatrixSteps = (
       high = mid - 1;
       addStep(
         18,
-        `Set high = mid - 1 = ${high}`,
-        `Discarded upper half [${mid}..${totalElements - 1}]. Next active search window is [${low}..${high}].`,
+        "Contract upper search boundary",
+        `Updating high = mid - 1 (${high}). Discarding flat index range [${mid}..${totalElements - 1}]. Active window becomes [${low}..${high}].`,
         low,
         high,
         mid,
@@ -271,8 +291,8 @@ export const generateBinarySearchMatrixSteps = (
   if (!found) {
     addStep(
       20,
-      `Return False — target ${target} not found`,
-      `low (${low}) has crossed past high (${high}), so the search range is empty and no cell ever matched ${target}.`,
+      "Target not found: search window exhausted",
+      `Search bounds crossed (low=${low} > high=${high}). Target ${target} is not present in the matrix.`,
       low,
       high,
       undefined,

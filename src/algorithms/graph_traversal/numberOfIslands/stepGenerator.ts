@@ -4,7 +4,7 @@ import { DEFAULT_NUMBER_OF_ISLANDS_INPUT } from "./definition";
 
 export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const rawGrid = input?.grid || DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid;
+  const rawGrid = Array.isArray(input?.grid) ? input.grid : DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid;
   let stepIndex = 0;
 
   if (!rawGrid || rawGrid.length === 0 || rawGrid[0].length === 0) {

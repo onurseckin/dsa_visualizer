@@ -1,27 +1,22 @@
 # DSA Visualizer
 
-An interactive learning workspace for data structures, algorithms, and ML
-infrastructure. It combines step-by-step visualizations, executable Python
-playgrounds, curriculum roadmaps, a searchable learning-item directory, and
-retrieval-practice trivia.
+An interactive learning workspace for data structures and algorithms. It
+combines step-by-step visualizations, executable Python playgrounds,
+curriculum roadmaps, a searchable learning-item directory, and
+retrieval-practice trivia. ML-infrastructure roadmap shells remain in the
+curriculum, while their native learning content is currently retired.
 
-The active catalog is intentionally bounded at **157 learning items**:
+The active catalog is intentionally bounded at **88 DSA learning items**.
 
-- 88 data-structures and algorithms exercises; and
-- 69 ML-infrastructure assessments across 15 required topics and 8 electives.
-
-Each of the 23 ML topics contains exactly three complementary assessments. The ML
-path starts with Python, problem framing, data contracts, numerical foundations,
-evaluation, and training before moving through reproducibility, data/feature
-pipelines, orchestration, platforms, release, serving, production operations, and
-capstones.
+The 23 retained ML topic/placement shells preserve roadmap structure, but do
+not contribute active learning items or assessments.
 
 ## Stack
 
 - React 19 + TypeScript 7
 - Vite 5 + TanStack Router file routes
 - Tailwind 4 and token-based CSS
-- Bun scripts, Vitest + jsdom, Oxlint, and Oxfmt
+- Bun scripts, Oxlint, and Oxfmt
 - A Bun HTTP API with persistent SQLite state
 - A hybrid Python runner: Pyodide in a Web Worker for browser-compatible NumPy
   exercises and an isolated CPython 3.12 container for server/PyTorch exercises
@@ -74,9 +69,13 @@ production-style static Nginx stack and does not live-reload.
 Every executable workspace has two code surfaces:
 
 - **Reference** is the immutable, authored solution and remains connected to the
-  step-by-step explanation and input-aware visualization.
+  step-by-step explanation and input-aware visualizer tutorial.
 - **Playground** is an editable starter or draft. Running it executes authored
   cases, reports per-case results, and captures `stdout` from `print`.
+
+Visualizer tutorials tell an intuitive visual story of how algorithms work
+step-by-step, completely independent of source code line numbers. Problem
+descriptions and topic guides are authored using clean React HTML markup.
 
 Trace, calculator, debugging, scenario, and capstone workspaces also render the
 selected case's input, explicitly labelled conceptual frames, and authored
@@ -92,9 +91,9 @@ Docker CPython runner for server/PyTorch exercises. A browser infrastructure
 failure can fall back to the server when the execution contract permits it.
 Learner drafts are saved per item and validated when restored.
 
-ML content uses six explicit learning-item modes: algorithm, trace, calculator,
-debugging, scenario, and capstone. Difficulty is derived from a four-factor
-profile rather than inferred from an advanced-sounding title.
+The learning model still supports algorithm, trace, calculator, debugging,
+scenario, and capstone modes for future content. Active content currently uses
+the 88 canonical DSA definitions.
 
 ## Common commands
 
@@ -114,16 +113,12 @@ profile rather than inferred from an advanced-sounding title.
 | `bun run typecheck` | TypeScript check |
 | `bun run format:check` | Formatting check |
 | `bun run lint` | Lint with zero warnings |
-| `bunx vitest run <path>` | Focused test run |
-| `bun run test` | Full test suite |
-| `bun run test:coverage` | Full suite with enforced coverage floors |
 | `bun run build` | Production build |
 | `bun run compose:check` | Validate Compose topology and runner hardening |
 | `bun run compose:dev:check` | Validate the Docker development Compose configuration |
-| `bun run audit:catalog` | Verify the exact 88 + 69 catalog, Python assets, sources, and retirement ledger |
-| `bun run test:e2e` | Browser smoke suite; Docker-only runner test is skipped |
-| `bun run test:e2e:docker` | Complete browser suite against the running Compose stack |
-| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog, coverage, and build |
+| `bun run audit:catalog` | Verify the 88 active DSA catalog, retired ML content, Python assets, sources, and retirement ledger |
+| `bun run audit:visualizers` | Report tutorial detachment, narrative, scenario, transition, and primitive usage health |
+| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog, and build |
 
 Use Bun for every command in this repository. Do not add npm, pnpm, or yarn lockfiles.
 
@@ -131,23 +126,24 @@ Use Bun for every command in this repository. Do not add npm, pnpm, or yarn lock
 
 Every item has one canonical kebab-case ID and a non-empty `topicIds` tuple.
 `src/algorithms/registry.ts` enrolls the 88 DSA `AlgorithmDefinition` records.
-`src/learning/registry.ts` adapts those definitions and enrolls the 69 native ML
-items into the 157-item `LEARNING_ITEMS` catalog. Filters, counts, search,
-roadmap drawers, workspace routing, and trivia derive from that catalog.
+`src/learning/registry.ts` adapts those definitions into the 88-item active
+`LEARNING_ITEMS` catalog. Filters, counts, search, roadmap drawers, workspace
+routing, and trivia derive from that catalog. ML topic and placement shells are
+retained but their native items are retired.
 
-There are no aliases, legacy category fields, manual roadmap counts, or static
-problem lists in curriculum data. Every topic binding is equal—tuple order never
-creates a primary topic. Curriculum placements own only teaching sequence,
-prerequisites, family, copy, difficulty framing, and coordinates.
+There are no aliases, legacy category fields, backwards-compatibility layers,
+manual roadmap counts, or static problem lists in curriculum data. Every topic
+binding is equal—tuple order never creates a primary topic. Curriculum placements
+own only teaching sequence, prerequisites, family, copy, difficulty framing,
+and coordinates. Problem descriptions and topic guides use clean React HTML markup,
+and visualizer tutorials communicate step-by-step algorithm behavior independent
+of source code line numbers. See [TUTORIAL_GUIDE.md](TUTORIAL_GUIDE.md) for the
+scalar narrative, primitive naming, composite, and migration contracts.
 
 See [docs/catalog.md](docs/catalog.md) for the contribution workflow,
 [docs/architecture.md](docs/architecture.md) for system boundaries, and
 [research/ml-infra-curriculum/README.md](research/ml-infra-curriculum/README.md)
-for the research and migration record.
-
-The coverage gate includes every executable `src/**/*.ts(x)` file and currently
-enforces 98% statements/lines, 89% branches, and 97% functions, plus a per-file rule
-that every applicable metric receives behavioral coverage.
+for curriculum reference material.
 
 ## Contributing
 

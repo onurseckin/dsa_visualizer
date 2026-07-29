@@ -161,12 +161,9 @@ reference archive. It must not remain enrolled merely to preserve a count.
 
 Follow the repository's algorithm-change sequence:
 
-1. focused pure-generator tests;
-2. relevant render and interaction tests;
-3. `src/algorithms/specs/catalogRegistry.contract.spec.ts`;
-4. `src/components/knowledge-graph/specs/catalogTopology.contract.spec.ts`;
-5. `bun run generate-routes` only if a route file changed;
-6. `bun run check`.
+1. `bun run generate-routes` only if a route file changed;
+2. `bun run audit:catalog`;
+3. `bun run check`.
 
 Also add research-specific validation:
 

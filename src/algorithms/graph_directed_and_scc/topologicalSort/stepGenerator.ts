@@ -5,12 +5,15 @@ export const generateTopologicalSortSteps = (input: TopologicalSortInput): Algor
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nodes: GraphNodeItem[] = input.nodes.map((n) => ({
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
+
+  const nodes: GraphNodeItem[] = rawNodes.map((n) => ({
     ...n,
     state: "default",
   }));
 
-  const edges: GraphEdgeItem[] = input.edges.map((e) => ({
+  const edges: GraphEdgeItem[] = rawEdges.map((e) => ({
     ...e,
     isTraversed: false,
     isPath: false,

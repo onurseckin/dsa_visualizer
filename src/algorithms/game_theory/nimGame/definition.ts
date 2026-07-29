@@ -9,23 +9,23 @@ export const DEFAULT_NIM_INPUT: NimInput = {
 
 const NIM_GAME_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Nim is the canonical reference example of an impartial combinatorial game played under normal play rules. Multiple piles of objects sit on the table, and two players alternate turns removing any positive number of objects from a single pile. The last player to move wins the game. Rather than exploring an exponential game tree search, the Sprague-Grundy theorem proves that the entire game state is completely determined by a single algebraic quantity: the Nim-sum $S = x_1 \\oplus x_2 \\oplus \\dots \\oplus x_n$, which is the bitwise XOR sum of all pile sizes. A Nim-sum of $S = 0$ represents a losing P-position for the player to move, while a non-zero Nim-sum $S \\neq 0$ represents a winning N-position.",
+    "<p><strong>Nim</strong> is the canonical impartial combinatorial game played under normal play rules. Multiple piles of objects sit on the table, and two players alternate turns removing any positive number of objects from a single pile. Under normal play, the last player to move wins. Rather than exploring an exponential game tree search, the <strong>Sprague-Grundy theorem</strong> proves that the game state is completely determined by the <strong>Nim-sum</strong> <code>S = x<sub>1</sub> &oplus; x<sub>2</sub> &oplus; ... &oplus; x<sub>n</sub></code>. A Nim-sum of <code>S = 0</code> represents a losing P-position for the player to move, while <code>S &ne; 0</code> represents a winning N-position.</p>",
   sections: [
     {
-      heading: "Impartial Games & Normal Play Convention",
-      body: "An impartial game is a combinatorial game where both players have access to the exact same set of legal moves from any given board state. Unlike Chess or Poker, there is no asymmetric piece ownership, no random chance, and no hidden information. Under the normal play convention, a player who has no legal moves left loses the game immediately, meaning the player who makes the final valid move wins.",
+      heading: "Impartial Games & Normal Play",
+      body: "<p>An impartial game gives both players identical legal options from any board state. Under normal play rules, a player without legal moves loses immediately, making the player who makes the final valid move the winner.</p>",
     },
     {
-      heading: "P-Positions vs N-Positions & Game Equivalence",
-      body: "Game positions are recursively classified into P-positions (Previous player winning / Next player losing) and N-positions (Next player winning / Previous player losing). A state is a P-position if every valid move leads to an N-position. Conversely, a state is an N-position if at least one valid move leads to a P-position. Charles Bouton proved in 1901 that a Nim position is a P-position if and only if its Nim-sum $S = x_1 \\oplus x_2 \\oplus \\dots \\oplus x_n$ equals $0$.",
+      heading: "P-Positions vs N-Positions",
+      body: "<p>Game states recursively partition into <strong>P-positions</strong> (Previous player winning / Next player losing) and <strong>N-positions</strong> (Next player winning). Charles Bouton proved in 1901 that a Nim position is a P-position if and only if its Nim-sum <code>S = &bigoplus; x<sub>i</sub></code> equals 0.</p>",
     },
     {
-      heading: "Constructing the Optimal Winning Move",
-      body: "When facing a non-zero Nim-sum $S \\neq 0$ (an N-position), the First Player can always force a win in a single move. To find the winning move, locate the highest set bit $d$ in $S$. Find any pile $i$ whose binary representation has bit $d$ set. Reducing pile $i$ to target size $x_i' = x_i \\oplus S$ is guaranteed to strictly decrease the pile size ($x_i' < x_i$), yielding a valid move that resets the new Nim-sum to exactly $0$ and handing the opponent a losing P-position.",
+      heading: "Constructing the Optimal Move",
+      body: "<p>Facing an N-position (<code>S &ne; 0</code>), the First Player can always force a win. Locating the most significant set bit <code>d</code> in <code>S</code> and selecting any pile <code>i</code> with bit <code>d</code> set allows reducing pile <code>i</code> to <code>x<sub>i</sub>' = x<sub>i</sub> &oplus; S &lt; x<sub>i</sub></code>, resetting the new Nim-sum to 0 for the opponent.</p>",
     },
     {
-      heading: "The Sprague-Grundy Theorem Connection",
-      body: "The Sprague-Grundy theorem generalizes Nim to ALL finite impartial games under normal play rules. It establishes that every position in an impartial game is equivalent to a single Nim pile of size equal to its Grundy value (or nim-value) $g = \\text{mex}(\\{g_1, g_2, \\dots\\})$, where $\\text{mex}$ is the Minimum Excluded Value of reachable successor states. Concurrently played independent subgames simply XOR their Grundy values together, exactly matching the behavior of Nim piles.",
+      heading: "Sprague-Grundy Theorem Connection",
+      body: "<p>The Sprague-Grundy theorem proves that every position in any finite impartial game is equivalent to a Nim pile of size equal to its Grundy value <code>g = mex({g<sub>1</sub>, g<sub>2</sub>, ...})</code>. Independent parallel subgames combine by XORing their Grundy values.</p>",
     },
   ],
   keyTerms: [
@@ -36,8 +36,7 @@ const NIM_GAME_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Nim-Sum",
-      definition:
-        "The bitwise XOR sum of all pile sizes ($S = x_1 \\oplus x_2 \\oplus \\dots \\oplus x_n$).",
+      definition: "The bitwise XOR sum of all pile sizes (S = x_1 ^ x_2 ^ ... ^ x_n).",
     },
     {
       term: "P-Position",
@@ -52,7 +51,7 @@ const NIM_GAME_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Grundy value",
       definition:
-        "The equivalent Nim pile size of an impartial game position, computed recursively via the minimum excluded value (mex).",
+        "The equivalent Nim pile size of an impartial game position, computed recursively via minimum excluded value (mex).",
     },
     {
       term: "Sprague-Grundy Theorem",
@@ -93,7 +92,7 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   topicIds: ["math_and_number_theory", "game_theory"],
   difficulty: "Easy",
   description:
-    "Nim is the classic impartial combinatorial game solved by the Sprague-Grundy theorem. Computing the Nim-sum—the bitwise XOR sum of all pile sizes:\n$$S = x_1 \\oplus x_2 \\oplus \\dots \\oplus x_n$$\ninstantly determines whether the position is a forced win for the First Player ($S \\neq 0$, N-position) or the Second Player ($S = 0$, P-position), and pinpoints the optimal opening move by targeting a pile $i$ with $x_i' = x_i \\oplus S < x_i$.",
+    "<p><strong>Nim</strong> is the classic impartial combinatorial game solved by the Sprague-Grundy theorem. Computing the <strong>Nim-sum</strong>—the bitwise XOR sum of all pile sizes:</p><p><code>S = x<sub>1</sub> &oplus; x<sub>2</sub> &oplus; ... &oplus; x<sub>n</sub></code></p><p>instantly determines whether the position is a forced win for the First Player (<code>S &ne; 0</code>, N-position) or the Second Player (<code>S = 0</code>, P-position), and pinpoints the optimal opening move by targeting a pile <code>i</code> with <code>x<sub>i</sub>' = x<sub>i</sub> &oplus; S &lt; x<sub>i</sub></code>.</p><h3>State Representation</h3><p>The state is tracked as a 1D array of pile sizes alongside the running bitwise XOR accumulator.</p><h3>Input Parameters</h3><ul><li><code>piles</code>: Array of non-negative integer pile sizes.</li></ul><h3>Output</h3><ul><li><code>dict</code>: Indicates winning player and optimal reducing move details.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Zero Nim-sum:</strong> <code>S = 0</code> implies Second Player win (P-position).</li><li><strong>Empty Board:</strong> All <code>piles = 0</code> is a terminal P-position.</li></ul>",
   constraints: ["1 <= piles.length <= 10^4", "0 <= piles[i] <= 10^9"],
   examples: [
     {
@@ -135,9 +134,9 @@ export const nimGame: AlgorithmDefinition<NimInput> = {
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "We make one pass over the piles to XOR their sizes together in $\\mathcal{O}(n)$ time, then at most one more pass to locate the winning move pile. No game tree search is required.",
+    time: "We make one pass over the piles to XOR their sizes together in O(n) time, then at most one more pass to locate the winning move pile. No game tree search is required.",
     space:
-      "Auxiliary space is $\\mathcal{O}(1)$ because only a single scalar XOR sum register and loop indices are maintained.",
+      "Auxiliary space is O(1) because only a single scalar XOR sum register and loop indices are maintained.",
   },
   topicGuide: NIM_GAME_TOPIC_GUIDE,
   trivia: NIM_GAME_TRIVIA,

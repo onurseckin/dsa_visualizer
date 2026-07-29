@@ -1,15 +1,28 @@
 import React from "react";
 import { boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
-import { elementStateToken, VectorVisualSnapshot } from "../../types/dsa";
+import {
+  elementStateToken,
+  VectorVisualSnapshot,
+  AuxiliaryState,
+  DisplayValue,
+} from "../../types/dsa";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
 
 export interface VectorVisualizerProps {
   vectors: VectorVisualSnapshot["vectors"];
   origin?: { x: number; y: number };
   planeTitle?: string;
   dimensions?: "2d" | "3d";
+  auxiliaryState?: AuxiliaryState;
+  variables?: Record<string, DisplayValue>;
 }
 
-export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({ vectors, planeTitle }) => {
+export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({
+  vectors,
+  planeTitle,
+  auxiliaryState,
+  variables,
+}) => {
   const { ref, box } = useCanvasBox({ width: 800, height: 500 });
   const centerX = box.width / 2;
   const centerY = box.height / 2;
@@ -67,7 +80,7 @@ export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({ vectors, pla
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "16px",
+          padding: 0,
         }}
       >
         <svg
@@ -177,6 +190,7 @@ export const VectorVisualizer: React.FC<VectorVisualizerProps> = ({ vectors, pla
               </g>
             );
           })}
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
     </div>

@@ -124,8 +124,15 @@ export const DEFAULT_DAG_DP_INPUT: DagDpLongestPathInput = {
 
 export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const nodes = input.nodes.map((n) => ({ ...n }));
-  const edges = input.edges.map((e) => ({ ...e }));
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_DAG_DP_INPUT;
+  const inputNodes =
+    Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
+      ? safeInput.nodes
+      : DEFAULT_DAG_DP_INPUT.nodes;
+  const inputEdges = Array.isArray(safeInput.edges) ? safeInput.edges : DEFAULT_DAG_DP_INPUT.edges;
+
+  const nodes = inputNodes.map((n) => ({ ...n }));
+  const edges = inputEdges.map((e) => ({ ...e }));
 
   const adj: Record<string, Array<{ to: string; weight: number }>> = {};
   const inDegree: Record<string, number> = {};
@@ -432,7 +439,7 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear O(V + E) time using Dynamic Programming combined with Topological Sort. Given a DAG with V vertices and E weighted edges, compute the length of the longest path along with the sequence of vertices forming that path. While finding the longest path in general graphs is NP-hard, DAG acyclicity allows evaluating DP transitions in topological order: dp[v] = max(dp[v], dp[u] + weight(u, v)). Return the maximum path length in the DAG.",
+    "<p>Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear <code>O(V + E)</code> time using Dynamic Programming combined with Topological Sort. Given a DAG with V vertices and E weighted edges, compute the length of the longest path along with the sequence of vertices forming that path. While finding the longest path in general graphs is NP-hard, DAG acyclicity allows evaluating DP transitions in topological order: <code>dp[v] = max(dp[v], dp[u] + weight(u, v))</code>. Return the maximum path length in the DAG.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 5000",
@@ -499,33 +506,32 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Topological sorting takes $\\mathcal{O}(V + E)$ using Kahn's algorithm. DP edge relaxation visits each edge once, taking $\\mathcal{O}(V + E)$. Total time is linear $\\mathcal{O}(V + E)$.",
-    space:
-      "Adjacency lists, DP arrays, and topological sorting queues consume $\\mathcal{O}(V + E)$ memory.",
+    time: "Topological sorting takes O(V + E) using Kahn's algorithm. DP edge relaxation visits each edge once, taking O(V + E). Total time is linear O(V + E).",
+    space: "Adjacency lists, DP arrays, and topological sorting queues consume O(V + E) memory.",
   },
   topicGuide: {
     overview:
-      "While finding the longest path in general directed graphs is NP-hard (by reduction to the **Hamiltonian Path** problem), the structural absence of directed cycles in a **DAG** enables an optimal dynamic programming solution in linear $\\mathcal{O}(V + E)$ time. By evaluating vertices in topological order, all predecessors of a node are fully processed before its own optimal path values are computed.",
+      "<p>While finding the longest path in general directed graphs is NP-hard (by reduction to the <strong>Hamiltonian Path</strong> problem), the structural absence of directed cycles in a <strong>DAG</strong> enables an optimal dynamic programming solution in linear <code>O(V + E)</code> time. By evaluating vertices in topological order, all predecessors of a node are fully processed before its own optimal path values are computed.</p>",
     sections: [
       {
         heading: "Core Concept: Topological Pre-Ordering & Optimal Substructure",
-        body: "Topological ordering ensures that for every directed edge $u \\to v$, $u$ appears before $v$ in the traversal sequence. Consequently, when calculating $\\text{dp}[v]$, all potential incoming paths $(u, v)$ have already had their maximal lengths $\\text{dp}[u]$ finalized.",
+        body: "<p>Topological ordering ensures that for every directed edge <code>u &rarr; v</code>, <code>u</code> appears before <code>v</code> in the traversal sequence. Consequently, when calculating <code>dp[v]</code>, all potential incoming paths <code>(u, v)</code> have already had their maximal lengths <code>dp[u]</code> finalized.</p>",
       },
       {
         heading: "DP State Transitions & Path Reconstruction",
-        body: "Define $\\text{dp}[v]$ as the maximum path weight ending at vertex $v$. The state transition equation is:\n$$\\text{dp}[v] = \\max_{(u, v) \\in E}(\\text{dp}[v], \\text{dp}[u] + \\text{weight}(u, v))$$\nMaintaining parent pointers $\\text{parent}[v] = u$ allows backtracking from $\\max(\\text{dp})$ to reconstruct the exact optimal path sequence.",
+        body: "<p>Define <code>dp[v]</code> as the maximum path weight ending at vertex <code>v</code>. The state transition equation is: <code>dp[v] = max(dp[v], dp[u] + weight(u, v))</code>. Maintaining parent pointers <code>parent[v] = u</code> allows backtracking from <code>max(dp)</code> to reconstruct the exact optimal path sequence.</p>",
       },
       {
         heading: "Systems & Critical Path Method (CPM)",
-        body: "Longest path computation on DAGs is the core mathematical engine of Project Management **Critical Path Method (CPM)**, build pipeline optimization (Bazel, Ninja), chip synthesis timing analysis (**Static Timing Analysis** in VLSI design), and ML compute graph execution scheduling.",
+        body: "<p>Longest path computation on DAGs is the core mathematical engine of Project Management <strong>Critical Path Method (CPM)</strong>, build pipeline optimization (Bazel, Ninja), chip synthesis timing analysis (<strong>Static Timing Analysis</strong> in VLSI design), and ML compute graph execution scheduling.</p>",
       },
       {
         heading: "Edge Cases & Negative Weights",
-        body: "Unlike Dijkstra's algorithm, DAG DP natively handles negative edge weights without looping endlessly, because cycles do not exist. Isolated vertices have a longest path length of 0. Disconnected components are handled seamlessly by initializing $\\text{dp}[v] = 0$ across all sources.",
+        body: "<p>Unlike Dijkstra's algorithm, DAG DP natively handles negative edge weights without looping endlessly, because cycles do not exist. Isolated vertices have a longest path length of 0. Disconnected components are handled seamlessly by initializing <code>dp[v] = 0</code> across all sources.</p>",
       },
       {
         heading: "Complexity Analysis",
-        body: "$$\\text{Time Complexity}: \\mathcal{O}(V + E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Topological Sort**: Kahn's BFS algorithm visits all $V$ nodes and $E$ edges in $\\mathcal{O}(V + E)$ time.\n- **DP Transitions**: Edge relaxation inspects every edge once, running in $\\mathcal{O}(V + E)$ time.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Topological Sort:</strong> Kahn's BFS algorithm visits all V nodes and E edges in <code>O(V + E)</code> time.</li><li><strong>DP Transitions:</strong> Edge relaxation inspects every edge once, running in <code>O(V + E)</code> time.</li></ul>",
       },
     ],
     keyTerms: [
@@ -533,7 +539,7 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
       {
         term: "Topological Sort",
         definition:
-          "Linear ordering of vertices such that for every directed edge $u \\to v$, $u$ comes before $v$.",
+          "Linear ordering of vertices such that for every directed edge u -> v, u comes before v.",
       },
       {
         term: "Critical Path",

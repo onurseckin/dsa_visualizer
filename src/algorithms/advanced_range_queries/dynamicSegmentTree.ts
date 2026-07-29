@@ -74,8 +74,16 @@ export const generateDynamicSegmentTreeSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rangeL = input.rangeMin ?? 1;
-  const rangeR = input.rangeMax ?? 16;
+  const safeInput = {
+    rangeMin: input?.rangeMin ?? DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT.rangeMin,
+    rangeMax: input?.rangeMax ?? DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT.rangeMax,
+    operations: Array.isArray(input?.operations)
+      ? input.operations
+      : DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT.operations,
+  };
+  const rangeL = safeInput.rangeMin;
+  const rangeR = safeInput.rangeMax;
+  const ops = safeInput.operations;
 
   const root: InternalNode = {
     id: `node-[${rangeL}..${rangeR}]`,
@@ -135,8 +143,6 @@ export const generateDynamicSegmentTreeSteps = (
     { rangeL, rangeR },
     root.id,
   );
-
-  const ops = input.operations ?? [];
 
   const updateNode = (node: InternalNode, idx: number, val: number) => {
     addStep(
@@ -357,27 +363,27 @@ export const generateDynamicSegmentTreeSteps = (
 
 export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **Dynamic Segment Tree** (also known as a **Sparse Segment Tree**) constructs tree nodes **lazily on demand** as point updates occur, rather than allocating a full tree up front. This enables range queries and updates over massive coordinate domains (e.g. $[1 \\dots 10^9]$) using memory proportional strictly to the number of update operations: $O(Q \\log C)$ total space.",
+    "<p>A <strong>Dynamic Segment Tree</strong> (also known as a <strong>Sparse Segment Tree</strong>) constructs tree nodes <strong>lazily on demand</strong> as point updates occur, rather than allocating a full tree up front. This enables range queries and updates over massive coordinate domains (e.g. <code>[1...10⁹]</code>) using memory proportional strictly to the number of update operations: <code>O(Q log C)</code> total space.</p>",
   sections: [
     {
       heading: "1. Lazy Pointer Allocation Architecture",
-      body: "Standard segment trees allocate $4N$ nodes upfront, which fails when coordinate ranges reach $10^9$.\n\n- Starts with a single root covering full domain $[1 \\dots C]$.\n- When descending toward target index $i$, if a child pointer is `null`, a new node covering half interval $[\\text{l} \\dots \\text{mid}]$ or $[\\text{mid}+1 \\dots \\text{r}]$ is instantiated dynamically on the fly.",
+      body: "<p>Standard segment trees allocate <code>4N</code> nodes upfront, which fails when coordinate ranges reach <code>10⁹</code>.</p><ul><li>Starts with a single root covering full domain <code>[1...C]</code>.</li><li>When descending toward target index <code>i</code>, if a child pointer is <code>null</code>, a new node covering half interval <code>[l...mid]</code> or <code>[mid+1...r]</code> is instantiated dynamically on the fly.</li></ul>",
     },
     {
-      heading: "2. Logarithmic Space Bound: $O(Q \\log C)$",
-      body: "Each point update creates at most $\\lceil \\log_2 C \\rceil$ nodes along its root-to-leaf path:\n\n$$\\text{Total Memory} = O(Q \\log_2 C)$$\n\nFor $Q = 10^5$ operations on domain $C = 10^9$, $\\log_2(10^9) \\approx 30$ levels, allocating only $\\approx 3 \\times 10^6$ nodes instead of $4 \\times 10^9$.",
+      heading: "2. Logarithmic Space Bound: O(Q log C)",
+      body: "<p>Each point update creates at most <code>&lceil;log₂ C&rceil;</code> nodes along its root-to-leaf path:</p><p><code>Total Memory = O(Q log₂ C)</code></p><p>For <code>Q = 10⁵</code> operations on domain <code>C = 10⁹</code>, <code>log₂(10⁹) &approx; 30</code> levels, allocating only <code>&approx; 3 &times; 10⁶</code> nodes instead of <code>4 &times; 10⁹</code>.</p>",
     },
     {
       heading: "3. Implicit Zero Queries",
-      body: "Range queries traverse existing nodes in the dynamic tree. If a child pointer is `null` (unallocated), its contribution is implicitly $0$. Query operations never instantiate missing nodes, preserving space efficiency during read-only passes.",
+      body: "<p>Range queries traverse existing nodes in the dynamic tree. If a child pointer is <code>null</code> (unallocated), its contribution is implicitly 0. Query operations never instantiate missing nodes, preserving space efficiency during read-only passes.</p>",
     },
     {
       heading: "4. Trade-off Matrix: Dynamic Segment Tree vs Coordinate Compression",
-      body: "| Feature | Dynamic Segment Tree | Coordinate Compression |\n| :--- | :--- | :--- |\n| **Processing Mode** | Pure Online | Offline Only (requires all coordinates up front) |\n| **Domain Range** | Up to $10^9$ (32-bit int) | Mapped to $[1 \\dots N]$ |\n| **Query Complexity** | $O(\\log C)$ | $O(\\log N)$ |\n| **Space Complexity** | $O(Q \\log C)$ | $O(N)$ |",
+      body: "<p>Comparing dynamic pointer allocation against coordinate compression:</p><ul><li><strong>Processing Mode</strong>: Dynamic Segment Tree is Pure Online versus Coordinate Compression's Offline Only requirement.</li><li><strong>Domain Range</strong>: Up to <code>10⁹</code> (32-bit int) versus mapped indices <code>[1...N]</code>.</li><li><strong>Query Complexity</strong>: <code>O(log C)</code> versus <code>O(log N)</code>.</li><li><strong>Space Complexity</strong>: <code>O(Q log C)</code> versus <code>O(N)</code>.</li></ul>",
     },
     {
       heading: "5. Implementation Details & Pointer Safety",
-      body: "- **Pointer Traversal**: Uses explicit `node.left` and `node.right` object pointers instead of fixed array indices $2v$ and $2v+1$.\n- **Midpoint Overflow Protection**: Compute midpoint as `mid = (node.l + node.r) // 2` carefully when coordinates extend into large integer ranges.",
+      body: "<ul><li><strong>Pointer Traversal</strong>: Uses explicit <code>node.left</code> and <code>node.right</code> object pointers instead of fixed array indices <code>2v</code> and <code>2v+1</code>.</li><li><strong>Midpoint Overflow Protection</strong>: Compute midpoint as <code>mid = floor((node.l + node.r) / 2)</code> carefully when coordinates extend into large integer ranges.</li></ul>",
     },
   ],
   keyTerms: [
@@ -389,7 +395,7 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Lazy Pointer Allocation",
       definition:
-        "Creating child pointers (`left` and `right`) dynamically on demand only when visited by an update operation.",
+        "Creating child pointers (left and right) dynamically on demand only when visited by an update operation.",
     },
     {
       term: "Online Algorithm",
@@ -399,7 +405,7 @@ export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Coordinate Domain",
       definition:
-        "The total numerical interval $[\\text{rangeMin} \\dots \\text{rangeMax}]$ over which operations take place.",
+        "The total numerical interval [rangeMin...rangeMax] over which operations take place.",
     },
   ],
 };
@@ -464,7 +470,7 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A **Dynamic Segment Tree** supports $O(\\log C)$ point updates and range queries over huge coordinate ranges (up to $10^9$) by allocating tree nodes lazily on demand. This approach optimizes memory usage to $O(Q \\log C)$ by creating only the nodes required to represent the sparse set of updated indices.",
+    "<p>A <strong>Dynamic Segment Tree</strong> supports <code>O(log C)</code> point updates and range queries over huge coordinate ranges (up to <code>10⁹</code>) by allocating tree nodes lazily on demand. This approach optimizes memory usage to <code>O(Q log C)</code> by creating only the nodes required to represent the sparse set of updated indices.</p>",
   constraints: ["1 <= rangeMax <= 10^9", "1 <= Q <= 10^5", "-10^9 <= value <= 10^9"],
   examples: [
     {

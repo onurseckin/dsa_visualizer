@@ -7,10 +7,8 @@
    does not, or vice versa. */
 
 /* `isContentEditable` is the signal that matters in a browser — it is true inside a
-   contenteditable ancestor, not just on the host element — but jsdom leaves it
-   `undefined`, which would make this predicate return `undefined` instead of the
-   boolean it promises. The attribute lookup is the fallback that keeps both the
-   contract and the guard's coverage honest. */
+   contenteditable ancestor, not just on the host element. The attribute lookup is
+   a fallback that guarantees this predicate returns a boolean. */
 const isEditableTarget = (element: HTMLElement): boolean =>
   element.isContentEditable === true ||
   element.closest('[contenteditable=""], [contenteditable="true"]') !== null;

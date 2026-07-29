@@ -14,23 +14,23 @@ export const DEFAULT_POLYGON_AREA_INPUT: PolygonAreaInput = {
 
 const POLYGON_AREA_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Shoelace formula (also known as Gauss's Area Formula) calculates the exact area of any simple non-self-intersecting 2D polygon P directly from its ordered vertices (x0, y0), (x1, y1), ..., (xn-1, yn-1). By computing signed trapezoidal cross-product contributions for each edge in a single O(N) pass, the total enclosed surface area is evaluated with exact arithmetic precision.",
+    "<p>The <strong>Shoelace formula</strong> (also known as Gauss's Area Formula) calculates the exact area of any simple non-self-intersecting 2D polygon <code>P</code> directly from its ordered vertices <code>(x0, y0), (x1, y1), ..., (xn-1, yn-1)</code>. By computing signed trapezoidal cross-product contributions for each edge in a single <code>O(N)</code> pass, the total enclosed surface area is evaluated with exact arithmetic precision.</p>",
   sections: [
     {
       heading: "Mathematical Formulation and Cross Product Derivation",
-      body: "For a simple polygon with N vertices, the enclosed area A is given by the cross product summation formula A = 0.5 x |sum(x(i) y(i+1) - x(i+1) y(i))| where index arithmetic i+1 wraps modulo N. Each pair of vertices forms a signed triangle with origin (0, 0). Summing these signed areas causes regions outside the polygon to cancel out, leaving twice the true enclosed polygon area.",
+      body: "<p>For a simple polygon with <code>N</code> vertices, the enclosed area <code>A</code> is given by the cross product summation formula <code>A = 0.5 × |∑(x(i) y(i+1) - x(i+1) y(i))|</code> where index arithmetic <code>i+1</code> wraps modulo <code>N</code>. Each pair of vertices forms a signed triangle with origin <code>(0, 0)</code>. Summing these signed areas causes regions outside the polygon to cancel out, leaving twice the true enclosed polygon area.</p>",
     },
     {
       heading: "Single Pass Perimeter Traversal Architecture",
-      body: "The implementation executes a single linear sweep over the ordered vertex array. At step i, vertex i pairs with vertex (i + 1) mod N, multiplying cross coordinates x(i) y(i+1) - x(i+1) y(i) and adding to a running scalar accumulator. Taking absolute value and dividing by 2 yields final area without sorting or recursion.",
+      body: "<p>The implementation executes a single linear sweep over the ordered vertex array. At step <code>i</code>, vertex <code>i</code> pairs with vertex <code>(i + 1) mod N</code>, multiplying cross coordinates <code>x(i) y(i+1) - x(i+1) y(i)</code> and adding to a running scalar accumulator. Taking absolute value and dividing by 2 yields final area without sorting or recursion.</p>",
     },
     {
       heading: "Winding Order and Geometric Properties",
-      body: "The raw sum sign before absolute value reveals the boundary traversal winding order. Positive signed sum indicates counter-clockwise orientation in standard Cartesian coordinates. Negative sum indicates clockwise traversal, while zero sum indicates collinear vertices enclosing zero area. Winding order is crucial for backface culling in graphics rendering pipelines.",
+      body: "<p>The raw sum sign before absolute value reveals the boundary traversal winding order. Positive signed sum indicates counter-clockwise orientation in standard Cartesian coordinates. Negative sum indicates clockwise traversal, while zero sum indicates collinear vertices enclosing zero area. Winding order is crucial for backface culling in graphics rendering pipelines.</p>",
     },
     {
       heading: "Numerical Precision and Algorithmic Considerations",
-      body: "Integer coordinates yield exact area sums without floating-point rounding errors. For large coordinate values, 64-bit integers prevent intermediate multiplication overflow. Non-simple self-intersecting polygons violate Shoelace assumptions by subtracting overlapping regions rather than adding them.",
+      body: "<p>Integer coordinates yield exact area sums without floating-point rounding errors. For large coordinate values, 64-bit integers prevent intermediate multiplication overflow. Non-simple self-intersecting polygons violate Shoelace assumptions by subtracting overlapping regions rather than adding them.</p>",
     },
   ],
   keyTerms: [
@@ -76,7 +76,7 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Medium",
   description:
-    "Calculates the exact area of a simple 2D polygon $\\mathcal{P}$ from its ordered vertices using the Shoelace (Gauss) formula in $\\mathcal{O}(N)$ time:\n\n$$A = \\frac{1}{2} \\left| \\sum_{i=0}^{n-1} (x_i y_{i+1} - x_{i+1} y_i) \\right|$$\n\n### Graph Snapshot Representation\nThe polygon vertices and perimeter edges are rendered on a 2D graph coordinate grid, with active cross-multiplied edges highlighted.\n\n### Input Parameters\n- `points` (`Point2D[]`): Array of ordered 2D polygon vertices.\n\n### Output\n- `float`: Total surface area of the enclosed polygon.\n\n### Edge Cases & Constraints\n- Base Case: $N < 3 \\implies \\text{area} = 0.0$.\n- Collinear Vertices: Yield zero enclosed area.",
+    "<p>Calculates the exact area of a simple 2D polygon <code>P</code> from its ordered vertices using the Shoelace (Gauss) formula in <code>O(N)</code> time:</p><p><code>A = 0.5 × |∑ (x_i y_{i+1} - x_{i+1} y_i)|</code></p><h3>Graph Snapshot Representation</h3><p>The polygon vertices and perimeter edges are rendered on a 2D graph coordinate grid, with active cross-multiplied edges highlighted.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of ordered 2D polygon vertices.</li></ul><h3>Output</h3><ul><li><code>float</code>: Total surface area of the enclosed polygon.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Case:</strong> <code>N &lt; 3</code> implies <code>area = 0.0</code>.</li><li><strong>Collinear Vertices:</strong> Yield zero enclosed area.</li></ul>",
   constraints: [
     "3 <= vertices.length <= 1000",
     "-1000 <= x, y <= 1000",
@@ -142,8 +142,8 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "Single traversal around $N$ vertices performs $N$ cross-multiplications, running in $\\mathcal{O}(N)$ time.",
-    space: "Requires $\\mathcal{O}(1)$ auxiliary space for loop scalar variables.",
+    time: "Single traversal around N vertices performs N cross-multiplications, running in O(N) time.",
+    space: "Requires O(1) auxiliary space for loop scalar variables.",
   },
   topicGuide: POLYGON_AREA_TOPIC_GUIDE,
   trivia: POLYGON_AREA_TRIVIA,

@@ -53,9 +53,14 @@ const HAMILTONIAN_TRIVIA: TriviaMeta = {
 };
 
 export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): AlgorithmStep[] => {
-  const n = Math.max(2, Math.min(8, input.numNodes));
-  const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
-  const isCircuit = Boolean(input.isCircuit);
+  const safeInput = input ?? DEFAULT_HAMILTONIAN_PATH_INPUT;
+  const rawNumNodes = safeInput.numNodes ?? DEFAULT_HAMILTONIAN_PATH_INPUT.numNodes;
+  const n = Math.max(2, Math.min(8, rawNumNodes));
+  const rawEdges = Array.isArray(safeInput.edges)
+    ? safeInput.edges
+    : DEFAULT_HAMILTONIAN_PATH_INPUT.edges;
+  const edgeList = rawEdges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
+  const isCircuit = Boolean(safeInput.isCircuit);
 
   const adj: number[][] = Array.from({ length: n }, () => []);
   for (const [u, v] of edgeList) {
@@ -135,8 +140,8 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
     stepIndex: stepIdx++,
     codeLine: 12,
     explanation: {
-      what: `Initialized Bitmask DP base cases: single-node paths for all ${n} vertices.`,
-      why: "dp[1 << u][u] = True for each vertex u starting its own path.",
+      what: `Initialize Bitmask DP base cases for N = ${n} vertices.`,
+      why: "Setting dp[1 << u][u] = True for each node u starting a path of length 1.",
     },
     primarySnapshot: buildGraphSnapshot(0, -1),
     auxiliaryState: {
@@ -179,8 +184,8 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
               stepIndex: stepIdx++,
               codeLine: 20,
               explanation: {
-                what: `Extended path from V${u} to V${v}. New mask: binary ${nextMask.toString(2).padStart(n, "0")}.`,
-                why: `v=V${v} was unvisited in mask ${mask.toString(2).padStart(n, "0")}. Set dp[nextMask][${v}] = True.`,
+                what: `Extend path from Node V${u} to unvisited Node V${v} (new mask ${nextMask.toString(2).padStart(n, "0")}).`,
+                why: `Since V${v} is not yet in bitmask ${mask.toString(2).padStart(n, "0")}, we transition to dp[nextMask][${v}] = True.`,
               },
               primarySnapshot: buildGraphSnapshot(nextMask, v),
               auxiliaryState: {
@@ -207,11 +212,11 @@ export const generateHamiltonianPathDpSteps = (input: HamiltonianPathInput): Alg
     codeLine: 23,
     explanation: {
       what: pathFound
-        ? `Found valid Hamiltonian ${isCircuit ? "Circuit" : "Path"} ending at V${finalEndNode}!`
-        : `No Hamiltonian ${isCircuit ? "Circuit" : "Path"} exists for this graph.`,
+        ? `Found valid Hamiltonian ${isCircuit ? "Circuit" : "Path"} ending at Node V${finalEndNode}!`
+        : `No Hamiltonian ${isCircuit ? "Circuit" : "Path"} exists for this graph configuration.`,
       why: pathFound
-        ? `dp[${fullMask}][${finalEndNode}] is True, meaning all ${n} vertices were visited.`
-        : `dp[${fullMask}] had no reachable end state visiting all ${n} nodes.`,
+        ? `dp[full_mask][${finalEndNode}] is True, confirming a path visiting all ${n} vertices.`
+        : `All subset bitmasks evaluated without reaching a complete ${n}-vertex coverage state.`,
     },
     primarySnapshot: buildGraphSnapshot(fullMask, finalEndNode),
     auxiliaryState: {
@@ -235,7 +240,7 @@ export const hamiltonianPathDp: AlgorithmDefinition<HamiltonianPathInput> = {
   topicIds: ["backtracking"],
   difficulty: "Hard",
   description:
-    "Determine whether an undirected graph contains a Hamiltonian Path (visiting every vertex exactly once) or Hamiltonian Circuit using Bitmask Dynamic Programming.\n\n### Problem Statement\nGiven an undirected graph with $N$ vertices (labeled 0 to $N-1$) and a list of edges, determine whether there exists a Hamiltonian Path (a simple path visiting every vertex exactly once) or a Hamiltonian Circuit (a closed loop returning to the start vertex).\n\nWhile brute-force depth-first search requires $O(N!)$ factorial time, Bitmask Dynamic Programming (Held-Karp algorithm) optimizes state exploration to $O(2^N \\cdot N^2)$ by encoding visited vertex sets into binary bitmask integers.\n\n### Input Parameters\n- `numNodes` (int): Number of vertices $N$.\n- `edges` (list[tuple[int, int]]): Undirected edge list.\n- `isCircuit` (bool, optional): Whether to check for a closed Hamiltonian Circuit.\n\n### Output\n- bool: True if a valid Hamiltonian Path/Circuit exists, False otherwise.\n\n### Constraints & Edge Cases\n- `1 <= numNodes <= 12`\n- `0 <= edges.length <= numNodes * (numNodes - 1) / 2`\n- Disconnected components or isolated vertices correctly return False.",
+    "<p>Determine whether an undirected graph contains a Hamiltonian Path (visiting every vertex exactly once) or Hamiltonian Circuit using Bitmask Dynamic Programming.</p><h3>Problem Statement</h3><p>Given an undirected graph with <code>N</code> vertices (labeled 0 to <code>N-1</code>) and a list of edges, determine whether there exists a Hamiltonian Path (a simple path visiting every vertex exactly once) or a Hamiltonian Circuit (a closed loop returning to the start vertex).</p><p>While brute-force depth-first search requires <code>O(N!)</code> factorial time, Bitmask Dynamic Programming (Held-Karp algorithm) optimizes state exploration to <code>O(2^N &middot; N^2)</code> by encoding visited vertex sets into binary bitmask integers.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>numNodes</code> (number of vertices), <code>edges</code> (edge pairs), and optional <code>isCircuit</code> boolean.</li><li><strong>Output:</strong> Boolean flag indicating whether a valid Hamiltonian path or circuit exists.</li></ul><h3>Constraints &amp; Edge Cases</h3><ul><li><code>1 &lt;= numNodes &lt;= 12</code></li><li><code>0 &lt;= edges.length &lt;= numNodes * (numNodes - 1) / 2</code></li><li>Disconnected components or isolated vertices correctly return False.</li></ul>",
   constraints: [
     "1 <= numNodes <= 12",
     "0 <= edges.length <= numNodes * (numNodes - 1) / 2",
@@ -322,23 +327,23 @@ def hamiltonian_path_dp(n: int, edges: list[tuple[int, int]]) -> bool:
   },
   topicGuide: {
     overview:
-      "Finding a Hamiltonian Path is one of Karp's 21 classic NP-complete problems. While recursive backtracking requires exponential factorial time O(N!), Dynamic Programming using bitmask representation (the Held-Karp algorithm paradigm) compresses intermediate subproblem state to run in O(2^N * N^2). Practical systems applications include robotic coverage path planning, printed circuit board (PCB) trace routing, and DNA sequence assembly.",
+      "<p>Finding a Hamiltonian Path is one of Karp's 21 classic NP-complete problems. While recursive backtracking requires exponential factorial time <code>O(N!)</code>, Dynamic Programming using bitmask representation (the Held-Karp algorithm paradigm) compresses intermediate subproblem state to run in <code>O(2^N &middot; N^2)</code>. Practical systems applications include robotic coverage path planning, printed circuit board (PCB) trace routing, and DNA sequence assembly.</p>",
     sections: [
       {
         heading: "Bitmask State Representation",
-        body: "Integer mask bit i represents whether vertex i has been visited (1) or not (0). State dp[mask][u] is True if and only if there exists a valid simple path visiting exactly the subset of vertices indicated by mask and ending at vertex u.",
+        body: "<p>Integer mask bit <code>i</code> represents whether vertex <code>i</code> has been visited (1) or not (0). State <code>dp[mask][u]</code> is True if and only if there exists a valid simple path visiting exactly the subset of vertices indicated by <code>mask</code> and ending at vertex <code>u</code>.</p>",
       },
       {
         heading: "DP Transitions & Bitwise Operations",
-        body: "To extend a path ending at node u with mask mask to an unvisited neighbor v, verify that (mask & (1 << v)) == 0. The next state becomes dp[mask | (1 << v)][v] = True. Bitwise shifts and OR operations execute in single-cycle CPU instructions, maximizing cache locality and register throughput.",
+        body: "<p>To extend a path ending at node <code>u</code> with mask <code>mask</code> to an unvisited neighbor <code>v</code>, verify that <code>(mask &amp; (1 &lt;&lt; v)) == 0</code>. The next state becomes <code>dp[mask | (1 &lt;&lt; v)][v] = True</code>. Bitwise shifts and OR operations execute in single-cycle CPU instructions, maximizing cache locality and register throughput.</p>",
       },
       {
         heading: "Systems Applications & TSP",
-        body: "In VLSI microchip fabrication and CNC toolhead path optimization, minimizing movement costs while visiting specified coordinates reduces mechanical wear. Adding edge weights transforms Hamiltonian Path DP into the Traveling Salesperson Problem (TSP), where dp[mask][u] tracks the minimum path cost.",
+        body: "<p>In VLSI microchip fabrication and CNC toolhead path optimization, minimizing movement costs while visiting specified coordinates reduces mechanical wear. Adding edge weights transforms Hamiltonian Path DP into the Traveling Salesperson Problem (TSP), where <code>dp[mask][u]</code> tracks the minimum path cost.</p>",
       },
       {
         heading: "Memory Footprint & Optimization Limits",
-        body: "For N = 20, 2^20 * 20 booleans requires approximately 20 MB RAM, making Bitmask DP highly practical. However, for N > 30, memory limits necessitate heuristic search methods such as Lin-Kernighan, A* search, or integer linear programming (ILP) branch-and-cut solvers.",
+        body: "<p>For <code>N = 20</code>, storing states requires modest RAM, making Bitmask DP highly practical. However, for <code>N &gt; 30</code>, memory limits necessitate heuristic search methods such as Lin-Kernighan, A* search, or integer linear programming (ILP) branch-and-cut solvers.</p>",
       },
     ],
     keyTerms: [

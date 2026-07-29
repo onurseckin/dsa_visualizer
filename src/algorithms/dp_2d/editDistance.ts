@@ -323,26 +323,8 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   title: "Edit Distance (2D Dynamic Programming)",
   topicIds: ["dp_2d"],
   difficulty: "Hard",
-  description: `The **Edit Distance** (Levenshtein Distance) problem (LeetCode #72) asks for the minimum number of single-character operations—**Insert**, **Delete**, or **Replace**—required to transform string $A$ (\`word1\`) of length $M$ into string $B$ (\`word2\`) of length $N$.
-
-### Optimal Substructure & 2D Recurrence
-Let $dp[i][j]$ denote the minimum edit distance between prefix $A[0..i-1]$ and prefix $B[0..j-1]$.
-
-#### Base Cases
-- $dp[i][0] = i$ (deleting all $i$ characters from $A$)
-- $dp[0][j] = j$ (inserting all $j$ characters into an empty string to form $B$)
-
-#### State Transitions
-For cell $(i, j)$:
-- If $A[i-1] == B[j-1]$ (character match):
-  $$dp[i][j] = dp[i-1][j-1]$$
-- If $A[i-1] \\ne B[j-1]$ (character mismatch):
-  $$dp[i][j] = 1 + \\min \\Big( \\underbrace{dp[i-1][j]}_{\\text{Delete}}, \\, \\underbrace{dp[i][j-1]}_{\\text{Insert}}, \\, \\underbrace{dp[i-1][j-1]}_{\\text{Replace}} \\Big)$$
-
-### Key Interview Insights
-1. **Grid Tabulation**: Fills an $(M+1) \\times (N+1)$ table bottom-up in $\\mathcal{O}(M \\times N)$ time.
-2. **Space Optimization**: Since row $i$ depends only on row $i-1$, auxiliary space can be reduced to $\\mathcal{O}(\\min(M, N))$.
-3. **Hirschberg's Algorithm**: Combines divide-and-conquer with DP to reconstruct alignment paths in $\\mathcal{O}(M+N)$ linear space.`,
+  description:
+    "<p>The <strong>Edit Distance</strong> (Levenshtein Distance) problem (LeetCode #72) asks for the minimum number of single-character operations—<strong>Insert</strong>, <strong>Delete</strong>, or <strong>Replace</strong>—required to transform string <code>word1</code> of length <code>M</code> into string <code>word2</code> of length <code>N</code>.</p><p>Let <code>dp[i][j]</code> denote the minimum edit distance between prefix <code>word1[0..i-1]</code> and prefix <code>word2[0..j-1]</code>. Base cases are <code>dp[i][0] = i</code> and <code>dp[0][j] = j</code>. If characters match, <code>dp[i][j] = dp[i-1][j-1]</code>; otherwise <code>dp[i][j] = 1 + min(delete, insert, replace)</code>.</p>",
   constraints: [
     "0 <= word1.length, word2.length <= 500",
     "word1 and word2 consist of lowercase English letters",
@@ -393,23 +375,23 @@ For cell $(i, j)$:
   },
   topicGuide: {
     overview:
-      "Edit Distance (Levenshtein Distance) is a core problem in string processing and sequence alignment. Given two strings $A$ and $B$, we compute the minimal cost to transform $A$ into $B$ via character insertions, deletions, and substitutions. 2D dynamic programming builds an $(M+1) \\times (N+1)$ matrix in $\\mathcal{O}(M \\times N)$ time and space.",
+      "<p>Edit Distance (Levenshtein Distance) is a core problem in string processing and sequence alignment. Given two strings <code>A</code> and <code>B</code>, we compute the minimal cost to transform <code>A</code> into <code>B</code> via character insertions, deletions, and substitutions. 2D dynamic programming builds an <code>(M+1) &times; (N+1)</code> matrix in <code>O(M &times; N)</code> time and space.</p>",
     sections: [
       {
         heading: "1. 2D Grid Formulation & Recurrence",
-        body: "We define $dp[i][j]$ as the edit distance between $A[0..i-1]$ and $B[0..j-1]$.\n\n- **Base Row & Column**:\n  $$dp[i][0] = i, \\quad dp[0][j] = j$$\n- **Transitions**:\n  $$dp[i][j] = \\begin{cases} dp[i-1][j-1] & \\text{if } A[i-1] = B[j-1] \\\\ 1 + \\min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) & \\text{if } A[i-1] \\ne B[j-1] \\end{cases}$$\n- **Result**: $dp[M][N]$.",
+        body: "<p>We define <code>dp[i][j]</code> as the edit distance between <code>A[0..i-1]</code> and <code>B[0..j-1]</code>.</p><ul><li><strong>Base Cases:</strong> <code>dp[i][0] = i</code> (deletions) and <code>dp[0][j] = j</code> (insertions).</li><li><strong>Match Transition:</strong> If <code>A[i-1] == B[j-1]</code>, <code>dp[i][j] = dp[i-1][j-1]</code>.</li><li><strong>Mismatch Transition:</strong> If <code>A[i-1] != B[j-1]</code>, <code>dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])</code>.</li></ul><p>The global solution is stored at <code>dp[M][N]</code>.</p>",
       },
       {
         heading: "2. Visualizing Operations on the DP Grid",
-        body: "Each movement on the 2D grid maps to an edit operation:\n- **Diagonal $(\\nwarrow)$**: Replace $A[i-1]$ with $B[j-1]$ (cost 1 if mismatch, cost 0 if match).\n- **Vertical $(\\uparrow)$**: Delete $A[i-1]$ from $A$ (cost 1).\n- **Horizontal $(\\leftarrow)$**: Insert $B[j-1]$ into $A$ (cost 1).",
+        body: "<p>Each movement on the 2D grid maps to an edit operation:</p><ul><li><strong>Diagonal (&nwarr;):</strong> Replace <code>A[i-1]</code> with <code>B[j-1]</code> (cost 1 if mismatch, cost 0 if match).</li><li><strong>Vertical (&uarr;):</strong> Delete <code>A[i-1]</code> from <code>A</code> (cost 1).</li><li><strong>Horizontal (&larr;):</strong> Insert <code>B[j-1]</code> into <code>A</code> (cost 1).</li></ul>",
       },
       {
         heading: "3. Systems Applications",
-        body: "Edit distance powers infrastructure tools:\n- **Spell Checkers & Auto-Correct**: Candidate lookup within Levenshtein edit distance $k$.\n- **Bioinformatics (Needleman-Wunsch)**: Global DNA sequence alignment under scoring matrices.\n- **Version Control (`git diff`)**: Myers diff algorithm variants.",
+        body: "<p>Edit distance powers infrastructure tools:</p><ul><li><strong>Spell Checkers & Auto-Correct:</strong> Candidate lookup within Levenshtein edit distance <code>k</code>.</li><li><strong>Bioinformatics (Needleman-Wunsch):</strong> Global DNA sequence alignment under scoring matrices.</li><li><strong>Version Control (git diff):</strong> Myers diff algorithm variants.</li></ul>",
       },
       {
         heading: "4. Linear Space Optimization & Hirschberg's Algorithm",
-        body: "Standard DP requires $\\mathcal{O}(M \\times N)$ memory. Using two row vectors reduces space to $\\mathcal{O}(N)$. Hirschberg's divide-and-conquer algorithm recovers the exact alignment path in $\\mathcal{O}(M \\times N)$ time and $\\mathcal{O}(M + N)$ space.",
+        body: "<p>Standard DP requires <code>O(M &times; N)</code> memory. Using two row vectors reduces space to <code>O(N)</code>. Hirschberg's divide-and-conquer algorithm recovers the exact alignment path in <code>O(M &times; N)</code> time and <code>O(M + N)</code> space.</p>",
       },
     ],
     keyTerms: [
@@ -426,7 +408,7 @@ For cell $(i, j)$:
       {
         term: "Hirschberg's Algorithm",
         definition:
-          "A divide-and-conquer algorithm computing sequence alignment in linear $\\mathcal{O}(N)$ memory.",
+          "A divide-and-conquer algorithm computing sequence alignment in linear O(N) memory.",
       },
     ],
   },

@@ -1,12 +1,12 @@
 import React from "react";
 import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../../types/dsa";
-import { AuxiliaryPanel, hasAuxiliaryContent } from "../../../ui";
-import { TutorialCard, hasTutorialContent } from "../../../ui";
+import { TutorialCard } from "../../../ui";
 import { ComplexityCard } from "../../../ui/organisms/ComplexityCard";
 import { CodeWorkspace } from "../../../ui/organisms/code-workspace/CodeWorkspace";
 import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../../ui";
 import { getPythonExecutionSpec, getPythonStarterCode } from "../../../playground/executionSpecs";
+import { getStepNarrative } from "../../../learning/authoring/tutorialSteps";
 import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
@@ -30,9 +30,8 @@ export const MainStage: React.FC<MainStageProps> = ({
   layoutState,
   totalSteps,
 }) => {
-  const showTutorial = panels.tutorial && hasTutorialContent(currentStep?.explanation);
-  const showAuxiliary =
-    panels.auxiliary && hasAuxiliaryContent(currentStep?.auxiliaryState, currentStep?.variables);
+  const narrative = getStepNarrative(currentStep);
+  const showTutorial = panels.tutorial && Boolean(narrative);
 
   const stagePinned = layoutState.stagePinned;
   const visualizerPinned = layoutState.layout.panelHeights.visualizer;
@@ -49,32 +48,17 @@ export const MainStage: React.FC<MainStageProps> = ({
       id: "tutorial",
       label: "tutorial",
       visible: showTutorial,
-      greedy: !panels.visualizer && !showAuxiliary,
-      height: layoutState.layout.panelHeights.tutorial,
-      content:
-        currentStep?.explanation !== undefined ? (
-          <div className="h-full overflow-auto">
-            <TutorialCard
-              explanation={currentStep.explanation}
-              what={currentStep.explanation.what}
-              why={currentStep.explanation.why}
-              stepIndex={currentStep.stepIndex}
-              totalSteps={totalSteps}
-            />
-          </div>
-        ) : null,
-    },
-    {
-      id: "auxiliary",
-      label: "working data & variables",
-      visible: showAuxiliary,
       greedy: !panels.visualizer,
-      height: layoutState.layout.panelHeights.auxiliary,
-      content: (
+      height: layoutState.layout.panelHeights.tutorial,
+      content: narrative ? (
         <div className="h-full overflow-auto">
-          <AuxiliaryPanel state={currentStep?.auxiliaryState} variables={currentStep?.variables} />
+          <TutorialCard
+            narrative={narrative}
+            stepIndex={currentStep?.stepIndex}
+            totalSteps={totalSteps}
+          />
         </div>
-      ),
+      ) : null,
     },
     {
       id: "visualizer",
@@ -104,7 +88,6 @@ export const MainStage: React.FC<MainStageProps> = ({
             itemId={algorithm.id}
             itemTitle={algorithm.title}
             referenceCode={algorithm.code}
-            activeLine={currentStep?.codeLine || 1}
             variables={currentStep?.variables}
             lineExplanations={algorithm.trivia?.lineExplanations}
             executionSpec={getPythonExecutionSpec(algorithm.id)}

@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "react", "jsx-a11y", "import", "vitest", "unicorn", "oxc"],
+  "plugins": ["typescript", "react", "jsx-a11y", "import", "unicorn", "oxc"],
   "categories": {
     "correctness": "error",
     "suspicious": "error",
@@ -22,9 +22,6 @@
     "eslint/no-await-in-loop": "off",
     "eslint/no-shadow": "off",
     "unicorn/no-array-reverse": "off",
-    "vitest/require-mock-type-parameters": "off",
-    "vitest/no-conditional-expect": "off",
-    "vitest/expect-expect": "off",
     "jsx-a11y/prefer-tag-over-role": "off",
     "jsx-a11y/no-interactive-element-to-noninteractive-role": "off",
     "jsx-a11y/no-redundant-roles": "off",

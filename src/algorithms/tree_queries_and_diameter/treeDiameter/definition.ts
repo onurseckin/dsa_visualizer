@@ -1,21 +1,13 @@
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import type { TriviaMeta } from "../../../types/trivia";
 import { TREE_DIAMETER_CODE } from "./pythonCode";
-import { generateTreeDiameterSteps, type TreeDiameterInput } from "./stepGenerator";
+import {
+  DEFAULT_TREE_DIAMETER_INPUT,
+  generateTreeDiameterSteps,
+  type TreeDiameterInput,
+} from "./stepGenerator";
 
-export const DEFAULT_TREE_DIAMETER_INPUT: TreeDiameterInput = {
-  rootId: "1",
-  nodes: [
-    { id: "1", val: 1, leftId: "2", rightId: "3", state: "default" },
-    { id: "2", val: 2, leftId: "4", rightId: "5", state: "default" },
-    { id: "3", val: 3, rightId: "6", state: "default" },
-    { id: "4", val: 4, leftId: "7", state: "default" },
-    { id: "5", val: 5, state: "default" },
-    { id: "6", val: 6, rightId: "8", state: "default" },
-    { id: "7", val: 7, state: "default" },
-    { id: "8", val: 8, state: "default" },
-  ],
-};
+export { DEFAULT_TREE_DIAMETER_INPUT };
 
 const TREE_DIAMETER_TRIVIA: TriviaMeta = {
   lineExplanations: {
@@ -39,8 +31,24 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   title: "Tree Diameter (2-DFS Algorithm)",
   topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Medium",
-  description:
-    "Find the diameter (length of the longest simple path between any two nodes) of an unweighted tree using two passes of Depth-First Search (2-DFS).\n\n### Problem Statement\nGiven an undirected tree on $N$ vertices, find its diameter $D$—the maximum number of edges in any simple path connecting two vertices in the tree.\n\nThe algorithm leverages the double-DFS property: starting a DFS from an arbitrary node $S$ discovers a vertex $A$ that is guaranteed to be one endpoint of a longest path. Running a second DFS starting from vertex $A$ finds the opposite endpoint $B$ and measures the exact diameter distance $D = dist(A, B)$.\n\n### Input Parameters\n- `rootId`: Identifier of the root node to start Pass 1.\n- `nodes`: List of tree node objects defining the tree structure.\n\n### Output\n- Returns an integer representing the diameter $D$ (number of edges on the longest simple path).\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- Valid connected tree with $N-1$ undirected edges.\n- Single node tree ($N=1$): Diameter distance is $0$.\n- Uniform edge weights (unweighted tree).",
+  description: `<p>Find the diameter (length of the longest simple path between any two nodes) of an unweighted tree using two passes of Depth-First Search (2-DFS).</p>
+<h3>Problem Statement</h3>
+<p>Given an undirected tree on <em>N</em> vertices, find its diameter <em>D</em>—the maximum number of edges in any simple path connecting two vertices in the tree.</p>
+<p>The algorithm leverages the double-DFS property: starting a DFS from an arbitrary node <em>S</em> discovers a vertex <em>A</em> that is guaranteed to be one endpoint of a longest path. Running a second DFS starting from vertex <em>A</em> finds the opposite endpoint <em>B</em> and measures the exact diameter distance <em>D = dist(A, B)</em>.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>rootId</code>: Identifier of the root node to start Pass 1.</li>
+  <li><code>nodes</code>: List of tree node objects defining the tree structure.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an integer representing the diameter <em>D</em> (number of edges on the longest simple path).</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
+  <li>Valid connected tree with <em>N - 1</em> undirected edges.</li>
+  <li>Single node tree (<em>N = 1</em>): Diameter distance is 0.</li>
+  <li>Uniform edge weights (unweighted tree).</li>
+</ul>`,
   constraints: [
     "1 <= Number of nodes N <= 10^5",
     "The graph is guaranteed to be a valid connected tree with N - 1 undirected edges",
@@ -119,31 +127,31 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   },
   topicGuide: {
     overview:
-      'The diameter of a tree is the number of edges on the longest simple path anywhere in it — the distance between the two most remote nodes. Because a tree is connected and has no cycles, there is exactly one path between any pair of nodes, so "the longest path" is a well-defined single quantity rather than an optimisation over many routes. The double-DFS method finds it with only two traversals, and it is a beautiful example of a structural theorem about trees doing work that an algorithm would otherwise have to brute-force. What you should take away is not just the recipe but the habit of looking for a property of the input that lets you skip most of the search.',
+      "<p>The diameter of a tree is the number of edges on the longest simple path anywhere in it — the distance between the two most remote nodes. Because a tree is connected and has no cycles, there is exactly one path between any pair of nodes, so the longest path is a well-defined single quantity. The double-DFS method finds it with only two traversals, leveraging a key structural property of trees.</p>",
     sections: [
       {
         heading: "What makes trees special enough for this to work",
-        body: "A tree on V nodes is connected and acyclic, which forces it to have exactly V minus one edges and, more importantly, exactly one simple path between any two nodes. That uniqueness means distance is unambiguous and the diameter is simply the largest of all pairwise distances, with no shortest-path relaxation needed. The naive consequence is that you could run a traversal from every node, record how far the farthest node is, and take the maximum of those numbers. The whole point of this algorithm is that you do not need all V of those searches — one from an arbitrary node, plus one more, is provably enough.",
+        body: "<p>A tree on <em>V</em> nodes is connected and acyclic, forcing it to have exactly <em>V - 1</em> edges and a unique simple path between any two nodes. Uniqueness means distance is unambiguous. The double-DFS algorithm proves that a DFS from <em>any</em> initial node is guaranteed to land on one of the diameter's true endpoints, eliminating the need to run <em>O(V)</em> searches.</p>",
       },
       {
         heading: "The two passes, concretely",
-        body: "The first depth-first search starts from any node you like, carries a running distance, and reports back the node that ended up farthest away; call it A. The second search starts from A and does the same thing, and the node it finds farthest away is B, with the distance between A and B being the diameter itself. During the second pass you also record each node's parent, or push the current path onto a list as you descend, so that when you land on B you can reconstruct the actual sequence of nodes rather than just its length. In the eight-node example the first pass from the root reaches leaf 7 at distance three, and the second pass from 7 reaches leaf 8 at distance six, tracing the path 7, 4, 2, 1, 3, 6, 8.",
+        body: "<p>Pass 1 starts from an arbitrary node, tracks path distances, and returns the farthest node <em>A</em>. Pass 2 starts from node <em>A</em> and conducts a second DFS. The farthest node reached from <em>A</em> is node <em>B</em>, and the distance between <em>A</em> and <em>B</em> is the exact tree diameter.</p>",
       },
       {
         heading: "Why the first pass must land on an endpoint",
-        body: "The claim to prove is that for any starting node s, the node farthest from s is an endpoint of some diameter — that is the invariant the whole method rests on. Suppose the diameter path runs from u to v, and let m be the node where the path from s first touches that path. Any node the search could call farthest either is u or v, or it hangs off the tree somewhere else; in the latter case you could take its branch from m and glue it onto whichever half of the diameter through m is longer, producing a path strictly longer than u to v, which contradicts u to v being longest. So the farthest node from s is genuinely a diameter endpoint, and once one endpoint is pinned down the farthest node from it is by definition the other end. Without this argument the algorithm looks like a lucky guess, which is exactly why it is worth reconstructing yourself.",
+        body: "<p>For any starting node <em>S</em>, the node farthest from <em>S</em> must be a diameter endpoint. If it were not, an even longer path could be constructed by splicing its branch onto the diameter, contradicting the definition of diameter.</p>",
       },
       {
         heading: "Pitfalls that silently break it",
-        body: "The traversal must never step back into the node it just came from: pass the parent down and skip it, or maintain a visited set, because otherwise two adjacent nodes will bounce the search back and forth forever. The endpoint theorem depends on edge lengths being non-negative, so with a single negative weight the splicing argument collapses and double-DFS quietly returns a wrong answer — that case needs a different approach. Connectivity matters too: on a forest you have to run the pair of passes once per component, since a search cannot cross between components. Finally, be deliberate about units, because the diameter counts edges and not nodes, so a single isolated node has diameter zero while the path through it lists one node, and mixing the two conventions is the most common off-by-one here.",
+        body: "<p>The traversal must guard against stepping backward to the parent node. The endpoint theorem assumes non-negative edge weights (for negative weights, dynamic programming is required). Furthermore, diameter counts edges, so a single-node tree has diameter 0.</p>",
       },
       {
         heading: "The single-pass alternative",
-        body: "There is a second standard solution that never needs the theorem at all: run one post-order depth-first search, and at each node compute the heights of its children, keep the two largest, and treat their sum as a candidate for the longest path bending at that node while returning the largest plus one upward. Take the maximum candidate over all nodes and you have the diameter in a single traversal. That version extends cleanly to weighted trees, including negative weights, and it gives you a per-node value — the longest path passing through each node — which is useful in its own right. Prefer the double search when you want the two endpoints and the path spelled out with almost no code; prefer the height-combining pass when weights are involved or when you need those per-node quantities.",
+        body: "<p>An alternative single-pass post-order DFS computes subtree heights at each node, combining the two largest child heights to evaluate candidate paths. That approach extends cleanly to weighted trees.</p>",
       },
       {
         heading: "Where the idea generalises",
-        body: 'The centre of a tree is the middle node or edge of any diameter path, which is the direct route to problems asking for the root that minimises tree height. Tree radius, eccentricity of individual nodes, and rerooting dynamic programming that computes each node\'s farthest distance in linear time all grow out of the same distance machinery. On unweighted trees you can swap depth-first search for breadth-first search in both passes with no change to the argument, which is handy when the tree is deep enough to threaten recursion limits. Even outside trees, the "walk to the farthest thing, then walk again" heuristic is the standard cheap estimate for the diameter of a general graph, where computing it exactly is far more expensive.',
+        body: "<p>The midpoint of any diameter path is the tree center (the node minimizing maximum distance). Tree radius, node eccentricity, and tree re-rooting DP all build on these distance properties.</p>",
       },
     ],
     keyTerms: [

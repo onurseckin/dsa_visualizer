@@ -1,6 +1,12 @@
 import React from "react";
 import { boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
-import { elementStateToken, MatrixVisualSnapshot } from "../../types/dsa";
+import {
+  elementStateToken,
+  MatrixVisualSnapshot,
+  AuxiliaryState,
+  DisplayValue,
+} from "../../types/dsa";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
 
 export interface MatrixVisualizerProps {
   rows: number;
@@ -9,6 +15,8 @@ export interface MatrixVisualizerProps {
   rowHeaders?: string[];
   colHeaders?: string[];
   title?: string;
+  auxiliaryState?: AuxiliaryState;
+  variables?: Record<string, DisplayValue>;
 }
 
 export const MatrixVisualizer: React.FC<MatrixVisualizerProps> = ({
@@ -18,6 +26,8 @@ export const MatrixVisualizer: React.FC<MatrixVisualizerProps> = ({
   rowHeaders,
   colHeaders,
   title,
+  auxiliaryState,
+  variables,
 }) => {
   const { ref, box } = useCanvasBox({ width: 800, height: 500 });
 
@@ -26,11 +36,11 @@ export const MatrixVisualizer: React.FC<MatrixVisualizerProps> = ({
 
   const startX = rowHeaders ? 80 : 40;
   const startY = colHeaders ? 60 : 40;
-  const availW = box.width - startX - 40;
-  const availH = box.height - startY - 40;
+  const availW = Math.max(box.width - startX - 40, 1);
+  const availH = Math.max(box.height - startY - 40, 1);
 
-  const cellW = Math.min(100, Math.max(40, availW / numCols));
-  const cellH = Math.min(60, Math.max(30, availH / numRows));
+  const cellW = Math.max(40, availW / numCols);
+  const cellH = Math.max(30, availH / numRows);
 
   const cellMap = new Map<string, MatrixVisualSnapshot["cells"][0]>();
   cells.forEach((c) => cellMap.set(`${c.row}-${c.col}`, c));
@@ -101,7 +111,7 @@ export const MatrixVisualizer: React.FC<MatrixVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "16px",
+          padding: 0,
         }}
       >
         <svg
@@ -175,6 +185,7 @@ export const MatrixVisualizer: React.FC<MatrixVisualizerProps> = ({
               );
             }),
           )}
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
     </div>

@@ -2009,27 +2009,6 @@ export const ${q.varName}: AlgorithmDefinition<${q.varName}Input> = {
 `;
 }
 
-function generateSpecCode(topic: TopicSpec, q: QuestionSpec): string {
-  const pascalName = q.varName.charAt(0).toUpperCase() + q.varName.slice(1);
-  return `import { describe, it, expect } from "vitest";
-import { ${q.varName}, DEFAULT_${q.varName.toUpperCase()}_INPUT, generate${pascalName}Steps } from "./${q.varName}";
-
-describe("${q.id} (${q.title})", () => {
-  it("should have correct metadata", () => {
-    expect(${q.varName}.id).toBe("${q.id}");
-    expect(${q.varName}.topicIds).toContain("${topic.id}");
-  });
-
-  it("should generate valid algorithm steps", () => {
-    const steps = generate${pascalName}Steps(DEFAULT_${q.varName.toUpperCase()}_INPUT);
-    expect(steps.length).toBeGreaterThan(0);
-    expect(steps[0].explanation.what).toContain("${q.title}");
-    expect(steps[steps.length - 1].explanation.what).toBe("Execution Complete");
-  });
-});
-`;
-}
-
 for (const topic of TOPICS) {
   const dirPath = path.join(process.cwd(), "src", "algorithms", topic.id);
   if (!fs.existsSync(dirPath)) {
@@ -2040,10 +2019,7 @@ for (const topic of TOPICS) {
 
   for (const q of topic.questions) {
     const code = generateAlgorithmCode(topic, q);
-    const spec = generateSpecCode(topic, q);
-
     fs.writeFileSync(path.join(dirPath, `${q.varName}.ts`), code, "utf8");
-    fs.writeFileSync(path.join(dirPath, `${q.varName}.spec.ts`), spec, "utf8");
 
     exportStatements.push(`export { ${q.varName} } from "./${q.varName}";`);
   }

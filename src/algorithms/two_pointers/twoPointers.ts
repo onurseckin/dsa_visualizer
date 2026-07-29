@@ -27,7 +27,11 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const elements: ArrayElement[] = input.array.map((val, idx) => ({
+  const array = Array.isArray(input?.array) ? input.array : DEFAULT_TWO_POINTERS_INPUT.array;
+  const target =
+    typeof input?.target === "number" ? input.target : DEFAULT_TWO_POINTERS_INPUT.target;
+
+  const elements: ArrayElement[] = array.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -53,7 +57,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       auxiliaryState: {
         customState: {
           currentSum: String(variables.currentSum ?? 0),
-          target: String(input.target),
+          target: String(target),
         },
       },
       variables,
@@ -61,12 +65,11 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   };
 
   const n = elements.length;
-  const target = input.target;
 
   addStep(
     1,
     "Initialize Subarray Sum (Two Pointers)",
-    `Searching for contiguous window in [${input.array.join(", ")}] summing to target ${target}.`,
+    `Searching for contiguous window in [${array.join(", ")}] summing to target ${target} using a variable-size sliding window.`,
     { left: 0, right: 0, currentSum: 0, target, n },
   );
 
@@ -109,13 +112,18 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
   syncElementStates(left, -1);
 
-  addStep(2, "Initialize left = 0", "Setting left pointer to start of array at index 0.", {
-    left,
-    currentSum,
-    target,
-  });
+  addStep(
+    2,
+    "Set Left Window Boundary",
+    "Placing the left pointer at index 0 as the initial window start.",
+    {
+      left,
+      currentSum,
+      target,
+    },
+  );
 
-  addStep(3, "Initialize current_sum = 0", "Setting running accumulator current_sum to 0.", {
+  addStep(3, "Initialize Running Accumulator", "Setting running sum current_sum to 0.", {
     left,
     currentSum,
     target,
@@ -141,8 +149,8 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
     addStep(
       5,
-      `Add arr[${right}] (${rightVal}) to current_sum`,
-      `Updated running sum to current_sum = ${currentSum}.`,
+      `Add Element to Window Accumulator`,
+      `Updated running window sum to current_sum = ${currentSum} in O(1) time.`,
       { left, right, "arr[right]": rightVal, currentSum, target },
     );
 
@@ -150,7 +158,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       6,
       `Evaluate shrink condition: current_sum (${currentSum}) > target (${target})`,
       currentSum > target && left <= right
-        ? `Sum ${currentSum} exceeds target ${target}. Shrink window from the left.`
+        ? `Sum ${currentSum} exceeds target ${target}. Shrink window from the left to restore monotonic bounds.`
         : `Sum ${currentSum} is within target ${target}. Window shrinking not required.`,
       { left, right, currentSum, target, needsShrink: currentSum > target && left <= right },
     );
@@ -193,8 +201,8 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
     addStep(
       9,
-      `Check if current_sum (${currentSum}) == target (${target})`,
-      `Comparing window sum against target.`,
+      `Evaluate Target Match: current_sum (${currentSum}) == target (${target})`,
+      `Comparing running window sum against target.`,
       { left, right, currentSum, target, isMatch: currentSum === target },
     );
 
@@ -208,7 +216,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
       addStep(
         10,
         `Return window bounds [${left}, ${right}]`,
-        `Found matching contiguous subarray [${input.array.slice(left, right + 1).join(", ")}] summing to ${target}.`,
+        `Found matching contiguous subarray [${array.slice(left, right + 1).join(", ")}] summing to ${target}. Returning window boundaries.`,
         { left, right, currentSum, target },
       );
       break;
@@ -229,7 +237,7 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
     if (foundMatch) {
       addStep(
         10,
-        `Verification step ${steps.length + 1}: Return [${matchLeft}, ${matchRight}]`,
+        `Verification step ${steps.length + 1}: Return window bounds [${matchLeft}, ${matchRight}]`,
         `Verifying sliding window bounds [${matchLeft}, ${matchRight}] sum to ${target}.`,
         { left: matchLeft, right: matchRight, currentSum: target, target, verified: true },
       );
@@ -248,27 +256,27 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
 
 const TWO_POINTERS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The same-direction two-pointer technique (also known as a variable-size sliding window) searches contiguous subarrays by maintaining running totals. Both pointers advance monotonically rightward over non-negative elements, repairing window invariants in amortized $O(N)$ time and $O(1)$ space.",
+    "<p>The same-direction two-pointer technique (also known as a variable-size sliding window) searches contiguous subarrays by maintaining running totals. Both pointers advance monotonically rightward over non-negative elements, repairing window invariants in amortized <code>O(N)</code> time and <code>O(1)</code> space.</p>",
   sections: [
     {
       heading: "The Window as a Repaired Derived Quantity",
-      body: "Rather than re-evaluating every candidate subarray sum in $O(N^2)$ or $O(N^3)$ time, the sliding window maintains $current_sum$ by incrementally adding $arr[right]$ and subtracting $arr[left]$. Each window state change costs exactly $O(1)$ arithmetic operation.",
+      body: "<p>Rather than re-evaluating every candidate subarray sum in <code>O(N<sup>2</sup>)</code> or <code>O(N<sup>3</sup>)</code> time, the sliding window maintains <code>current_sum</code> by incrementally adding <code>arr[right]</code> and subtracting <code>arr[left]</code>. Each window state change costs exactly <code>O(1)</code> arithmetic operation.</p>",
     },
     {
       heading: "Interactions Between Outer Expansion & Inner Shrink Loops",
-      body: "The outer loop increments $right$ from $0$ to $N - 1$, incorporating elements. The inner loop shrinks $left$ while $current_sum > target$. Because $left$ and $right$ move strictly forward, the total pointer advances across both loops are bounded by $2N$.",
+      body: "<p>The outer loop increments <code>right</code> from <code>0</code> to <code>N - 1</code>, incorporating elements. The inner loop shrinks <code>left</code> while <code>current_sum &gt; target</code>. Because <code>left</code> and <code>right</code> move strictly forward, the total pointer advances across both loops are bounded by <code>2N</code>.</p>",
     },
     {
       heading: "Why Non-Negative Elements Are Essential",
-      body: "Non-negative elements ($arr[i] \\ge 0$) guarantee monotonic window behavior: expanding $right$ never decreases $current_sum$, and shrinking $left$ never increases it. If negative numbers are present, monotonicity breaks and a Prefix Sum + Hash Map approach must be used instead.",
+      body: "<p>Non-negative elements (<code>arr[i] &ge; 0</code>) guarantee monotonic window behavior: expanding <code>right</code> never decreases <code>current_sum</code>, and shrinking <code>left</code> never increases it. If negative numbers are present, monotonicity breaks and a Prefix Sum + Hash Map approach must be used instead.</p>",
     },
     {
       heading: "Loop Invariants & Correctness",
-      body: "At each step, the algorithm guarantees that any window starting before $left$ for the current $right$ has already been considered or ruled out. No valid contiguous subarray sum is missed.",
+      body: "<p>At each step, the algorithm guarantees that any window starting before <code>left</code> for the current <code>right</code> has already been considered or ruled out. No valid contiguous subarray sum is missed.</p>",
     },
     {
       heading: "Edge Cases & Boundary Traps",
-      body: "Empty arrays ($N = 0$) or targets that cannot be matched return `[-1, -1]`. Single-element windows ($left == right$) are handled seamlessly by the shrink condition $left \\le right$.",
+      body: "<p>Empty arrays (<code>N = 0</code>) or targets that cannot be matched return <code>[-1, -1]</code>. Single-element windows (<code>left == right</code>) are handled seamlessly by the shrink condition <code>left &le; right</code>.</p>",
     },
   ],
   keyTerms: [
@@ -279,7 +287,7 @@ const TWO_POINTERS_TOPIC_GUIDE: TopicGuide = {
     },
     {
       term: "Running Sum",
-      definition: "An accumulated total maintained via $O(1)$ additions and subtractions per step.",
+      definition: "An accumulated total maintained via O(1) additions and subtractions per step.",
     },
     {
       term: "Monotone Response",
@@ -311,7 +319,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   topicIds: ["two_pointers"],
   difficulty: "Easy",
   description:
-    "Finds a contiguous subarray that sums to a target value using a variable-size sliding window over non-negative integers.\n\n### Why It Exists & What It Solves\nEvaluating all $O(N^2)$ candidate subarrays by recomputing sums requires $O(N^2)$ or $O(N^3)$ operations. The variable-size sliding window solves this problem in amortized $O(N)$ time and $O(1)$ auxiliary space. Non-negative array elements guarantee monotonic window behavior: growing the window increases the sum, while shrinking it decreases the sum.\n\n### Step-by-Step Intuition\n1. **Expand Right**: Advance `right` from $0$ to $N - 1$, adding `arr[right]` to `current_sum`.\n2. **Shrink Left**: While `current_sum > target` and `left <= right`, subtract `arr[left]` from `current_sum` and increment `left`.\n3. **Match Verification**: If `current_sum == target`, return `[left, right]`.\n4. **Amortized Complexity**: Each element is added once by `right` and subtracted at most once by `left`, bounding total operations to $2N$.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), non-negative integer array; `target` (`int`), target sum.\n- **Output**: `list[int]`, `[left, right]` 0-based indices or `[-1, -1]` if not found.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ amortized linear time.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space.\n\n### Edge Cases & Constraints\n- **Non-Negativity Required**: If negative values exist, use Prefix Sum + Hash Map.\n- **Empty Array**: Returns `[-1, -1]`.",
+    "<p>Finds a contiguous subarray that sums to a target value using a variable-size sliding window over non-negative integers.</p><h3>Why It Exists &amp; What It Solves</h3><p>Evaluating all <code>O(N<sup>2</sup>)</code> candidate subarrays by recomputing sums requires <code>O(N<sup>2</sup>)</code> or <code>O(N<sup>3</sup>)</code> operations. The variable-size sliding window solves this problem in amortized <code>O(N)</code> time and <code>O(1)</code> auxiliary space. Non-negative array elements guarantee monotonic window behavior: growing the window increases the sum, while shrinking it decreases the sum.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Expand Right:</strong> Advance <code>right</code> from <code>0</code> to <code>N - 1</code>, adding <code>arr[right]</code> to <code>current_sum</code>.</li><li><strong>Shrink Left:</strong> While <code>current_sum &gt; target</code> and <code>left &le; right</code>, subtract <code>arr[left]</code> from <code>current_sum</code> and increment <code>left</code>.</li><li><strong>Match Verification:</strong> If <code>current_sum == target</code>, return <code>[left, right]</code>.</li><li><strong>Amortized Complexity:</strong> Each element is added once by <code>right</code> and subtracted at most once by <code>left</code>, bounding total operations to <code>2N</code>.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>arr</code> (<code>list[int]</code>), non-negative integer array; <code>target</code> (<code>int</code>), target sum.</li><li><strong>Output:</strong> <code>list[int]</code>, <code>[left, right]</code> 0-based indices or <code>[-1, -1]</code> if not found.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> <code>O(N)</code> amortized linear time.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Non-Negativity Required:</strong> If negative values exist, use Prefix Sum + Hash Map.</li><li><strong>Empty Array:</strong> Returns <code>[-1, -1]</code>.</li></ul>",
   constraints: ["1 <= arr.length <= 10^5", "0 <= arr[i] <= 10^4", "1 <= target <= 10^9"],
   examples: [
     {

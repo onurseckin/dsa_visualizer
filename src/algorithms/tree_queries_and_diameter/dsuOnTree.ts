@@ -67,11 +67,17 @@ const DSU_ON_TREE_TRIVIA: TriviaMeta = {
 };
 
 export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] => {
-  const n = Math.max(1, Math.min(10, input.numNodes));
-  const edgeList = input.edges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
+  const safeInput = input ?? DEFAULT_DSU_ON_TREE_INPUT;
+  const rawNumNodes = safeInput.numNodes ?? DEFAULT_DSU_ON_TREE_INPUT.numNodes;
+  const n = Math.max(1, Math.min(10, rawNumNodes));
+  const rawEdges = Array.isArray(safeInput.edges)
+    ? safeInput.edges
+    : DEFAULT_DSU_ON_TREE_INPUT.edges;
+  const edgeList = rawEdges.filter(([u, v]) => u >= 0 && u < n && v >= 0 && v < n);
+  const rawColors = safeInput.colors;
   const colors =
-    input.colors && input.colors.length === n
-      ? input.colors
+    Array.isArray(rawColors) && rawColors.length === n
+      ? rawColors
       : Array.from({ length: n }, (_, i) => (i % 3) + 1);
 
   const adj: number[][] = Array.from({ length: n }, () => []);
@@ -141,8 +147,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     stepIndex: stepIdx++,
     codeLine: 1,
     explanation: {
-      what: `Initialize DSU on Tree algorithm for $N = ${n}$ nodes.`,
-      why: "Build adjacency representation and prepare arrays for small-to-large merging.",
+      what: `Initialize DSU on Tree execution for N = ${n} nodes.`,
+      why: "Constructing adjacency topology and preparing frequency data structures for small-to-large subtree merging.",
     },
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
@@ -158,8 +164,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     stepIndex: stepIdx++,
     codeLine: 7,
     explanation: {
-      what: "Initialize sz[] = [1...1] and big_child[] = [-1...-1].",
-      why: "Each node starts with subtree size 1. Heavy children will be calculated in DFS Pass 1.",
+      what: "Initialize subtree size tracking array and heavy child designations.",
+      why: "Subtree sizes determine which child is designated 'heavy' to inherit its parent's frequency accumulator without re-computation.",
     },
     primarySnapshot: buildTreeSnapshot(-1),
     auxiliaryState: {
@@ -175,8 +181,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     stepIndex: stepIdx++,
     codeLine: 48,
     explanation: {
-      what: "Execute DFS 1: precalculate subtree sizes sz[] and identify heavy child big_child[u] for each node.",
-      why: "Heavy children preserve their frequency sack, keeping total merge operations bounded by $O(N \\log N)$.",
+      what: "Execute Pass 1 DFS: compute subtree sizes and identify heavy children.",
+      why: "Determining the largest child for each node bounds element re-insertions to at most log2(N) per node, guaranteeing O(N log N) overall runtime.",
     },
     primarySnapshot: buildTreeSnapshot(0, bigChild[0]),
     auxiliaryState: {
@@ -209,8 +215,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     stepIndex: stepIdx++,
     codeLine: 49,
     explanation: {
-      what: "Execute DFS 2: dfs_dsu(u=0, p=-1, keep=True) starting from root node 0.",
-      why: "We begin small-to-large merging traversal over the tree.",
+      what: "Execute Pass 2 DFS: start small-to-large merging from root Node 0.",
+      why: "Traversal systematically computes light child subtrees, clears them, and retains heavy child subtree frequency tables.",
     },
     primarySnapshot: buildTreeSnapshot(0, bigChild[0]),
     auxiliaryState: {
@@ -227,8 +233,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
       stepIndex: stepIdx++,
       codeLine: 32,
       explanation: {
-        what: `Enter dfs_dsu(u=${u}, p=${p}, keep=${keep}). Node ${u} heavy child: ${bigChild[u] !== -1 ? `Node ${bigChild[u]}` : "None"}.`,
-        why: "Processes light children first (keep=False), then heavy child (keep=True), then merges light children.",
+        what: `Begin processing Node ${u} (heavy child: ${bigChild[u] !== -1 ? `Node ${bigChild[u]}` : "None"}, keep = ${keep}).`,
+        why: "Processes light subtrees first, clears their state, then processes the heavy subtree and retains its accumulator.",
       },
       primarySnapshot: buildTreeSnapshot(u, bigChild[u]),
       auxiliaryState: {
@@ -248,8 +254,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
           stepIndex: stepIdx++,
           codeLine: 35,
           explanation: {
-            what: `Process light child Node ${v} with keep=False.`,
-            why: "Light child subtree results will be computed and then cleared from the sack.",
+            what: `Recurse into light child Node ${v} with keep = false.`,
+            why: "Light child subtree queries are evaluated independently; their frequency contributions are erased afterwards to avoid polluting sibling state.",
           },
           primarySnapshot: buildTreeSnapshot(v, -1, new Set([v])),
           auxiliaryState: {
@@ -273,8 +279,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
         stepIndex: stepIdx++,
         codeLine: 37,
         explanation: {
-          what: `Process heavy child Node ${hb} with keep=True.`,
-          why: `Heavy child Node ${hb} (subtree size ${sz[hb]}) preserves its sack state for parent Node ${u}.`,
+          what: `Recurse into heavy child Node ${hb} with keep = true.`,
+          why: `Heavy child Node ${hb} represents the largest subtree (size ${sz[hb]}). Preserving its accumulator eliminates redundant re-insertions.`,
         },
         primarySnapshot: buildTreeSnapshot(hb, hb),
         auxiliaryState: {
@@ -299,8 +305,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
           stepIndex: stepIdx++,
           codeLine: 41,
           explanation: {
-            what: `Merge light child Node ${v}'s subtree into global sack (add(v=${v}, p=${u}, val=+1)).`,
-            why: "Small-to-large merging re-adds light subtree elements into heavy child's preserved sack.",
+            what: `Merge light child Node ${v}'s subtree into global frequency map.`,
+            why: "Re-inserting light child elements into the heavy child's retained accumulator combines all subtree attributes.",
           },
           primarySnapshot: buildTreeSnapshot(u, bigChild[u], lightSet),
           auxiliaryState: {
@@ -323,8 +329,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
       stepIndex: stepIdx++,
       codeLine: 42,
       explanation: {
-        what: `Add Node ${u}'s own color ${colors[u]} to frequency map cnt.`,
-        why: "Parent node's color is combined with all subtree colors.",
+        what: `Include Node ${u}'s own attribute (color ${colors[u]}) in frequency map.`,
+        why: "The root node of the current subtree contributes its color to the final frequency distribution.",
       },
       primarySnapshot: buildTreeSnapshot(u, bigChild[u], lightSet),
       auxiliaryState: {
@@ -345,7 +351,7 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
       codeLine: 43,
       explanation: {
         what: `Record ans[${u}] = ${cnt.size} distinct colors in Node ${u}'s subtree.`,
-        why: "Sack contains exact color frequency distribution for node u's complete subtree.",
+        why: "The frequency map now reflects the complete, unified attribute counts for Node u's subtree.",
       },
       primarySnapshot: buildTreeSnapshot(u, bigChild[u], lightSet),
       auxiliaryState: {
@@ -367,8 +373,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
         stepIndex: stepIdx++,
         codeLine: 46,
         explanation: {
-          what: `keep=False for Node ${u}: clear Node ${u}'s entire subtree from sack (add(u=${u}, p=${p}, val=-1)).`,
-          why: "Light child subtree frequencies are erased so they don't pollute sibling light subtrees.",
+          what: `Clear Node ${u}'s subtree contributions from global frequency map (keep = false).`,
+          why: "Because Node u is a light child of its parent, resetting its frequencies ensures clean state for remaining sibling traversals.",
         },
         primarySnapshot: buildTreeSnapshot(u),
         auxiliaryState: {
@@ -390,8 +396,8 @@ export const generateDsuOnTreeSteps = (input: DsuOnTreeInput): AlgorithmStep[] =
     stepIndex: stepIdx++,
     codeLine: 50,
     explanation: {
-      what: "DSU on Tree complete across all nodes!",
-      why: "Small-to-large merging evaluated subtree statistics in $O(N \\log N)$ total operations.",
+      what: "DSU on Tree traversal complete across all nodes!",
+      why: "Small-to-large merging successfully evaluated all subtree queries in O(N log N) total operations.",
     },
     primarySnapshot: buildTreeSnapshot(0),
     auxiliaryState: {
@@ -412,7 +418,7 @@ export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
   topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Hard",
   description:
-    "Compute offline subtree statistics (such as distinct color counts) for every node in a tree using DSU on Tree (Sack / Small-to-Large merging) in $O(N \\log N)$ total time.\n\n### Problem Statement\nGiven a rooted tree with $N$ vertices, where each vertex $u$ has an associated integer attribute (e.g. `color[u]`), answer subtree queries for all nodes $u \\in [0, N-1]$.\n\nNaive subtree frequency aggregation takes $O(N^2)$ time as light subtrees are computed and discarded. DSU on Tree optimizes this by identifying the 'heavy child' (child with maximum subtree size $sz[v]$) for each node. The algorithm recursively computes light subtrees with `keep=False` (clearing their frequency table after evaluation), computes the heavy child with `keep=True` (retaining its accumulated table), and finally merges the light children back into the heavy child's table in $O(N \\log N)$ total time.\n\n### Input Parameters\n- `numNodes`: Total number of vertices $N$.\n- `edges`: Array of undirected edge pairs `[u, v]` defining tree topology.\n- `colors`: Array of size $N$ containing attribute values for each vertex.\n\n### Output\n- Returns an array `ans` of size $N$ where `ans[u]` is the count of distinct colors in node $u$'s subtree.\n\n### Constraints & Edge Cases\n- $1 \\le N \\le 10^5$.\n- $1 \\le colors[i] \\le 10^9$.\n- Single node tree ($N=1$): returns `ans = [1]`.\n- Star graph topology: root has $N-1$ leaves, heavy child can be any leaf.",
+    "<p>Compute offline subtree statistics (such as distinct color counts) for every node in a tree using DSU on Tree (Sack / Small-to-Large merging) in <code>O(N log N)</code> total time.</p><h3>Problem Statement</h3><p>Given a rooted tree with <code>N</code> vertices, where each vertex <code>u</code> has an associated attribute (e.g. <code>color[u]</code>), answer subtree queries for all nodes <code>u &in; [0, N-1]</code>.</p><p>Naive subtree frequency aggregation takes <code>O(N^2)</code> time as light subtrees are computed and discarded. DSU on Tree optimizes this by identifying the heavy child (the child with maximum subtree size <code>sz[v]</code>) for each node. The algorithm recursively computes light subtrees with <code>keep=False</code> (clearing their frequency table after evaluation), computes the heavy child with <code>keep=True</code> (retaining its accumulated table), and finally merges the light children back into the heavy child's table in <code>O(N log N)</code> total time.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>numNodes</code> (total vertices), <code>edges</code> (edge pairs), and <code>colors</code> array.</li><li><strong>Output:</strong> Returns array <code>ans</code> where <code>ans[u]</code> is the count of distinct colors in node <code>u</code>'s subtree.</li></ul><h3>Constraints &amp; Edge Cases</h3><ul><li><code>1 &lt;= N &lt;= 10^5</code></li><li><code>1 &lt;= colors[i] &lt;= 10^9</code></li><li>Single node tree (<code>N = 1</code>): returns <code>ans = [1]</code>.</li><li>Star graph: root has <code>N-1</code> leaves; heavy child can be any leaf.</li></ul>",
   constraints: ["1 <= N <= 10^5"],
   examples: [
     {
@@ -515,38 +521,38 @@ export const dsuOnTree: AlgorithmDefinition<DsuOnTreeInput> = {
   },
   spaceComplexity: "O(N)",
   complexityAnalysis: {
-    time: "Each node is re-inserted into the frequency sack only when it belongs to a light subtree. Since a path from root to leaf contains at most $O(\\log N)$ light edges, each node is processed at most $O(\\log N)$ times, taking $O(N \\log N)$ total time.",
-    space: "$O(N)$ space for frequency hash map and tree structures.",
+    time: "Each node is re-inserted into the frequency sack only when it belongs to a light subtree. Since a path from root to leaf contains at most O(log N) light edges, each node is processed at most O(log N) times, taking O(N log N) total time.",
+    space: "O(N) space for frequency hash map and tree structures.",
   },
   topicGuide: {
     overview:
-      "DSU on Tree (also known as Sack or Heavy-Light subtree merging) solves offline subtree query problems without complex data structures like persistent segment trees or dynamic merge trees. By exploiting the Heavy-Light Decomposition principle, a node reuses the frequency data structure ('sack') of its largest subtree (the heavy child) and only re-inserts nodes from smaller subtrees (light children).\n\nReal-life applications include compiler AST static analysis (evaluating scope symbol frequencies across nested AST blocks), structural clade analysis in computational biology trees, and hierarchical category metric aggregations.",
+      "<p>DSU on Tree (also known as Sack or Heavy-Light subtree merging) solves offline subtree query problems without complex data structures like persistent segment trees or dynamic merge trees. By exploiting the Heavy-Light Decomposition principle, a node reuses the frequency data structure ('sack') of its largest subtree (the heavy child) and only re-inserts nodes from smaller subtrees (light children).</p><p>Real-life applications include compiler AST static analysis (evaluating scope symbol frequencies across nested AST blocks), structural clade analysis in computational biology trees, and hierarchical category metric aggregations.</p>",
     sections: [
       {
-        heading: "Core Concept: The $O(N \\log N)$ Work Proof",
-        body: "A tree edge $(u, v)$ is defined as 'light' if $sz[v] \\le sz[u] / 2$. Consequently, any simple path from the root to a leaf node crosses at most $\\log_2 N$ light edges. Because a node is only re-inserted into the global sack when traversing upward through a light edge, each node is added/removed at most $\\log_2 N$ times. Total time complexity is strictly bounded by $O(N \\log N)$.",
+        heading: "Core Concept: The O(N log N) Work Proof",
+        body: "<p>A tree edge <code>(u, v)</code> is defined as 'light' if <code>sz[v] &le; sz[u] / 2</code>. Consequently, any simple path from the root to a leaf node crosses at most <code>log2 N</code> light edges. Because a node is only re-inserted into the global sack when traversing upward through a light edge, each node is added or removed at most <code>log2 N</code> times. Total time complexity is strictly bounded by <code>O(N log N)</code>.</p>",
       },
       {
         heading: "Systems & Performance Impact",
-        body: "Unlike heavy pointer-based map merges (`std::map::merge`), DSU on tree utilizes a single, static flat global frequency array or hash map `cnt`. Re-inserting elements sequentially achieves cache-friendly memory access patterns without pointer allocations.",
+        body: "<p>Unlike heavy pointer-based map merges, DSU on tree utilizes a single, static flat global frequency array or hash map <code>cnt</code>. Re-inserting elements sequentially achieves cache-friendly memory access patterns without pointer allocations.</p>",
       },
       {
         heading: "Implementation Nuances: 3-Phase Execution",
-        body: "Phase 1: Pre-pass DFS calculates subtree sizes $sz[u]$ and identifies `big_child[u]` (the child with $\\max sz[v]$).\nPhase 2: Recurse on light children with `keep=False` (erasing their contributions from `cnt`).\nPhase 3: Recurse on `big_child[u]` with `keep=True` (retaining its frequency sack), then iterate through light subtrees and re-add their elements into `cnt` before recording `ans[u]`.",
+        body: "<p><strong>Phase 1:</strong> Pre-pass DFS calculates subtree sizes <code>sz[u]</code> and identifies <code>big_child[u]</code> (the child with maximum <code>sz[v]</code>).<br/><strong>Phase 2:</strong> Recurse on light children with <code>keep=False</code> (erasing their contributions from <code>cnt</code>).<br/><strong>Phase 3:</strong> Recurse on <code>big_child[u]</code> with <code>keep=True</code> (retaining its frequency sack), then iterate through light subtrees and re-add their elements into <code>cnt</code> before recording <code>ans[u]</code>.</p>",
       },
       {
         heading: "Edge Case Analysis",
-        body: "1. Leaf nodes: `big_child[u] == -1`, requires only 1 insertion.\n2. Perfectly balanced binary trees: every edge is light except one, exact bound $\\frac{1}{2} N \\log_2 N$ steps.\n3. Skewed line trees: single heavy child path running from root to leaf, incurring $O(N)$ total operations (0 light edge traversals!).",
+        body: "<p><strong>Leaf nodes:</strong> <code>big_child[u] == -1</code>, requires only 1 insertion.<br/><strong>Perfectly balanced binary trees:</strong> every edge is light except one, exact bound <code>(1/2) N log2 N</code> steps.<br/><strong>Skewed line trees:</strong> single heavy child path running from root to leaf, incurring <code>O(N)</code> total operations (0 light edge traversals!).</p>",
       },
     ],
     keyTerms: [
       {
-        term: "Heavy Child (`big_child`)",
-        definition: "The child $v$ of node $u$ with the largest subtree size $sz[v]$.",
+        term: "Heavy Child (big_child)",
+        definition: "The child v of node u with the largest subtree size sz[v].",
       },
       {
         term: "Light Edge",
-        definition: "An edge connecting parent $u$ to child $v$ where $sz[v] \\le sz[u] / 2$.",
+        definition: "An edge connecting parent u to child v where sz[v] <= sz[u] / 2.",
       },
       {
         term: "Small-to-Large Merging",

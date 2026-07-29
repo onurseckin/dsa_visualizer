@@ -82,9 +82,18 @@ export const DEFAULT_SUCCESSOR_INPUT: SuccessorPathsInput = {
 
 export function generateSuccessorPathsSteps(input: SuccessorPathsInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const succ = input.succ;
-  const startNode = input.startNode ?? 0;
-  const stepsQuery = input.stepsQuery ?? 5;
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_SUCCESSOR_INPUT;
+  const succ =
+    Array.isArray(safeInput.succ) && safeInput.succ.length > 0
+      ? safeInput.succ
+      : DEFAULT_SUCCESSOR_INPUT.succ;
+  const startNode: number =
+    typeof safeInput.startNode === "number" &&
+    safeInput.startNode >= 0 &&
+    safeInput.startNode < succ.length
+      ? safeInput.startNode
+      : (DEFAULT_SUCCESSOR_INPUT.startNode ?? 0);
+  const stepsQuery = safeInput.stepsQuery ?? DEFAULT_SUCCESSOR_INPUT.stepsQuery;
 
   const n = succ.length;
   const nodes: GraphNodeItem[] = Array.from({ length: n }, (_, i) => {
@@ -125,8 +134,8 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
   });
 
   // Phase 1: Tortoise & Hare Cycle Intersection Search
-  let tortoise = succ[startNode];
-  let hare = succ[succ[startNode]];
+  let tortoise = succ[startNode] ?? 0;
+  let hare = succ[succ[startNode] ?? 0] ?? 0;
 
   steps.push({
     stepIndex: stepIdx++,
@@ -404,7 +413,7 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
   });
 
   // Phase 4: Successor query execution (k_steps)
-  let curr = startNode;
+  let curr: number = startNode;
   steps.push({
     stepIndex: stepIdx++,
     codeLine: 21,
@@ -431,19 +440,20 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
     variables: { startNode, stepsQuery, curr },
   });
 
-  for (let s = 1; s <= stepsQuery; s++) {
+  const totalQuerySteps = stepsQuery ?? 5;
+  for (let s = 1; s <= totalQuerySteps; s++) {
     const prev = curr;
-    curr = succ[curr];
+    curr = succ[curr] ?? 0;
 
     steps.push({
       stepIndex: stepIdx++,
       codeLine: 23,
       explanation: {
-        what: `Phase 4 Step ${s}/${stepsQuery}: Advanced from node ${prev} to node ${curr} (succ[${prev}]).`,
+        what: `Phase 4 Step ${s}/${totalQuerySteps}: Advanced from node ${prev} to node ${curr} (succ[${prev}]).`,
         why:
-          s === stepsQuery
-            ? `Reached ${stepsQuery}-th successor node ${curr}!`
-            : `Continuing successor path traversal (${stepsQuery - s} steps remaining).`,
+          s === totalQuerySteps
+            ? `Reached ${totalQuerySteps}-th successor node ${curr}!`
+            : `Continuing successor path traversal (${totalQuerySteps - s} steps remaining).`,
       },
       primarySnapshot: {
         kind: "graph",
@@ -505,7 +515,7 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "Analyzes functional graphs where every node has out-degree 1. Given a functional graph defined by a successor array succ[i], detect directed cycles and compute arbitrary k-step successor queries efficiently. Because out-degree is 1, following successors from any starting vertex leads into a directed cycle. Floyd's Tortoise and Hare algorithm detects cycle entry and length in O(V) time and O(1) space. Binary lifting constructs a jump table succ_table[b][x] = 2^b-th successor of x in O(V log k) preprocessing time, enabling any k-step query to be answered in O(log k) time.",
+    "<p>Analyzes functional graphs where every node has out-degree 1. Given a functional graph defined by a successor array <code>succ[i]</code>, detect directed cycles and compute arbitrary k-step successor queries efficiently. Because out-degree is 1, following successors from any starting vertex leads into a directed cycle. Floyd's Tortoise and Hare algorithm detects cycle entry and length in <code>O(V)</code> time and <code>O(1)</code> space. Binary lifting constructs a jump table <code>succ_table[b][x] = 2<sup>b</sup></code>-th successor of x in <code>O(V log k)</code> preprocessing time, enabling any k-step query to be answered in <code>O(log k)</code> time.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= succ[i] < V for all 0 <= i < V",
@@ -556,32 +566,32 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   },
   spaceComplexity: "O(V log k)",
   complexityAnalysis: {
-    time: "Floyd's cycle detection visits at most $\\mathcal{O}(V)$ nodes. Binary lifting constructs a binary jump table of size $V \\times \\log(k)$ and answers $k$-th successor queries in $\\mathcal{O}(\\log k)$ time.",
-    space: "The binary lifting table takes $\\mathcal{O}(V \\log k)$ memory.",
+    time: "Floyd's cycle detection visits at most O(V) nodes. Binary lifting constructs a binary jump table of size V x log(k) and answers k-th successor queries in O(log k) time.",
+    space: "The binary lifting table takes O(V log k) memory.",
   },
   topicGuide: {
     overview:
-      "A **functional graph** is a directed graph where every vertex has an out-degree of exactly 1. Structural properties of functional graphs guarantee that every connected component consists of directed trees pointing toward a central directed cycle. Querying long paths or cycle properties in functional graphs is efficiently solved using **Floyd's Cycle Detection** and **Binary Lifting**.",
+      "<p>A <strong>functional graph</strong> is a directed graph where every vertex has an out-degree of exactly 1. Structural properties of functional graphs guarantee that every connected component consists of directed trees pointing toward a central directed cycle. Querying long paths or cycle properties in functional graphs is efficiently solved using <strong>Floyd's Cycle Detection</strong> and <strong>Binary Lifting</strong>.</p>",
     sections: [
       {
         heading: "Core Concept: Floyd's Tortoise and Hare Cycle Detection",
-        body: "Floyd's algorithm uses two pointers moving at different speeds: Tortoise advances 1 step at a time ($t = \\text{succ}[t]$), while Hare advances 2 steps ($h = \\text{succ}[\\text{succ}[h]]$). Since the graph component contains a cycle, the Hare is guaranteed to catch the Tortoise inside the cycle. Resetting Tortoise to the start node and stepping both by 1 isolates the exact cycle entry node.",
+        body: "<p>Floyd's algorithm uses two pointers moving at different speeds: Tortoise advances 1 step at a time (<code>t = succ[t]</code>), while Hare advances 2 steps (<code>h = succ[succ[h]]</code>). Since the graph component contains a cycle, the Hare is guaranteed to catch the Tortoise inside the cycle. Resetting Tortoise to the start node and stepping both by 1 isolates the exact cycle entry node.</p>",
       },
       {
         heading: "Binary Lifting for Arbitrary Step Queries",
-        body: "To compute the $k$-th successor $\\text{succ}(x, k)$ for huge step counts (e.g. $k = 10^9$), standard linear stepping is too slow. Binary lifting precomputes $\\text{table}[b][x] = 2^b$-th successor of $x$. Decomposing $k$ into its binary bit representation allows jumping $k$ steps in $\\mathcal{O}(\\log k)$ table lookups.",
+        body: "<p>To compute the <code>k</code>-th successor <code>succ(x, k)</code> for huge step counts (e.g. <code>k = 10<sup>9</sup></code>), standard linear stepping is too slow. Binary lifting precomputes <code>table[b][x] = 2<sup>b</sup></code>-th successor of <code>x</code>. Decomposing <code>k</code> into its binary bit representation allows jumping <code>k</code> steps in <code>O(log k)</code> table lookups.</p>",
       },
       {
         heading: "Applications in Pseudorandomness & Cryptography",
-        body: "Functional graphs model deterministic state transitions in pseudorandom number generators (PRNGs), Pollard's rho algorithm for integer factorization, memory pointer chasing, and cellular automata cycle analysis.",
+        body: "<p>Functional graphs model deterministic state transitions in pseudorandom number generators (PRNGs), Pollard's rho algorithm for integer factorization, memory pointer chasing, and cellular automata cycle analysis.</p>",
       },
       {
         heading: "Edge Cases & Functional Components",
-        body: "Self-loops ($\\text{succ}[x] = x$) form 1-cycles. Pure cycle graphs have no incoming tails (all in-degrees = 1). Binary lifting jump tables handle arbitrarily large step counts without stack overflow or infinite loops.",
+        body: "<p>Self-loops (<code>succ[x] = x</code>) form 1-cycles. Pure cycle graphs have no incoming tails (all in-degrees = 1). Binary lifting jump tables handle arbitrarily large step counts without stack overflow or infinite loops.</p>",
       },
       {
         heading: "Complexity Analysis",
-        body: "$$\\text{Time Complexity}: \\mathcal{O}(V + \\log k)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V \\log k)$$\n- **Cycle Detection**: Floyd's Tortoise and Hare runs in $\\mathcal{O}(V)$ time and $\\mathcal{O}(1)$ space.\n- **Binary Lifting Query**: Precomputes $V \\times \\log k$ table, answering queries in $\\mathcal{O}(\\log k)$ time.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + log k)</code><br/><strong>Space Complexity:</strong> <code>O(V log k)</code></p><ul><li><strong>Cycle Detection:</strong> Floyd's Tortoise and Hare runs in <code>O(V)</code> time and <code>O(1)</code> space.</li><li><strong>Binary Lifting Query:</strong> Precomputes <code>V &times; log k</code> table, answering queries in <code>O(log k)</code> time.</li></ul>",
       },
     ],
     keyTerms: [
@@ -593,12 +603,12 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
       {
         term: "Floyd's Cycle Detection",
         definition:
-          "An $\\mathcal{O}(V)$ time, $\\mathcal{O}(1)$ space two-pointer algorithm for detecting cycles in linked structures or functional graphs.",
+          "An O(V) time, O(1) space two-pointer algorithm for detecting cycles in linked structures or functional graphs.",
       },
       {
         term: "Binary Lifting",
         definition:
-          "A dynamic programming technique precomputing $2^i$ ancestors or successors to enable $\\mathcal{O}(\\log k)$ query traversal.",
+          "A dynamic programming technique precomputing 2^i ancestors or successors to enable O(log k) query traversal.",
       },
       {
         term: "Cycle Entry Node",

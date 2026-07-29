@@ -13,7 +13,7 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A **Segment Tree** structures an array into a balanced binary tree of nested intervals where leaves hold individual elements and internal nodes cache interval aggregates. It supports both range queries (e.g., sum, min, max) and point updates in $O(\\log N)$ time per operation.",
+    "<p>A <strong>Segment Tree</strong> structures an array into a balanced binary tree of nested intervals where leaves hold individual elements and internal nodes cache interval aggregates. It supports both range queries (e.g. sum, min, max) and point updates in <code>O(log N)</code> time per operation.</p><h3>State Representation</h3><p>The state is stored as a 4N binary tree where node <code>v</code> for interval <code>[start...end]</code> has children <code>2v</code> covering <code>[start...mid]</code> and <code>2v+1</code> covering <code>[mid+1...end]</code>.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial numerical array.</li><li><code>operations</code>: Array of point update or range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Query results and updated tree node state.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Array Sizing (4N):</strong> Always allocates <code>4N</code> slots for non-power-of-two input lengths.</li><li><strong>Pruning:</strong> Queries prune non-overlapping branches in <code>O(log N)</code> time.</li></ul>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
@@ -74,9 +74,9 @@ export const segmentTree: AlgorithmDefinition<SegmentTreeInput> = {
   },
   spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "Every operation starts at the root and descends, and each level halves the interval, so the tree is only about log n levels deep. An update follows a single root-to-leaf path, and a query visits at most a constant number of nodes per level because fully covered branches return their cached sum immediately — so both cost O(log n) in every case. Building the tree visits each node exactly once, which is O(n).",
+    time: "Every operation starts at the root and descends, halving intervals at each depth to complete in O(log n) time.",
     space:
-      "The tree stores one cached sum per interval node; an array of size 4n safely covers every level of the (possibly uneven) binary tree, so memory grows linearly with the input — O(n).",
+      "Allocates 4n array slots to store interval node aggregates, consuming linear O(n) space.",
   },
   topicGuide: SEGMENT_TREE_TOPIC_GUIDE,
   trivia: SEGMENT_TREE_TRIVIA,

@@ -123,6 +123,15 @@ export interface StepExplanation {
   why: string;
 }
 
+export type TutorialPhase = "intro" | "walkthrough" | "scenario";
+
+export type TutorialScenarioKind = "standard" | "boundary" | "adversarial";
+
+export type TutorialStepMeta =
+  | { phase: "intro"; scenario?: never }
+  | { phase: "walkthrough"; scenario?: never }
+  | { phase: "scenario"; scenario: TutorialScenarioKind };
+
 export type PrimaryVisualKind =
   | "array"
   | "grid"
@@ -130,25 +139,51 @@ export type PrimaryVisualKind =
   | "tree"
   | "vector"
   | "matrix"
-  | "quantization";
+  | "quantization"
+  | "interval"
+  | "heap"
+  | "dsu"
+  | "hashtable"
+  | "statespace"
+  | "composite"
+  | "callstack"
+  | "bitmask"
+  | "attentionmap"
+  | "trie";
 
-export interface ArrayVisualSnapshot {
-  kind: "array";
-  elements: ArrayElement[];
+/** Canonical bare identity for an authorable primitive snapshot. */
+export interface VisualSnapshotIdentity {
+  /** A short bare identifier such as `nums` or `network`; renderers own notation. */
+  name?: string;
 }
 
-export interface GridVisualSnapshot {
+export interface ArrayVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "array";
+  elements: ArrayElement[];
+  mode?: "bar" | "box";
+  /**
+   * Short variable/entity assignment identifier ONLY (e.g. "nums =", "prefix =", "scanner =").
+   * STRICTLY PROHIBITED: Long text sentences, step descriptions, or formulas.
+   */
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface GridVisualSnapshot extends VisualSnapshotIdentity {
   kind: "grid";
   grid: GridCellNode[][];
 }
 
-export interface GraphVisualSnapshot {
+export interface GraphVisualSnapshot extends VisualSnapshotIdentity {
   kind: "graph";
   nodes: GraphNodeItem[];
   edges: GraphEdgeItem[];
+  directed?: boolean;
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
 }
 
-export interface TreeVisualSnapshot {
+export interface TreeVisualSnapshot extends VisualSnapshotIdentity {
   kind: "tree";
   nodes: TreeNodeItem[];
   rootId?: string;
@@ -165,7 +200,7 @@ export interface VectorItem {
   subText?: string;
 }
 
-export interface VectorVisualSnapshot {
+export interface VectorVisualSnapshot extends VisualSnapshotIdentity {
   kind: "vector";
   vectors: VectorItem[];
   origin?: { x: number; y: number };
@@ -182,13 +217,14 @@ export interface MatrixCellItem {
   color?: string;
 }
 
-export interface MatrixVisualSnapshot {
+export interface MatrixVisualSnapshot extends VisualSnapshotIdentity {
   kind: "matrix";
   rows: number;
   cols: number;
   cells: MatrixCellItem[];
   rowHeaders?: string[];
   colHeaders?: string[];
+  /** @deprecated Use `name` for primitive identity. */
   title?: string;
 }
 
@@ -200,29 +236,266 @@ export interface BitItem {
   bitGroup?: string;
 }
 
-export interface QuantizationVisualSnapshot {
+export interface QuantizationVisualSnapshot extends VisualSnapshotIdentity {
   kind: "quantization";
   originalValue?: number | string;
   quantizedValue?: number | string;
   scale?: number | string;
   zeroPoint?: number | string;
   bits: BitItem[];
+  /** @deprecated Use `name` for primitive identity. */
   title?: string;
 }
 
-export type PrimaryVisualSnapshot =
+export interface IntervalItem {
+  id: string;
+  start: number;
+  end: number;
+  label?: string;
+  state?: ElementState;
+  group?: number;
+  track?: number;
+}
+
+export interface SweepLineEventPoint {
+  id?: string;
+  position: number;
+  label?: string;
+  type?: "start" | "end" | "point";
+  state?: ElementState;
+}
+
+export interface IntervalVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "interval";
+  intervals: IntervalItem[];
+  sweepLine?: { position: number; label?: string; state?: ElementState };
+  eventPoints?: SweepLineEventPoint[];
+  axis?: { min?: number; max?: number; label?: string };
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface HeapItem {
+  id?: string;
+  val: number | string;
+  label?: string;
+  state?: ElementState;
+}
+
+export interface HeapVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "heap";
+  heap: (HeapItem | number | string)[];
+  heapType?: "min" | "max";
+  swapPair?: [number, number];
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface DsuNodeItem {
+  id: string;
+  parentId: string;
+  rank?: number;
+  size?: number;
+  label?: string;
+  state?: ElementState;
+  group?: number;
+}
+
+export interface DsuVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "dsu";
+  nodes: DsuNodeItem[];
+  activeIds?: string[];
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface HashEntryItem {
+  key: string | number;
+  value: string | number;
+  hash?: number;
+  state?: ElementState;
+  color?: string;
+}
+
+export interface HashBucketItem {
+  index: number;
+  label?: string;
+  entries: HashEntryItem[];
+  state?: ElementState;
+}
+
+export interface HashTableVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "hashtable";
+  buckets: HashBucketItem[];
+  hashFunction?: string;
+  probingSequence?: number[];
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface StateSpaceNodeItem {
+  id: string;
+  label: string;
+  state?: ElementState;
+  depth?: number;
+  score?: number | string;
+  isGoal?: boolean;
+  isPruned?: boolean;
+  isCurrent?: boolean;
+  group?: number;
+  x?: number;
+  y?: number;
+}
+
+export interface StateSpaceEdgeItem {
+  from: string;
+  to: string;
+  label?: string;
+  action?: string;
+  cost?: number | string;
+  state?: ElementState;
+  isPath?: boolean;
+}
+
+export interface StateSpaceVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "statespace";
+  nodes: StateSpaceNodeItem[];
+  edges?: StateSpaceEdgeItem[];
+  activeNodeId?: string;
+  path?: string[];
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface CompositeCanvasItem {
+  id: string;
+  role: "primary" | "auxiliary" | "comparison";
+  snapshot: NonCompositeVisualSnapshot;
+  colSpan?: number;
+  rowSpan?: number;
+  widthRatio?: number;
+  heightRatio?: number;
+}
+
+export interface CompositeCanvasSnapshot {
+  kind: "composite";
+  items: CompositeCanvasItem[];
+  layout?: "flex" | "grid" | "horizontal" | "vertical" | "auto";
+  columns?: number;
+  rows?: number;
+  heading?: string;
+  gap?: number | string;
+}
+
+export interface CallStackFrameItem {
+  id: string;
+  name: string;
+  args?: Record<string, DisplayValue>;
+  returnValue?: DisplayValue;
+  state?: ElementState;
+  isCurrent?: boolean;
+}
+
+export interface CallStackVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "callstack";
+  frames: CallStackFrameItem[];
+  activeFrameIndex?: number;
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface BitmaskItem {
+  index: number;
+  value: 0 | 1 | string | number;
+  label?: string;
+  state?: ElementState;
+  group?: string;
+}
+
+export interface BitmaskVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "bitmask";
+  bits: BitmaskItem[];
+  value?: number | string;
+  label?: string;
+  bitWidth?: number;
+  operation?: {
+    name: string;
+    operand?: number | string;
+    result?: number | string;
+  };
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface AttentionMapVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "attentionmap";
+  queryTokens: string[];
+  keyTokens: string[];
+  weights: number[][];
+  activeQueryIndex?: number;
+  activeKeyIndex?: number;
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export interface TrieNodeItem {
+  id: string;
+  char: string;
+  isEndOfWord?: boolean;
+  state?: ElementState;
+  children?: string[];
+  parentId?: string;
+  x?: number;
+  y?: number;
+  frequency?: number;
+}
+
+export interface TrieEdgeItem {
+  from: string;
+  to: string;
+  char?: string;
+  state?: ElementState;
+}
+
+export interface TrieVisualSnapshot extends VisualSnapshotIdentity {
+  kind: "trie";
+  nodes: TrieNodeItem[];
+  edges?: TrieEdgeItem[];
+  rootId?: string;
+  activePath?: string[];
+  searchWord?: string;
+  /** @deprecated Use `name` for primitive identity. */
+  title?: string;
+}
+
+export type NonCompositeVisualSnapshot =
   | ArrayVisualSnapshot
   | GridVisualSnapshot
   | GraphVisualSnapshot
   | TreeVisualSnapshot
   | VectorVisualSnapshot
   | MatrixVisualSnapshot
-  | QuantizationVisualSnapshot;
+  | QuantizationVisualSnapshot
+  | IntervalVisualSnapshot
+  | HeapVisualSnapshot
+  | DsuVisualSnapshot
+  | HashTableVisualSnapshot
+  | StateSpaceVisualSnapshot
+  | CallStackVisualSnapshot
+  | BitmaskVisualSnapshot
+  | AttentionMapVisualSnapshot
+  | TrieVisualSnapshot;
+
+export type PrimaryVisualSnapshot = NonCompositeVisualSnapshot | CompositeCanvasSnapshot;
 
 export interface AlgorithmStep {
   stepIndex: number;
-  codeLine: number;
+  codeLine?: number;
   explanation: StepExplanation;
+  /** The canonical prose for new tutorial steps. */
+  narrative?: string;
+  /** Phase metadata for tutorials authored with the narrative-step contract. */
+  tutorial?: TutorialStepMeta;
   primarySnapshot: PrimaryVisualSnapshot;
   auxiliaryState: AuxiliaryState;
   variables: Record<string, DisplayValue>;
@@ -276,6 +549,7 @@ export interface TopicGuide {
 export interface ProblemExample<TInput = unknown> {
   id?: string;
   kind?: "basic" | "complex" | "negative";
+  scenario?: TutorialScenarioKind;
   title?: string;
   input: TInput | string;
   output?: string;

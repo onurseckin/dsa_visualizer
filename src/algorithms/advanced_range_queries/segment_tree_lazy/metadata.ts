@@ -3,27 +3,23 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const SEGMENT_TREE_LAZY_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **Segment Tree with Lazy Propagation** optimizes range updates from naive linear $O(N)$ time down to $O(\\log N)$ logarithmic time. In a standard segment tree, modifying every element in range $[L \\dots R]$ requires visiting every leaf in that interval. Lazy propagation resolves this by **deferring** updates: when a range update completely covers a node's interval $[\\text{start} \\dots \\text{end}]$, the node updates its aggregate sum immediately and stores a **lazy tag** to remember the pending delta. Lazy tags are pushed down to children on-demand only when subsequent queries or updates descend deeper.",
+    "<p>A <strong>Segment Tree with Lazy Propagation</strong> optimizes range updates from linear <code>O(N)</code> time down to logarithmic <code>O(log N)</code> time. In a standard segment tree, modifying every element in range <code>[L ... R]</code> requires visiting every leaf in that interval. Lazy propagation resolves this by <strong>deferring</strong> updates: when a range update completely covers a node's interval <code>[start ... end]</code>, the node updates its aggregate sum immediately and stores a <strong>lazy tag</strong> to remember the pending delta. Lazy tags are pushed down to children on-demand only when subsequent queries or updates descend deeper.</p>",
   sections: [
     {
-      heading: "1. Deferred Work & Lazy Tags",
-      body: "Updating range $[L \\dots R]$ by value $v$ touching an interval of length $K = \\text{end} - \\text{start} + 1$ increases the node sum by $K \\cdot v$ in $O(1)$ time:\n\n$$\\text{tree}[\\text{node}] \\leftarrow \\text{tree}[\\text{node}] + K \\cdot v$$\n$$\\text{lazy}[\\text{node}] \\leftarrow \\text{lazy}[\\text{node}] + v$$\n\nThe traversal terminates immediately at this node without visiting descendants, guaranteeing that range updates touch at most $2 \\log_2 N$ canonical nodes.",
+      heading: "Deferred Work & Lazy Tags",
+      body: "<p>Updating range <code>[L ... R]</code> by delta <code>v</code> touching an interval of length <code>K = end - start + 1</code> increases the node sum by <code>K &middot; v</code> in <code>O(1)</code> time:</p><ul><li><code>tree[node] += K &middot; v</code></li><li><code>lazy[node] += v</code></li></ul><p>Traversal terminates immediately at this node without visiting descendants, guaranteeing that range updates touch at most <code>2 log<sub>2</sub> N</code> canonical nodes.</p>",
     },
     {
-      heading: "2. The Push Operation: On-Demand Propagation",
-      body: "Before traversing into left or right children during queries or updates, we execute `push(node, start, end)`:\n\n1. Check if $\\text{lazy}[\\text{node}] \\ne 0$.\n2. Propagate $\\text{lazy}[\\text{node}]$ to child tags: $\\text{lazy}[2v] += \\text{lazy}[v]$ and $\\text{lazy}[2v+1] += \\text{lazy}[v]$.\n3. Update child cached sums: $\\text{tree}[2v] += \\text{lazy}[v] \\cdot K_{\\text{left}}$ and $\\text{tree}[2v+1] += \\text{lazy}[v] \\cdot K_{\\text{right}}$.\n4. Reset parent tag: $\\text{lazy}[v] \\leftarrow 0$.",
+      heading: "The Push Operation: On-Demand Propagation",
+      body: "<p>Before traversing into left or right children during queries or updates, we execute <code>push(node, start, end)</code>:</p><ol><li>Check if <code>lazy[node] != 0</code>.</li><li>Propagate <code>lazy[node]</code> to child tags: <code>lazy[2v] += lazy[v]</code> and <code>lazy[2v+1] += lazy[v]</code>.</li><li>Update child cached sums: <code>tree[2v] += lazy[v] &middot; K<sub>left</sub></code> and <code>tree[2v+1] += lazy[v] &middot; K<sub>right</sub></code>.</li><li>Reset parent tag: <code>lazy[v] &larr; 0</code>.</li></ol>",
     },
     {
-      heading: "3. Execution Pipeline: Updates & Queries",
-      body: "For both range update and range query operations, the tree traversal follows four core conditions:\n\n- **Pending Tag Resolution**: Flush lazy tag down via `push` if $\\text{lazy}[v] \\ne 0$.\n- **Disjoint Range**: Return immediately if $[\\text{start} \\dots \\text{end}] \\cap [L \\dots R] = \\emptyset$.\n- **Complete Coverage**: Apply/return node value directly if $[\\text{start} \\dots \\text{end}] \\subseteq [L \\dots R]$.\n- **Partial Overlap**: Recurse into left and right subtrees and merge child results.",
+      heading: "Execution Pipeline: Updates & Queries",
+      body: "<p>For both range updates and range queries, tree traversal follows four core conditions:</p><ul><li><strong>Pending Tag Resolution:</strong> Flush lazy tag down via <code>push</code> if <code>lazy[v] != 0</code>.</li><li><strong>Disjoint Range:</strong> Return immediately if ranges do not overlap.</li><li><strong>Complete Coverage:</strong> Apply or return node value directly if interval is fully covered.</li><li><strong>Partial Overlap:</strong> Recurse into left and right subtrees and merge child results.</li></ul>",
     },
     {
-      heading: "4. Scaling Factor & Operation Composition",
-      body: "- **Range Sum Query**: Multiplying lazy tag $v$ by interval size $K$ gives delta $K \\cdot v$.\n- **Range Min/Max Query**: Adding $v$ to range shifts min/max by $v$ directly (scaling by $K$ is omitted).\n- **Tag Composition**: Multiple updates accumulate via $\\text{lazy}[\\text{child}] \\leftarrow \\text{lazy}[\\text{child}] + \\text{lazy}[\\text{parent}]$.",
-    },
-    {
-      heading: "5. Interview Pitfalls & Complexities",
-      body: "- **Push Before Descending**: Always invoke `push()` before making recursive child calls to prevent reading stale cached sums.\n- **Leaf Boundaries**: Check `start != end` before pushing lazy tags down, as leaf nodes do not have children.",
+      heading: "Tag Composition & Scaling",
+      body: "<p>Additive lazy tags scale by subsegment length <code>K = end - start + 1</code> for sum queries, while Range Min/Max queries apply deltas directly. Multiple updates accumulate additively in child lazy tags.</p>",
     },
   ],
   keyTerms: [
@@ -40,12 +36,12 @@ export const SEGMENT_TREE_LAZY_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Interval Scaling",
       definition:
-        "Multiplying additive delta $v$ by interval length $K = (\\text{end} - \\text{start} + 1)$ for Range Sum calculations.",
+        "Multiplying additive delta v by interval length K = (end - start + 1) for Range Sum calculations.",
     },
     {
       term: "Canonical Covering Set",
       definition:
-        "The minimal set of at most $2 \\log_2 N$ tree nodes that completely cover target interval $[L \\dots R]$.",
+        "The minimal set of at most 2 log_2 N tree nodes that completely cover target interval [L ... R].",
     },
   ],
 };

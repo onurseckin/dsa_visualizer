@@ -41,7 +41,7 @@ interface ActiveRun {
 let runSequence = 0;
 
 export function CodeWorkspace({
-  activeLine = 1,
+  activeLine,
   draftStorage = playgroundDraftStorage,
   executionSpec,
   itemId,

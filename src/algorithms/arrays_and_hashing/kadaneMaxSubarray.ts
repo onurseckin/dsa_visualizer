@@ -21,7 +21,8 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const elements: ArrayElement[] = input.map((val, idx) => ({
+  const rawInput = Array.isArray(input) ? input : [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+  const elements: ArrayElement[] = rawInput.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -132,27 +133,27 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   addStep(
     1,
     `Initialize Kadane's algorithm`,
-    `Starting scan over array of size N = ${n}: [${input.join(", ")}].`,
+    `Starting a single linear scan over N = ${n} elements to evaluate local contiguous subarray choices against historical global maximums.`,
     { n },
   );
 
   addStep(
     2,
     `Seed current_max with nums[0] = ${currentMax}`,
-    `The only contiguous subarray ending at index 0 is [${elements[0].value}] by itself.`,
+    `At index 0, the only contiguous subarray ending at this position consists of element ${elements[0].value} alone.`,
     { i: 0, "nums[0]": elements[0].value },
   );
 
   addStep(
     3,
     `Seed global_max with ${globalMax}`,
-    `Initial best overall sum is set to ${globalMax}.`,
+    `Setting the initial historical best sum record across all evaluated positions to ${globalMax}.`,
   );
 
   addStep(
     4,
     "Initialize index pointers",
-    "Setting start = 0, end = 0, and temp_start = 0 to track the maximal subarray boundary.",
+    "Setting start = 0, end = 0, and temp_start = 0 to track the exact index bounds of the maximal subarray window.",
   );
 
   for (let i = 1; i < n; i++) {
@@ -163,7 +164,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     addStep(
       5,
       `Inspect index i = ${i} (value ${val})`,
-      `Evaluating whether to extend the running subarray or restart fresh at index ${i}.`,
+      `Evaluating whether carrying the accumulated running sum adds positive value or whether discarding a negative prefix yields a better start at index ${i}.`,
       { i, "nums[i]": val },
     );
 
@@ -172,7 +173,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     addStep(
       6,
       `Evaluate decision condition for nums[${i}]`,
-      `Comparing single element ${val} against extended sum ${prevSum + val}.`,
+      `Comparing single element value ${val} against extended running sum ${prevSum + val}.`,
       { i, "nums[i]": val, extendedSum: prevSum + val, prevSum },
     );
 
@@ -182,19 +183,23 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         7,
         `Set current_max = ${currentMax}`,
-        `Previous sum ${prevSum} was negative and drags down the total. Restarting subarray at index ${i}.`,
+        `The accumulated prefix sum ${prevSum} was negative and dragged down total value. Discarding the negative prefix and restarting a fresh subarray at index ${i}.`,
         { i, "nums[i]": val },
       );
 
       tempStart = i;
       updateElementStatesAndPointers(i);
 
-      addStep(8, `Update temp_start = ${i}`, `Recording temporary candidate start index as ${i}.`);
+      addStep(
+        8,
+        `Update temp_start = ${i}`,
+        `Marking index ${i} as the candidate start boundary for the new subarray.`,
+      );
     } else {
       addStep(
         9,
         "Execute else branch",
-        "Previous subarray sum is non-negative, making it beneficial to extend.",
+        "The preceding running sum is non-negative and contributes positive value, making it advantageous to extend the existing subarray.",
         { i },
       );
 
@@ -203,7 +208,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         10,
         `Extend current_max to ${currentMax}`,
-        `Extended running sum by adding ${val}, bringing current_max to ${currentMax}.`,
+        `Extended the running subarray by incorporating element ${val}, bringing local current_max to ${currentMax}.`,
         { i, "nums[i]": val },
       );
     }
@@ -211,7 +216,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
     addStep(
       11,
       `Check if current_max (${currentMax}) > global_max (${globalMax})`,
-      `Determining if current subarray beats the historical global maximum.`,
+      `Checking if the local running subarray sum beats the historical global maximum.`,
       { beatsGlobal: currentMax > globalMax },
     );
 
@@ -221,7 +226,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         12,
         `Update global_max = ${globalMax}`,
-        `New overall record maximum found: ${globalMax}.`,
+        `A new historical peak sum of ${globalMax} has been discovered.`,
       );
 
       start = tempStart;
@@ -230,13 +235,17 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
       addStep(
         13,
         `Update start = ${start}`,
-        `Updating record start index to candidate temp_start ${start}.`,
+        `Confirming record start boundary index to candidate temp_start ${start}.`,
       );
 
       end = i;
       updateElementStatesAndPointers(i);
 
-      addStep(14, `Update end = ${end}`, `Updating record end index to current position ${end}.`);
+      addStep(
+        14,
+        `Update end = ${end}`,
+        `Updating record end boundary index to current position ${end}.`,
+      );
     }
   }
 
@@ -256,14 +265,14 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   addStep(
     15,
     `Kadane's scan complete`,
-    `Maximal contiguous subarray spans indices [${start}..${end}] with maximum sum = ${globalMax}.`,
+    `The linear pass is complete. Maximal contiguous subarray spans indices [${start}..${end}] with maximum sum = ${globalMax}.`,
   );
 
   while (steps.length < 20) {
     addStep(
       15,
       `Final invariant verification step ${steps.length + 1}`,
-      `Verifying maximal sum property for range [${start}..${end}].`,
+      `Verifying maximal sum property for optimal subsegment range [${start}..${end}].`,
     );
   }
 
@@ -296,7 +305,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   topicIds: ["arrays_and_hashing"],
   difficulty: "Medium",
   description:
-    "Kadane's Algorithm computes the maximum sum of a contiguous subarray within a one-dimensional numeric array in a single linear pass.\n\n### Why It Exists & What It Solves\nFinding the maximum subarray sum brute-force requires evaluating all $\\frac{N(N+1)}{2} = \\mathcal{O}(N^2)$ candidate contiguous subarrays (or $\\mathcal{O}(N^3)$ if naive sum loops are re-executed). Kadane's algorithm solves this in $\\mathcal{O}(N)$ time and $\\mathcal{O}(1)$ auxiliary space using dynamic programming.\n- **Local Recurrence**: At index $i$, we decide whether to extend the maximal subarray ending at $i-1$ or discard a negative-sum prefix and restart a fresh subarray at index $i$.\n- **Global Record**: We track the historical maximum sum $\\text{global\\_max} = \\max_{0 \\le k \\le i} \\{\\text{current\\_max}(k)\\}$.\n\n### Step-by-Step Intuition\n1. **Base Case Initialization**: Set $\\text{current\\_max} = \\text{nums}[0]$ and $\\text{global\\_max} = \\text{nums}[0]$ at index $0$.\n2. **Transition Scan ($i = 1 \\dots N-1$)**: For each element $\\text{nums}[i]$, compute:\n   $$\\text{current\\_max} = \\max(\\text{nums}[i], \\text{current\\_max} + \\text{nums}[i])$$\n3. **Prefix Drag Elimination**: If $\\text{current\\_max} + \\text{nums}[i] < \\text{nums}[i]$ (implying $\\text{current\\_max} < 0$), the preceding sum degrades future subtotals. Discard it and set $\\text{temp\\_start} = i$.\n4. **Record Update**: If $\\text{current\\_max} > \\text{global\\_max}$, update $\\text{global\\_max} = \\text{current\\_max}$, $\\text{start} = \\text{temp\\_start}$, and $\\text{end} = i$.\n\n### Mathematical Formulation & Derivation\nLet $DP[i]$ be the maximum subarray sum ending precisely at index $i$. The Bellman recurrence relation is:\n$$DP[i] = \\begin{cases} \\text{nums}[0], & \\text{if } i = 0 \\\\ \\max(\\text{nums}[i], DP[i-1] + \\text{nums}[i]), & \\text{if } i > 0 \\end{cases}$$\nThe overall maximum subarray sum is the peak state across all indices:\n$$\\text{MaxSubarraySum} = \\max_{0 \\le i < N} DP[i]$$\nSince $DP[i]$ depends only on $DP[i-1]$, space collapses from $\\mathcal{O}(N)$ array storage to $\\mathcal{O}(1)$ scalar variables (`current_max`, `global_max`).\n\n### Input & Output Contracts\n- **Input**: `nums` (`list[int]`), an array of integers containing positive and negative numbers where $1 \\le N \\le 10^5$.\n- **Output**: `int`, the maximum sum of any non-empty contiguous subarray.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N)$ linear time; visits each element exactly once with constant-time scalar arithmetic.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space using scalar boundary and accumulator registers.\n\n### Edge Cases & Constraints\n- **All Negative Numbers**: Correctly yields the single least-negative (maximum) element, e.g. $[-8, -3, -6] \\implies -3$.\n- **Single Element Input ($N=1$)**: Instantly returns $\\text{nums}[0]$.\n- **All Positive Numbers**: Sums the entire array in $\\mathcal{O}(N)$ time.",
+    "<p>Kadane's Algorithm computes the maximum sum of a contiguous subarray within a one-dimensional numeric array in a single linear pass.</p><h3>Why It Exists &amp; What It Solves</h3><p>Finding the maximum subarray sum brute-force requires evaluating all <code>O(N<sup>2</sup>)</code> candidate contiguous subarrays (or <code>O(N<sup>3</sup>)</code> if naive sum loops are re-executed). Kadane's algorithm solves this in <code>O(N)</code> time and <code>O(1)</code> auxiliary space using dynamic programming.</p><ul><li><strong>Local Recurrence:</strong> At index <code>i</code>, we decide whether to extend the maximal subarray ending at <code>i-1</code> or discard a negative-sum prefix and restart a fresh subarray at index <code>i</code>.</li><li><strong>Global Record:</strong> We track the historical maximum sum <code>global_max = max(current_max(k))</code> across all positions <code>k</code>.</li></ul><h3>Step-by-Step Intuition</h3><ul><li><strong>Base Case Initialization:</strong> Set <code>current_max = nums[0]</code> and <code>global_max = nums[0]</code> at index <code>0</code>.</li><li><strong>Transition Scan:</strong> For each element <code>nums[i]</code> (from <code>1</code> to <code>N-1</code>), compute <code>current_max = max(nums[i], current_max + nums[i])</code>.</li><li><strong>Prefix Drag Elimination:</strong> If <code>current_max + nums[i] &lt; nums[i]</code> (implying <code>current_max &lt; 0</code>), the preceding sum degrades future subtotals. Discard it and set <code>temp_start = i</code>.</li><li><strong>Record Update:</strong> If <code>current_max &gt; global_max</code>, update <code>global_max = current_max</code>, <code>start = temp_start</code>, and <code>end = i</code>.</li></ul><h3>Mathematical Formulation &amp; Derivation</h3><p>Let <code>DP[i]</code> be the maximum subarray sum ending precisely at index <code>i</code>. The Bellman recurrence relation is:</p><p><code>DP[i] = nums[0] if i = 0, else max(nums[i], DP[i-1] + nums[i])</code></p><p>The overall maximum subarray sum is the peak state across all indices:</p><p><code>MaxSubarraySum = max(DP[i]) for 0 &le; i &lt; N</code></p><p>Since <code>DP[i]</code> depends only on <code>DP[i-1]</code>, space collapses from <code>O(N)</code> array storage to <code>O(1)</code> scalar variables (<code>current_max</code>, <code>global_max</code>).</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>nums</code> (<code>list[int]</code>), an array of integers containing positive and negative numbers where <code>1 &le; N &le; 10<sup>5</sup></code>.</li><li><strong>Output:</strong> <code>int</code>, the maximum sum of any non-empty contiguous subarray.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> <code>O(N)</code> linear time; visits each element exactly once with constant-time scalar arithmetic.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space using scalar boundary and accumulator registers.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>All Negative Numbers:</strong> Correctly yields the single least-negative (maximum) element, e.g. <code>[-8, -3, -6] &rArr; -3</code>.</li><li><strong>Single Element Input (N=1):</strong> Instantly returns <code>nums[0]</code>.</li><li><strong>All Positive Numbers:</strong> Sums the entire array in <code>O(N)</code> time.</li></ul>",
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
@@ -343,23 +352,23 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   },
   topicGuide: {
     overview:
-      "Kadane's Algorithm is an optimal dynamic programming technique that solves the Maximum Subarray Problem in $\\mathcal{O}(N)$ time and $\\mathcal{O}(1)$ space. In real-world systems, Kadane's algorithm is applied in quantitative finance for maximum drawdown/profit window analysis, digital signal processing for peak energy detection, image processing (2D grid extension), and genomic sequencing for finding GC-dense regions.",
+      "<p>Kadane's Algorithm is an optimal dynamic programming technique that solves the Maximum Subarray Problem in <code>O(N)</code> time and <code>O(1)</code> space. In real-world systems, Kadane's algorithm is applied in quantitative finance for maximum drawdown/profit window analysis, digital signal processing for peak energy detection, image processing (2D grid extension), and genomic sequencing for finding GC-dense regions.</p>",
     sections: [
       {
         heading: "Core Concept & Local vs. Global Optimum",
-        body: "Kadane's algorithm maintains two variables: $\\text{current\\_max}$ (the maximum subarray sum ending at position $i$) and $\\text{global\\_max}$ (the maximum sum encountered across all positions). At index $i$, $\\text{current\\_max} = \\max(\\text{nums}[i], \\text{current\\_max} + \\text{nums}[i])$. If $\\text{current\\_max}$ drops below $\\text{nums}[i]$, the previous prefix sum is discarded and a new subarray starts at $i$. This local-to-global transition guarantees optimal subarray discovery.",
+        body: "<p>Kadane's algorithm maintains two variables: <code>current_max</code> (the maximum subarray sum ending at position <code>i</code>) and <code>global_max</code> (the maximum sum encountered across all positions). At index <code>i</code>, <code>current_max = max(nums[i], current_max + nums[i])</code>. If <code>current_max</code> drops below <code>nums[i]</code>, the previous prefix sum is discarded and a new subarray starts at <code>i</code>. This local-to-global transition guarantees optimal subarray discovery.</p>",
       },
       {
         heading: "Systems & Performance Impact: Low Latency & Streaming",
-        body: "Because Kadane's algorithm reads data sequentially in a single pass, it is exceptionally cache-friendly and supports online streaming data feeds. In real-time quantitative trading engines, incoming price ticks update running profit windows without requiring full history recalculations.",
+        body: "<p>Because Kadane's algorithm reads data sequentially in a single pass, it is exceptionally cache-friendly and supports online streaming data feeds. In real-time quantitative trading engines, incoming price ticks update running profit windows without requiring full history recalculations.</p>",
       },
       {
         heading: "Implementation Nuances & Boundary Tracking",
-        body: "To track the exact subarray bounds (start and end indices), a temporary marker $\\text{temp\\_start}$ is set whenever a new subarray is initiated. $\\text{start}$ and $\\text{end}$ are updated whenever $\\text{global\\_max}$ is refreshed. This turns a simple scalar sum algorithm into a full interval locator.",
+        body: "<p>To track the exact subarray bounds (start and end indices), a temporary marker <code>temp_start</code> is set whenever a new subarray is initiated. <code>start</code> and <code>end</code> are updated whenever <code>global_max</code> is refreshed. This turns a simple scalar sum algorithm into a full interval locator.</p>",
       },
       {
         heading: "Edge Case & Structural Invariants",
-        body: "For all-negative input arrays, $\\text{current\\_max}$ naturally resolves to the single maximum element (least negative number), preventing empty subarray returns. Single-element inputs exit correctly after initializing state.",
+        body: "<p>For all-negative input arrays, <code>current_max</code> naturally resolves to the single maximum element (least negative number), preventing empty subarray returns. Single-element inputs exit correctly after initializing state.</p>",
       },
     ],
     keyTerms: [

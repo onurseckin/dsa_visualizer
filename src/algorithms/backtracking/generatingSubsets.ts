@@ -33,7 +33,11 @@ const SUBSETS_TRIVIA: TriviaMeta = {
 };
 
 export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): AlgorithmStep[] => {
-  const nums = input && Array.isArray(input.elements) ? input.elements.slice(0, 6) : [1, 2, 3];
+  const safeInput = input ?? DEFAULT_GENERATING_SUBSETS_INPUT;
+  const rawElements = Array.isArray(safeInput.elements)
+    ? safeInput.elements
+    : DEFAULT_GENERATING_SUBSETS_INPUT.elements;
+  const nums = rawElements.length > 0 ? rawElements.slice(0, 6) : [1, 2, 3];
   const n = nums.length;
 
   const steps: AlgorithmStep[] = [];
@@ -65,8 +69,8 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
     stepIndex: stepIdx++,
     codeLine: 2,
     explanation: {
-      what: `Initialized subset generator for ${n} element${n === 1 ? "" : "s"}: [${nums.join(", ")}].`,
-      why: `There are 2^N = 2^${n} = ${Math.pow(2, n)} total subsets in the power set.`,
+      what: `Initialize power set generator for ${n} element${n === 1 ? "" : "s"}: [${nums.join(", ")}].`,
+      why: `Generating all 2^N = 2^${n} = ${Math.pow(2, n)} subsets via recursive inclusion-exclusion decision branching.`,
     },
     primarySnapshot: buildArraySnapshot(-1, new Set()),
     auxiliaryState: {
@@ -86,11 +90,11 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
       stepIndex: stepIdx++,
       codeLine: 5,
       explanation: {
-        what: `Check base case: index (${idx}) == len(nums) (${n})?`,
+        what: `Evaluate recursion base case: index (${idx}) == len(nums) (${n}).`,
         why:
           idx === n
-            ? `Reached end of array (index ${idx}); current subset [${currSubset.join(", ")}] is complete.`
-            : `Standing at index ${idx} looking at element ${nums[idx]}.`,
+            ? `Reached boundary end of array; current subset [${currSubset.join(", ")}] is complete.`
+            : `Evaluating element nums[${idx}] = ${nums[idx]} for inclusion or exclusion.`,
       },
       primarySnapshot: buildArraySnapshot(idx, included),
       auxiliaryState: {
@@ -112,8 +116,8 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
         stepIndex: stepIdx++,
         codeLine: 6,
         explanation: {
-          what: `Base case reached! Recorded subset #${allSubsets.length}: [${currSubset.join(", ")}].`,
-          why: "Saved a copy of this completed subset to the results array.",
+          what: `Recorded subset #${allSubsets.length}: [${currSubset.join(", ")}].`,
+          why: "A complete subset decision path has been reached and appended to output collection.",
         },
         primarySnapshot: buildArraySnapshot(idx, included),
         auxiliaryState: {
@@ -138,7 +142,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
       codeLine: 10,
       explanation: {
         what: `Decision at index ${idx} (element ${nums[idx]}): EXCLUDE.`,
-        why: `Exploring left branch without adding ${nums[idx]} to the current subset.`,
+        why: `Exploring decision branch omitting ${nums[idx]} from current subset.`,
       },
       primarySnapshot: buildArraySnapshot(idx, included),
       auxiliaryState: {
@@ -167,7 +171,7 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
       codeLine: 13,
       explanation: {
         what: `Decision at index ${idx} (element ${nums[idx]}): INCLUDE.`,
-        why: `Added ${nums[idx]} to current subset; exploring right branch with subset [${currSubset.join(", ")}].`,
+        why: `Adding ${nums[idx]} to current subset; exploring decision branch with subset [${currSubset.join(", ")}].`,
       },
       primarySnapshot: buildArraySnapshot(idx, nextIncluded),
       auxiliaryState: {
@@ -192,8 +196,8 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
       stepIndex: stepIdx++,
       codeLine: 15,
       explanation: {
-        what: `Un-choose element ${nums[idx]} at index ${idx}.`,
-        why: `Popped ${nums[idx]} to restore current subset to [${currSubset.join(", ")}] before unwinding recursion.`,
+        what: `Backtrack: un-choose element ${nums[idx]} at index ${idx}.`,
+        why: `Popped ${nums[idx]} to restore current subset state to [${currSubset.join(", ")}] for parent recursive frame.`,
       },
       primarySnapshot: buildArraySnapshot(idx, included),
       auxiliaryState: {
@@ -216,8 +220,8 @@ export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): A
     stepIndex: stepIdx++,
     codeLine: 18,
     explanation: {
-      what: `Completed power set generation! Produced all ${allSubsets.length} subsets.`,
-      why: "Recursive backtracking systematically explored all 2^N binary decision paths.",
+      what: `Power set generation complete! Generated all ${allSubsets.length} subsets.`,
+      why: "Exhaustive binary decision tree traversal over all 2^N states successfully completed.",
     },
     primarySnapshot: buildArraySnapshot(-1, new Set()),
     auxiliaryState: {
@@ -242,7 +246,7 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   topicIds: ["backtracking"],
   difficulty: "Easy",
   description:
-    "Generate all $2^N$ possible subsets (the power set) of an array of unique elements using recursive binary decision branching.\n\n### Problem Statement\nGiven an integer array `elements` of $N$ unique integers, return all possible subsets (the power set) of the array in any order.\n\nThe power set of a set contains all subsets including the empty set and the set itself. The solution set must not contain duplicate subsets. Using depth-first search with recursive backtracking, each element presents a binary choice: either include it in the current subset or exclude it.\n\n### Input Parameters\n- `elements` (list[int]): An array of $N$ unique integers.\n\n### Output\n- list[list[int]]: A list containing all $2^N$ unique subsets.\n\n### Constraints & Edge Cases\n- `1 <= elements.length <= 10`\n- `-10 <= elements[i] <= 10`\n- All elements of `elements` are unique.",
+    "<p>Generate all <code>2^N</code> possible subsets (the power set) of an array of unique elements using recursive binary decision branching.</p><h3>Problem Statement</h3><p>Given an integer array <code>elements</code> of <code>N</code> unique integers, return all possible subsets (the power set) of the array in any order.</p><p>The power set of a set contains all subsets including the empty set and the set itself. The solution set must not contain duplicate subsets. Using depth-first search with recursive backtracking, each element presents a binary choice: either include it in the current subset or exclude it.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>elements</code> (array of <code>N</code> unique integers).</li><li><strong>Output:</strong> A list containing all <code>2^N</code> unique subsets.</li></ul><h3>Constraints &amp; Edge Cases</h3><ul><li><code>1 &lt;= elements.length &lt;= 10</code></li><li><code>-10 &lt;= elements[i] &lt;= 10</code></li><li>All elements of <code>elements</code> are unique.</li></ul>",
   constraints: [
     "1 <= elements.length <= 10",
     "-10 <= elements[i] <= 10",
@@ -308,23 +312,23 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   },
   topicGuide: {
     overview:
-      "Generating the power set of a set is a foundational backtracking pattern. By modeling decision making as a binary choice at each index, recursive search systematically visits every element in the power set. In real-world machine learning systems, power set enumeration underpins brute-force feature selection, combinatorial subset-sum solutions in resource allocation, and boolean satisfiability (SAT) clause evaluation.",
+      "<p>Generating the power set of a set is a foundational backtracking pattern. By modeling decision making as a binary choice at each index, recursive search systematically visits every element in the power set. In real-world machine learning systems, power set enumeration underpins brute-force feature selection, combinatorial subset-sum solutions in resource allocation, and boolean satisfiability (SAT) clause evaluation.</p>",
     sections: [
       {
         heading: "Binary Decision Tree Structure",
-        body: "At step i, the search tree branches into two choices: exclude element nums[i] or include element nums[i]. The search tree has depth N with 2^N leaves, where each leaf represents a unique subset.",
+        body: "<p>At step <code>i</code>, the search tree branches into two choices: exclude element <code>nums[i]</code> or include element <code>nums[i]</code>. The search tree has depth <code>N</code> with <code>2^N</code> leaves, where each leaf represents a unique subset.</p>",
       },
       {
         heading: "Backtracking vs Bitwise Manipulation",
-        body: "An alternative O(2^N * N) iterative approach iterates over integers mask from 0 to (1 << N) - 1. For each integer, bit j set to 1 indicates inclusion of nums[j]. While bitwise iteration is non-recursive, depth-first backtracking allows natural pruning when subset constraints (such as target sum caps) are introduced.",
+        body: "<p>An alternative <code>O(2^N &middot; N)</code> iterative approach iterates over integers mask from 0 to <code>(1 &lt;&lt; N) - 1</code>. For each integer, bit <code>j</code> set to 1 indicates inclusion of <code>nums[j]</code>. While bitwise iteration is non-recursive, depth-first backtracking allows natural pruning when subset constraints (such as target sum caps) are introduced.</p>",
       },
       {
         heading: "Feature Selection & System Applications",
-        body: "In automated feature engineering and model ablation studies, evaluate subsets of feature matrices to determine optimal predictive performance under model size constraints. Similarly, DB query rewrites test feature subsets for index condition pushdown.",
+        body: "<p>In automated feature engineering and model ablation studies, evaluating subsets of feature matrices helps determine optimal predictive performance under model size constraints. Similarly, DB query rewrites test feature subsets for index condition pushdown.</p>",
       },
       {
         heading: "Handling Duplicate Elements (Subsets II)",
-        body: "When the input array contains duplicate values, generating unique subsets requires sorting the array first and skipping identical choices at the same depth: if nums[i] == nums[i-1] during inclusion loops, skip to avoid duplicate subset branches.",
+        body: "<p>When the input array contains duplicate values, generating unique subsets requires sorting the array first and skipping identical choices at the same depth: if <code>nums[i] == nums[i-1]</code> during inclusion loops, skip to avoid duplicate subset branches.</p>",
       },
     ],
     keyTerms: [

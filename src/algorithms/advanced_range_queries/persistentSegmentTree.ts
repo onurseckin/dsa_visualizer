@@ -97,7 +97,13 @@ export const generatePersistentSegmentTreeSteps = (
   let stepIndex = 0;
   let nodeCounter = 0;
 
-  const arr = [...input.array];
+  const safeInput = {
+    array: Array.isArray(input?.array) ? input.array : DEFAULT_PERSISTENT_SEGMENT_TREE_INPUT.array,
+    operations: Array.isArray(input?.operations)
+      ? input.operations
+      : DEFAULT_PERSISTENT_SEGMENT_TREE_INPUT.operations,
+  };
+  const arr = [...safeInput.array];
   const n = arr.length;
   const versions: PNode[] = [];
   const allCreatedNodes: PNode[] = [];
@@ -457,7 +463,7 @@ export const generatePersistentSegmentTreeSteps = (
     return totalSum;
   };
 
-  const ops = input.operations ?? [];
+  const ops = safeInput.operations;
   for (let opIdx = 0; opIdx < ops.length; opIdx++) {
     const op = ops[opIdx];
     const targetVersion = Math.max(0, Math.min(op.version ?? 0, versions.length - 1));
@@ -481,9 +487,9 @@ export const generatePersistentSegmentTreeSteps = (
 
       addStep(
         25,
-        `Version v${newV} generated (root val = ${newRoot.val})`,
-        `Successfully generated persistent version ${newV}. Version ${targetVersion} remains completely unmodified.`,
-        { newVersion: newV, rootVal: newRoot.val },
+        `Completed Version v${newV} creation`,
+        `Version v${newV} is now active with root [0..${n - 1}]. Shared unmodified subtrees with v${targetVersion}.`,
+        { newVersion: newV, newRootId: newRoot.id },
         newRoot.id,
       );
     } else if (op.type === "query") {
@@ -492,20 +498,20 @@ export const generatePersistentSegmentTreeSteps = (
 
       addStep(
         27,
-        `Query Range [${ql}..${qr}] on Tree Version v${targetVersion}`,
-        `Querying version ${targetVersion} without affecting any other tree version.`,
-        { targetVersion, ql, qr },
+        `Query range [${ql}..${qr}] on Version v${targetVersion}`,
+        `Executing range sum query on historical version v${targetVersion} root node.`,
+        { version: targetVersion, ql, qr },
         rootTarget.id,
       );
 
       const res = queryTree(rootTarget, 0, n - 1, ql, qr);
+
       addStep(
         33,
-        `Query Result on v${targetVersion}: sum([${ql}..${qr}]) = ${res}`,
-        `Completed persistent segment tree query on version ${targetVersion}. Result is ${res}.`,
-        { targetVersion, ql, qr, result: res },
+        `Version v${targetVersion} range sum [${ql}..${qr}] = ${res}`,
+        `Query completed on version v${targetVersion} without altering any tree nodes.`,
+        { version: targetVersion, ql, qr, result: res },
         rootTarget.id,
-        { queryResult: String(res) },
       );
     }
   }
@@ -515,27 +521,27 @@ export const generatePersistentSegmentTreeSteps = (
 
 export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **Persistent Segment Tree** preserves all historical versions of range data structures over time. By utilizing **path copying** (cloning only the $O(\\log N)$ nodes on the search path from root to leaf while sharing unmodified subtrees with prior versions), every historical version remains permanently valid and queryable in $O(\\log N)$ time per operation.",
+    "<p>A <strong>Persistent Segment Tree</strong> preserves all historical versions of range data structures over time. By utilizing <strong>path copying</strong> (cloning only the <code>O(log N)</code> nodes on the search path from root to leaf while sharing unmodified subtrees with prior versions), every historical version remains permanently valid and queryable in <code>O(log N)</code> time per operation.</p>",
   sections: [
     {
       heading: "1. The Path Copying Technique",
-      body: "When updating a single element at index $\\text{idx}$ in version $v$, only the $O(\\log N)$ ancestors on the path from root to leaf are modified:\n\n- Rather than overwriting existing nodes, we allocate new node instances for the path in version $v+1$.\n- The new ancestor nodes link to the newly created child along the update path and share existing, unmodified child pointers from version $v$.\n- Space cost per update is strictly bounded by $O(\\log N)$ new nodes.",
+      body: "<p>When updating a single element at index <code>idx</code> in version <code>v</code>, only the <code>O(log N)</code> ancestors on the path from root to leaf are modified:</p><ul><li>Rather than overwriting existing nodes, we allocate new node instances for the path in version <code>v+1</code>.</li><li>The new ancestor nodes link to the newly created child along the update path and share existing, unmodified child pointers from version <code>v</code>.</li><li>Space cost per update is strictly bounded by <code>O(log N)</code> new nodes.</li></ul>",
     },
     {
       heading: "2. Version Roots Array Architecture",
-      body: "Historical versions are tracked via a root pointer array:\n\n$$\\text{roots} = [\\text{root}_0, \\, \\text{root}_1, \\, \\dots, \\, \\text{root}_K]$$\n\n- **Initial Build ($v=0$)**: Constructs full tree of $N$ elements in $O(N)$ space.\n- **Point Update ($v+1$)**: Creates a new root $\\text{root}_{v+1}$ with $\\approx \\log_2 N$ cloned nodes.\n- **Versioned Query**: Querying range $[L \\dots R]$ on version $v$ executes `query(roots[v], L, R)` in $O(\\log N)$ time.",
+      body: "<p>Historical versions are tracked via a root pointer array:</p><p><code>roots = [root₀, root₁, ..., root_K]</code></p><ul><li><strong>Initial Build (v=0)</strong>: Constructs full tree of <code>N</code> elements in <code>O(N)</code> space.</li><li><strong>Point Update (v+1)</strong>: Creates a new root <code>root_{v+1}</code> with <code>&approx; log₂ N</code> cloned nodes.</li><li><strong>Versioned Query</strong>: Querying range <code>[L...R]</code> on version <code>v</code> executes <code>query(roots[v], L, R)</code> in <code>O(log N)</code> time.</li></ul>",
     },
     {
       heading: "3. Range K-th Smallest Element (Chairman Tree)",
-      body: "Persistent segment trees solve the famous Range K-th Smallest Query offline:\n\n1. Insert values $1 \\dots N$ sequentially into persistent frequency trees, where version $i$ represents array prefix $[0 \\dots i]$.\n2. Querying sub-interval $[L \\dots R]$ evaluates the frequency difference $\\text{roots}[R] - \\text{roots}[L-1]$.\n3. Binary searching down the difference tree locates the exact $k$-th smallest element in $O(\\log N)$ time.",
+      body: "<p>Persistent segment trees solve the famous Range K-th Smallest Query offline:</p><ul><li>Insert values <code>1...N</code> sequentially into persistent frequency trees, where version <code>i</code> represents array prefix <code>[0...i]</code>.</li><li>Querying sub-interval <code>[L...R]</code> evaluates the frequency difference <code>roots[R] - roots[L-1]</code>.</li><li>Binary searching down the difference tree locates the exact <code>k</code>-th smallest element in <code>O(log N)</code> time.</li></ul>",
     },
     {
       heading: "4. Trade-off Matrix: Persistent Segment Tree vs Standard Segment Tree",
-      body: "| Feature | Persistent Segment Tree | Standard Segment Tree |\n| :--- | :--- | :--- |\n| **History Preservation** | Fully Persistent (All past states available) | Single State (Overwritten in-place) |\n| **Update Space** | $O(\\log N)$ new nodes per update | $O(1)$ in-place modification |\n| **Total Space** | $O(N + Q \\log N)$ across $Q$ updates | $O(N)$ fixed space |\n| **Pointers** | Explicit `left`/`right` object references | Flat Heap Array ($2v$, $2v+1$) |",
+      body: "<p>Comparing persistent path-copying against standard in-place segment trees:</p><ul><li><strong>History Preservation</strong>: Fully Persistent (All past states available) versus Single State (Overwritten in-place).</li><li><strong>Update Space</strong>: <code>O(log N)</code> new nodes per update versus <code>O(1)</code> in-place modification.</li><li><strong>Total Space</strong>: <code>O(N + Q log N)</code> across <code>Q</code> updates versus <code>O(N)</code> fixed space.</li><li><strong>Pointers</strong>: Explicit <code>left</code> and <code>right</code> object references versus Flat Heap Array (<code>2v</code>, <code>2v+1</code>).</li></ul>",
     },
     {
       heading: "5. Interview Pitfalls & Garbage Collection",
-      body: "- **Explicit Pointers Required**: Flat array indexing ($2v$, $2v+1$) cannot be used because versions share subtrees dynamically.\n- **Garbage Collection Safety**: Root pointers in `roots` array must remain referenced to prevent memory sweeps of historical versions.",
+      body: "<ul><li><strong>Explicit Pointers Required</strong>: Flat array indexing (<code>2v</code>, <code>2v+1</code>) cannot be used because versions share subtrees dynamically.</li><li><strong>Garbage Collection Safety</strong>: Root pointers in <code>roots</code> array must remain referenced to prevent memory sweeps of historical versions.</li></ul>",
     },
   ],
   keyTerms: [
@@ -557,7 +563,7 @@ export const PERSISTENT_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Range K-th Smallest Query",
       definition:
-        "Finding the $k$-th smallest element in subarray $[L \\dots R]$ using persistent frequency segment trees.",
+        "Finding the k-th smallest element in subarray [L...R] using persistent frequency segment trees.",
     },
   ],
 };
@@ -638,7 +644,7 @@ export const persistentSegmentTree: AlgorithmDefinition<PersistentSegmentTreeInp
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A **Persistent Segment Tree** maintains historical versions of range data structures via **path copying**, allocating $O(\\log N)$ new nodes per update while preserving full read/write access to all previous versions.",
+    "<p>A <strong>Persistent Segment Tree</strong> maintains historical versions of range data structures via <strong>path copying</strong>, allocating <code>O(log N)</code> new nodes per update while preserving full read/write access to all previous versions.</p>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {

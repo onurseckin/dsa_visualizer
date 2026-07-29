@@ -1,12 +1,9 @@
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import type { TriviaMeta } from "../../../types/trivia";
 import { KMP_CODE } from "./pythonCode";
-import { generateKmpSteps, type KmpInput } from "./stepGenerator";
+import { DEFAULT_KMP_INPUT, generateKmpSteps, type KmpInput } from "./stepGenerator";
 
-export const DEFAULT_KMP_INPUT: KmpInput = {
-  text: "ABABDABACDABABCABAB",
-  pattern: "ABABCABAB",
-};
+export { DEFAULT_KMP_INPUT };
 
 const KMP_TRIVIA: TriviaMeta = {
   lineExplanations: {
@@ -50,8 +47,25 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   title: "KMP String Matching",
   topicIds: ["tries_and_strings"],
   difficulty: "Hard",
-  description:
-    'Find all starting index occurrences of a pattern string in a text string in linear $O(N + M)$ time using the Knuth-Morris-Pratt (KMP) algorithm.\n\n### Problem Statement\nGiven a text string `text` of length $N$ and a pattern string `pattern` of length $M$, find all starting indices in `text` where `pattern` appears as a contiguous substring.\n\nThe Knuth-Morris-Pratt (KMP) algorithm preprocesses `pattern` into a Longest Prefix Suffix (LPS) array in $O(M)$ time. The LPS table `lps[i]` stores the length of the longest proper prefix of `pattern[0..i]` that is also a suffix of `pattern[0..i]`. During text scanning, when a mismatch occurs between `text[i]` and `pattern[j]`, the text pointer $i$ never moves backward; instead, the pattern pointer $j$ falls back to `lps[j-1]`, guaranteeing linear $O(N + M)$ execution.\n\n### Input Parameters\n- `text`: Search text string of length $N$.\n- `pattern`: Target pattern string of length $M$.\n- `p`: Optional prime base parameter.\n\n### Output\n- Returns an array of integer indices representing all 0-based starting positions of `pattern` in `text`.\n\n### Constraints & Edge Cases\n- `1 <= N <= 10^5`.\n- `1 <= M <= 10^4`.\n- Strings contain ASCII printable characters.\n- Pattern longer than text ($M > N$): Returns empty array `[]`.\n- Overlapping matches (e.g. `text = "AAAA", pattern = "AA"`): Returns all starting positions `[0, 1, 2]`.',
+  description: `<p>Find all starting index occurrences of a pattern string in a text string in linear <em>O(N + M)</em> time using the Knuth-Morris-Pratt (KMP) algorithm.</p>
+<h3>Problem Statement</h3>
+<p>Given a text string <code>text</code> of length <em>N</em> and a pattern string <code>pattern</code> of length <em>M</em>, find all starting indices in <code>text</code> where <code>pattern</code> appears as a contiguous substring.</p>
+<p>The KMP algorithm preprocesses <code>pattern</code> into a Longest Prefix Suffix (LPS) array in <em>O(M)</em> time. The LPS table <code>lps[i]</code> stores the length of the longest proper prefix of <code>pattern[0..i]</code> that is also a suffix of <code>pattern[0..i]</code>. During text scanning, when a mismatch occurs, the text pointer never moves backward; instead, the pattern pointer falls back to <code>lps[j-1]</code>, guaranteeing linear <em>O(N + M)</em> execution.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>text</code>: Search text string of length <em>N</em>.</li>
+  <li><code>pattern</code>: Target pattern string of length <em>M</em>.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an array of integer indices representing all 0-based starting positions of <code>pattern</code> in <code>text</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
+  <li><code>1 &le; M &le; 10<sup>4</sup></code>.</li>
+  <li>Strings contain ASCII printable characters.</li>
+  <li>Pattern longer than text (<em>M &gt; N</em>): Returns empty array <code>[]</code>.</li>
+  <li>Overlapping matches are correctly reported.</li>
+</ul>`,
   constraints: [
     "1 <= text.length <= 10^5",
     "1 <= pattern.length <= 10^4",
@@ -103,58 +117,51 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   },
   topicGuide: {
     overview:
-      "Knuth-Morris-Pratt is the classic answer to a nagging inefficiency in naive string search: when a partial match fails, the naive loop throws away everything it just learned and restarts one character later in the text. KMP observes that the characters you already matched are pattern characters, so the pattern itself can tell you how far to jump without ever re-reading text. All of that knowledge is packed into one small table of self-overlaps computed before the search begins. Learning KMP is really learning to precompute the structure of your query so that failures become informative instead of wasteful.",
+      "<p>Knuth-Morris-Pratt avoids the inefficiency of naive string search: when a partial match fails, KMP uses precomputed pattern self-similarity (the LPS table) so the text pointer never backtracks.</p>",
     sections: [
       {
         heading: "The core idea: a failure should teach you something",
-        body: 'Suppose you are hunting for "ABABCABAB" and you have matched the first four characters, "ABAB", when the fifth comparison fails. The naive reaction is to shift the pattern one step and start over from its first character, re-examining text you have already read. But you know exactly what those four text characters were, because they equalled pattern characters, and you can see that the pattern begins with "AB" and the matched region ends with "AB". So instead of restarting at zero you may resume as though two characters were already matched, sliding the pattern forward by two while the text pointer stays exactly where it is. The whole algorithm is that one observation applied systematically, with the shifts worked out ahead of time.',
+        body: "<p>When a mismatch occurs at pattern index <em>j</em>, the previously matched prefix of length <em>j</em> is already known. The LPS table indicates how much of that matched prefix can be repurposed as a starting prefix of the next candidate alignment without re-reading text.</p>",
       },
       {
         heading: "The LPS table: the pattern describing itself",
-        body: 'LPS stands for longest prefix that is also a suffix, and lps[k] holds the length of the longest proper prefix of the first k+1 pattern characters which is also a suffix of that same slice. The word proper matters: the whole slice does not count, otherwise every entry would be trivially its own length. For "ABABCABAB" the table reads 0, 0, 1, 2, 0, 1, 2, 3, 4, and that final 4 says the pattern ends with the same four characters it starts with. Building the table uses the same fallback logic as the search, comparing the pattern against a shifted copy of itself and, on a mismatch, dropping the candidate length to lps[length - 1] rather than to zero. That self-application is why the preprocessing loop looks confusingly similar to the matching loop, and reading them side by side is the fastest way to make both click.',
+        body: "<p>LPS stands for <em>Longest Prefix Suffix</em>. <code>lps[k]</code> holds the length of the longest proper prefix of <code>pattern[0..k]</code> that is also a suffix of <code>pattern[0..k]</code>. Proper means the prefix cannot equal the full substring.</p>",
       },
       {
         heading: "How the search loop uses it",
-        body: "Two pointers walk forward: t_idx into the text and p_idx into the pattern. On a character match both advance, and if p_idx reaches the pattern length you record a match and then set p_idx to lps[m - 1], which lets a later occurrence overlap the one you just found. On a mismatch with p_idx already past zero, you set p_idx to lps[p_idx - 1] and leave t_idx untouched, which is the jump the table earned you. Only when p_idx is already zero, meaning nothing is matched and there is nothing to fall back on, does t_idx move forward by one. The crucial property to notice is that t_idx never decreases, so each text character is looked at a bounded number of times no matter how adversarial the input.",
+        body: "<p>Two pointers advance: <code>t_idx</code> into text and <code>p_idx</code> into pattern. On a match, both advance. On a mismatch, <code>p_idx</code> falls back to <code>lps[p_idx - 1]</code> while <code>t_idx</code> stays fixed, ensuring linear time complexity.</p>",
       },
       {
         heading: "Why it is correct: the invariant on the two pointers",
-        body: "The invariant is that the first p_idx characters of the pattern always equal the p_idx text characters immediately preceding t_idx. Advancing on a match extends that agreement by one character on both sides, so the invariant survives. Falling back to lps[p_idx - 1] also preserves it, because that value is by definition the length of a prefix which is also a suffix of the region you had matched, so the shorter prefix still lines up with the text ending at t_idx. What justifies the skipping is the other half of the argument: any alignment between the old one and the new one would need a longer prefix-suffix overlap than the table records, and the table records the longest one, so those alignments cannot possibly produce a match. Nothing is lost by leaping over them, which is why KMP is exact and not heuristic.",
+        body: "<p>The invariant maintains that <code>pattern[0..p_idx-1]</code> matches <code>text[t_idx-p_idx..t_idx-1]</code>. Falling back to <code>lps[p_idx - 1]</code> preserves this invariant for the longest possible candidate prefix.</p>",
       },
       {
         heading: "Pitfalls and edge cases",
-        body: 'The most common bug is indexing the table with p_idx instead of p_idx - 1, which silently shifts every fallback by one and produces missed matches on repetitive patterns. The second is forgetting that the prefix must be proper when building the table, which makes every entry equal to its index and turns the search into nonsense. After a full match, resetting p_idx to zero rather than lps[m - 1] still finds non-overlapping matches but quietly loses overlapping ones, so searching "AAA" for "AA" reports one occurrence instead of two. Guard the degenerate inputs up front, since an empty pattern, an empty text, or a pattern longer than the text has no meaningful match to report. Finally, test with patterns like "AAAA" and "ABABAB" rather than "ABCDE", because a pattern with no self-overlap exercises none of the interesting logic.',
+        body: "<p>Common pitfalls include using 1-based indexing for LPS fallback, forgetting proper prefix constraints, or resetting <code>p_idx</code> to 0 instead of <code>lps[m - 1]</code> after a full match (which misses overlapping matches).</p>",
       },
       {
         heading: "When to use it and how it generalizes",
-        body: "For everyday single-pattern search in application code, your language built-in is usually fine and often faster in practice thanks to Boyer-Moore-style skipping, which can leap by many characters on mismatch instead of just realigning. KMP earns its place when you need guaranteed linear behaviour with no bad case, when you are streaming text and cannot back up over it, or when you need the LPS table itself. That table is a result in its own right: it reveals the smallest period of a string, tells you the minimum characters to append to make a string a full repetition, and answers longest-border questions. The same fallback idea scales up to Aho-Corasick, which builds failure links across a trie of many patterns, and the Z-algorithm solves the same matching problem from the self-similarity direction instead.",
+        body: "<p>KMP provides guaranteed <em>O(N + M)</em> linear time for single-pattern matching on non-backtrackable streams. The LPS concept extends to multi-pattern matching via Aho-Corasick failure links.</p>",
       },
     ],
     keyTerms: [
       {
         term: "LPS table",
         definition:
-          "One integer per pattern character recording the longest proper prefix of that slice which is also its suffix. It is the entire preprocessing output and drives every fallback during the search.",
+          "Array where lps[i] stores the length of the longest proper prefix of pattern[0..i] that is also a suffix of pattern[0..i].",
       },
       {
         term: "Proper prefix",
-        definition:
-          "A beginning slice of a string that stops short of the whole string. The restriction is what keeps LPS entries meaningful rather than trivially maximal.",
-      },
-      {
-        term: "Border",
-        definition:
-          'A string that is simultaneously a prefix and a suffix of another string, for example "AB" in "ABAB". LPS values are precisely the lengths of longest borders.',
+        definition: "A prefix of a string that is strictly shorter than the string itself.",
       },
       {
         term: "Fallback",
         definition:
-          "Reducing the pattern pointer to lps of the previous position after a mismatch instead of restarting at zero. It is the move that preserves already-earned matching while shifting the pattern forward.",
+          "Updating the pattern pointer to lps[p_idx - 1] after a mismatch without decrementing the text pointer.",
       },
       {
         term: "Overlapping matches",
-        definition:
-          'Occurrences of the pattern that share text characters, such as the two copies of "AA" in "AAA". Resuming from lps of the last position after a hit is what lets KMP report them.',
+        definition: "Pattern occurrences that share characters in the search text.",
       },
     ],
   },

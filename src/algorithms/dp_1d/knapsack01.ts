@@ -277,19 +277,8 @@ export const knapsack01: AlgorithmDefinition<Knapsack01Input> = {
   title: "0/1 Knapsack Problem",
   topicIds: ["dp_1d"],
   difficulty: "Medium",
-  description: `The **0/1 Knapsack Problem** is a foundational decision problem in combinatorial optimization and dynamic programming. Given $N$ items, each with weight $w_i$ and value $v_i$, alongside a total knapsack capacity $W$, select a subset of items to maximize total value without exceeding capacity $W$. Each item must either be included ($1$) or excluded ($0$) in full—fractional items are strictly forbidden.
-
-### Optimal Substructure & 1D Backward Space Optimization
-Let $dp[c]$ store the maximum achievable value for weight capacity limit $c$. By iterating through items $i \\in [0, N-1]$ and sweeping capacity $c$ **backward** from $W$ down to $w_i$, we get the recurrence:
-$$dp[c] = \\max(dp[c], dp[c - w_i] + v_i)$$
-
-#### Why Backward Iteration is Essential
-Iterating capacity $c$ in descending order ($W \\to w_i$) guarantees that $dp[c - w_i]$ references the state from the *previous* item pass ($i-1$) rather than the current item pass ($i$). Forward iteration would allow an item to be selected multiple times, turning 0/1 Knapsack into Unbounded Knapsack.
-
-### Key Interview Insights
-1. **Binary Choice**: Item $i$ is either taken ($dp[c - w_i] + v_i$) or left ($dp[c]$).
-2. **Pseudo-Polynomial Complexity**: Time complexity is $\\mathcal{O}(N \\times W)$, which is polynomial in the magnitude of $W$ but exponential in its bit length.
-3. **Space Optimization**: Reduces 2D DP space from $\\mathcal{O}(N \\times W)$ to $\\mathcal{O}(W)$ via a single 1D array.`,
+  description:
+    "<p>The <strong>0/1 Knapsack Problem</strong> is a foundational decision problem in combinatorial optimization and dynamic programming. Given <code>N</code> items, each with weight <code>w<sub>i</sub></code> and value <code>v<sub>i</sub></code>, alongside a total knapsack capacity <code>W</code>, select a subset of items to maximize total value without exceeding capacity <code>W</code>. Each item must either be included (1) or excluded (0) in full—fractional items are strictly forbidden.</p><p>By iterating through items and sweeping capacity <code>c</code> <strong>backward</strong> from <code>W</code> down to <code>w<sub>i</sub></code>, we update the 1D table: <code>dp[c] = max(dp[c], dp[c - w<sub>i</sub>] + v<sub>i</sub>)</code>. Descending capacity iteration ensures that each item is used at most once.</p>",
   constraints: [
     "1 <= N <= 1000",
     "1 <= W <= 10^4",
@@ -336,23 +325,23 @@ Iterating capacity $c$ in descending order ($W \\to w_i$) guarantees that $dp[c 
   },
   topicGuide: {
     overview:
-      "The 0/1 Knapsack problem is the quintessential benchmark for 1D dynamic programming with state compression. Given $N$ items characterized by weights $w_i$ and values $v_i$, and a maximum weight capacity $W$, we seek a subset of items maximizing total value $\\sum v_i$ subject to $\\sum w_i \\le W$. The binary '0/1' constraint prohibits partial items, requiring dynamic programming to evaluate discrete selection states in $\\mathcal{O}(N \\times W)$ time and $\\mathcal{O}(W)$ space.",
+      "<p>The 0/1 Knapsack problem is the quintessential benchmark for 1D dynamic programming with state compression. Given <code>N</code> items characterized by weights <code>w<sub>i</sub></code> and values <code>v<sub>i</sub></code>, and a maximum weight capacity <code>W</code>, we seek a subset of items maximizing total value <code>&sum; v<sub>i</sub></code> subject to <code>&sum; w<sub>i</sub> &le; W</code>. The binary '0/1' constraint prohibits partial items, requiring dynamic programming to evaluate discrete selection states in <code>O(N &times; W)</code> time and <code>O(W)</code> space.</p>",
     sections: [
       {
         heading: "1. 2D Recurrence to 1D Backward Space Optimization",
-        body: "A classic 2D formulation defines $dp[i][c]$ as the maximum value using a subset of the first $i$ items within capacity $c$:\n$$dp[i][c] = \\max(dp[i-1][c], dp[i-1][c - w_i] + v_i)$$\n\nSince row $i$ depends strictly on row $i-1$, we compress the state to a single 1D array $dp[c]$ of size $W + 1$. Sweeping capacity $c$ backward from $W$ down to $w_i$ ensures that $dp[c - w_i]$ holds the value from item $i-1$, preventing item reuse.",
+        body: "<p>A classic 2D formulation defines <code>dp[i][c]</code> as the maximum value using a subset of the first <code>i</code> items within capacity <code>c</code>: <code>dp[i][c] = max(dp[i-1][c], dp[i-1][c - w<sub>i</sub>] + v<sub>i</sub>)</code>.</p><p>Since row <code>i</code> depends strictly on row <code>i-1</code>, we compress the state to a single 1D array <code>dp[c]</code> of size <code>W + 1</code>. Sweeping capacity <code>c</code> backward from <code>W</code> down to <code>w<sub>i</sub></code> ensures that <code>dp[c - w<sub>i</sub>]</code> holds the value from item <code>i-1</code>, preventing item reuse.</p>",
       },
       {
         heading: "2. Real-World Systems Applications",
-        body: "0/1 Knapsack models resource allocation across computer systems:\n- **Cloud Virtual Machine Placement**: Packing guest workloads with memory ($w_i$) and revenue/priority ($v_i$) into host node capacities ($W$).\n- **OS Cache Eviction & MTU Assembly**: Assembling network packet payloads under maximum transmission unit (MTU) limits.\n- **Capital Budgeting**: Allocating a fixed financial budget across discrete R&D projects.",
+        body: "<p>0/1 Knapsack models resource allocation across computer systems:</p><ul><li><strong>Cloud Virtual Machine Placement:</strong> Packing guest workloads with memory (weight) and revenue/priority (value) into host node capacities.</li><li><strong>OS Cache Eviction & MTU Assembly:</strong> Assembling network packet payloads under maximum transmission unit (MTU) limits.</li><li><strong>Capital Budgeting:</strong> Allocating a fixed financial budget across discrete R&amp;D projects.</li></ul>",
       },
       {
         heading: "3. Pseudo-Polynomial Time Complexity",
-        body: "The runtime $\\mathcal{O}(N \\times W)$ is *pseudo-polynomial*. While polynomial with respect to the numeric value of $W$, it is exponential relative to the number of bits $\\log_2 W$ needed to represent $W$. For practical limits ($W \\le 10^4$), dynamic programming executes in milliseconds.",
+        body: "<p>The runtime <code>O(N &times; W)</code> is <em>pseudo-polynomial</em>. While polynomial with respect to the numeric value of <code>W</code>, it is exponential relative to the number of bits needed to represent <code>W</code>. For practical limits, dynamic programming executes in milliseconds.</p>",
       },
       {
         heading: "4. Step-by-Step Algorithmic Mechanics",
-        body: "1. Initialize a 1D array $dp$ of size $W + 1$ with zeros ($dp[c] = 0$).\n2. For each item $i$ with weight $w_i$ and value $v_i$:\n3. Loop capacity $c$ backwards from $W$ down to $w_i$:\n   $$dp[c] = \\max(dp[c], dp[c - w_i] + v_i)$\n4. Return $dp[W]$ as the global maximum value.",
+        body: "<ol><li>Initialize a 1D array <code>dp</code> of size <code>W + 1</code> with zeros.</li><li>For each item <code>i</code> with weight <code>w<sub>i</sub></code> and value <code>v<sub>i</sub></code>:</li><li>Loop capacity <code>c</code> backwards from <code>W</code> down to <code>w<sub>i</sub></code>: <code>dp[c] = max(dp[c], dp[c - w<sub>i</sub>] + v<sub>i</sub>)</code></li><li>Return <code>dp[W]</code> as the global maximum value.</li></ol>",
       },
     ],
     keyTerms: [

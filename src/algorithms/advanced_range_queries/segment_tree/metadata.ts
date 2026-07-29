@@ -3,49 +3,49 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **Segment Tree** is a versatile tree-based data structure designed to answer range queries and execute point updates over an array of $N$ elements in $O(\\log N)$ time per operation. The root node represents the full array interval $[0 \\dots N-1]$. Each internal node recursively splits its interval into two equal halves: $[\\text{start} \\dots \\text{mid}]$ and $[\\text{mid}+1 \\dots \\text{end}]$, precomputing and caching the aggregate value (such as sum, minimum, maximum, or GCD) of its subsegment.",
+    "<p>A <strong>Segment Tree</strong> is a versatile tree-based data structure designed to answer range queries and execute point updates over an array of <code>N</code> elements in <code>O(log N)</code> time per operation. The root node represents the full array interval <code>[0 ... N-1]</code>. Each internal node recursively splits its interval into two equal halves: <code>[start ... mid]</code> and <code>[mid+1 ... end]</code>, precomputing and caching the aggregate value (such as sum, minimum, maximum, or GCD) of its subsegment.</p>",
   sections: [
     {
-      heading: "1. The Interval Hierarchy & Tree Topology",
-      body: "An array of $N$ elements forms a binary tree of intervals containing roughly $2N - 1$ total nodes. The tree is represented in a flat array of size $4N$ using heap-style indexing:\n\n- The root is at index $1$ (covering range $[0 \\dots N-1]$).\n- For any node at index $v$, its left child is at $2v$ (covering $[\\text{start} \\dots \\text{mid}]$) and its right child is at $2v + 1$ (covering $[\\text{mid}+1 \\dots \\text{end}]$).\n- Leaf nodes at depth $\\lceil \\log_2 N \\rceil$ hold single elements.",
+      heading: "Interval Hierarchy & Tree Topology",
+      body: "<p>An array of <code>N</code> elements forms a binary tree of intervals containing roughly <code>2N - 1</code> total nodes. The tree is represented in a flat array of size <code>4N</code> using heap-style indexing:</p><ul><li>The root is at index <code>1</code> (covering range <code>[0 ... N-1]</code>).</li><li>For any node at index <code>v</code>, its left child is at <code>2v</code> (covering <code>[start ... mid]</code>) and its right child is at <code>2v + 1</code> (covering <code>[mid+1 ... end]</code>).</li><li>Leaf nodes at depth <code>&lceil;log<sub>2</sub> N&rceil;</code> hold single elements.</li></ul>",
     },
     {
-      heading: "2. Point Updates & Re-evaluating Ancestors",
-      body: "Updating an array element at index $\\text{idx}$ to value $v$ requires traversing the unique root-to-leaf path of length $O(\\log N)$:\n\n1. Descend to the target leaf where $\\text{start} = \\text{end} = \\text{idx}$.\n2. Mutate the leaf value: $\\text{tree}[\\text{node}] \\leftarrow v$.\n3. As recursion unwinds, recompute each ancestor's cached aggregate:\n\n$$\\text{tree}[\\text{node}] = \\text{tree}[2v] + \\text{tree}[2v+1]$$",
+      heading: "Point Updates & Ancestor Re-evaluation",
+      body: "<p>Updating an array element at index <code>idx</code> to value <code>v</code> requires traversing the unique root-to-leaf path of length <code>O(log N)</code>:</p><ol><li>Descend to the target leaf where <code>start = end = idx</code>.</li><li>Mutate the leaf value: <code>tree[node] &larr; v</code>.</li><li>As recursion unwinds, recompute each ancestor's cached aggregate: <code>tree[node] = tree[2v] + tree[2v+1]</code>.</li></ol>",
     },
     {
-      heading: "3. Range Query Mechanics & Canonical Decomposition",
-      body: "A range query over $[L \\dots R]$ evaluates three cases at each visited node:\n\n1. **Disjoint Range** ($R < \\text{start}$ or $\\text{end} < L$): Return the identity element ($0$ for addition, $\\infty$ for minimum).\n2. **Complete Coverage** ($L \\le \\text{start}$ and $\\text{end} \\le R$): Return the precomputed node aggregate $\\text{tree}[\\text{node}]$ immediately without searching deeper.\n3. **Partial Overlap**: Recurse into both left and right children and merge their partial contributions.",
+      heading: "Range Query Mechanics & Pruning",
+      body: "<p>A range query over <code>[L ... R]</code> evaluates three cases at each visited node:</p><ul><li><strong>Disjoint Range:</strong> Return the identity element (<code>0</code> for sum, <code>&infin;</code> for minimum).</li><li><strong>Complete Coverage:</strong> Return the precomputed node aggregate <code>tree[node]</code> immediately without searching deeper.</li><li><strong>Partial Overlap:</strong> Recurse into both left and right children and merge their partial contributions.</li></ul>",
     },
     {
-      heading: "4. Trade-off Matrix: Segment Tree vs Fenwick Tree vs Sparse Table",
-      body: "| Structure | Query Time | Update Time | Memory Space | Operations Supported |\n| :--- | :--- | :--- | :--- | :--- |\n| **Segment Tree** | $O(\\log N)$ | $O(\\log N)$ | $4N$ | Any Associative Operation (Min, Max, Sum, GCD) |\n| **Fenwick Tree** | $O(\\log N)$ | $O(\\log N)$ | $N + 1$ | Invertible Operations (Sum, XOR) |\n| **Sparse Table** | $O(1)$ | Static Only | $O(N \\log N)$ | Idempotent RMQ (Min, Max) |",
+      heading: "Segment Tree vs Fenwick Tree vs Sparse Table",
+      body: "<p>Comparing range query data structures:</p><ul><li><strong>Segment Tree:</strong> <code>O(log N)</code> query, <code>O(log N)</code> update, <code>4N</code> space, supports any associative operation.</li><li><strong>Fenwick Tree:</strong> <code>O(log N)</code> query, <code>O(log N)</code> update, <code>N+1</code> space, requires invertible operations.</li><li><strong>Sparse Table:</strong> <code>O(1)</code> query, static only, <code>O(N log N)</code> space, requires idempotent operations.</li></ul>",
     },
     {
-      heading: "5. Common Interview Pitfalls & Optimizations",
-      body: "- **Array Sizing ($4N$)**: Always allocate $4N$ array slots for tree storage to prevent index out-of-bounds on non-power-of-2 input lengths.\n- **Lazy Propagation**: For range updates (e.g., adding $v$ to all elements in $[L \\dots R]$), defer sub-tree updates using a `lazy` array to maintain $O(\\log N)$ complexity.",
+      heading: "Sizing & Optimization",
+      body: "<p>Always allocate <code>4N</code> array slots for tree storage to prevent out-of-bounds access on non-power-of-2 input lengths. For range updates, defer sub-tree updates using a <code>lazy</code> array to maintain <code>O(log N)</code> complexity.</p>",
     },
   ],
   keyTerms: [
     {
       term: "Canonical Decomposition",
       definition:
-        "The minimal set of at most $2 \\log_2 N$ disjoint sub-intervals that together cover a query range $[L \\dots R]$.",
+        "The minimal set of at most 2 log_2 N disjoint sub-intervals that together cover a query range [L ... R].",
     },
     {
       term: "Associative Merge",
       definition:
-        "A binary operation $f(a, b)$ satisfying $f(f(a,b), c) = f(a, f(b,c))$, allowing child values to be combined in any order.",
+        "A binary operation f(a, b) satisfying f(f(a,b), c) = f(a, f(b,c)), allowing child values to be combined in any order.",
     },
     {
       term: "Identity Element",
       definition:
-        "The neutral value returned for disjoint query branches ($0$ for sum, $\\infty$ for minimum).",
+        "The neutral value returned for disjoint query branches (0 for sum, infinity for minimum).",
     },
     {
       term: "Heap-style Indexing",
       definition:
-        "Storing tree nodes in a flat array where node $v$ has left child $2v$ and right child $2v+1$.",
+        "Storing tree nodes in a flat array where node v has left child 2v and right child 2v+1.",
     },
   ],
 };

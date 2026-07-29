@@ -28,13 +28,18 @@ export const DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT: BinomialCoefficientsInp
 };
 
 export const generateBinomialCoefficientsPascalSteps = (
-  input: BinomialCoefficientsInput,
+  input?: BinomialCoefficientsInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const safeN = Number.isFinite(input?.n) ? Math.floor(input.n) : 6;
-  const safeK = Number.isFinite(input?.k) ? Math.floor(input.k) : 3;
+  const safeInput = input ?? DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT;
+  const safeN = Number.isFinite(safeInput?.n)
+    ? Math.floor(safeInput.n)
+    : DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT.n;
+  const safeK = Number.isFinite(safeInput?.k)
+    ? Math.floor(safeInput.k)
+    : DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT.k;
 
   const nVal = Math.min(10, Math.max(0, safeN));
   const kVal = Math.min(nVal, Math.max(0, safeK));
@@ -91,8 +96,8 @@ export const generateBinomialCoefficientsPascalSteps = (
     stepIndex: stepIndex++,
     codeLine: 2,
     explanation: {
-      what: `Initializing Pascal's Triangle DP matrix of size (${nVal + 1}) × (${kVal + 1}) to compute C(${nVal}, ${kVal}).`,
-      why: "We evaluate the combination recurrence C(n, k) = C(n-1, k-1) + C(n-1, k) row by row, avoiding factorial overflow.",
+      what: `Initializing Pascal's Triangle DP matrix of size (${nVal + 1}) × (${kVal + 1}) for target C(${nVal}, ${kVal}).`,
+      why: "Constructing the table bottom-up evaluates combinations through additions rather than risky factorial divisions.",
     },
     primarySnapshot: createMatrixSnapshot(null, null),
     auxiliaryState: {
@@ -122,11 +127,11 @@ export const generateBinomialCoefficientsPascalSteps = (
           stepIndex: stepIndex++,
           codeLine: 6,
           explanation: {
-            what: `Base case C[${i}][${j}] = 1 (${j === 0 ? "j == 0" : "j == i"}).`,
+            what: `Setting base case C[${i}][${j}] = 1 (${j === 0 ? "j = 0" : "j = i"}).`,
             why:
               j === 0
-                ? "Choosing 0 items from a set of size i can be done in exactly 1 way."
-                : "Choosing all i items from a set of size i can be done in exactly 1 way.",
+                ? "Choosing 0 items from any set can be done in exactly 1 way (the empty set)."
+                : "Choosing all i items from an i-element set can be done in exactly 1 way (the entire set).",
           },
           primarySnapshot: createMatrixSnapshot(i, j),
           auxiliaryState: {
@@ -156,8 +161,8 @@ export const generateBinomialCoefficientsPascalSteps = (
           stepIndex: stepIndex++,
           codeLine: 8,
           explanation: {
-            what: `C[${i}][${j}] = C[${i - 1}][${j - 1}] + C[${i - 1}][${j}] = ${val1} + ${val2} = ${dp[i][j]}.`,
-            why: "Pascal's identity: either include the i-th element (requires picking j-1 from i-1) or exclude it (requires picking j from i-1).",
+            what: `Computing C[${i}][${j}] = C[${i - 1}][${j - 1}] + C[${i - 1}][${j}] = ${val1} + ${val2} = ${dp[i][j]}.`,
+            why: "Combining subset counts where the i-th item is included (C[i-1][j-1]) versus excluded (C[i-1][j]).",
           },
           primarySnapshot: createMatrixSnapshot(i, j, [i - 1, j - 1], [i - 1, j]),
           auxiliaryState: {
@@ -188,8 +193,8 @@ export const generateBinomialCoefficientsPascalSteps = (
     stepIndex: stepIndex++,
     codeLine: 9,
     explanation: {
-      what: `Completed Pascal's triangle table! C(${nVal}, ${kVal}) = ${ans}.`,
-      why: "Target DP matrix cell evaluated successfully.",
+      what: `Completed Pascal's Triangle table: C(${nVal}, ${kVal}) = ${ans}.`,
+      why: "The target entry C(${nVal}, ${kVal}) contains the final count of unordered combinations.",
     },
     primarySnapshot: createMatrixSnapshot(nVal, kVal),
     auxiliaryState: {
@@ -210,23 +215,23 @@ export const generateBinomialCoefficientsPascalSteps = (
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Binomial coefficients $\\binom{n}{k} = \\frac{n!}{k!(n-k)!}$ count the number of ways to choose $k$ items from a set of $n$ distinct elements without regard to order. Pascal's Triangle builds these values dynamically using the fundamental recurrence relation $\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$. This DP approach avoids factorial overflow in integer arithmetic and provides a clean 2D grid matrix representation.",
+    "<p>Binomial coefficients <code>C(n, k) = n! / (k! &times; (n - k)!)</code> count the number of unordered <code>k</code>-element subsets chosen from an <code>n</code>-element set. Pascal's Triangle computes these values dynamically using the recurrence <code>C(n, k) = C(n-1, k-1) + C(n-1, k)</code>. This dynamic programming formulation avoids factorial overflow in fixed-precision integer arithmetic and provides a clean 2D grid matrix structure.</p>",
   sections: [
     {
-      heading: "Pascal's Recurrence Identity & Combinatorial Proof",
-      body: "To select $k$ items out of $n$, distinguish an arbitrary element $x$: either we include $x$ (requiring us to pick $k-1$ items from the remaining $n-1$), or we exclude $x$ (requiring us to pick $k$ items from the remaining $n-1$). Adding these mutually exclusive cases yields:\n$$\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$$\nBase cases are $\\binom{i}{0} = 1$ (the unique empty set) and $\\binom{i}{i} = 1$ (the unique full set selection).",
+      heading: "Pascal's Recurrence & Combinatorial Proof",
+      body: "<p>To pick <code>k</code> items from <code>n</code>, select an arbitrary element <code>x</code>: either include <code>x</code> (requiring <code>k-1</code> items from the remaining <code>n-1</code>), or exclude <code>x</code> (requiring <code>k</code> items from the remaining <code>n-1</code>). Adding these disjoint choices proves the identity:</p><p><code>C(n, k) = C(n-1, k-1) + C(n-1, k)</code></p><p>Base cases are <code>C(i, 0) = 1</code> (empty set selection) and <code>C(i, i) = 1</code> (full set selection).</p>",
     },
     {
-      heading: "Numeric Stability & Avoiding Factorial Overflow",
-      body: "Computing $\\frac{n!}{k!(n-k)!}$ directly is extremely vulnerable to integer overflow, as $21!$ exceeds 64-bit integer limits ($2^{63}-1$). By constructing the DP table iteratively using addition only, arithmetic precision is maintained up to the final result limit. Furthermore, row-by-row DP calculation exhibits optimal spatial cache locality.",
+      heading: "Numeric Stability & Avoiding Overflow",
+      body: "<p>Directly computing <code>n! / (k! &times; (n - k)!)</code> causes integer overflow for modest values (e.g. <code>21!</code> exceeds 64-bit integer limits). Iteratively building the DP table using addition guarantees exact integer results without overflow risk.</p>",
     },
     {
-      heading: "Symmetric Property & Space Optimization",
-      body: "Because of the combinatorial symmetry $\\binom{n}{k} = \\binom{n}{n-k}$, we can optimize computation when $k > \\frac{n}{2}$ by substituting $k \\leftarrow n - k$. Space complexity can also be compressed from $\\mathcal{O}(n k)$ to $\\mathcal{O}(k)$ using a 1D array updated in-place from right to left.",
+      heading: "Symmetric Property & Space Compression",
+      body: "<p>Combinatorial symmetry yields <code>C(n, k) = C(n, n - k)</code>. Memory can be compressed from <code>O(n &times; k)</code> to <code>O(k)</code> space by maintaining a single 1D row array updated backwards from right to left.</p>",
     },
     {
-      heading: "Edge Cases & Boundary Analysis",
-      body: "Key edge cases include $k = 0$ (always yields $1$), $k = n$ (always yields $1$), $k > n$ (yields $0$), and $n = 0$ (yielding $\\binom{0}{0} = 1$). Restricting inner loops to $j \\le \\min(i, k)$ prevents unnecessary matrix updates.",
+      heading: "Boundary Conditions",
+      body: "<ul><li><strong>k = 0 or k = n:</strong> Always yields <code>1</code>.</li><li><strong>k &gt; n:</strong> Returns <code>0</code> since choosing more elements than available is impossible.</li><li><strong>n = 0:</strong> Yields <code>C(0, 0) = 1</code>.</li></ul>",
     },
   ],
   keyTerms: [
@@ -236,13 +241,13 @@ export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
         "A triangular matrix of binomial coefficients where each entry is the sum of the two cells directly above it.",
     },
     {
-      term: "Combination $\\binom{n}{k}$",
-      definition: "The number of unordered $k$-element subsets chosen from an $n$-element set.",
+      term: "Combination C(n, k)",
+      definition: "The number of unordered k-element subsets chosen from an n-element set.",
     },
     {
       term: "Symmetric Property",
       definition:
-        "The identity $\\binom{n}{k} = \\binom{n}{n-k}$, reflecting the equivalence of choosing $k$ elements to include or $n-k$ elements to exclude.",
+        "The identity C(n, k) = C(n, n-k), reflecting the equivalence of choosing k elements to include or n-k elements to exclude.",
     },
   ],
 };
@@ -267,7 +272,7 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   topicIds: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
-    "Given non-negative integers $n$ and $k$, compute the binomial coefficient $\\binom{n}{k}$ representing the number of ways to choose $k$ items from $n$ distinct items without regard to order:\n\n$$\\binom{n}{k} = \\binom{n-1}{k-1} + \\binom{n-1}{k}$$\n\n### State Matrix Representation\nThe DP dynamic state is represented as a matrix $\\mathbf{C} \\in \\mathbb{Z}^{(n+1) \\times (k+1)}$ where cell $\\mathbf{C}[i][j]$ stores $\\binom{i}{j}$.\n\n### Input Parameters\n- `n` ($n \\in \\mathbb{Z}_{\\ge 0}$): Total number of items in the set.\n- `k` ($k \\in \\mathbb{Z}_{\\ge 0}$): Number of items to select from the set.\n\n### Output\n- `int`: Binomial coefficient $\\binom{n}{k}$.\n\n### Edge Cases & Constraints\n- Base Cases: $\\binom{n}{0} = 1$ and $\\binom{n}{n} = 1$.\n- Out of Bounds: $\\binom{n}{k} = 0$ for $k > n$.",
+    "<p>Given non-negative integers <code>n</code> and <code>k</code>, compute the <strong>binomial coefficient</strong> <code>C(n, k)</code> representing the number of ways to choose <code>k</code> items from <code>n</code> distinct items without regard to order, built via <strong>Pascal's Triangle</strong> recurrence:</p><p><code>C(n, k) = C(n-1, k-1) + C(n-1, k)</code></p><h3>State Matrix Representation</h3><p>The DP table is stored as a 2D matrix <code>C &in; &mathbb;Z<sup>(n+1) &times; (k+1)</sup></code> where cell <code>C[i][j]</code> holds <code>C(i, j)</code>.</p><h3>Input Parameters</h3><ul><li><code>n</code>: Total number of items in the set.</li><li><code>k</code>: Number of items to select.</li></ul><h3>Output</h3><ul><li><code>int</code>: Binomial coefficient <code>C(n, k)</code>.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Cases:</strong> <code>C(n, 0) = 1</code> and <code>C(n, n) = 1</code>.</li><li><strong>Out of Bounds:</strong> <code>C(n, k) = 0</code> for <code>k &gt; n</code>.</li></ul>",
   constraints: ["0 <= k <= n <= 30"],
   examples: [
     {
@@ -306,8 +311,8 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   },
   spaceComplexity: "O(N * K)",
   complexityAnalysis: {
-    time: "Fills an $(N+1) \\times (K+1)$ DP grid, executing in $\\mathcal{O}(N \\times K)$ operations.",
-    space: "Requires $\\mathcal{O}(N \\times K)$ memory to store the 2D grid matrix.",
+    time: "Fills an (N+1) x (K+1) DP grid, executing in O(N x K) operations.",
+    space: "Requires O(N x K) memory to store the 2D grid matrix.",
   },
   topicGuide: BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE,
   trivia: BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA,

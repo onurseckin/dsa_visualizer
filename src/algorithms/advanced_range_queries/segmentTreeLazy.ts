@@ -16,7 +16,7 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A **Segment Tree with Lazy Propagation** supports both range updates and range sum queries in $O(\\log N)$ time per operation. By deferring updates to child subtrees via pending lazy tags and pushing them down strictly on demand, it avoids touching individual leaves during range modifications.",
+    "<p>A <strong>Segment Tree with Lazy Propagation</strong> supports both range updates and range sum queries in <code>O(log N)</code> time per operation. By deferring updates to child subtrees via pending lazy tags and pushing them down strictly on demand, it avoids touching individual leaves during range modifications.</p><h3>State Representation</h3><p>The state maintains two parallel <code>4N</code> structures: an aggregate sum array <code>tree[v]</code> and a deferred tag array <code>lazy[v]</code> storing pending updates owed to descendants.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial numerical sequence.</li><li><code>operations</code>: Array of range update and range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Range query answers and updated node/tag state.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Lazy Pushdown:</strong> <code>push()</code> must execute before descending to prevent stale reads.</li><li><strong>Tag Scaling:</strong> Lazy sum tags scale by subsegment length <code>K = end - start + 1</code>.</li></ul>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= val <= 10^9"],
   examples: [
     {
@@ -80,9 +80,8 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   },
   spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "A range update no longer visits every element in the range: once a node's interval fits entirely inside the update, we adjust its sum, leave a lazy tag, and stop descending. Each level halves the interval, so both range updates and range queries touch only O(log n) nodes; pending tags get pushed down one level at a time as later operations pass through. Building the tree once up front is O(n).",
-    space:
-      "We keep two arrays of about 4n entries each — the interval sums and their lazy tags — so memory grows linearly with the input, O(n).",
+    time: "Both range updates and range queries visit O(log n) nodes per operation by deferring child updates with lazy tags.",
+    space: "Allocates two 4n arrays for interval sums and lazy tags, using linear O(n) memory.",
   },
   topicGuide: SEGMENT_TREE_LAZY_TOPIC_GUIDE,
   trivia: SEGMENT_TREE_LAZY_TRIVIA,

@@ -26,59 +26,58 @@ the internal runner network. The Compose health checks gate service startup.
 TOPIC_CATALOG ──► TopicId + track + label ──┬──► item topicIds
                                             └──► curriculum placements
 
-88 AlgorithmDefinitions ──► ALGORITHMS ──► DSA adapters ──┐
-69 native ML items ────────────────────────────────────────┼──► LEARNING_ITEMS (157)
-                                                          │
-                                                          ├──► directory/search
-                                                          ├──► roadmap counts/drawers
-                                                          ├──► workspace assessment
-                                                          └──► eligible trivia deck
+88 AlgorithmDefinitions ──► ALGORITHMS ──► DSA adapters ──► LEARNING_ITEMS (88)
+                                                           │
+                                                           ├──► directory/search
+                                                           ├──► roadmap counts/drawers
+                                                           ├──► workspace assessment
+                                                           └──► eligible trivia deck
 
-Curriculum placements ──► prerequisites + copy + geometry ──► DSA/ML graph views
+Curriculum placements ──► prerequisites + copy + geometry ──► DSA and retained ML-shell graph views
 ```
 
 `src/curriculum/topics.ts` is the canonical topic catalog.
 `src/algorithms/registry.ts` is the canonical DSA enrollment list.
 `src/learning/registry.ts` is the canonical cross-track learning enrollment
-list and builds the route lookup. The 69 ML items use the native learning-item
-model; the 88 DSA definitions are adapted without duplicating their algorithm
-facts.
+list and builds the route lookup from the 88 adapted DSA definitions. Native ML
+items are currently retired, so the ML learning-item model has no active
+enrollment.
 
 `src/curriculum/trees.ts` defines the shared placement contract. Tree-specific
-data owns only presentation and prerequisite relationships. The ML graph has 23
-placements—15 required and 8 elective—with exactly three ML items per topic.
+data owns only presentation and prerequisite relationships. The ML graph retains
+23 placements—15 required and 8 elective—as curriculum shells without active
+native ML items.
 
 ## Boundaries
 
 | Area | Owns | Must not own |
 | --- | --- | --- |
 | Topic catalog | ID, label, track | Item membership or graph coordinates |
-| DSA algorithm | Canonical ID, `topicIds`, code, steps, examples, execution adapter data | ML lifecycle scenarios or duplicated registry keys |
-| ML learning item | Mode, objective, evidence, difficulty profile, sources, assessment, optional playground | A disguised LeetCode problem for a design decision |
-| Learning registry | Exactly 88 adapted DSA items plus 69 native ML items | Aliases or a transitional/legacy registry |
+| DSA algorithm | Canonical ID, `topicIds`, code, steps, examples, execution adapter data | Duplicated registry keys |
+| Retired ML track | Topic/placement shells and future model contracts | Active native learning-item enrollment |
+| Learning registry | Exactly 88 adapted DSA items | Aliases or a transitional/legacy registry |
 | Curriculum placement | Prerequisites, family, copy, difficulty framing, coordinates | Counts, question lists, or copied item fields |
 | Execution contract | Runtime, packages, invocation, limits, cases, expected outputs | Item identity or UI state |
 | Trivia | Semantic puzzle generation and session records | An alternate code or progress catalog |
 
-The design is a clean break: canonical IDs are kebab-case and there are no
-legacy aliases or fallback category fields. Update every in-repository
-reference when a canonical ID changes. Item↔topic bindings are equal
-many-to-many relations; no consumer may interpret tuple position zero as a
-primary topic.
-
-The clean break retired 232 former ML IDs. The research ledger accounts for
-each removed item, but it is not a runtime compatibility map.
+The design is strictly forward-looking: canonical IDs are kebab-case and there are
+no legacy aliases, backwards-compatibility layers, or fallback category fields. Update
+every in-repository reference when a canonical ID changes. Item↔topic bindings are equal
+many-to-many relations; no consumer may interpret tuple position zero as a primary topic.
+Problem descriptions and topic guides use clean React HTML markup, and visualizer tutorials
+tell an intuitive visual story step-by-step, independent of source code line numbers.
 
 ## Workspace and assessment flow
 
 The route `/workspace/$algorithmId` resolves from `LEARNING_ITEM_REGISTRY`.
-Algorithm items retain the original visual step engine. Trace, calculator,
-debugging, scenario, and capstone items use their matching assessment renderer.
-When an assessment has an executable playground, its selected authored case is
-also passed to `generateSteps`; the resulting snapshots, explanations,
-variables, and auxiliary state are rendered as an inspectable walkthrough.
-Input-evidence wrappers keep the submitted input and matching authored expected
-output separate from explicitly labelled conceptual teaching frames.
+Visualizer tutorials tell an intuitive visual story of algorithm progression step-by-step,
+completely independent of source code line numbers. Trace, calculator, debugging, scenario,
+and capstone items use their matching assessment renderer. When an assessment has an
+executable playground, its selected authored case is passed to `generateSteps`; the resulting
+snapshots, scalar narratives, variables, and auxiliary state are rendered as an
+inspectable visual walkthrough. Input-evidence wrappers keep submitted input
+and matching authored expected output separate from conceptual teaching frames.
+All problem descriptions and topic guides use clean React HTML markup.
 
 When an item has an execution contract, `CodeWorkspace` presents:
 
@@ -106,6 +105,27 @@ The automatic runtime policy chooses browser Pyodide only for a
 browser-compatible spec. PyTorch and explicitly server-authored specs use the
 CPython service. Browser infrastructure failures may fall back to CPython when
 the contract is compatible; learner code failures do not trigger fallback.
+
+## Visualizer authoring flow
+
+`generateSteps` produces a sequence of `AlgorithmStep` values. New tutorials
+use `createTutorialStep`, which records a scalar `narrative`, phase metadata,
+and `codeLine: undefined`. The visualizer reads that narrative and does not use
+the source-code line field to pace or highlight the lesson.
+
+Each `PrimaryVisualSnapshot` selects one of the 16 canonical primitives. Its
+optional `name` is the bare semantic identity. Arrays render it as an
+assignment label (`name =`); every other non-composite primitive uses a bare
+caption. A lone graph normally has no name. Legacy `title` and `planeTitle`
+fields are read only for older content and are not migration inputs. A graph carries `directed: true` when
+edge direction is instructional.
+
+For multi-structure frames, `CompositeCanvasSnapshot.items` contains a stable
+item `id`, a `primary`/`auxiliary`/`comparison` role, and a non-composite
+snapshot. The composite is a CSS grid/flex partition of independently measured
+SVG primitive surfaces, rather than one master SVG. It routes auxiliary state
+and variables to one primary region, avoiding repeated HUDs. See
+[TUTORIAL_GUIDE.md](../TUTORIAL_GUIDE.md) for the full authoring contract.
 
 ## Persistence
 
@@ -139,7 +159,7 @@ Python is perfectly sandboxed.
 - `src/routes/workspace.$algorithmId.tsx` selects the algorithm or assessment
   workspace from the learning registry.
 - `src/learning` owns the cross-track item model, assessment metadata,
-  difficulty profiles, registry, progress, and authored ML content.
+  difficulty profiles, registry, progress, and retired-ML model support.
 - `src/playground` owns DSA execution adapters, runner selection, Pyodide
   worker/client behavior, server client behavior, and draft persistence.
 - `src/ui/organisms/code-workspace` renders immutable reference code, the
@@ -154,18 +174,18 @@ Python is perfectly sandboxed.
 
 ## Verification
 
-Use focused Vitest and Python tests while iterating. Catalog changes must
-include the DSA catalog, learning-registry target, and graph-topology contracts.
-`bun run audit:catalog` enforces 88 DSA + 69 ML = 157 active items, 23 ML
-placements, exactly three ML items per topic, executable Python assets, source
-metadata, uniqueness, and the 232-row retirement ledger.
+Use the repository's non-test quality commands while iterating. `bun run audit:catalog`
+enforces 88 active DSA items, retired native ML content, retained ML placements,
+executable Python assets, source metadata, and catalog uniqueness.
 
-`bun run check` is the final unit/static gate: typecheck, format, lint, Intent,
-Compose topology, catalog audit, coverage, and production build. With the
-Compose stack running, `bun run test:e2e:docker` verifies the catalog, roadmap,
-all assessment renderers, draft persistence, real Pyodide, and real CPython API
-execution. Coverage thresholds are regression floors and must never be lowered
-to make a change pass.
+`bun run audit:visualizers` reports tutorial detachment from source code,
+narrative/phase/scenario metadata, adjacent snapshot transitions, and primitive
+usage. It is a health report for the ongoing migration, not a source-line
+tutorial mechanism.
+
+`bun run check` is the final quality gate: typecheck, format, lint, Intent,
+Compose topology, catalog audit, and production build. Plans and implementation
+work do not include unit, component, integration, or end-to-end tests.
 
 ## Codex workflow
 
@@ -173,5 +193,5 @@ Repository trust is granted from the user's Codex configuration, which then
 permits a project-local configuration layer; this repository does not attempt
 to grant itself trust or pin a model. Use a coordinator for cross-cutting
 integration, focused workers for disjoint implementation areas, and a reviewer
-for contract/test validation. Select the model and reasoning effort per task
+for production behavior and contract validation. Select the model and reasoning effort per task
 rather than encoding a repository-wide default.

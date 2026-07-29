@@ -1,12 +1,9 @@
 import React from "react";
 import { GraduationCap } from "lucide-react";
 import { Card } from "../index";
-import { StepExplanation } from "../../types/dsa";
 
 export interface TutorialCardProps {
-  explanation?: StepExplanation;
-  what?: string;
-  why?: string;
+  narrative?: string;
   stepIndex?: number;
   totalSteps?: number;
 }
@@ -18,30 +15,17 @@ const PROSE: React.CSSProperties = {
   color: "var(--text-secondary)",
 };
 
-export const hasTutorialContent = (
-  explanation?: StepExplanation,
-  what?: string,
-  why?: string,
-): boolean =>
-  Boolean((what || explanation?.what || "").trim() || (why || explanation?.why || "").trim());
+export const hasTutorialContent = (narrative?: string): boolean => Boolean(narrative?.trim());
 
-export const TutorialCard: React.FC<TutorialCardProps> = ({
-  explanation,
-  what,
-  why,
-  stepIndex,
-  totalSteps,
-}) => {
-  const whatText = (what || explanation?.what || "").trim();
-  const whyText = (why || explanation?.why || "").trim();
+export const TutorialCard: React.FC<TutorialCardProps> = ({ narrative, stepIndex, totalSteps }) => {
+  const prose = narrative?.trim() ?? "";
 
-  if (!whatText && !whyText) return null;
+  if (!prose) return null;
 
-  const lead = whatText && !/[.!?:]$/.test(whatText) ? `${whatText}.` : whatText;
-
+  const displayStep = stepIndex !== undefined ? stepIndex + 1 : undefined;
   const stepLabel =
-    stepIndex !== undefined
-      ? `Step ${stepIndex + 1}${totalSteps !== undefined ? ` of ${totalSteps}` : ""}`
+    displayStep !== undefined
+      ? `Step ${displayStep}${totalSteps !== undefined ? ` of ${totalSteps}` : ""}`
       : undefined;
 
   return (
@@ -83,11 +67,7 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({
         </div>
 
         <p style={PROSE} className="whitespace-normal break-words leading-relaxed">
-          {lead && (
-            <strong style={{ color: "var(--text-primary)", fontWeight: 600 }}>{lead}</strong>
-          )}
-          {lead && whyText ? " " : ""}
-          {whyText}
+          {prose}
         </p>
       </Card.Body>
     </Card>

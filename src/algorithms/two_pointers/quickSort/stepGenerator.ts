@@ -4,7 +4,8 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const workingElements: ArrayElement[] = input.map((val, idx) => ({
+  const rawInput = Array.isArray(input) ? input : [6, 2, 9, 3, 7, 1, 5];
+  const workingElements: ArrayElement[] = rawInput.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -43,7 +44,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     1,
     "Initialize Quick Sort",
-    `We'll sort these ${n} values by divide and conquer: pick a pivot, herd everything smaller to its left and everything larger to its right, then repeat on each side.`,
+    `We sort the array using divide-and-conquer: selecting a pivot element, partitioning smaller elements to its left and larger elements to its right, and recursively sorting each partition in-place.`,
     { low: 0, high: n - 1 },
   );
   callStack.pop();
@@ -53,7 +54,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       1,
       "Quick Sort complete",
-      "An array of at most one element is already sorted, so there is nothing for us to do.",
+      "An array of at most one element is trivially sorted, requiring no partitioning.",
       { low: 0, high: Math.max(0, n - 1) },
     );
     while (steps.length < 20) {
@@ -72,15 +73,15 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       1,
       `Enter ${frame}`,
-      `We're now responsible for the ${Math.max(0, high - low + 1)}-element slice [${low}..${high}]; everything outside it is handled by calls higher up the stack.`,
+      `We take responsibility for sorting the sub-array slice [${low}..${high}] of length ${Math.max(0, high - low + 1)}, while outer regions are handled higher up the call stack.`,
       { low, high },
     );
     addStep(
       2,
       `Check low < high (${low} vs ${high})`,
       low < high
-        ? `The slice still holds at least two elements, so it could be out of order — we go on to partition it around a pivot.`
-        : `A slice of ${Math.max(0, high - low + 1)} element${Math.max(0, high - low + 1) === 1 ? "" : "s"} is as sorted as it can get, so this call simply hands control back.`,
+        ? `The sub-array contains at least two elements and requires partitioning around a pivot.`
+        : `A sub-array of length ${Math.max(0, high - low + 1)} is trivially sorted, so control returns to the caller.`,
       { low, high, isBaseCase: low >= high },
     );
 
@@ -94,7 +95,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       3,
       `Partition the slice [${low}..${high}]`,
-      `We hand the slice to partition, whose job is to pick a pivot and split the values into a "smaller or equal" side and a "larger" side around it.`,
+      `Handing the sub-array slice to Lomuto partitioning to pick a pivot element and split values into smaller-or-equal and larger partitions around it.`,
       { low, high },
     );
 
@@ -103,7 +104,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       7,
       `Enter partition([${low}..${high}])`,
-      `The partition helper takes over: it picks a pivot and rearranges the slice so everything ≤ pivot is on the left and everything > pivot is on the right.`,
+      `The partition phase begins: selecting a pivot and rearranging the sub-array so all elements <= pivot sit to its left and elements > pivot sit to its right.`,
       { low, high },
       { [high]: ["pivot"] },
       { [high]: "pivot" },
@@ -112,7 +113,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       8,
       `Pick the pivot ${pivotVal}`,
-      `We take the rightmost element, ${pivotVal}, as our yardstick — every other value in this slice will be judged as either "at most ${pivotVal}" or "bigger".`,
+      `Choosing the rightmost element arr[${high}] = ${pivotVal} as the comparison benchmark for partitioning.`,
       { low, high, pivot: pivotVal },
       { [high]: ["pivot"] },
       { [high]: "pivot" },
@@ -122,7 +123,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       9,
       `Set the boundary i = ${i}`,
-      `The pointer i marks the end of the "small values" zone. It starts at ${i}, just before the slice, because we haven't found anything <= ${pivotVal} yet.`,
+      `Boundary pointer i marks the upper limit of elements smaller than or equal to the pivot, starting at ${i} before the slice boundary.`,
       { low, high, i, pivot: pivotVal },
       { [high]: ["pivot"] },
       { [high]: "pivot" },
@@ -157,7 +158,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
       addStep(
         10,
         `for j = ${j}: scan element ${currentVal}`,
-        `The for loop scans each position from ${low} to ${high - 1}, comparing every element against the pivot to decide which side it belongs on.`,
+        `Scanner index j iterates through the sub-array from ${low} to ${high - 1}, comparing each element against the pivot benchmark.`,
         { low, high, i, j, pivot: pivotVal },
         getPointers(),
         getStates(),
@@ -167,8 +168,8 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
         11,
         `Compare ${currentVal} with pivot ${pivotVal}`,
         currentVal <= pivotVal
-          ? `${currentVal} is at most ${pivotVal}, so it belongs on the pivot's left — we'll grow the small-values zone to take it in.`
-          : `${currentVal} is bigger than ${pivotVal}, so we leave it where it stands; it will end up on the pivot's right side.`,
+          ? `Element ${currentVal} is less than or equal to pivot ${pivotVal}, so it belongs in the left partition.`
+          : `Element ${currentVal} is strictly greater than pivot ${pivotVal}, so it remains in the right partition.`,
         { low, high, i, j, "arr[j]": currentVal, pivot: pivotVal },
         getPointers(),
         getStates(),
@@ -179,7 +180,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
         addStep(
           12,
           `Grow the small zone to index ${i}`,
-          `Sliding i forward to ${i} opens the next seat in the <=-pivot zone, ready to receive ${currentVal}.`,
+          `Incrementing boundary pointer i to index ${i} opens the next slot in the smaller-or-equal partition.`,
           { low, high, i, j, "arr[j]": currentVal, pivot: pivotVal },
           getPointers({ [i]: ["i"] }),
           getStates({ [i]: "active" }),
@@ -192,7 +193,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
         addStep(
           13,
           `Swap into index ${i}`,
-          `Moving ${workingElements[i].value} into index ${i} keeps our promise intact: everything up to and including index ${i} is at most ${pivotVal}.`,
+          `Swapping elements moves ${workingElements[i].value} into the left partition, maintaining the invariant that all elements up to index i are <= pivot.`,
           {
             low,
             high,
@@ -212,7 +213,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       14,
       `Move pivot ${pivotVal} to index ${pivotIdx}`,
-      `Index ${pivotIdx} is the first seat after the small-values zone — exactly where ${pivotVal} belongs. Once it lands there, it will never need to move again.`,
+      `Index ${pivotIdx} marks the exact boundary between partitions. Swapping the pivot here lands it into its permanent, final sorted position.`,
       { low, high, pivotIdx, pivot: pivotVal },
       { [pivotIdx]: ["i+1"], [high]: ["pivot"] },
       { [pivotIdx]: "swap", [high]: "swap" },
@@ -227,7 +228,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       15,
       `Partition done at index ${pivotIdx}`,
-      `Everything left of index ${pivotIdx} is at most ${pivotVal}, and everything right of it is at least ${pivotVal} — so the pivot now sits in its final sorted position.`,
+      `The pivot element at index ${pivotIdx} is permanently sorted. Everything to its left is <= ${pivotVal} and everything to its right is >= ${pivotVal}.`,
       { low, high, pivotIdx },
       { [pivotIdx]: ["pivot"] },
       { [pivotIdx]: "sorted" },
@@ -236,7 +237,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       4,
       `Recurse into the left side`,
-      `The values in [${low}..${pivotIdx - 1}] are all on the correct side of the pivot but still jumbled among themselves, so we sort that slice the same way.`,
+      `Recursively applying Quick Sort to the left sub-array [${low}..${pivotIdx - 1}] containing elements smaller than or equal to the pivot.`,
       { low, high: pivotIdx - 1 },
     );
     helper(low, pivotIdx - 1);
@@ -244,7 +245,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       5,
       `Recurse into the right side`,
-      `Now the larger values in [${pivotIdx + 1}..${high}] get the same treatment: pick a pivot, split, and repeat.`,
+      `Recursively applying Quick Sort to the right sub-array [${pivotIdx + 1}..${high}] containing elements greater than or equal to the pivot.`,
       { low: pivotIdx + 1, high },
     );
     helper(pivotIdx + 1, high);
@@ -261,7 +262,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     1,
     "Quick Sort complete",
-    "Every recursive call has finished and every pivot has settled into its final spot, so the whole array now reads in ascending order. With reasonably balanced splits, that took about n log n work.",
+    "All recursive call stack frames have resolved. Every pivot element has settled into its final position, leaving the array fully sorted in non-decreasing order.",
     { low: 0, high: n - 1 },
   );
 

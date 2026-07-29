@@ -3,39 +3,39 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const KOSARAJU_SCC_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Kosaraju's algorithm partitions a directed graph $G = (V, E)$ into its **Strongly Connected Components (SCCs)**—maximal subgraphs where every pair of vertices $u, v$ is mutually reachable ($u \\rightsquigarrow v$ and $v \\rightsquigarrow u$). It operates in linear $\\mathcal{O}(V + E)$ time via a two-pass Depth-First Search (DFS) strategy: Pass 1 computes post-order vertex finishing times on $G$, while Pass 2 explores the transposed graph $G^T$ (with reversed edges) in decreasing finish order to extract each isolated component.",
+    "<p>Kosaraju's algorithm partitions a directed graph <code>G = (V, E)</code> into its <strong>Strongly Connected Components (SCCs)</strong>—maximal subgraphs where every pair of vertices <em>u, v</em> is mutually reachable (<code>u &rarr; v</code> and <code>v &rarr; u</code>). It operates in linear <code>O(V + E)</code> time via a two-pass Depth-First Search (DFS) strategy: Pass 1 computes post-order vertex finishing times on <code>G</code>, while Pass 2 explores the transposed graph <code>G<sup>T</sup></code> (with reversed edges) in decreasing finish order to extract each isolated component.</p>",
   sections: [
     {
       heading: "Why It Exists & What It Solves",
-      body: "In directed graphs, reachability is asymmetric: vertex $u$ can reach $v$ without $v$ being able to reach $u$. Strongly Connected Components group mutually reachable vertices into equivalence classes. Contracting each SCC into a single super-node yields the graph's **Condensation DAG**, allowing algorithms designed for acyclic graphs (such as Topological Sort or Dynamic Programming) to run on arbitrary directed graphs.",
+      body: "<p>In directed graphs, reachability is asymmetric: vertex <em>u</em> can reach <em>v</em> without <em>v</em> being able to reach <em>u</em>. Strongly Connected Components group mutually reachable vertices into equivalence classes. Contracting each SCC into a single super-node yields the graph's <strong>Condensation DAG</strong>, allowing algorithms designed for acyclic graphs (such as Topological Sort or Dynamic Programming) to run on arbitrary directed graphs.</p>",
     },
     {
       heading: "Core Concept: The Transpose Fence & Finish Stack",
-      body: "Reversing all directed edges to form the transpose graph $G^T$ preserves internal SCC cycles, but reverses component-to-component implication direction. By processing nodes in decreasing order of their Pass 1 DFS finishing times, Pass 2 is guaranteed to start at a sink component in $G^T$, preventing the search from leaking into other SCCs.",
+      body: "<p>Reversing all directed edges to form the transpose graph <code>G<sup>T</sup></code> preserves internal SCC cycles, but reverses component-to-component implication direction. By processing nodes in decreasing order of their Pass 1 DFS finishing times, Pass 2 is guaranteed to start at a sink component in <code>G<sup>T</sup></code>, preventing the search from leaking into other SCCs.</p>",
     },
     {
       heading: "Step-by-Step Intuition",
-      body: "1. **Pass 1 DFS**: Run DFS on original graph $G$, pushing each node onto a finish stack when all its outgoing edges finish.\n2. **Transpose Graph**: Construct $G^T$ by flipping the direction of every edge ($u \\to v \\Rightarrow v \\to u$).\n3. **Reset Visited**: Clear visited set.\n4. **Pass 2 DFS**: Pop nodes from the finish stack: for each unvisited node $u$, launch a DFS on $G^T$ to collect all reachable nodes into a single SCC.\n5. **Repeat**: Continue until the finish stack is empty.",
+      body: "<ul><li><strong>Pass 1 DFS:</strong> Run DFS on original graph <code>G</code>, pushing each node onto a finish stack when all its outgoing edges finish.</li><li><strong>Transpose Graph:</strong> Construct <code>G<sup>T</sup></code> by flipping the direction of every edge (<code>u &rarr; v</code> to <code>v &rarr; u</code>).</li><li><strong>Reset Visited:</strong> Clear the visited set.</li><li><strong>Pass 2 DFS:</strong> Pop nodes from the finish stack: for each unvisited node <em>u</em>, launch a DFS on <code>G<sup>T</sup></code> to collect all reachable nodes into a single SCC.</li><li><strong>Repeat:</strong> Continue until the finish stack is empty.</li></ul>",
     },
     {
       heading: "Trade-offs: Kosaraju vs. Tarjan's SCC Algorithm",
-      body: "Kosaraju's algorithm uses two conceptually simple DFS passes and edge reversal, making it exceptionally easy to implement and verify. **Tarjan's algorithm** finds SCCs in a single DFS pass using discovery times and lowlink values $\\text{low}[u]$, avoiding explicit graph transposition and saving memory on large streams.",
+      body: "<p>Kosaraju's algorithm uses two conceptually simple DFS passes and edge reversal, making it exceptionally easy to implement and verify. <strong>Tarjan's algorithm</strong> finds SCCs in a single DFS pass using discovery times and lowlink values <code>low[u]</code>, avoiding explicit graph transposition and saving memory on large streams.</p>",
     },
     {
       heading: "Complexity Analysis",
-      body: "$$\\text{Time Complexity}: \\mathcal{O}(V + E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Pass 1 DFS takes $\\mathcal{O}(V + E)$, graph transposition takes $\\mathcal{O}(V + E)$, and Pass 2 DFS takes $\\mathcal{O}(V + E)$. Overall time is linear $\\mathcal{O}(V + E)$.\n- **Space**: Storing adjacency lists for $G$ and $G^T$, finish stack, and visited sets consumes $\\mathcal{O}(V + E)$ space.",
+      body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Time:</strong> Pass 1 DFS takes <code>O(V + E)</code>, graph transposition takes <code>O(V + E)</code>, and Pass 2 DFS takes <code>O(V + E)</code>. Overall time is linear <code>O(V + E)</code>.</li><li><strong>Space:</strong> Storing adjacency lists for <code>G</code> and <code>G<sup>T</sup></code>, finish stack, and visited sets consumes <code>O(V + E)</code> space.</li></ul>",
     },
   ],
   keyTerms: [
     {
       term: "Strongly Connected Component (SCC)",
       definition:
-        "A maximal subset $S \\subseteq V$ where every vertex pair $u, v \\in S$ can reach each other along directed paths.",
+        "A maximal subset <em>S &subseteq; V</em> where every vertex pair <em>u, v &isin; S</em> can reach each other along directed paths.",
     },
     {
-      term: "Transpose Graph ($G^T$)",
+      term: "Transpose Graph (G^T)",
       definition:
-        "The directed graph formed by reversing the direction of every directed edge $e = (u, v) \\in E$.",
+        "The directed graph formed by reversing the direction of every directed edge <em>e = (u, v) &isin; E</em>.",
     },
     {
       term: "Finish Stack",

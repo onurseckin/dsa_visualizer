@@ -5,6 +5,7 @@ import { computeTreeLayout } from "./tree/layoutEngine";
 import { TreeLink } from "./tree/TreeLink";
 import { TreeNode } from "./tree/TreeNode";
 import { TreeLegend } from "./tree/TreeLegend";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
 
 export type { TreeVisualizerProps };
 
@@ -15,6 +16,8 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
   height = 560,
   title,
   groups,
+  auxiliaryState,
+  variables,
 }) => {
   const { ref, box } = useCanvasBox({ width, height });
 
@@ -58,7 +61,7 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "32px",
+          padding: 0,
         }}
       >
         <svg
@@ -114,6 +117,8 @@ export const TreeVisualizer: React.FC<TreeVisualizerProps> = ({
               slot={metrics.groupOf(node.id)}
             />
           ))}
+
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
 

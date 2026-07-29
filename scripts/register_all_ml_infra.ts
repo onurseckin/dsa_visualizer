@@ -23,9 +23,7 @@ for (const folder of topicFolders) {
   const folderPath = path.join(process.cwd(), "src", "algorithms", folder);
   if (!fs.existsSync(folderPath)) continue;
 
-  const files = fs
-    .readdirSync(folderPath)
-    .filter((f) => f.endsWith(".ts") && !f.endsWith(".spec.ts") && f !== "index.ts");
+  const files = fs.readdirSync(folderPath).filter((f) => f.endsWith(".ts") && f !== "index.ts");
 
   for (const file of files) {
     const filePath = path.join(folderPath, file);

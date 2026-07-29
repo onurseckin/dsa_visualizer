@@ -1,12 +1,13 @@
 import type { AlgorithmDefinition } from "../../../types/dsa";
 import type { TriviaMeta } from "../../../types/trivia";
 import { KTH_LARGEST_CODE } from "./pythonCode";
-import { generateKthLargestSteps, type KthLargestInput } from "./stepGenerator";
+import {
+  DEFAULT_KTH_LARGEST_INPUT,
+  generateKthLargestSteps,
+  type KthLargestInput,
+} from "./stepGenerator";
 
-export const DEFAULT_KTH_LARGEST_INPUT: KthLargestInput = {
-  nums: [3, 2, 1, 5, 6, 4],
-  k: 2,
-};
+export { DEFAULT_KTH_LARGEST_INPUT };
 
 const KTH_LARGEST_ELEMENT_TRIVIA: TriviaMeta = {
   lineExplanations: {
@@ -27,8 +28,24 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   title: "Kth Largest Element in an Array",
   topicIds: ["heap_and_priority_queue"],
   difficulty: "Medium",
-  description:
-    "Find the $k$-th largest element in an unsorted array of numbers in $O(N \\log k)$ time and $O(k)$ memory using a min-heap of fixed capacity $k$.\n\n### Problem Statement\nGiven an unsorted array of integers `nums` and an integer `k`, return the $k$-th largest element in the array. Note that it is the $k$-th largest element in sorted order, not the $k$-th distinct element (duplicate values are counted individually).\n\nThe algorithm maintains a min-heap of capacity $k$. As elements are processed, each number is pushed into the min-heap. If the heap size exceeds $k$, the root element (the smallest candidate among the top $k+1$) is evicted via `heappop`. Once all $N$ elements are processed, the root of the min-heap contains the smallest value among the $k$ largest elements—which is precisely the $k$-th largest element.\n\n### Input Parameters\n- `nums`: Unsorted array of $N$ integers.\n- `k`: Rank position integer ($1 \\le k \\le N$).\n\n### Output\n- Returns the integer value corresponding to the $k$-th largest element.\n\n### Constraints & Edge Cases\n- `1 <= k <= nums.length <= 10^5`.\n- `-10^4 <= nums[i] <= 10^4`.\n- Single element array ($N=1, k=1$): Returns `nums[0]`.\n- Duplicates present (e.g. `nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4`): Handled correctly, outputting `4`.",
+  description: `<p>Find the <em>k</em>-th largest element in an unsorted array of numbers in <em>O(N log k)</em> time and <em>O(k)</em> memory using a min-heap of fixed capacity <em>k</em>.</p>
+<h3>Problem Statement</h3>
+<p>Given an unsorted array of integers <code>nums</code> and an integer <code>k</code>, return the <em>k</em>-th largest element in the array. Note that it is the <em>k</em>-th largest element in sorted order, not the <em>k</em>-th distinct element (duplicate values are counted individually).</p>
+<p>The algorithm maintains a min-heap of capacity <em>k</em>. As elements are processed, each number is pushed into the min-heap. If the heap size exceeds <em>k</em>, the root element (the smallest candidate among the top <em>k+1</em>) is evicted via <code>heappop</code>. Once all <em>N</em> elements are processed, the root of the min-heap contains the smallest value among the <em>k</em> largest elements—which is precisely the <em>k</em>-th largest element.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: Unsorted array of <em>N</em> integers.</li>
+  <li><code>k</code>: Rank position integer (1 &le; <em>k</em> &le; <em>N</em>).</li>
+</ul>
+<h3>Output</h3>
+<p>Returns the integer value corresponding to the <em>k</em>-th largest element.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; k &le; nums.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
+  <li>Single element array (<em>N = 1, k = 1</em>): Returns <code>nums[0]</code>.</li>
+  <li>Duplicates present: Handled correctly by maintaining element frequency count implicitly.</li>
+</ul>`,
   constraints: [
     "1 <= k <= nums.length <= 10^5",
     "-10^4 <= nums[i] <= 10^4",
@@ -80,63 +97,48 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   },
   topicGuide: {
     overview:
-      "Selection problems ask for a rank rather than a full ordering: you want the $k$-th largest value, not a completely sorted array, and computing the whole ordering is doing far more work than required.\n\nIn real-world ML systems and data infrastructure, bounded min-heaps drive essential pipelines: PyTorch and vLLM inference engines use Top-K filtering during LLM logit sampling to bound candidate token selection before softmax normalization; database query engines (PostgreSQL/MySQL) execute `ORDER BY column DESC LIMIT k` using heap-based priority queues to avoid full $O(N \\log N)$ disk sorts; and real-time streaming analytics maintain running Top-K frequency metrics in memory.",
+      "<p>Selection problems ask for a specific rank rather than a full ordering. Maintaining a bounded min-heap of capacity <em>k</em> ensures the root always contains the <em>k</em>-th largest value seen so far, executing in <em>O(N log k)</em> time and <em>O(k)</em> auxiliary space.</p>",
     sections: [
       {
         heading: "Asking for a rank, not an order",
-        body: "Sorting the array answers the question, but it also answers every other rank question you did not ask, and you pay for all of them. Step back and notice that only two facts actually matter: whether a given number belongs to the top K seen so far, and which member of that group is the weakest. A min-heap reports its minimum at the root in constant time, so if you keep exactly the top K values in a min-heap then its root is the Kth largest. The part that feels backwards at first is using a min-heap to answer a maximum-flavoured question, and the reason is that the operation you need to be fast is throwing away the smallest survivor, not finding the largest.",
+        body: "<p>Full array sorting computes every rank, which is unnecessary when only the <em>k</em>-th largest value is needed. A min-heap of size <em>k</em> keeps the current top <em>k</em> candidates, exposing the smallest among them (the <em>k</em>-th largest) at the root in <em>O(1)</em> time.</p>",
       },
       {
         heading: "How the bounded heap operates",
-        body: "You walk the array once and push every number into the heap, and immediately after each push you check whether the size has exceeded K, popping the root if it has. A heap is a complete binary tree kept flat in an array, so a push places the value at the end and sifts it up along a single root-to-leaf path until its parent is no larger, and a pop moves the last element to the root and sifts it down the same way. The root is always the weakest member of the current top-K club, which is exactly the right candidate to evict when a stronger number shows up. A small refinement is to peek before pushing and skip numbers that are already smaller than the root, which produces the same answer with less sifting.",
+        body: "<p>As elements are processed, each number is pushed into the min-heap. When the heap size exceeds <em>k</em>, the smallest element is evicted from the root via <code>heappop</code>. This keeps the memory bounded strictly to <em>k</em> elements.</p>",
       },
       {
         heading: "The invariant that makes the root the answer",
-        body: "After processing the first i numbers the heap holds min(i, K) of them, and once i has reached K it holds precisely the K largest of those i values with the smallest of them sitting at the root. The step that preserves this is the eviction: at the moment you pop, the heap contains K plus one candidates, and the element you remove is the minimum of that set, so it cannot possibly be among the K largest of it — discarding it is always safe and never throws away a needed value. Because each step preserves the property, the property still holds when i reaches N, which says the heap contains the K largest values in the entire array. Its root is the smallest of those K, and the smallest of the top K is by definition the Kth largest overall.",
+        body: "<p>At any stage, the min-heap maintains the <em>k</em> largest elements observed so far. Because it is a min-heap, its root is guaranteed to be the minimum among those <em>k</em> largest elements, which corresponds directly to the rank boundary.</p>",
       },
       {
         heading: "Duplicates, capacity, and other edges",
-        body: "Kth largest means Kth in sorted order with duplicates counted individually, not the Kth distinct value, so for [5, 5, 4] with K equal to two the answer is 5 — and the bounded heap gets this right for free because it never deduplicates anything. The comparison that caps the heap must be size greater than K, not greater than or equal, since a heap holding exactly K entries is at its intended capacity; getting that wrong shifts every answer by one rank. When K equals the array length the answer is the array minimum, and the heap simply never evicts anything, which is a good sanity check to trace. An empty array, or a K larger than the array, has no answer at all and belongs in an up-front validation rather than in the loop.",
+        body: "<p>Duplicate values are treated as distinct elements. Bounded heaps handle duplicate values naturally without requiring deduplication. When <em>k = 1</em>, the algorithm effectively computes the maximum; when <em>k = N</em>, it returns the global minimum.</p>",
       },
       {
         heading: "Choosing among sorting, quickselect, and the heap",
-        body: "A full sort is the simplest thing that works and is perfectly reasonable for small or one-off inputs, and it hands you every rank rather than one. Quickselect partitions the array around a pivot and recurses into only the side containing the target rank, averaging linear time, which makes it the fastest choice when the whole array is already in memory and you need a single rank — at the cost of reordering your data and a quadratic worst case unless you randomise the pivot. When the values live in a small fixed range, counting them into buckets beats both. The bounded heap earns its place when N is enormous or unbounded, when memory must stay proportional to K rather than to the input, or when you want the whole top-K collection instead of just the value on its boundary.",
+        body: "<p>Sorting takes <em>O(N log N)</em> time, Quickselect averages <em>O(N)</em> time in memory but requires modifying the input array, while a bounded min-heap is optimal for streaming data or when memory must be capped to <em>O(k)</em>.</p>",
       },
       {
         heading: "The pattern behind every top-K problem",
-        body: "Keep the same skeleton and change only what you compare, and the bounded heap solves a long list of problems: the K closest points to the origin with the heap keyed on distance and the farthest point evicted, the K most frequent elements with the heap keyed on a count computed in a first pass, and the K smallest pairs across two sorted arrays. Merging K sorted lists is the mirror image — a heap sized by the number of lists rather than by K, holding one head per list. The shape to recognise is a stream of candidates, a fixed-capacity heap holding the current survivors, and an eviction rule that always fires at the root. Once you see that shape, choosing between a min-heap and a max-heap is just asking which end you need to discard from.",
+        body: "<p>Bounded min-heaps form the foundation of streaming Top-K filters, including K closest points, K most frequent elements, and merging K sorted streams.</p>",
       },
     ],
     keyTerms: [
       {
         term: "Min-heap",
         definition:
-          "A complete binary tree, usually stored in a flat array, in which every parent is no larger than its children. That single rule guarantees the overall minimum sits at the root, reachable in constant time.",
-      },
-      {
-        term: "Sift up and sift down",
-        definition:
-          "The repair operations that restore the heap property after an insertion or a removal by swapping an element along one path between root and leaf. They are why a push or pop costs logarithmic rather than linear work.",
+          "A complete binary tree structure where every parent node is less than or equal to its children, placing the global minimum at the root.",
       },
       {
         term: "Bounded heap",
         definition:
-          "A heap that is never allowed to exceed a fixed capacity, here K, because it evicts its root as soon as it overflows. It behaves as a running filter that keeps the best K items seen so far.",
+          "A heap constrained to a maximum capacity k by evicting its root whenever size exceeds k.",
       },
       {
         term: "Selection problem",
         definition:
-          "The task of finding the element of a given rank, such as the median or the Kth largest, without necessarily sorting. It is strictly easier than sorting, and good solutions exploit that.",
-      },
-      {
-        term: "Quickselect",
-        definition:
-          "A partition-based selection algorithm that repeatedly splits the array around a pivot and recurses only into the half holding the target rank. It averages linear time in memory but mutates the array and degrades if pivots are chosen badly.",
-      },
-      {
-        term: "Streaming",
-        definition:
-          "A setting where items arrive one at a time and you cannot store them all, so an algorithm may only keep bounded state. Bounded heaps are the canonical top-K answer under that constraint.",
+          "Finding an element of a specific rank (such as the k-th largest) without fully sorting the input array.",
       },
     ],
   },

@@ -89,9 +89,9 @@ export const ArrayItem: React.FC<ArrayItemProps> = ({ item, index, metrics }) =>
       )}
 
       <rect
-        x={x + (metrics.barWidth - metrics.boxSize) / 2}
+        x={x}
         y={metrics.boxY}
-        width={metrics.boxSize}
+        width={metrics.barWidth}
         height={metrics.boxSize}
         rx={metrics.barRadius}
         fill={fill}

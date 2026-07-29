@@ -168,8 +168,14 @@ function negateLiteral(lit: string): string {
 
 export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const variables = input.variables;
-  const clauses = input.clauses;
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_TWO_SAT_INPUT;
+  const variables =
+    Array.isArray(safeInput.variables) && safeInput.variables.length > 0
+      ? safeInput.variables
+      : DEFAULT_TWO_SAT_INPUT.variables;
+  const clauses = Array.isArray(safeInput.clauses)
+    ? safeInput.clauses
+    : DEFAULT_TWO_SAT_INPUT.clauses;
 
   const literals: string[] = [];
   for (const v of variables) {
@@ -528,7 +534,7 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "Solves the 2-Satisfiability (2-SAT) problem in linear O(V + E) time. Given a 2-CNF boolean formula with N variables and M clauses (where each clause contains 2 literals), 2-SAT is solved by constructing a directed implication graph (~u -> v) and (~v -> u). Kosaraju's algorithm computes the Strongly Connected Components (SCCs). If any variable x and its negation ~x belong to the same SCC, the formula is UNSATISFIABLE. Otherwise, a valid truth assignment is derived from the topological rank of SCCs.",
+    "<p>Solves the 2-Satisfiability (2-SAT) problem in linear <code>O(V + E)</code> time. Given a 2-CNF boolean formula with N variables and M clauses (where each clause contains 2 literals), 2-SAT is solved by constructing a directed implication graph (<code>~u &rarr; v</code> and <code>~v &rarr; u</code>). Kosaraju's algorithm computes the Strongly Connected Components (SCCs). If any variable <code>x</code> and its negation <code>~x</code> belong to the same SCC, the formula is UNSATISFIABLE. Otherwise, a valid truth assignment is derived from the topological rank of SCCs.</p>",
   constraints: [
     "1 <= Variables <= 500",
     "1 <= Clauses <= 2000",
@@ -589,33 +595,33 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Constructing the implication graph takes $\\mathcal{O}(V + E)$ time. Finding SCCs via Kosaraju's algorithm takes $\\mathcal{O}(V + E)$ time. Validating contradictions takes $\\mathcal{O}(V)$ time. Total runtime is linear $\\mathcal{O}(V + E)$.",
+    time: "Constructing the implication graph takes O(V + E) time. Finding SCCs via Kosaraju's algorithm takes O(V + E) time. Validating contradictions takes O(V) time. Total runtime is linear O(V + E).",
     space:
-      "The implication graph, transpose graph, and SCC data structures consume $\\mathcal{O}(V + E)$ auxiliary space.",
+      "The implication graph, transpose graph, and SCC data structures consume O(V + E) auxiliary space.",
   },
   topicGuide: {
     overview:
-      "While general 3-SAT and Boolean Satisfiability are famous NP-complete problems (**Cook-Levin Theorem**), **2-SAT** is restricted to 2 literals per clause and is solvable in linear time $\\mathcal{O}(V + E)$. The key reduction transforms logic clauses into a directed **Implication Graph** $G = (V, E)$ and analyzes its Strongly Connected Components (SCCs).",
+      "<p>While general 3-SAT and Boolean Satisfiability are famous NP-complete problems (<strong>Cook-Levin Theorem</strong>), <strong>2-SAT</strong> is restricted to 2 literals per clause and is solvable in linear time <code>O(V + E)</code>. The key reduction transforms logic clauses into a directed <strong>Implication Graph</strong> <code>G = (V, E)</code> and analyzes its Strongly Connected Components (SCCs).</p>",
     sections: [
       {
         heading: "Core Concept: Implication Graph Reduction",
-        body: "A disjunction clause $(u \\lor v)$ is logically equivalent to two implication rules: $\\neg u \\implies v$ ($\\neg u \\to v$) and $\\neg v \\implies u$ ($\\neg v \\to u$). Constructing these directed edges for all clauses creates an Implication Graph $G = (V, E)$ where vertices represent literals.",
+        body: "<p>A disjunction clause <code>(u &or; v)</code> is logically equivalent to two implication rules: <code>&not;u &rArr; v</code> (<code>&not;u &rarr; v</code>) and <code>&not;v &rArr; u</code> (<code>&not;v &rarr; u</code>). Constructing these directed edges for all clauses creates an Implication Graph <code>G = (V, E)</code> where vertices represent literals.</p>",
       },
       {
         heading: "Contradiction Condition & Topological Assignment",
-        body: "If a variable $x$ and its negation $\\neg x$ belong to the same SCC, then $x \\implies \\neg x$ and $\\neg x \\implies x$ both hold, establishing a logical contradiction that renders the formula **UNSATISFIABLE**. Otherwise, assigning truth values according to the topological rank of SCCs (setting $x = \\text{true}$ if $\\text{scc}[x] > \\text{scc}[\\neg x]$) guarantees a valid satisfying assignment.",
+        body: "<p>If a variable <code>x</code> and its negation <code>&not;x</code> belong to the same SCC, then <code>x &rArr; &not;x</code> and <code>&not;x &rArr; x</code> both hold, establishing a logical contradiction that renders the formula <strong>UNSATISFIABLE</strong>. Otherwise, assigning truth values according to the topological rank of SCCs (setting <code>x = true</code> if <code>scc[x] &gt; scc[&not;x]</code>) guarantees a valid satisfying assignment.</p>",
       },
       {
         heading: "Systems Applications & Automated Reasoning",
-        body: "2-SAT solvers power package dependency resolution (Apt, Cargo, npm), hardware design verification (signal equivalence checking), register allocation under two-way interference, and automated theorem proving.",
+        body: "<p>2-SAT solvers power package dependency resolution (Apt, Cargo, npm), hardware design verification (signal equivalence checking), register allocation under two-way interference, and automated theorem proving.</p>",
       },
       {
         heading: "Implementation Nuances & Edge Cases",
-        body: "Single literal constraints $(x)$ are encoded as $(x \\lor x)$, producing implication $\\neg x \\to x$. Tautological clauses $(x \\lor \\neg x)$ produce no constraint edges.",
+        body: "<p>Single literal constraints <code>(x)</code> are encoded as <code>(x &or; x)</code>, producing implication <code>&not;x &rarr; x</code>. Tautological clauses <code>(x &or; &not;x)</code> produce no constraint edges.</p>",
       },
       {
         heading: "Complexity Analysis",
-        body: "$$\\text{Time Complexity}: \\mathcal{O}(V + E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Graph construction, Kosaraju SCC decomposition, and topological rank assignments run in linear $\\mathcal{O}(V + E)$ time.\n- **Space**: Adjacency lists and SCC maps take $\\mathcal{O}(V + E)$ memory.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Time:</strong> Graph construction, Kosaraju SCC decomposition, and topological rank assignments run in linear <code>O(V + E)</code> time.</li><li><strong>Space:</strong> Adjacency lists and SCC maps take <code>O(V + E)</code> memory.</li></ul>",
       },
     ],
     keyTerms: [
@@ -626,7 +632,7 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
       {
         term: "Implication Graph",
         definition:
-          "A directed graph representing logical implications $(\\neg u \\to v, \\neg v \\to u)$ derived from clause disjunctions $(u \\lor v)$.",
+          "A directed graph representing logical implications (not-u -> v, not-v -> u) derived from clause disjunctions (u OR v).",
       },
       {
         term: "Strongly Connected Component (SCC)",
@@ -636,12 +642,12 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
       {
         term: "Topological Rank Assignment",
         definition:
-          "Constructing a satisfying truth assignment by evaluating reverse topological order of SCCs, setting variable $x = \\text{true}$ if $\\text{scc}[x] > \\text{scc}[\\neg x]$.",
+          "Constructing a satisfying truth assignment by evaluating reverse topological order of SCCs, setting variable x = true if scc[x] > scc[not-x].",
       },
       {
         term: "Cook-Levin Theorem & 3-SAT",
         definition:
-          "Foundational complexity theorem establishing general 3-SAT as NP-complete, highlighting why 2-SAT's linear $\\mathcal{O}(V + E)$ time reduction is uniquely tractable.",
+          "Foundational complexity theorem establishing general 3-SAT as NP-complete, highlighting why 2-SAT's linear O(V + E) time reduction is uniquely tractable.",
       },
     ],
   },

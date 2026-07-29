@@ -18,58 +18,58 @@ export const DEFAULT_NUMBER_OF_ISLANDS_INPUT: NumberOfIslandsInput = {
 
 const NUMBER_OF_ISLANDS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Counting islands is the standard introduction to connected-component counting on an implicit graph, and it teaches a pattern you will reuse constantly. The grid is not really a matrix problem: each land cell is a vertex, each adjacency between two land cells is an edge, and an island is a connected component. The technique is a full sweep of the grid paired with a flood fill that claims an entire component the moment you step onto any part of it. Once you see grids as graphs in disguise, a large family of matrix puzzles collapses into traversal problems you already know how to solve.",
+    "<p>Counting islands is the standard introduction to connected-component counting on an implicit graph. The grid is essentially a graph: each land cell is a vertex, orthogonal adjacency between land cells forms an edge, and an island is a connected component. The technique combines a full grid sweep with a flood fill that claims an entire component upon initial discovery.</p>",
   sections: [
     {
       heading: "The core idea: the grid is a graph you never have to build",
-      body: 'The insight that unlocks this problem is that you do not need an adjacency list, because the coordinates already encode the edges. The neighbours of cell (r, c) are the four cells you get by adding the offsets (1, 0), (-1, 0), (0, 1) and (0, -1), computed on demand rather than stored. Land cells are vertices, water cells are absent from the graph entirely, and an island is precisely a maximal set of land cells reachable from one another. That reframing turns "count islands" into "count connected components", a question graph traversal answers directly. Recognizing this implicit-graph shape is the transferable skill; the counting loop around it is almost incidental.',
+      body: "<p>You do not need an explicit adjacency list because grid coordinates encode implicit edges. The neighbors of cell <code>(r, c)</code> are computed using four directional offsets: <code>(1, 0)</code>, <code>(-1, 0)</code>, <code>(0, 1)</code>, and <code>(0, -1)</code>. Land cells are vertices, water cells are excluded, and an island is a maximal connected component.</p>",
     },
     {
       heading: "How the mechanism works: sweep once, flood once",
-      body: "The outer double loop visits every cell in reading order and asks one question: is this land that no earlier flood has already claimed? If the answer is yes you have discovered a brand new island, so you increment the counter and launch a BFS from that cell. The flood pushes the starting cell, then repeatedly pops a cell and enqueues each of its in-bounds, land, unvisited neighbours, marking them visited as they are enqueued. When the queue empties, every cell of that island has been claimed, so the outer sweep can continue past them without triggering anything. On the sample grid the sweep triggers at (0, 0) and floods the top-left two-by-two block, later triggers at (2, 2) for a single-cell island, and finally at (3, 3) for the two-cell island in the bottom row, giving three.",
+      body: "<p>The outer double loop scans every cell in reading order. When encountering unvisited land, a new island is detected. We increment the island counter and launch a BFS or DFS flood fill. The flood marks all reachable land cells as visited, ensuring subsequent grid iterations skip them.</p>",
     },
     {
       heading: "Why it is correct: count on discovery, claim everything",
-      body: "The invariant is that after the sweep has passed any cell, every land cell examined so far is marked visited and belongs to exactly one island already counted. The counter can never overcount because the flood claims the whole component before the sweep moves on, so no other cell of that island will ever satisfy the unvisited test again. It can never undercount either, because the sweep inspects every single cell, so the topmost-leftmost cell of any island is guaranteed to be reached while still unvisited and will fire the counter exactly once. Together these give a clean bijection: one increment per island, no more and no fewer. Notice that the specific traversal used for the flood is irrelevant to this argument, which is why depth-first search works identically here.",
+      body: "<p>Because the flood fill exhausts all connected land cells before the outer sweep continues, no island is counted more than once. Conversely, every island has at least one top-leftmost cell that triggers discovery, so no island is missed.</p>",
     },
     {
       heading: "Pitfalls and edge cases",
-      body: 'Mark cells visited when you enqueue them, not when you dequeue them, or a cell reachable from two neighbours in the same wave gets queued twice and the flood does redundant work. Bounds checking must come before the grid lookup, since evaluating a cell value at a negative or out-of-range index either throws or, in languages with wraparound indexing, silently connects opposite edges of the grid. Remember the cells are the strings "0" and "1" in this formulation rather than numbers, so comparing against an integer quietly finds nothing. Handle the degenerate inputs of an empty grid or an empty first row before computing dimensions. Finally, be explicit about connectivity: this problem uses four-directional adjacency, so two land cells touching only at a corner are separate islands, and a variant asking for eight directions needs four more offsets.',
+      body: "<p>Always mark cells visited at the moment they are enqueued (not dequeued) to avoid duplicate entries in the queue. Ensure bounds checking is performed prior to grid array indexing to prevent out-of-bounds exceptions.</p>",
     },
     {
-      heading: "BFS, DFS, or union-find",
-      body: "BFS and DFS both solve this with the same asymptotic cost and the same counting logic, so the choice is practical. Recursive DFS is the shortest to write but risks a stack overflow on a large grid that is almost entirely land, since the recursion depth can approach the number of cells. BFS keeps its state in an explicit queue, which is safer for big inputs, and it is also the version you want if a variant asks for distances. A visited set is the clean choice when you must not modify the caller data; overwriting land cells with water as you flood avoids the extra memory but destroys the input. Union-find becomes the better tool when cells are added over time and you must report the island count after each addition, because incremental merging is exactly what it is built for.",
+      heading: "BFS, DFS, or Union-Find",
+      body: "<p>BFS and DFS solve this problem in <code>O(m × n)</code> time. BFS uses an explicit queue to avoid call-stack overflow on large grids. Disjoint Set Union (DSU) is ideal for dynamic grid problems where land cells are added incrementally.</p>",
     },
     {
       heading: "How the pattern generalizes",
-      body: "The same sweep-plus-flood skeleton answers a whole family of grid questions with tiny edits. Return the largest flood size instead of the count and you have max area of an island; count boundary segments while flooding and you have island perimeter. Start the sweep only from border cells and you get surrounded regions and the closed-island and enclave problems, since anything the border flood misses is fully enclosed. Seed the queue with every source cell at once and BFS layers give shortest-time answers such as rotting oranges or nearest-zero distance maps. Recording each island as a set of coordinates normalized against its top-left corner lets you compare shapes, which is how distinct-islands problems work. In every case the grid stays an implicit graph and the traversal stays the same, so what changes is only what you accumulate along the way.",
+      body: "<p>This sweep-plus-flood pattern extends directly to problems like finding the maximum area of an island, calculating island perimeters, enclosing regions (surrounded regions), and multi-source shortest paths on grids.</p>",
     },
   ],
   keyTerms: [
     {
-      term: "Connected component",
+      term: "Connected Component",
       definition:
-        "A maximal group of cells mutually reachable through allowed steps. Each island in the grid is one component, so counting islands is counting components.",
+        "A maximal subset of vertices mutually reachable via graph edges; each island represents one connected component.",
     },
     {
-      term: "Flood fill",
+      term: "Flood Fill",
       definition:
-        "A traversal that spreads outward from a starting cell to claim everything connected to it. It is what guarantees a single island contributes exactly one to the count.",
+        "A graph traversal technique that expands outward from a seed cell to mark all connected nodes in a component.",
     },
     {
-      term: "Implicit graph",
+      term: "Implicit Graph",
       definition:
-        "A graph whose edges are computed from structure rather than stored, as when a cell derives its neighbours from coordinate offsets. It lets you run graph algorithms with no adjacency list at all.",
+        "A graph whose vertices and edges are derived on the fly from grid coordinates without storing an explicit adjacency list.",
     },
     {
-      term: "Four-directional connectivity",
+      term: "Orthogonal Adjacency",
       definition:
-        "The rule that only cells sharing an edge, not merely a corner, are neighbours. Switching to eight directions changes which land clusters merge and therefore the answer.",
+        "Four-directional connectivity (up, down, left, right) sharing cell boundaries rather than diagonal corners.",
     },
     {
-      term: "Bounds check",
+      term: "Bounds Check",
       definition:
-        "Confirming a candidate coordinate lies inside the grid before reading it. Doing this before the value lookup is what keeps the flood from wandering off the edge of the matrix.",
+        "Validation that row and column indices fall strictly within [0, rows-1] and [0, cols-1] before cell access.",
     },
   ],
 };
@@ -119,7 +119,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   topicIds: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Given an $m \\times n$ 2D binary grid `grid` where `'1'` represents land and `'0'` represents water, return the total number of connected islands. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional adjacency: $(r \\pm 1, c)$ and $(r, c \\pm 1)$). The algorithm sweeps every cell $(r, c)$ in $\\mathcal{O}(m \\times n)$ time and triggers a BFS/DFS flood fill upon encountering an unvisited land cell, marking all connected land cells in that component as visited.",
+    "<p>Given an <code>m × n</code> 2D binary grid <code>grid</code> where <code>'1'</code> represents land and <code>'0'</code> represents water, return the total number of connected islands. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional orthogonal adjacency).</p><p>The algorithm sweeps every cell <code>(r, c)</code> in <code>O(m × n)</code> time and triggers a BFS/DFS flood fill upon encountering an unvisited land cell, marking all connected land cells in that component as visited.</p>",
   constraints: [
     "1 <= m, n <= 300",
     'grid[i][j] is either "0" (water) or "1" (land)',
@@ -184,9 +184,9 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   },
   spaceComplexity: "O(M * N)",
   complexityAnalysis: {
-    time: "Every cell in the $m \\times n$ grid is visited once by the outer loop, and each land cell is enqueued/dequeued at most once by BFS, taking $\\mathcal{O}(m \\times n)$ time.",
+    time: "Every cell in the m × n grid is visited once by the outer loop, and each land cell is enqueued/dequeued at most once by BFS, taking O(m × n) time.",
     space:
-      "The visited lookup set and the BFS queue store at most $\\mathcal{O}(m \\times n)$ cell coordinates in the worst case when the grid is filled with land.",
+      "The visited lookup set and the BFS queue store at most O(m × n) cell coordinates in the worst case when the grid is filled with land.",
   },
   topicGuide: NUMBER_OF_ISLANDS_TOPIC_GUIDE,
   trivia: NUMBER_OF_ISLANDS_TRIVIA,

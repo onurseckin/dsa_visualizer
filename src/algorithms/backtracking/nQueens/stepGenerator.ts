@@ -7,7 +7,8 @@ export interface NQueensInput {
 export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const n = Math.max(1, Math.min(8, input.n || 4));
+  const nVal = typeof input?.n === "number" && input.n > 0 ? input.n : 4;
+  const n = Math.max(1, Math.min(8, nVal));
 
   const board: string[][] = Array.from({ length: n }, () => Array(n).fill("."));
   const cols = new Set<number>();

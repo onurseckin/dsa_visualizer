@@ -1,8 +1,9 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  ArrayElement,
-  DisplayValue,
+  ElementState,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
   TopicGuide,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
@@ -49,47 +50,152 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nums = [...input.array];
+  const rawArray =
+    input?.array ??
+    (input as unknown as { nums?: number[] })?.nums ??
+    DEFAULT_MEET_IN_THE_MIDDLE_INPUT.array;
+  const nums = Array.isArray(rawArray)
+    ? [...rawArray]
+    : [...DEFAULT_MEET_IN_THE_MIDDLE_INPUT.array];
+  const target =
+    typeof input?.target === "number" ? input.target : DEFAULT_MEET_IN_THE_MIDDLE_INPUT.target;
   const n = nums.length;
-  const target = input.target;
+  const mid = Math.floor(n / 2);
 
-  const makeElements = (activeIndices?: number[], highlightIndices?: number[]): ArrayElement[] => {
-    return nums.map((val, idx) => {
-      let state: ArrayElement["state"] = "default";
-      if (activeIndices && activeIndices.includes(idx)) {
+  const makeMatrixSnapshot = (
+    currentLeftSums: number[],
+    currentRightSums: number[],
+    activeLeftElementIdx?: number[],
+    activeRightElementIdx?: number[],
+    activeLeftSumIdx?: number,
+    activeRightSumIdx?: number,
+    compareRightSumRange?: [number, number],
+    foundMatch?: { leftSumIdx: number; rightSumIdx: number },
+  ): MatrixVisualSnapshot => {
+    const maxCols = Math.max(n, currentLeftSums.length, currentRightSums.length, 1);
+    const cells: MatrixCellItem[] = [];
+
+    // Row 0: Original input array nums partitioned into Left and Right halves
+    for (let i = 0; i < n; i++) {
+      const isLeft = i < mid;
+      let state: ElementState = "default";
+
+      if (foundMatch) {
+        state = "sorted";
+      } else if (activeLeftElementIdx && activeLeftElementIdx.includes(i)) {
         state = "active";
-      } else if (highlightIndices && highlightIndices.includes(idx)) {
+      } else if (activeRightElementIdx && activeRightElementIdx.includes(i)) {
+        state = "pivot";
+      } else if (isLeft) {
         state = "compare";
       }
-      return {
-        id: `el-${idx}`,
-        value: val,
+
+      cells.push({
+        row: 0,
+        col: i,
+        value: nums[i],
+        label: isLeft ? `L[${i}]` : `R[${i - mid}]`,
         state,
-      };
-    });
+      });
+    }
+
+    // Row 1: Left Subset Sums (2^(N/2) elements)
+    for (let k = 0; k < currentLeftSums.length; k++) {
+      let state: ElementState = "default";
+
+      if (foundMatch && foundMatch.leftSumIdx === k) {
+        state = "sorted";
+      } else if (activeLeftSumIdx === k) {
+        state = "active";
+      }
+
+      cells.push({
+        row: 1,
+        col: k,
+        value: currentLeftSums[k],
+        label: `L_sum[${k}]`,
+        state,
+      });
+    }
+
+    // Row 2: Right Subset Sums Sorted (2^(N/2) elements)
+    for (let j = 0; j < currentRightSums.length; j++) {
+      let state: ElementState = "default";
+
+      if (foundMatch && foundMatch.rightSumIdx === j) {
+        state = "sorted";
+      } else if (activeRightSumIdx === j) {
+        state = "pivot";
+      } else if (
+        compareRightSumRange &&
+        j >= compareRightSumRange[0] &&
+        j <= compareRightSumRange[1]
+      ) {
+        state = "compare";
+      }
+
+      cells.push({
+        row: 2,
+        col: j,
+        value: currentRightSums[j],
+        label: `R_sum[${j}]`,
+        state,
+      });
+    }
+
+    // Edge case handling for empty input
+    if (n === 0) {
+      cells.push({ row: 0, col: 0, value: "-", label: "Empty", state: "default" });
+      cells.push({ row: 1, col: 0, value: 0, label: "L_sum[0]", state: "default" });
+      cells.push({ row: 2, col: 0, value: 0, label: "R_sum[0]", state: "default" });
+    }
+
+    return {
+      kind: "matrix",
+      rows: 3,
+      cols: maxCols,
+      cells,
+      rowHeaders: ["Input Set", "Left Sums", "Right Sums"],
+      colHeaders: Array.from({ length: maxCols }, (_, i) => `[${i}]`),
+      title: `Meet in the Middle (Target=${target}, Left sums: ${currentLeftSums.length}, Right sums: ${currentRightSums.length})`,
+    };
   };
+
+  let leftSumsState: number[] = [];
+  let rightSumsState: number[] = [];
 
   const addStep = (
     codeLine: number,
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
-    activeIndices?: number[],
-    highlightIndices?: number[],
-    customState?: Record<string, DisplayValue>,
+    activeLeftElementIdx?: number[],
+    activeRightElementIdx?: number[],
+    activeLeftSumIdx?: number,
+    activeRightSumIdx?: number,
+    compareRightSumRange?: [number, number],
+    foundMatch?: { leftSumIdx: number; rightSumIdx: number },
   ) => {
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: makeElements(activeIndices, highlightIndices),
-      },
+      primarySnapshot: makeMatrixSnapshot(
+        leftSumsState,
+        rightSumsState,
+        activeLeftElementIdx,
+        activeRightElementIdx,
+        activeLeftSumIdx,
+        activeRightSumIdx,
+        compareRightSumRange,
+        foundMatch,
+      ),
       auxiliaryState: {
-        customState: customState ?? {
+        customState: {
           target: String(target),
           arrayLength: String(n),
+          leftSumsCount: String(leftSumsState.length),
+          rightSumsCount: String(rightSumsState.length),
         },
       },
       variables,
@@ -99,7 +205,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   addStep(
     1,
     "Import bisect for binary search",
-    "Python's bisect module provides O(log k) sorted-array search. We use bisect_left to check in O(log(2^(n/2))) = O(n/2) time whether a required sum exists in the right half.",
+    "Python's bisect module provides O(log k) sorted-array search. We use bisect_left to probe target complements in sorted right subset sums.",
     { n, target },
   );
 
@@ -113,16 +219,18 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   addStep(
     4,
     `Cache element count n = ${n}`,
-    `Storing array length n = ${n} to evaluate partitioning threshold.`,
+    `Storing array length n = ${n} to evaluate halving threshold mid = n // 2.`,
     { n, target },
   );
 
   if (n === 0) {
+    leftSumsState = [0];
+    rightSumsState = [0];
     addStep(
       5,
       `Check if n == 0 (n = ${n})`,
-      "The input array is empty. The only achievable sum is 0, so we return whether target itself equals 0.",
-      { n, target },
+      "The input array is empty. The only achievable sum is 0, so we test if target equals 0.",
+      { n: 0, target },
     );
 
     const matched = target === 0;
@@ -131,6 +239,12 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       matched ? "Target 0 matched by empty set" : "Empty set cannot sum to non-zero target",
       matched ? "Empty set sum equals target 0." : "Empty set sum is 0, target is non-zero.",
       { n: 0, target, matched },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      matched ? { leftSumIdx: 0, rightSumIdx: 0 } : undefined,
     );
     return steps;
   }
@@ -138,15 +252,14 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   addStep(
     5,
     `Check if n == 0 (n = ${n})`,
-    `n = ${n} — the array is non-empty, so we proceed with the split-and-search strategy.`,
+    `n = ${n} — the array is non-empty, so we proceed with splitting into two halves of size ${mid} and ${n - mid}.`,
     { n, target },
   );
 
-  const mid = Math.floor(n / 2);
   addStep(
     8,
     `Calculate midpoint index mid = n // 2 = ${mid}`,
-    `Splitting ${n} elements into two halves of size ${mid} and ${n - mid}.`,
+    `Splitting ${n} elements into left half (indices 0..${mid - 1}) and right half (indices ${mid}..${n - 1}).`,
     { n, mid },
   );
 
@@ -154,7 +267,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   addStep(
     9,
     `Slice left_part = nums[:${mid}]`,
-    `Left subset contains elements: [${leftPart.join(", ")}].`,
+    `Left half set: [${leftPart.join(", ")}].`,
     { leftLen: leftPart.length },
     Array.from({ length: mid }, (_, i) => i),
   );
@@ -163,150 +276,160 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
   addStep(
     10,
     `Slice right_part = nums[${mid}:]`,
-    `Right subset contains elements: [${rightPart.join(", ")}].`,
+    `Right half set: [${rightPart.join(", ")}].`,
     { rightLen: rightPart.length },
     undefined,
     Array.from({ length: n - mid }, (_, i) => i + mid),
   );
 
-  const getSubsetSums = (arr: number[], label: "left" | "right"): number[] => {
-    addStep(
-      13,
-      `Initialize ${label}_sums = [0]`,
-      `Base case for ${label} subset sum generation starts with single element 0 (empty subset).`,
-      { label, initialSum: 0 },
-      label === "left" ? Array.from({ length: mid }, (_, i) => i) : undefined,
-      label === "right" ? Array.from({ length: n - mid }, (_, i) => i + mid) : undefined,
-    );
-
-    let sums = [0];
-    for (let i = 0; i < arr.length; i++) {
-      const x = arr[i];
-      const nextSums = sums.map((s) => s + x);
-      sums = sums.concat(nextSums);
-
-      addStep(
-        14,
-        `for x = ${x}: build new subset sums`,
-        `For each existing sum s in ${label}_sums, we create s + ${x} as a new candidate. This doubles the list (2^${i + 1} combinations now).`,
-        { label, element: x, totalSums: sums.length },
-        label === "left" ? [i] : undefined,
-        label === "right" ? [i + mid] : undefined,
-      );
-
-      addStep(
-        15,
-        `Include element ${x} in ${label}_sums (2^${i + 1} = ${sums.length} total sums)`,
-        `Adding element ${x} doubles candidate ${label} sums to [${sums.join(", ")}].`,
-        { label, element: x, totalSums: sums.length },
-        label === "left" ? [i] : undefined,
-        label === "right" ? [i + mid] : undefined,
-        { [`${label}Sums`]: JSON.stringify(sums) },
-      );
-    }
-
-    addStep(
-      16,
-      `Return ${label}_sums vector (${sums.length} combinations)`,
-      `Completed subset sum expansion for ${label} half.`,
-      { label, finalCount: sums.length },
-    );
-
-    return sums;
-  };
-
   addStep(
     12,
     "Define get_subset_sums helper",
-    "Helper function generates 2^k subset sums for an array of size k.",
+    "Helper function generates 2^k subset sums for an input subset of size k.",
     { leftLen: leftPart.length, rightLen: rightPart.length },
   );
 
   addStep(
     18,
     `Begin left_sums = get_subset_sums(left_part)`,
-    `Generating subset sums for left half elements [${leftPart.join(", ")}].`,
+    `Generating all 2^${leftPart.length} = ${1 << leftPart.length} subset sums for left half elements [${leftPart.join(", ")}].`,
     { leftLen: leftPart.length },
+    Array.from({ length: mid }, (_, i) => i),
   );
-  const leftSums = getSubsetSums(leftPart, "left");
+
+  // Generate left subset sums step by step
+  leftSumsState = [0];
+  addStep(
+    13,
+    "Initialize left_sums = [0]",
+    "Base case: empty left subset has sum 0 (row 1 index 0).",
+    { initialSum: 0 },
+    Array.from({ length: mid }, (_, i) => i),
+  );
+
+  for (let i = 0; i < leftPart.length; i++) {
+    const x = leftPart[i];
+    const newSums = leftSumsState.map((s) => s + x);
+    leftSumsState = leftSumsState.concat(newSums);
+
+    addStep(
+      15,
+      `Include element x = ${x} in left_sums`,
+      `For element ${x}, adding ${x} to all previous sums doubles left_sums to ${leftSumsState.length} total subset sums: [${leftSumsState.join(", ")}].`,
+      { element: x, totalSums: leftSumsState.length },
+      [i],
+    );
+  }
+
+  addStep(
+    16,
+    `Completed left_sums (${leftSumsState.length} combinations)`,
+    `Left subset sums row fully populated: [${leftSumsState.join(", ")}].`,
+    { count: leftSumsState.length },
+    Array.from({ length: mid }, (_, i) => i),
+  );
 
   addStep(
     19,
     `Begin right_sums = sorted(get_subset_sums(right_part))`,
-    `Generating and sorting subset sums for right half elements [${rightPart.join(", ")}].`,
+    `Generating and sorting all 2^${rightPart.length} = ${1 << rightPart.length} subset sums for right half elements [${rightPart.join(", ")}].`,
     { rightLen: rightPart.length },
-  );
-  const rightSums = getSubsetSums(rightPart, "right").sort((a, b) => a - b);
-
-  addStep(
-    19,
-    `Sorted right_sums = [${rightSums.join(", ")}]`,
-    `Right subset sums sorted in non-decreasing order to enable O(log(2^(N/2))) binary search lookups.`,
-    { rightSumsCount: rightSums.length },
     undefined,
     Array.from({ length: n - mid }, (_, i) => i + mid),
-    { rightSums: JSON.stringify(rightSums) },
+  );
+
+  rightSumsState = [0];
+  addStep(
+    13,
+    "Initialize right_sums = [0]",
+    "Base case: empty right subset has sum 0.",
+    { initialSum: 0 },
+    undefined,
+    Array.from({ length: n - mid }, (_, i) => i + mid),
+  );
+
+  for (let i = 0; i < rightPart.length; i++) {
+    const x = rightPart[i];
+    const newSums = rightSumsState.map((s) => s + x);
+    rightSumsState = rightSumsState.concat(newSums);
+
+    addStep(
+      15,
+      `Include element x = ${x} in right_sums`,
+      `Adding ${x} expands right_sums to ${rightSumsState.length} total subset sums.`,
+      { element: x, totalSums: rightSumsState.length },
+      undefined,
+      [i + mid],
+    );
+  }
+
+  rightSumsState.sort((a, b) => a - b);
+  addStep(
+    19,
+    `Sorted right_sums = [${rightSumsState.join(", ")}]`,
+    `Right subset sums sorted in non-decreasing order: [${rightSumsState.join(", ")}]. Enables O(log(2^(N/2))) binary search complement lookups.`,
+    { count: rightSumsState.length },
+    undefined,
+    Array.from({ length: n - mid }, (_, i) => i + mid),
   );
 
   let foundMatch = false;
 
-  for (let idx = 0; idx < leftSums.length; idx++) {
-    const s = leftSums[idx];
+  for (let idx = 0; idx < leftSumsState.length; idx++) {
+    const s = leftSumsState[idx];
+    const needed = target - s;
+
     addStep(
       21,
-      `Loop iteration ${idx + 1}/${leftSums.length}: Test left sum s = ${s}`,
-      `Inspecting candidate left subset sum s = ${s}.`,
+      `Loop iteration ${idx + 1}/${leftSumsState.length}: Test left sum s = ${s}`,
+      `Selecting left subset sum s = ${s} at row 1 index ${idx}.`,
       { leftIdx: idx, leftSum: s, target },
       undefined,
       undefined,
-      { leftSum: s, rightSums: JSON.stringify(rightSums) },
+      idx,
     );
 
-    const needed = target - s;
     addStep(
       22,
       `Calculate needed right sum: needed = target - s = ${target} - ${s} = ${needed}`,
-      `Left sum ${s} requires complementary right sum ${needed} to reach target ${target}.`,
+      `To achieve target ${target}, we require a right subset sum equal to needed = ${needed}.`,
       { leftSum: s, needed, target },
       undefined,
       undefined,
-      { leftSum: s, needed, rightSums: JSON.stringify(rightSums) },
+      idx,
     );
-
-    let bLeft = 0;
-    let bRight = rightSums.length - 1;
-    let found = false;
-    let foundIdx = -1;
 
     addStep(
       23,
       `Bisect left: bisect.bisect_left(right_sums, ${needed})`,
-      `Searching sorted right_sums [${rightSums.join(", ")}] for target complement ${needed}.`,
-      { needed, rightSumsLength: rightSums.length },
+      `Binary searching row 2 sorted right_sums [${rightSumsState.join(", ")}] for complement ${needed}.`,
+      { needed, rightSumsLength: rightSumsState.length },
       undefined,
       undefined,
-      { leftSum: s, needed, rightSums: JSON.stringify(rightSums) },
+      idx,
+      undefined,
+      [0, rightSumsState.length - 1],
     );
+
+    let bLeft = 0;
+    let bRight = rightSumsState.length - 1;
+    let found = false;
+    let foundIdx = -1;
 
     while (bLeft <= bRight) {
       const bMid = Math.floor((bLeft + bRight) / 2);
-      const bVal = rightSums[bMid];
+      const bVal = rightSumsState[bMid];
 
       addStep(
         23,
         `Probe right_sums[${bMid}] = ${bVal} against needed = ${needed}`,
-        `Binary search probe at index ${bMid} in range [${bLeft}..${bRight}]. Value ${bVal} vs needed ${needed}.`,
+        `Binary search probe at row 2 index ${bMid} (value ${bVal}) in search window [${bLeft}..${bRight}]. ${bVal === needed ? "Match!" : bVal < needed ? `${bVal} < ${needed}, searching right half.` : `${bVal} > ${needed}, searching left half.`}`,
         { bLeft, bRight, bMid, bVal, needed },
         undefined,
         undefined,
-        {
-          leftSum: s,
-          needed,
-          rightSums: JSON.stringify(rightSums),
-          probeIdx: bMid,
-          probeVal: bVal,
-          probeRange: `[${bLeft}..${bRight}]`,
-        },
+        idx,
+        bMid,
+        [bLeft, bRight],
       );
 
       if (bVal === needed) {
@@ -324,12 +447,13 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       24,
       `Evaluate match check for needed = ${needed}`,
       found
-        ? `Match found in right_sums at index ${foundIdx} (value ${needed}).`
+        ? `Match found! right_sums[${foundIdx}] = ${needed}.`
         : `Value ${needed} not present in right_sums.`,
-      { needed, found },
+      { needed, found, foundIdx },
       undefined,
       undefined,
-      { leftSum: s, needed, foundMatch: found },
+      idx,
+      found ? foundIdx : undefined,
     );
 
     if (found) {
@@ -337,11 +461,14 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
       addStep(
         25,
         `Return True — Found subset pair summing to ${target}!`,
-        `Left sum (${s}) + Right sum (${needed}) = ${target}. Target successfully formed!`,
+        `Left sum (${s}) at row 1 index ${idx} + Right sum (${needed}) at row 2 index ${foundIdx} = ${target}! Highlighted green cells confirm the solution pair.`,
         { leftSum: s, rightSum: needed, target, foundMatch: true },
         undefined,
         undefined,
-        { matchResult: `True (${s} + ${needed} = ${target})` },
+        idx,
+        foundIdx,
+        undefined,
+        { leftSumIdx: idx, rightSumIdx: foundIdx },
       );
       break;
     }
@@ -351,7 +478,7 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
     addStep(
       27,
       `Return False — No combination equals ${target}`,
-      "All binary search lookups exhausted without finding a complementary subset pair.",
+      `Exhausted all ${leftSumsState.length} left subset sums without finding a complementary right subset sum. No subset sums to ${target}.`,
       { target, matched: false },
     );
   }
@@ -361,23 +488,23 @@ export const generateMeetInTheMiddleSteps = (input: MeetInTheMiddleInput): Algor
 
 export const MEET_IN_THE_MIDDLE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Meet in the Middle is an algorithmic paradigm that reduces the exponential complexity of hard search problems (like Subset Sum, 4-Sum, or Discrete Logarithms) from O(2^N) to O(N * 2^(N/2)). For problem sizes around N = 30 to 40, brute-force exploration requiring 2^40 (~1 trillion) operations is intractable. By splitting the domain into two halves of size N/2, precomputing all 2^(N/2) state sums for each side, sorting one side, and querying complements via binary search or two pointers, the search completes in milliseconds.",
+    "<p><strong>Meet in the Middle</strong> is an algorithmic paradigm that reduces the exponential complexity of hard search problems (like Subset Sum, 4-Sum, or Discrete Logarithms) from <code>O(2ⁿ)</code> to <code>O(N &middot; 2ⁿ/²)</code>. For problem sizes around <code>N = 30</code> to <code>40</code>, brute-force exploration requiring <code>2⁴⁰</code> (&approx;1 trillion) operations is intractable. By splitting the domain into two halves of size <code>N/2</code>, precomputing all <code>2ⁿ/²</code> state sums for each side, sorting one side, and querying complements via binary search or two pointers, the search completes in milliseconds.</p>",
   sections: [
     {
-      heading: "Why It Exists & The Halving Breakthrough",
-      body: "Brute-force subset sum checks all 2^N combinations. For N = 40, 2^40 operations takes hours or days on modern CPUs. Splitting N into two halves of 20 yields 2^20 (~1 million) sums for each half. Generating, sorting, and binary searching 1 million integers takes only a few megabytes of memory and milliseconds of processing time.",
+      heading: "1. Why It Exists & The Halving Breakthrough",
+      body: "<p>Brute-force subset sum checks all <code>2ⁿ</code> combinations. For <code>N = 40</code>, <code>2⁴⁰</code> operations takes hours or days on modern CPUs. Splitting <code>N</code> into two halves of 20 yields <code>2²⁰</code> (&approx;1 million) sums for each half. Generating, sorting, and binary searching 1 million integers takes only a few megabytes of memory and milliseconds of processing time.</p>",
     },
     {
-      heading: "Step-by-Step Intuition & Binary Search Join",
-      body: "1. Partition the N-element set into left_part (size N/2) and right_part (size N - N/2).\n2. Compute all 2^(N/2) subset sums for left_part and sorted 2^(N/2) subset sums for right_part.\n3. For each sum s in left_sums, query required complement `needed = target - s` in right_sums using binary search (bisect_left).\n4. If `needed` exists in right_sums, a valid subset exists!",
+      heading: "2. Step-by-Step Intuition & Binary Search Join",
+      body: "<p>Processing pipeline:</p><ul><li>Partition the <code>N</code>-element set into <code>left_part</code> (size <code>N/2</code>) and <code>right_part</code> (size <code>N - N/2</code>).</li><li>Compute all <code>2ⁿ/²</code> subset sums for <code>left_part</code> and sorted <code>2ⁿ/²</code> subset sums for <code>right_part</code>.</li><li>For each sum <code>s</code> in <code>left_sums</code>, query required complement <code>needed = target - s</code> in <code>right_sums</code> using binary search (<code>bisect_left</code>).</li><li>If <code>needed</code> exists in <code>right_sums</code>, a valid subset exists!</li></ul>",
     },
     {
-      heading: "Trade-offs & Memory Considerations",
-      body: "Meet in the Middle trades space for time: while time drops from O(2^N) to O(N * 2^(N/2)), auxiliary memory increases from O(N) to O(2^(N/2)) to store generated subset sums. For N = 40, storing 2^20 64-bit integers requires ~8 MB of RAM, which fits comfortably in CPU cache.",
+      heading: "3. Trade-offs & Memory Considerations",
+      body: "<p>Meet in the Middle trades space for time: while time drops from <code>O(2ⁿ)</code> to <code>O(N &middot; 2ⁿ/²)</code>, auxiliary memory increases from <code>O(N)</code> to <code>O(2ⁿ/²)</code> to store generated subset sums. For <code>N = 40</code>, storing <code>2²⁰</code> 64-bit integers requires &approx;8 MB of RAM, which fits comfortably in CPU cache.</p>",
     },
     {
-      heading: "Cryptographic & Systems Applications",
-      body: "Meet in the Middle is famous in cryptanalysis for demonstrating the insecurity of Double DES: encrypting plaintext with key K1 and decrypting ciphertext with key K2 allows an attacker to meet in the middle on 2^56 intermediate states instead of 2^112 key pairs. It also powers Baby-Step Giant-Step algorithms for discrete logarithms and 4-Sum solvers.",
+      heading: "4. Cryptographic & Systems Applications",
+      body: "<p>Meet in the Middle is famous in cryptanalysis for demonstrating the insecurity of Double DES: encrypting plaintext with key <code>K1</code> and decrypting ciphertext with key <code>K2</code> allows an attacker to meet in the middle on <code>2⁵⁶</code> intermediate states instead of <code>2¹¹²</code> key pairs. It also powers Baby-Step Giant-Step algorithms for discrete logarithms and 4-Sum solvers.</p>",
     },
   ],
   keyTerms: [
@@ -394,7 +521,7 @@ export const MEET_IN_THE_MIDDLE_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Complement Search",
       definition:
-        "Looking up the exact complementary value `target - s` in a sorted pre-computed array of state values using binary search.",
+        "Looking up the exact complementary value target - s in a sorted pre-computed array of state values using binary search.",
     },
   ],
 };
@@ -461,34 +588,8 @@ export const meetInTheMiddle: AlgorithmDefinition<MeetInTheMiddleInput> = {
   title: "Meet in the Middle (Subset Sum Technique)",
   topicIds: ["binary_search"],
   difficulty: "Hard",
-  description: `Master Meet in the Middle: solve exponential search problems like Subset Sum for $N \\approx 40$ in $O(N \\cdot 2^{N/2})$ time instead of $O(2^N)$.
-
-### Why It Exists & What It Solves
-Brute-force subset sum exploration tests all $2^N$ subsets. When $N = 40$, $2^{40} \\approx 1.1 \\times 10^{12}$ combinations requires hours of computation. Meet in the Middle solves this by partitioning the input into two halves of size $N/2 = 20$. Each half generates $2^{20} \\approx 10^6$ subset sums. Sorting one side and probing complementary values via binary search reduces total operations to $O(N \\cdot 2^{N/2})$, executing in under 50 milliseconds.
-
-### Step-by-Step Intuition
-1. **Partition the Array**: Split $N$ elements into \`left_part\` ($N/2$ elements) and \`right_part\` ($N - N/2$ elements).
-2. **Precompute Subset Sums**: Generate all $2^{N/2}$ subset sums for \`left_part\` and sort the $2^{N/2}$ subset sums of \`right_part\`.
-3. **Complement Search**: For each sum $s \\in \\text{left\\_sums}$, calculate \`needed = target - s\`.
-4. **Binary Search Join**: Binary search for \`needed\` in sorted \`right_sums\`. If found, a valid subset exists!
-
-### Input Parameters
-- \`array\`: An array of $N$ integers ($1 \\le N \\le 40$).
-- \`target\`: The integer target sum to search for.
-
-### Output
-- Returns boolean \`true\` if a subset exists whose sum equals target, otherwise \`false\`.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(N \\cdot 2^{N/2})$ worst/average case.
-- **Space Complexity**: $O(2^{N/2})$ auxiliary memory to store precomputed subset sums.
-- **Limitation**: Effective when $N \\le 40$; larger $N$ exceeds RAM limits for $2^{N/2}$ elements.
-
-### Edge Cases & Constraints
-- \`1 <= N <= 40\`
-- \`-10^9 <= array[i], target <= 10^9\`
-- Target 0 (always satisfied by empty subset).
-- Single-element arrays ($N = 1$).`,
+  description:
+    "<p>Master Meet in the Middle: solve exponential search problems like Subset Sum for <code>N &approx; 40</code> in <code>O(N &middot; 2ⁿ/²)</code> time instead of <code>O(2ⁿ)</code>.</p><h3>Why It Exists &amp; What It Solves</h3><p>Brute-force subset sum exploration tests all <code>2ⁿ</code> subsets. When <code>N = 40</code>, <code>2⁴⁰ &approx; 1.1 &times; 10¹²</code> combinations requires hours of computation. Meet in the Middle solves this by partitioning the input into two halves of size <code>N/2 = 20</code>. Each half generates <code>2²⁰ &approx; 10⁶</code> subset sums. Sorting one side and probing complementary values via binary search reduces total operations to <code>O(N &middot; 2ⁿ/²)</code>, executing in under 50 milliseconds.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Partition the Array</strong>: Split <code>N</code> elements into <code>left_part</code> (<code>N/2</code> elements) and <code>right_part</code> (<code>N - N/2</code> elements).</li><li><strong>Precompute Subset Sums</strong>: Generate all <code>2ⁿ/²</code> subset sums for <code>left_part</code> and sort the <code>2ⁿ/²</code> subset sums of <code>right_part</code>.</li><li><strong>Complement Search</strong>: For each sum <code>s &in; left_sums</code>, calculate <code>needed = target - s</code>.</li><li><strong>Binary Search Join</strong>: Binary search for <code>needed</code> in sorted <code>right_sums</code>. If found, a valid subset exists!</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input</strong>: <code>array</code> (<code>number[]</code>) of <code>N</code> integers (<code>1 &le; N &le; 40</code>), <code>target</code> (<code>number</code>).</li><li><strong>Output</strong>: boolean <code>true</code> if a subset exists whose sum equals target, otherwise <code>false</code>.</li></ul><h3>Trade-offs &amp; Complexity</h3><ul><li><strong>Time Complexity</strong>: <code>O(N &middot; 2ⁿ/²)</code> worst/average case.</li><li><strong>Space Complexity</strong>: <code>O(2ⁿ/²)</code> auxiliary memory to store precomputed subset sums.</li></ul>",
   constraints: ["1 <= N <= 40", "-10^9 <= array[i], target <= 10^9"],
   examples: [
     {

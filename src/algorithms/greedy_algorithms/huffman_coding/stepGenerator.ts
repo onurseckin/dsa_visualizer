@@ -5,15 +5,15 @@ import { DEFAULT_HUFFMAN_CODING_INPUT } from "./types";
 export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const rawText = input?.text ?? DEFAULT_HUFFMAN_CODING_INPUT.text;
+  const rawText = typeof input?.text === "string" ? input.text : DEFAULT_HUFFMAN_CODING_INPUT.text;
 
   if (!rawText || rawText.length === 0) {
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 27,
       explanation: {
-        what: "Handle empty input",
-        why: "There are no characters to encode, so we stop right away — a Huffman tree needs at least one symbol to work with.",
+        what: "Check for empty text input.",
+        why: "Encoding requires at least one character symbol; returning empty tree snapshot immediately.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -39,8 +39,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     stepIndex: stepIndex++,
     codeLine: 15,
     explanation: {
-      what: `Count frequencies in "${rawText}"`,
-      why: "We tally how often each character appears, because frequency drives everything here: common characters should end up near the root with short codes, and rare ones deeper with longer codes.",
+      what: `Tally character frequencies in "${rawText}".`,
+      why: "Character occurrence frequencies dictate tree depth: frequent symbols stay close to the root with short codes, while rare ones sit deeper.",
     },
     primarySnapshot: {
       kind: "tree",
@@ -79,8 +79,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     stepIndex: stepIndex++,
     codeLine: 16,
     explanation: {
-      what: `Create ${uniqueChars.length} leaf node instances`,
-      why: "Each distinct character becomes a leaf HuffmanNode weighted by its occurrence frequency.",
+      what: `Instantiate ${uniqueChars.length} leaf node(s).`,
+      why: "Each distinct character symbol becomes an independent leaf node weighted by its total occurrences.",
     },
     primarySnapshot: {
       kind: "tree",
@@ -103,8 +103,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     stepIndex: stepIndex++,
     codeLine: 17,
     explanation: {
-      what: `Build a min-heap of ${heap.length} leaf nodes`,
-      why: "Heapifying the leaves in $O(K)$ time lets us efficiently extract the two lowest-frequency nodes in $O(\\log K)$ time at each merge step.",
+      what: `Initialize min-heap priority queue with ${heap.length} leaf node(s).`,
+      why: "A min-heap enables efficient O(log K) extraction of the two lowest-frequency subtrees at each merge step.",
     },
     primarySnapshot: {
       kind: "tree",
@@ -194,8 +194,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 19,
       explanation: {
-        what: `Check heap size (${heap.length} > 1)`,
-        why: "While more than one subtree remains in the min-heap, extract the two lightest nodes and combine them into a single parent.",
+        what: `Evaluate min-heap size (${heap.length} remaining subtrees).`,
+        why: "Iteratively merging the two lightest subtrees until only a single root node remains.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -216,7 +216,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       codeLine: 20,
       explanation: {
         what: `Pop lightest node left: ${left.char ? `'${left.char}'` : left.id} (freq ${left.freq})`,
-        why: "Remove the minimum element from the min-heap to become the left child of the new parent node.",
+        why: "Greedy strategy selects the smallest weight node to place at the greatest available tree depth.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -237,7 +237,7 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       codeLine: 21,
       explanation: {
         what: `Pop second lightest node right: ${right.char ? `'${right.char}'` : right.id} (freq ${right.freq})`,
-        why: "Remove the second minimum element to become the right child of the new parent node.",
+        why: "Pairs the two lowest-frequency components as siblings under a new internal parent.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -270,8 +270,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 22,
       explanation: {
-        what: `Create internal parent node with combined frequency: ${left.freq} + ${right.freq} = ${mergedNode.freq}`,
-        why: "The new internal node carries no character label and stores the sum of frequencies of its child subtrees.",
+        what: `Create internal parent node with combined weight ${left.freq} + ${right.freq} = ${mergedNode.freq}.`,
+        why: "Internal node holds the sum of child frequencies without character data.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -296,11 +296,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 23,
       explanation: {
-        what: `Attach left (${left.char ? `'${left.char}'` : left.id}) and right (${right.char ? `'${right.char}'` : right.id}) children`,
-        why:
-          "Set merged.left and merged.right child pointers, forming a combined binary subtree rooted at frequency weight " +
-          mergedNode.freq +
-          ".",
+        what: `Connect left ('${left.char || "Internal"}') and right ('${right.char || "Internal"}') subtrees.`,
+        why: `Forming a combined binary subtree rooted at frequency weight ${mergedNode.freq}.`,
       },
       primarySnapshot: {
         kind: "tree",
@@ -326,8 +323,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
       stepIndex: stepIndex++,
       codeLine: 25,
       explanation: {
-        what: `Push merged parent (freq ${mergedNode.freq}) back to min-heap`,
-        why: "Reinsert the merged subtree into the priority queue so it can compete for future merges.",
+        what: `Reinsert merged subtree (weight ${mergedNode.freq}) into min-heap.`,
+        why: "The combined subtree re-enters the priority queue to participate in subsequent merge rounds.",
       },
       primarySnapshot: {
         kind: "tree",
@@ -370,8 +367,8 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     stepIndex: stepIndex++,
     codeLine: 27,
     explanation: {
-      what: `Tree complete: read off the codes`,
-      why: `The root's weight is ${rootNode.freq}, the full text length. We walk down labeling left edges 0 and right edges 1, and each leaf's path becomes its code — frequent characters sit near the top, so the total encoded length comes out provably minimal.`,
+      what: `Huffman tree complete: derive prefix codes.`,
+      why: `Root weight is ${rootNode.freq}. Traversing left (0) and right (1) edges generates optimal prefix-free codes.`,
     },
     primarySnapshot: {
       kind: "tree",

@@ -25,7 +25,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const s = input?.s !== undefined ? input.s : DEFAULT_VALID_PARENTHESES_INPUT.s;
+  const s = typeof input?.s === "string" ? input.s : DEFAULT_VALID_PARENTHESES_INPUT.s;
   const chars = s.split("");
   const n = chars.length;
 
@@ -76,21 +76,21 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
   addStep(
     1,
     "Set up the bracket check",
-    `We'll read "${s}" left to right, using a LIFO stack to enforce that the most recently opened bracket is closed first.`,
+    `We scan the string "${s}" left-to-right, using a LIFO stack to enforce that the most recently opened bracket is closed first.`,
     { inputString: s, length: n },
   );
 
   addStep(
     2,
     "Create an empty stack",
-    "The stack holds open brackets waiting for their matching closer. The top of the stack always points to the most active open bracket.",
+    "The stack maintains open brackets awaiting their corresponding closer. The top of the stack always points to the active nested context.",
     { stackSize: 0 },
   );
 
   addStep(
     3,
     "Map each closer to its opener",
-    'We pair ")" with "(", "}" with "{", and "]" with "[" up front, enabling O(1) dictionary lookups during matching.',
+    "Mapping closing delimiters to expected opening partners Enables O(1) dictionary lookup during evaluation.",
     { map: '")":"(", "}":"{", "]":"["' },
   );
 
@@ -101,7 +101,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
     addStep(
       4,
       `Read '${char}' at index ${i}`,
-      `We inspect character '${char}' at position ${i}. An opening bracket starts a new nested context; a closing bracket must match the most recently opened bracket.`,
+      `Inspecting character '${char}' at position ${i}. An opening bracket establishes a new nested context; a closing bracket must resolve the active stack top.`,
       { i, char, stackSize: stack.length },
       i,
     );
@@ -110,7 +110,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       addStep(
         5,
         `Recognize '${char}' as an opener`,
-        `'${char}' is an opening bracket. We must push it onto the stack to track this nested context.`,
+        `Character '${char}' is an opening bracket, requiring a push to track this new nested scope.`,
         { i, char, isOpenBracket: true },
         i,
       );
@@ -122,7 +122,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       addStep(
         6,
         `Push '${char}' onto the stack`,
-        `The stack is now [${stack.join(", ")}]. '${char}' will sit at the top of the stack until a matching closing bracket resolves it.`,
+        `Pushing '${char}' onto the stack. It remains at the top of the stack until a matching closing bracket resolves it.`,
         { i, char, stackSize: stack.length },
         i,
       );
@@ -133,7 +133,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       addStep(
         7,
         `'${char}' is a closing bracket — enter else branch`,
-        `'${char}' is not an opening bracket, so we take the else path to match it against the stack. Expected opener: '${expectedOpen ?? ""}'.`,
+        `Character '${char}' is a closing delimiter. We enter the else path to validate it against the active opener at the top of the stack.`,
         { i, char, isClosingBracket: true, expectedOpen: expectedOpen ?? "" },
         i,
       );
@@ -141,7 +141,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       addStep(
         8,
         `Match '${char}' against the stack top`,
-        `Character '${char}' requires matching opener '${expectedOpen ?? ""}'. Current stack top is '${stackTop ?? "EMPTY"}'.`,
+        `Comparing incoming closing bracket '${char}' (requires '${expectedOpen ?? ""}') against the top of the stack '${stackTop ?? "EMPTY"}'.`,
         { i, char, expectedOpen: expectedOpen ?? "", stackTop: stackTop ?? "EMPTY" },
         i,
       );
@@ -152,7 +152,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
         addStep(
           9,
           "Return False — invalid bracket matching",
-          `'${char}' expected '${expectedOpen ?? ""}' at stack top, but found '${stackTop ?? "EMPTY"}'. Nesting structure is violated.`,
+          `Bracket structure violation: incoming '${char}' requires opener '${expectedOpen ?? ""}', but stack top is '${stackTop ?? "EMPTY"}'. Returning False.`,
           { i, char, stackTop: stackTop ?? "EMPTY", isValid: false },
           i,
         );
@@ -180,7 +180,7 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       addStep(
         10,
         `Pop '${popped}' to close the pair`,
-        `'${char}' matches '${popped}' at stack top. We pop '${popped}' off the stack, successfully closing this pair. ${stack.length === 0 ? "Stack is now empty." : `Remaining stack: [${stack.join(", ")}].`}`,
+        `Incoming '${char}' matches opener '${popped}' at stack top. Popping '${popped}' resolves and closes this nested bracket pair.`,
         { i, char, poppedChar: popped!, stackSize: stack.length },
         i,
       );
@@ -205,8 +205,8 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
       ? "Return True — all brackets valid and balanced"
       : "Return False — unclosed brackets remain",
     isValid
-      ? "We reached the end of the string and the stack is empty. Every opening bracket was closed by a matching bracket in correct LIFO order."
-      : `Scan completed, but open brackets [${stack.join(", ")}] remain unclosed on the stack. The string is invalid.`,
+      ? "All characters processed and the stack is completely empty, confirming every open bracket was matched in correct LIFO order."
+      : `Scan completed, but unclosed open brackets [${stack.join(", ")}] remain on the stack. The string is invalid.`,
     { isValid, remainingStackSize: stack.length },
   );
 
@@ -241,46 +241,8 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   title: "Valid Parentheses",
   topicIds: ["stack_and_queue"],
   difficulty: "Easy",
-  description: `Determine if an input string composed of bracket characters \`()\`, \`{}\`, and \`[]\` is valid.
-
-An input string is valid if:
-1. Open brackets must be closed by the same type of brackets.
-2. Open brackets must be closed in the correct Last-In, First-Out (LIFO) order.
-3. Every close bracket has a corresponding open bracket of the same type.
-
-### Why It Exists & Real-World Relevance
-Stack-based bracket matching is the foundational algorithm for parsing nested structures. Simple counting fails because it cannot verify nesting order (e.g. \`([)]\` has equal counts of brackets but is invalid).
-
-Real-world applications include:
-- **Compilers & AST Parsers**: Clang, Babel, and GCC use stack pushdown automata to parse code blocks, function calls, and expression syntax.
-- **HTML / XML / JSX Validation**: Ensuring tags like \`<div><span></span></div>\` are correctly nested.
-- **Math Expression Evaluation**: Evaluators (like Shunting-Yard algorithm) use stacks to manage operator precedence and sub-expression parentheses.
-- **Runtime Call Stacks**: Operating systems and language runtimes (V8, CPython) use a stack frame architecture mirroring this exact mechanism.
-
-### How It Works (Step-by-Step Intuition)
-1. Initialize an empty stack and a lookup table mapping \`")" -> "("\`, \`"}" -> "{"\`, and \`"]" -> "["\`.
-2. Iterate through each character in the string from left to right.
-3. **Opener Case**: If character is \`(\`, \`{\`, or \`[\`, push it onto the stack.
-4. **Closer Case**: If character is \`)\`, \`}\`, or \`]\`:
-   - Check if stack is empty (underflow: closer with no opener) or if top of stack does not match the required opener (mismatch: wrong bracket type). If so, return \`False\`.
-   - Otherwise, pop the top opener from the stack.
-5. **Final Check**: After scanning all characters, return \`True\` if the stack is completely empty, else \`False\`.
-
-$$\\text{stack}[-1] == \\text{mapping}[char] \\implies \\text{stack.pop}()$$
-$$\\text{len}(\\text{stack}) == 0 \\implies \\text{True}$$
-
-### Input Parameters
-- \`s\`: A string composed entirely of parenthesis characters \`'('\`, \`')'\`, \`'{'\`, \`'}'\`, \`'['\`, \`']'\`.
-
-### Output
-- Returns \`true\` if the string is validly formatted and properly nested, otherwise \`false\`.
-
-### Edge Cases & Constraints
-- \`1 <= s.length <= 10^4\`
-- \`s\` consists of parentheses only: \`()[]{}\`.
-- Odd length strings (e.g. $s = \\text{"("}$): Can never be valid ($N \\pmod 2 \\neq 0$).
-- Early closer underflow (e.g. $s = \\text{")("}$): Handled by empty stack guard on closer inspection.
-- Leftover openers (e.g. $s = \\text{"((("}$): Detected by final $\\text{len}(\\text{stack}) == 0$ check.`,
+  description:
+    "<p>Determine if an input string composed of bracket characters <code>()</code>, <code>{}</code>, and <code>[]</code> is valid.</p><p>An input string is valid if:</p><ul><li>Open brackets must be closed by the same type of brackets.</li><li>Open brackets must be closed in the correct Last-In, First-Out (LIFO) order.</li><li>Every close bracket has a corresponding open bracket of the same type.</li></ul><h3>Why It Exists &amp; Real-World Relevance</h3><p>Stack-based bracket matching is the foundational algorithm for parsing nested structures. Simple counting fails because it cannot verify nesting order (e.g. <code>([)]</code> has equal counts of brackets but is invalid).</p><p>Real-world applications include:</p><ul><li><strong>Compilers &amp; AST Parsers:</strong> Clang, Babel, and GCC use stack pushdown automata to parse code blocks, function calls, and expression syntax.</li><li><strong>HTML / XML / JSX Validation:</strong> Ensuring tags like <code>&lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;</code> are correctly nested.</li><li><strong>Math Expression Evaluation:</strong> Evaluators (like Shunting-Yard algorithm) use stacks to manage operator precedence and sub-expression parentheses.</li><li><strong>Runtime Call Stacks:</strong> Operating systems and language runtimes (V8, CPython) use a stack frame architecture mirroring this exact mechanism.</li></ul><h3>How It Works (Step-by-Step Intuition)</h3><ul><li>Initialize an empty stack and a lookup table mapping <code>&quot;)&quot; &rarr; &quot;(&quot;</code>, <code>&quot;}&quot; &rarr; &quot;{&quot;</code>, and <code>&quot;]&quot; &rarr; &quot;[&quot;</code>.</li><li>Iterate through each character in the string from left to right.</li><li><strong>Opener Case:</strong> If character is <code>(</code>, <code>{</code>, or <code>[</code>, push it onto the stack.</li><li><strong>Closer Case:</strong> If character is <code>)</code>, <code>}</code>, or <code>]</code>:<ul><li>Check if stack is empty (underflow: closer with no opener) or if top of stack does not match the required opener (mismatch: wrong bracket type). If so, return <code>False</code>.</li><li>Otherwise, pop the top opener from the stack.</li></ul></li><li><strong>Final Check:</strong> After scanning all characters, return <code>True</code> if the stack is completely empty, else <code>False</code>.</li></ul><p><code>stack[-1] == mapping[char] &rArr; stack.pop()</code></p><p><code>len(stack) == 0 &rArr; True</code></p><h3>Input Parameters</h3><ul><li><code>s</code>: A string composed entirely of parenthesis characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code>, <code>']'</code>.</li></ul><h3>Output</h3><p>Returns <code>true</code> if the string is validly formatted and properly nested, otherwise <code>false</code>.</p><h3>Edge Cases &amp; Constraints</h3><ul><li><code>1 &le; s.length &le; 10<sup>4</sup></code></li><li><code>s</code> consists of parentheses only: <code>()[]{}</code>.</li><li>Odd length strings (e.g. <code>s = &quot;(&quot;</code>): Can never be valid (<code>N % 2 != 0</code>).</li><li>Early closer underflow (e.g. <code>s = &quot;)(&quot;</code>): Handled by empty stack guard on closer inspection.</li><li>Leftover openers (e.g. <code>s = &quot;(((&quot;</code>): Detected by final <code>len(stack) == 0</code> check.</li></ul>",
   constraints: ["1 <= s.length <= 10^4", "s consists of parentheses only: () {} []"],
   examples: [
     {
@@ -321,33 +283,33 @@ $$\\text{len}(\\text{stack}) == 0 \\implies \\text{True}$$
   },
   spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "We perform a single left-to-right pass over string $s$ of length $N$. For each character, pushing to or popping from the array-backed stack takes $O(1)$ time, and hash map lookup takes $O(1)$ time. Overall time complexity is strictly linear $O(N)$.",
+    time: "We perform a single left-to-right pass over string s of length N. For each character, pushing to or popping from the array-backed stack takes O(1) time, and hash map lookup takes O(1) time. Overall time complexity is strictly linear O(N).",
     space:
-      "In the worst case (e.g. $s = \\text{'((((('}$), all $N$ characters are open brackets pushed onto the stack. Thus auxiliary space complexity is $O(N)$.",
+      "In the worst case (e.g. s = '((((('), all N characters are open brackets pushed onto the stack. Thus auxiliary space complexity is O(N).",
   },
   topicGuide: {
     overview:
-      "A stack is the core data structure for problems where the most recent unfinished obligation must be resolved first. In bracket matching, every open bracket establishes a new nested context and every closing bracket must resolve the most recently opened context. This mechanism underpins language compilers, syntax highlighting engines, and structured data parsers (JSON, XML).",
+      "<p>A stack is the core data structure for problems where the most recent unfinished obligation must be resolved first. In bracket matching, every open bracket establishes a new nested context and every closing bracket must resolve the most recently opened context. This mechanism underpins language compilers, syntax highlighting engines, and structured data parsers (JSON, XML).</p>",
     sections: [
       {
         heading: "The LIFO Nesting Invariant",
-        body: "Valid bracket sequences require proper nesting: any pair of brackets must either be completely disjoint from another pair or completely enclosed within it. Partial overlaps like '([)]' are invalid. Because the most recently opened bracket is always the first one that must be closed, a stack naturally maintains this invariant by keeping active open brackets on top.",
+        body: "<p>Valid bracket sequences require proper nesting: any pair of brackets must either be completely disjoint from another pair or completely enclosed within it. Partial overlaps like <code>([)]</code> are invalid. Because the most recently opened bracket is always the first one that must be closed, a stack naturally maintains this invariant by keeping active open brackets on top.</p>",
       },
       {
         heading: "Why Simple Counting Fails",
-        body: "A common mistake is attempting to count openers and closers with integer counters. While counters can track equal quantities of '(' and ')', they cannot enforce ordering or multi-type bracket matching. For instance, '([)]' has 1 of each bracket type, but is invalid because ']' attempts to close before ')' resolves.",
+        body: "<p>A common mistake is attempting to count openers and closers with integer counters. While counters can track equal quantities of <code>(</code> and <code>)</code>, they cannot enforce ordering or multi-type bracket matching. For instance, <code>([)]</code> has 1 of each bracket type, but is invalid because <code>]</code> attempts to close before <code>)</code> resolves.</p>",
       },
       {
         heading: "Failure Modes & Underflow Protection",
-        body: "Three failure modes must be explicitly guarded:\n1. **Mismatch**: The closing bracket type does not match the stack top ($\\text{stack}[-1] \\neq \\text{mapping}[c]$).\n2. **Underflow**: A closing bracket appears when the stack is empty ($\\text{len}(\\text{stack}) == 0$).\n3. **Unclosed Openers**: Open brackets remain on the stack after string scanning finishes ($\\text{len}(\\text{stack}) > 0$).",
+        body: "<p>Three failure modes must be explicitly guarded:</p><ol><li><strong>Mismatch:</strong> The closing bracket type does not match the stack top (<code>stack[-1] != mapping[c]</code>).</li><li><strong>Underflow:</strong> A closing bracket appears when the stack is empty (<code>len(stack) == 0</code>).</li><li><strong>Unclosed Openers:</strong> Open brackets remain on the stack after string scanning finishes (<code>len(stack) &gt; 0</code>).</li></ol>",
       },
       {
         heading: "Systems Applications & Memory Efficiency",
-        body: "In production compilers like Clang and language engines like V8, stack parsing runs at gigabytes per second. Utilizing dynamic array-backed stacks ensures contiguous memory layout, providing optimal L1/L2 CPU cache prefetching performance compared to node-allocated pointer structures.",
+        body: "<p>In production compilers like Clang and language engines like V8, stack parsing runs at gigabytes per second. Utilizing dynamic array-backed stacks ensures contiguous memory layout, providing optimal L1/L2 CPU cache prefetching performance compared to node-allocated pointer structures.</p>",
       },
       {
         heading: "Trade-Offs & Complexity Analysis",
-        body: "Time Complexity: $O(N)$ single pass with constant time push/pop per character.\nSpace Complexity: $O(N)$ stack memory proportional to nesting depth.\nOptimization: Early parity rejection (`if s.length % 2 != 0 return false`) allows immediate $O(1)$ exit for odd-length strings.",
+        body: "<p>Time Complexity: <code>O(N)</code> single pass with constant time push/pop per character.<br />Space Complexity: <code>O(N)</code> stack memory proportional to nesting depth.<br />Optimization: Early parity rejection (<code>if s.length % 2 != 0 return false</code>) allows immediate <code>O(1)</code> exit for odd-length strings.</p>",
       },
     ],
     keyTerms: [
