@@ -146,7 +146,7 @@ describe("/trivia route session switching", () => {
       progress: {
         ...readActiveSessionRecord().progress,
         roundsPlayed: 1,
-        drilled: { "bubble-sort": { "1": [0, 1] } },
+        drilled: { "bubble-sort": { "1": [1, 2] } },
       },
     });
 
@@ -172,7 +172,7 @@ describe("/trivia route session switching", () => {
       progress: {
         ...readActiveSessionRecord().progress,
         roundsPlayed: 1,
-        drilled: { "two-sum": { "1": [0, 1] } },
+        drilled: { "two-sum": { "1": [1, 2] } },
       },
     });
 
