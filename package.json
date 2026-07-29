@@ -16,13 +16,14 @@
     "format:check": "oxfmt --check --threads 8",
     "intent:check": "bun run scripts/checkIntentSkills.ts",
     "compose:check": "bun run scripts/checkCompose.ts",
+    "audit:catalog": "bun run scripts/auditCatalog.ts",
     "test": "vitest run --maxConcurrency 8",
     "test:coverage": "vitest run --coverage --maxConcurrency 8 && bun run scripts/checkCoverageFiles.ts",
     "build": "tsc && vite build",
     "preview": "bun run scripts/freePort.ts 4173 && vite preview",
     "start": "bun run scripts/freePort.ts 4173 && vite preview",
     "kill-ports": "bun run scripts/freePort.ts 5173 4173",
-    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run test:coverage && bun run build"
+    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run audit:catalog && bun run test:coverage && bun run build"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",
