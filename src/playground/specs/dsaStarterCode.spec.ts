@@ -5,7 +5,7 @@ import { createDsaStarterCode } from "../specs-data/dsa/starterCode";
 const binding: ValueBinding = { from: "input", path: [] };
 
 describe("createDsaStarterCode", () => {
-  it("keeps canonical function parameter names through nested annotations and defaults", () => {
+  it("keeps canonical function annotations and defaults", () => {
     const invocation: PythonInvocation = {
       kind: "function",
       arguments: [binding, binding],
@@ -25,7 +25,39 @@ describe("createDsaStarterCode", () => {
       ),
     ).toBe(
       [
-        "def solve(values, limit):",
+        "def solve(",
+        "    values: list[tuple[int, int]],",
+        "    limit: int = max(1, 2),",
+        "):",
+        '    raise NotImplementedError("Implement this function")',
+      ].join("\n"),
+    );
+  });
+
+  it("preserves positional-only, variadic, keyword-only, and variadic-keyword kinds", () => {
+    const invocation: PythonInvocation = {
+      kind: "function",
+      arguments: [binding, binding, binding, binding, binding],
+    };
+
+    expect(
+      createDsaStarterCode(
+        [
+          "def solve(",
+          "    primary: int, /, optional: str = 'x',",
+          "    *values: float, flag: bool = True, **metadata: object",
+          "):",
+          "    return primary",
+        ].join("\n"),
+        "solve",
+        invocation,
+      ),
+    ).toBe(
+      [
+        "def solve(",
+        "    primary: int, /, optional: str = 'x',",
+        "    *values: float, flag: bool = True, **metadata: object",
+        "):",
         '    raise NotImplementedError("Implement this function")',
       ].join("\n"),
     );

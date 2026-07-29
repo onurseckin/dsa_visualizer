@@ -82,6 +82,26 @@ describe("fordFulkerson algorithm logic spec", () => {
     expect(lastStep.explanation.what).toContain("Ford-Fulkerson complete");
   });
 
+  it("aggregates parallel directed capacities in generator snapshots and flow", () => {
+    const steps = generateFordFulkersonSteps({
+      nodes: ["S", "T"],
+      edges: [
+        { from: "S", to: "T", capacity: 2 },
+        { from: "S", to: "T", capacity: 3 },
+      ],
+      source: "S",
+      sink: "T",
+    });
+
+    const finalStep = steps.at(-1);
+    expect(finalStep?.variables.maxFlow).toBe(5);
+    expect(finalStep?.auxiliaryState.customState?.["Flows (F/C)"]).toBe("S->T: 5/5");
+    expect(finalStep?.primarySnapshot).toMatchObject({
+      kind: "graph",
+      edges: [{ from: "S", to: "T", weight: 0 }],
+    });
+  });
+
   it("should handle empty input graph", () => {
     const emptyInput = { nodes: [], edges: [], source: "", sink: "" };
     const steps = generateFordFulkersonSteps(emptyInput);

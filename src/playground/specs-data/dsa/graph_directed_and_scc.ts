@@ -7,24 +7,26 @@ export const graphDirectedAndSccExecutions = [
     invocation: { kind: "function", arguments: [input("nodes"), input("edges")] },
     cases: cases(
       {
-        label: "One source branches",
+        label: "Three-node dependency chain",
         input: {
           nodes: ["A", "B", "C"],
           edges: [
             ["A", "B"],
-            ["A", "C"],
+            ["B", "C"],
           ],
         },
         expected: ["A", "B", "C"],
       },
       { label: "Single isolated node", input: { nodes: ["A"], edges: [] }, expected: ["A"] },
       {
-        label: "Two sources converge",
+        label: "Uniquely ordered branching DAG",
         input: {
           nodes: ["A", "B", "C", "D"],
           edges: [
+            ["A", "B"],
             ["A", "C"],
             ["B", "C"],
+            ["B", "D"],
             ["C", "D"],
           ],
         },
@@ -57,8 +59,14 @@ export const graphDirectedAndSccExecutions = [
           ],
         },
         expected: [[0, 2, 1], [3], [4]],
+        comparison: "unordered",
       },
-      { label: "Single component", input: { n: 1, edges: [] }, expected: [[0]] },
+      {
+        label: "Single component",
+        input: { n: 1, edges: [] },
+        expected: [[0]],
+        comparison: "unordered",
+      },
       {
         label: "Three chained components",
         input: {
@@ -79,6 +87,7 @@ export const graphDirectedAndSccExecutions = [
           [2, 3],
           [4, 5],
         ],
+        comparison: "unordered",
       },
     ),
     audit: {
@@ -108,17 +117,16 @@ export const graphDirectedAndSccExecutions = [
       },
       { label: "Isolated node", input: { nodes: ["A"], edges: [] }, expected: ["A"] },
       {
-        label: "Open Euler trail",
+        label: "Unique open Euler trail",
         input: {
-          nodes: ["A", "B", "C"],
+          nodes: ["A", "B", "C", "D"],
           edges: [
             ["A", "B"],
-            ["A", "C"],
-            ["B", "A"],
-            ["C", "B"],
+            ["B", "C"],
+            ["C", "D"],
           ],
         },
-        expected: ["A", "C", "B", "A", "B"],
+        expected: ["A", "B", "C", "D"],
       },
     ),
     audit: {

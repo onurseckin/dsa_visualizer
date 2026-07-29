@@ -156,11 +156,13 @@ export const geometryAndSweepLineExecutions = [
           { id: "b", p1: { x: 0, y: 4 }, p2: { x: 4, y: 0 } },
         ],
         expected: [["b", "a"]],
+        comparison: "unordered",
       },
       {
         label: "Single segment",
         input: [{ id: "only", p1: { x: 0, y: 0 }, p2: { x: 1, y: 1 } }],
         expected: [],
+        comparison: "unordered",
       },
       {
         label: "Three pairwise intersections",
@@ -174,6 +176,7 @@ export const geometryAndSweepLineExecutions = [
           ["C", "A"],
           ["C", "B"],
         ],
+        comparison: "unordered",
       },
     ),
     audit: {
