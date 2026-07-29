@@ -16,14 +16,20 @@ export const PYTHON_TRIBONACCI_MATRIX_CODE = `class Solution:
         pass
 
     def tribonacci(self, n: int) -> int:
+        def multiply(a, b):
+            return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
         if n == 0:
             return 0
-        if n <= 2:
-            return 1
-        a, b, c = 0, 1, 1
-        for _ in range(3, n + 1):
-            a, b, c = b, c, a + b + c
-        return c`;
+        result = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        base = [[1, 1, 1], [1, 0, 0], [0, 1, 0]]
+        power = n - 1
+        while power:
+            if power & 1:
+                result = multiply(result, base)
+            base = multiply(base, base)
+            power >>= 1
+        return result[0][0]`;
 
 export const DEFAULT_TRIBONACCI_MATRIX_INPUT: TribonacciMatrixInput = { n: 4 };
 

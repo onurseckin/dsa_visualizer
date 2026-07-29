@@ -16,34 +16,14 @@ export const PYTHON_BURNSIDE_LEMMA_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def largestMultipleOfThree(self, digits: list[int]) -> str:
-        digits.sort(reverse=True)
-        mod1 = [d for d in digits if d % 3 == 1]
-        mod2 = [d for d in digits if d % 3 == 2]
-        total = sum(digits)
-        
-        if total % 3 == 1:
-            if mod1:
-                digits.remove(mod1[-1])
-            elif len(mod2) >= 2:
-                digits.remove(mod2[-1])
-                digits.remove(mod2[-2])
-            else:
-                return ""
-        elif total % 3 == 2:
-            if mod2:
-                digits.remove(mod2[-1])
-            elif len(mod1) >= 2:
-                digits.remove(mod1[-1])
-                digits.remove(mod1[-2])
-            else:
-                return ""
-                
-        if not digits:
-            return ""
-        if digits[0] == 0:
-            return "0"
-        return "".join(map(str, digits))`;
+    def necklaceColorings(self, n: int, colors: int) -> int:
+        def gcd(a, b):
+            while b:
+                a, b = b, a % b
+            return a
+
+        fixed_total = sum(colors ** gcd(n, rotation) for rotation in range(n))
+        return fixed_total // n`;
 
 export const DEFAULT_BURNSIDE_LEMMA_INPUT: BurnsideLemmaInput = { n: 4, k: 2 };
 
@@ -376,15 +356,6 @@ export const burnsideLemma: AlgorithmDefinition<BurnsideLemmaInput> = {
   trivia: BURNSIDE_LEMMA_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 1363,
-      leetcodeId: 1363,
-      url: "https://leetcode.com/problems/largest-multiple-of-three/",
-      label: "LeetCode #1363",
-      title: "Largest Multiple of Three",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -394,10 +365,6 @@ export const burnsideLemma: AlgorithmDefinition<BurnsideLemmaInput> = {
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 1363,
-    url: "https://leetcode.com/problems/largest-multiple-of-three/",
-  },
   defaultInput: DEFAULT_BURNSIDE_LEMMA_INPUT,
   generateSteps: generateBurnsideLemmaSteps,
 };

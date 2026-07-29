@@ -16,14 +16,16 @@ export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def generate(self, numRows: int) -> list[list[int]]:
-        res = []
-        for i in range(numRows):
-            row = [1] * (i + 1)
-            for j in range(1, i):
-                row[j] = res[i - 1][j - 1] + res[i - 1][j]
-            res.append(row)
-        return res`;
+    def binomial(self, n: int, k: int) -> int:
+        if k < 0 or k > n:
+            return 0
+        k = min(k, n - k)
+        row = [0] * (k + 1)
+        row[0] = 1
+        for i in range(1, n + 1):
+            for j in range(min(i, k), 0, -1):
+                row[j] += row[j - 1]
+        return row[k]`;
 
 export const DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT: BinomialCoefficientsInput = {
   n: 5,
@@ -357,15 +359,6 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   trivia: BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 118,
-      leetcodeId: 118,
-      url: "https://leetcode.com/problems/pascals-triangle/",
-      label: "LeetCode #118",
-      title: "Pascal's Triangle",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -374,10 +367,6 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 118,
-    url: "https://leetcode.com/problems/pascals-triangle/",
-  },
   defaultInput: DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT,
   generateSteps: generateBinomialCoefficientsPascalSteps,
 };

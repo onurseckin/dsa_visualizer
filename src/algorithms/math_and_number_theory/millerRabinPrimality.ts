@@ -570,15 +570,6 @@ export const millerRabinPrimality: AlgorithmDefinition<MillerRabinPrimalityInput
   trivia: MILLER_RABIN_PRIMALITY_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 866,
-      leetcodeId: 866,
-      url: "https://leetcode.com/problems/prime-palindrome/",
-      label: "LeetCode #866",
-      title: "Prime Palindrome",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -588,10 +579,6 @@ export const millerRabinPrimality: AlgorithmDefinition<MillerRabinPrimalityInput
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 866,
-    url: "https://leetcode.com/problems/prime-palindrome/",
-  },
   defaultInput: DEFAULT_MILLER_RABIN_PRIMALITY_INPUT,
   generateSteps: generateMillerRabinPrimalitySteps,
 };

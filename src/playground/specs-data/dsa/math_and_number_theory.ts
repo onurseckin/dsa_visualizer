@@ -196,12 +196,26 @@ export const mathAndNumberTheoryExecutions = [
   defineDsaExecution({
     id: "binomial-coefficients-pascal",
     entrypoint: "Solution",
-    invocation: { kind: "class-method", constructor: [], method: "generate", arguments: [input()] },
-    cases: cases(
-      { label: "Five choose two", input: { n: 5, k: 2 }, expected: 10 },
-      { label: "Zero choose zero", input: { n: 0, k: 0 }, expected: 1 },
-      { label: "Central coefficient", input: { n: 10, k: 5 }, expected: 252 },
-    ),
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "binomial",
+      arguments: [input("n"), input("k")],
+    },
+    cases: [
+      ...cases(
+        { label: "Five choose two", input: { n: 5, k: 2 }, expected: 10 },
+        { label: "Zero choose zero", input: { n: 0, k: 0 }, expected: 1 },
+        { label: "Central coefficient", input: { n: 10, k: 5 }, expected: 252 },
+      ),
+      ...extraCases(
+        { label: "Choose none", input: { n: 8, k: 0 }, expected: 1 },
+        { label: "Choose all", input: { n: 8, k: 8 }, expected: 1 },
+        { label: "Out of range", input: { n: 5, k: 6 }, expected: 0 },
+        { label: "Pascal interior", input: { n: 6, k: 3 }, expected: 20 },
+        { label: "Larger central coefficient", input: { n: 20, k: 10 }, expected: 184756 },
+      ),
+    ],
     audit: {
       signature: "binomial_coefficient(n: int, k: int) -> int",
       defaultInputShape: "{ n: number; k: number }",
@@ -233,18 +247,23 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "nthUglyNumber",
-      arguments: [input("n"), input("a"), input("b"), input("c")],
+      method: "countDivisible",
+      arguments: [input("n"), input("primes")],
     },
-    cases: cases(
-      { label: "Multiples of two or five", input: { n: 10, primes: [2, 5] }, expected: 6 },
-      { label: "No divisors", input: { n: 50, primes: [] }, expected: 0 },
-      {
-        label: "Three-way overlap",
-        input: { n: 100, primes: [2, 3, 5] },
-        expected: 74,
-      },
-    ),
+    cases: [
+      ...cases(
+        { label: "Multiples of two or five", input: { n: 10, primes: [2, 5] }, expected: 6 },
+        { label: "No divisors", input: { n: 50, primes: [] }, expected: 0 },
+        { label: "Three-way overlap", input: { n: 100, primes: [2, 3, 5] }, expected: 74 },
+      ),
+      ...extraCases(
+        { label: "Empty range", input: { n: 0, primes: [2, 3] }, expected: 0 },
+        { label: "Two overlapping divisors", input: { n: 30, primes: [2, 3] }, expected: 20 },
+        { label: "Composite divisors", input: { n: 60, primes: [4, 6] }, expected: 20 },
+        { label: "Single divisor", input: { n: 100, primes: [7] }, expected: 14 },
+        { label: "Duplicate divisor", input: { n: 30, primes: [2, 2] }, expected: 15 },
+      ),
+    ],
     audit: {
       signature: "inclusion_exclusion(n: int, primes: list[int]) -> int",
       defaultInputShape: "{ n: number; primes: number[] }",
@@ -256,16 +275,34 @@ export const mathAndNumberTheoryExecutions = [
   defineDsaExecution({
     id: "matrix-exponentiation",
     entrypoint: "Solution",
-    invocation: { kind: "class-method", constructor: [], method: "fib", arguments: [input()] },
-    cases: cases(
-      { label: "Tenth Fibonacci", input: { n: 10, mod: 1_000_000_007 }, expected: 55 },
-      { label: "Zeroth Fibonacci", input: { n: 0, mod: 97 }, expected: 0 },
-      { label: "Large reduced Fibonacci", input: { n: 50, mod: 1000 }, expected: 25 },
-    ),
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "fib",
+      arguments: [input("n"), input("modulo")],
+    },
+    cases: [
+      ...cases(
+        { label: "Tenth Fibonacci", input: { n: 10, modulo: 1_000_000_007 }, expected: 55 },
+        { label: "Zeroth Fibonacci", input: { n: 0, modulo: 97 }, expected: 0 },
+        { label: "Large reduced Fibonacci", input: { n: 50, modulo: 1000 }, expected: 25 },
+      ),
+      ...extraCases(
+        { label: "First Fibonacci", input: { n: 1, modulo: 97 }, expected: 1 },
+        { label: "Second Fibonacci", input: { n: 2, modulo: 97 }, expected: 1 },
+        {
+          label: "Exact medium Fibonacci",
+          input: { n: 20, modulo: 1_000_000_007 },
+          expected: 6765,
+        },
+        { label: "Modulo-one collapse", input: { n: 100, modulo: 1 }, expected: 0 },
+        { label: "Large exponent", input: { n: 100, modulo: 1_000_000_007 }, expected: 687995182 },
+      ),
+    ],
     audit: {
-      signature: "fibonacci_matrix_pow(n: int, mod: int = 1000000007) -> int",
-      defaultInputShape: "{ n: number; mod: number }",
-      argumentMapping: ["n <- $.n", "mod <- $.mod"],
+      signature: "Solution().fib(n: int, modulo: int = 1000000007) -> int",
+      defaultInputShape: "{ n: number; modulo: number }",
+      argumentMapping: ["n <- $.n", "modulo <- $.modulo"],
       mutation: "No input mutation.",
       returnBehavior: "Returns Fibonacci(n) modulo mod via 2-by-2 exponentiation.",
     },
@@ -572,11 +609,20 @@ export const mathAndNumberTheoryExecutions = [
       method: "findDerangement",
       arguments: [input()],
     },
-    cases: cases(
-      { label: "N=4", input: 4, expected: 9 },
-      { label: "N=1", input: 1, expected: 0 },
-      { label: "N=5", input: 5, expected: 44 },
-    ),
+    cases: [
+      ...cases(
+        { label: "N=4", input: 4, expected: 9 },
+        { label: "N=1", input: 1, expected: 0 },
+        { label: "N=5", input: 5, expected: 44 },
+      ),
+      ...extraCases(
+        { label: "Empty permutation", input: 0, expected: 0 },
+        { label: "Two items", input: 2, expected: 1 },
+        { label: "Three items", input: 3, expected: 2 },
+        { label: "Six items", input: 6, expected: 265 },
+        { label: "Ten items", input: 10, expected: 1334961 },
+      ),
+    ],
     audit: {
       signature: "count_derangements(n: int) -> int",
       defaultInputShape: "number",
@@ -591,20 +637,29 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "largestMultipleOfThree",
-      arguments: [input()],
+      method: "necklaceColorings",
+      arguments: [input("n"), input("k")],
     },
-    cases: cases(
-      { label: "Digits [8, 1, 9]", input: [8, 1, 9], expected: "981" },
-      { label: "Digits [8, 6, 7, 1, 0]", input: [8, 6, 7, 1, 0], expected: "8760" },
-      { label: "Digits [1]", input: [1], expected: "" },
-    ),
+    cases: [
+      ...cases(
+        { label: "Four beads and two colors", input: { n: 4, k: 2 }, expected: 6 },
+        { label: "One bead", input: { n: 1, k: 2 }, expected: 2 },
+        { label: "Six binary beads", input: { n: 6, k: 2 }, expected: 14 },
+      ),
+      ...extraCases(
+        { label: "Two binary beads", input: { n: 2, k: 2 }, expected: 3 },
+        { label: "Three binary beads", input: { n: 3, k: 2 }, expected: 4 },
+        { label: "Three ternary beads", input: { n: 3, k: 3 }, expected: 11 },
+        { label: "Five binary beads", input: { n: 5, k: 2 }, expected: 8 },
+        { label: "Four ternary beads", input: { n: 4, k: 3 }, expected: 24 },
+      ),
+    ],
     audit: {
-      signature: "Solution().largestMultipleOfThree(digits: list[int]) -> str",
-      defaultInputShape: "number[]",
-      argumentMapping: ["digits <- $"],
+      signature: "Solution().necklaceColorings(n: int, colors: int) -> int",
+      defaultInputShape: "{ n: number; k: number }",
+      argumentMapping: ["n <- $.n", "colors <- $.k"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns largest multiple of three as string.",
+      returnBehavior: "Returns cyclic colorings up to rotation using Burnside's lemma.",
     },
   }),
   defineDsaExecution({
@@ -662,14 +717,23 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "rearrangeSticks",
+      method: "stirlingSecond",
       arguments: [input("n"), input("k")],
     },
-    cases: cases(
-      { label: "S(4,2)", input: { n: 4, k: 2 }, expected: 7 },
-      { label: "S(5,5)", input: { n: 5, k: 5 }, expected: 1 },
-      { label: "S(5,3)", input: { n: 5, k: 3 }, expected: 25 },
-    ),
+    cases: [
+      ...cases(
+        { label: "S(4,2)", input: { n: 4, k: 2 }, expected: 7 },
+        { label: "S(5,5)", input: { n: 5, k: 5 }, expected: 1 },
+        { label: "S(5,3)", input: { n: 5, k: 3 }, expected: 25 },
+      ),
+      ...extraCases(
+        { label: "S(0,0)", input: { n: 0, k: 0 }, expected: 1 },
+        { label: "S(1,1)", input: { n: 1, k: 1 }, expected: 1 },
+        { label: "S(5,2)", input: { n: 5, k: 2 }, expected: 15 },
+        { label: "S(6,3)", input: { n: 6, k: 3 }, expected: 90 },
+        { label: "S(8,4)", input: { n: 8, k: 4 }, expected: 1701 },
+      ),
+    ],
     audit: {
       signature: "stirling_second(n: int, k: int) -> int",
       defaultInputShape: "{ n: number; k: number }",
@@ -687,11 +751,20 @@ export const mathAndNumberTheoryExecutions = [
       method: "tribonacci",
       arguments: [input()],
     },
-    cases: cases(
-      { label: "T(4)", input: 4, expected: 4 },
-      { label: "T(0)", input: 0, expected: 0 },
-      { label: "T(25)", input: 25, expected: 1389537 },
-    ),
+    cases: [
+      ...cases(
+        { label: "T(4)", input: 4, expected: 4 },
+        { label: "T(0)", input: 0, expected: 0 },
+        { label: "T(25)", input: 25, expected: 1389537 },
+      ),
+      ...extraCases(
+        { label: "T(1)", input: 1, expected: 1 },
+        { label: "T(2)", input: 2, expected: 1 },
+        { label: "First recurrence", input: 3, expected: 2 },
+        { label: "T(10)", input: 10, expected: 149 },
+        { label: "T(20)", input: 20, expected: 66012 },
+      ),
+    ],
     audit: {
       signature: "tribonacci(n: int) -> int",
       defaultInputShape: "number",
@@ -706,62 +779,127 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "checkRecord",
-      arguments: [input()],
+      method: "pathCount",
+      arguments: [input("n"), input("adj"), input("k")],
     },
-    cases: cases(
-      {
-        label: "K=2 steps",
-        input: {
-          n: 3,
-          adj: [
+    cases: [
+      ...cases(
+        {
+          label: "K=2 steps",
+          input: {
+            n: 3,
+            adj: [
+              [0, 1, 1],
+              [1, 0, 1],
+              [1, 1, 0],
+            ],
+            k: 2,
+          },
+          expected: [
+            [2, 1, 1],
+            [1, 2, 1],
+            [1, 1, 2],
+          ],
+        },
+        {
+          label: "K=1 step",
+          input: {
+            n: 3,
+            adj: [
+              [0, 1, 1],
+              [1, 0, 1],
+              [1, 1, 0],
+            ],
+            k: 1,
+          },
+          expected: [
             [0, 1, 1],
             [1, 0, 1],
             [1, 1, 0],
           ],
-          k: 2,
         },
-        expected: [
-          [2, 1, 1],
-          [1, 2, 1],
-          [1, 1, 2],
-        ],
-      },
-      {
-        label: "K=1 step",
-        input: {
-          n: 3,
-          adj: [
-            [0, 1, 1],
-            [1, 0, 1],
-            [1, 1, 0],
+        {
+          label: "K=3 steps",
+          input: {
+            n: 3,
+            adj: [
+              [0, 1, 1],
+              [1, 0, 1],
+              [1, 1, 0],
+            ],
+            k: 3,
+          },
+          expected: [
+            [2, 3, 3],
+            [3, 2, 3],
+            [3, 3, 2],
           ],
-          k: 1,
         },
-        expected: [
-          [0, 1, 1],
-          [1, 0, 1],
-          [1, 1, 0],
-        ],
-      },
-      {
-        label: "K=3 steps",
-        input: {
-          n: 3,
-          adj: [
-            [0, 1, 1],
-            [1, 0, 1],
-            [1, 1, 0],
+      ),
+      ...extraCases(
+        {
+          label: "Zero steps is identity",
+          input: {
+            n: 2,
+            adj: [
+              [0, 1],
+              [1, 0],
+            ],
+            k: 0,
+          },
+          expected: [
+            [1, 0],
+            [0, 1],
           ],
-          k: 3,
         },
-        expected: [
-          [2, 3, 3],
-          [3, 2, 3],
-          [3, 3, 2],
-        ],
-      },
-    ),
+        {
+          label: "Two-step swap",
+          input: {
+            n: 2,
+            adj: [
+              [0, 1],
+              [1, 0],
+            ],
+            k: 2,
+          },
+          expected: [
+            [1, 0],
+            [0, 1],
+          ],
+        },
+        {
+          label: "Odd swap",
+          input: {
+            n: 2,
+            adj: [
+              [0, 1],
+              [1, 0],
+            ],
+            k: 3,
+          },
+          expected: [
+            [0, 1],
+            [1, 0],
+          ],
+        },
+        { label: "Single self-loop", input: { n: 1, adj: [[1]], k: 5 }, expected: [[1]] },
+        {
+          label: "Dead-end directed graph",
+          input: {
+            n: 2,
+            adj: [
+              [0, 1],
+              [0, 0],
+            ],
+            k: 2,
+          },
+          expected: [
+            [0, 0],
+            [0, 0],
+          ],
+        },
+      ),
+    ],
     audit: {
       signature: "path_counting(n: int, adj: list[list[int]], k: int) -> list[list[int]]",
       defaultInputShape: "{ n: number; adj: number[][]; k: number }",
@@ -776,62 +914,129 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "findTheCity",
-      arguments: [input("n"), input("edges"), input("distanceThreshold")],
+      method: "minPlusPower",
+      arguments: [input("n"), input("adj"), input("k")],
     },
-    cases: cases(
-      {
-        label: "K=2 steps",
-        input: {
-          n: 3,
-          adj: [
+    cases: [
+      ...cases(
+        {
+          label: "K=2 steps",
+          input: {
+            n: 3,
+            adj: [
+              [0, 3, 8],
+              [3, 0, 1],
+              [8, 1, 0],
+            ],
+            k: 2,
+          },
+          expected: [
+            [0, 3, 4],
+            [3, 0, 1],
+            [4, 1, 0],
+          ],
+        },
+        {
+          label: "K=1 step",
+          input: {
+            n: 3,
+            adj: [
+              [0, 3, 8],
+              [3, 0, 1],
+              [8, 1, 0],
+            ],
+            k: 1,
+          },
+          expected: [
             [0, 3, 8],
             [3, 0, 1],
             [8, 1, 0],
           ],
-          k: 2,
         },
-        expected: [
-          [0, 3, 4],
-          [3, 0, 1],
-          [4, 1, 0],
-        ],
-      },
-      {
-        label: "K=1 step",
-        input: {
-          n: 3,
-          adj: [
-            [0, 3, 8],
+        {
+          label: "K=3 steps",
+          input: {
+            n: 3,
+            adj: [
+              [0, 3, 8],
+              [3, 0, 1],
+              [8, 1, 0],
+            ],
+            k: 3,
+          },
+          expected: [
+            [0, 3, 4],
             [3, 0, 1],
-            [8, 1, 0],
+            [4, 1, 0],
           ],
-          k: 1,
         },
-        expected: [
-          [0, 3, 8],
-          [3, 0, 1],
-          [8, 1, 0],
-        ],
-      },
-      {
-        label: "K=3 steps",
-        input: {
-          n: 3,
-          adj: [
-            [0, 3, 8],
-            [3, 0, 1],
-            [8, 1, 0],
+      ),
+      ...extraCases(
+        { label: "One vertex", input: { n: 1, adj: [[0]], k: 6 }, expected: [[0]] },
+        {
+          label: "Two directed vertices",
+          input: {
+            n: 2,
+            adj: [
+              [0, 4],
+              [7, 0],
+            ],
+            k: 2,
+          },
+          expected: [
+            [0, 4],
+            [7, 0],
           ],
-          k: 3,
         },
-        expected: [
-          [0, 3, 4],
-          [3, 0, 1],
-          [4, 1, 0],
-        ],
-      },
-    ),
+        {
+          label: "Three edges",
+          input: {
+            n: 2,
+            adj: [
+              [0, 4],
+              [7, 0],
+            ],
+            k: 3,
+          },
+          expected: [
+            [0, 4],
+            [7, 0],
+          ],
+        },
+        {
+          label: "Alternative two-step route",
+          input: {
+            n: 3,
+            adj: [
+              [0, 2, 9],
+              [9, 0, 2],
+              [2, 9, 0],
+            ],
+            k: 2,
+          },
+          expected: [
+            [0, 2, 4],
+            [4, 0, 2],
+            [2, 4, 0],
+          ],
+        },
+        {
+          label: "Higher binary power",
+          input: {
+            n: 2,
+            adj: [
+              [0, 5],
+              [1, 0],
+            ],
+            k: 8,
+          },
+          expected: [
+            [0, 5],
+            [1, 0],
+          ],
+        },
+      ),
+    ],
     audit: {
       signature: "min_plus(n: int, adj: list[list[int]], k: int) -> list[list[int]]",
       defaultInputShape: "{ n: number; adj: number[][]; k: number }",
@@ -846,51 +1051,103 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "numOfWays",
-      arguments: [input()],
+      method: "spanningTreeCount",
+      arguments: [input("n"), input("edges")],
     },
-    cases: cases(
-      {
-        label: "Complete graph K3",
-        input: {
-          n: 3,
-          edges: [
-            [0, 1],
-            [1, 2],
-            [0, 2],
-          ],
+    cases: [
+      ...cases(
+        {
+          label: "Complete graph K3",
+          input: {
+            n: 3,
+            edges: [
+              [0, 1],
+              [1, 2],
+              [0, 2],
+            ],
+          },
+          expected: 3,
         },
-        expected: 3,
-      },
-      {
-        label: "Tree of 3 nodes",
-        input: {
-          n: 3,
-          edges: [
-            [0, 1],
-            [1, 2],
-          ],
+        {
+          label: "Tree of 3 nodes",
+          input: {
+            n: 3,
+            edges: [
+              [0, 1],
+              [1, 2],
+            ],
+          },
+          expected: 1,
         },
-        expected: 1,
-      },
-      {
-        label: "Cycle of 4 nodes",
-        input: {
-          n: 4,
-          edges: [
-            [0, 1],
-            [1, 2],
-            [2, 3],
-            [3, 0],
-          ],
+        {
+          label: "Cycle of 4 nodes",
+          input: {
+            n: 4,
+            edges: [
+              [0, 1],
+              [1, 2],
+              [2, 3],
+              [3, 0],
+            ],
+          },
+          expected: 4,
         },
-        expected: 4,
-      },
-    ),
+      ),
+      ...extraCases(
+        { label: "One edge", input: { n: 2, edges: [[0, 1]] }, expected: 1 },
+        { label: "Disconnected graph", input: { n: 3, edges: [[0, 1]] }, expected: 0 },
+        {
+          label: "Four-node star",
+          input: {
+            n: 4,
+            edges: [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+            ],
+          },
+          expected: 1,
+        },
+        {
+          label: "Complete graph K4",
+          input: {
+            n: 4,
+            edges: [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+              [1, 2],
+              [1, 3],
+              [2, 3],
+            ],
+          },
+          expected: 16,
+        },
+        {
+          label: "Complete graph K5",
+          input: {
+            n: 5,
+            edges: [
+              [0, 1],
+              [0, 2],
+              [0, 3],
+              [0, 4],
+              [1, 2],
+              [1, 3],
+              [1, 4],
+              [2, 3],
+              [2, 4],
+              [3, 4],
+            ],
+          },
+          expected: 125,
+        },
+      ),
+    ],
     audit: {
-      signature: "solve(input: dict) -> int",
+      signature: "Solution().spanningTreeCount(n: int, edges: list[list[int]]) -> int",
       defaultInputShape: "{ n: number; edges: number[][] }",
-      argumentMapping: ["input <- $"],
+      argumentMapping: ["n <- $.n", "edges <- $.edges"],
       mutation: "No input mutation.",
       returnBehavior: "Returns number of spanning trees.",
     },

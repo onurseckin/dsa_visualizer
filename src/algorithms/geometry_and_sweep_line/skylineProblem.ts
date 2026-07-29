@@ -408,8 +408,8 @@ export const skylineProblem: AlgorithmDefinition<SkylineProblemInput> = {
     {
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: 29,
-      label: "Competitive Programmer's Handbook, Ch 29",
+      chapter: 30,
+      label: "Competitive Programmer's Handbook, Ch 30",
     },
   ],
   defaultInput: DEFAULT_SKYLINE_PROBLEM_INPUT,

@@ -16,13 +16,18 @@ export const PYTHON_MATRIX_EXPONENTIATION_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def fib(self, n: int) -> int:
-        if n <= 1:
-            return n
-        a, b = 0, 1
-        for _ in range(2, n + 1):
-            a, b = b, a + b
-        return b`;
+    def fib(self, n: int, modulo: int = 1_000_000_007) -> int:
+        def multiply(a, b):
+            return [[sum(a[i][k] * b[k][j] for k in range(2)) % modulo for j in range(2)] for i in range(2)]
+
+        result = [[1, 0], [0, 1]]
+        base = [[1, 1], [1, 0]]
+        while n:
+            if n & 1:
+                result = multiply(result, base)
+            base = multiply(base, base)
+            n >>= 1
+        return result[0][1]`;
 
 export const DEFAULT_MATRIX_EXPONENTIATION_INPUT: MatrixExponentiationInput = {
   n: 10,

@@ -339,7 +339,7 @@ export const stoneGameDp: AlgorithmDefinition<StoneGameDpInput> = {
   sources: [
     {
       kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 23",
+      label: "Competitive Programmer's Handbook, Ch 25",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 25,
       section: "25.1 Game states",

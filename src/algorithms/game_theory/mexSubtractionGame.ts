@@ -289,7 +289,7 @@ export const mexSubtractionGame: AlgorithmDefinition<MexSubtractionGameInput> = 
   sources: [
     {
       kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 23",
+      label: "Competitive Programmer's Handbook, Ch 25",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 25,
       section: "25.3 Nim game & Grundy values",

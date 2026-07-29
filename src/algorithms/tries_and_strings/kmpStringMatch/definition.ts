@@ -177,7 +177,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
       label: "Competitive Programmer's Handbook, Ch 26",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 26,
-      section: "26.1 String pattern matching",
+      section: "Related string-pattern matching enrichment",
     },
   ],
   defaultInput: DEFAULT_KMP_INPUT,
