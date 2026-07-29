@@ -1,5 +1,13 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  CompositeCanvasSnapshot,
+  HashBucketItem,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface TwoSumInput {
   nums: number[];
@@ -20,6 +28,235 @@ export const DEFAULT_TWO_SUM_INPUT: TwoSumInput = {
   target: 15,
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Given an array of numbers and a target value T, the Two Sum problem asks us to find the 0-based indices of two distinct elements whose sum equals T.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 3, label: "[0]", state: "default" },
+        { id: "c2", value: 7, label: "[1]", state: "default" },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 8, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The naive brute-force approach tests every possible pair of elements using nested loops, checking whether nums[i] + nums[j] equals target T.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 3, label: "[0]", state: "compare", pointers: ["i"] },
+        { id: "c2", value: 7, label: "[1]", state: "compare", pointers: ["j"] },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 8, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Checking all pairs requires quadratic O(N²) time because an array of N elements has N × (N - 1) / 2 unique pair combinations to test.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 3, label: "[0]", state: "compare", pointers: ["i"] },
+        { id: "c2", value: 7, label: "[1]", state: "visited" },
+        { id: "c3", value: 4, label: "[2]", state: "visited" },
+        { id: "c4", value: 8, label: "[3]", state: "compare", pointers: ["j"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The bottleneck in brute force is redundant searching: standing at element X, we repeatedly scan through the remaining array to check if a partner exists.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 3, label: "[0]", state: "visited" },
+        { id: "c2", value: 7, label: "[1]", state: "visited" },
+        { id: "c3", value: 4, label: "[2]", state: "active", pointers: ["scan"] },
+        { id: "c4", value: 8, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "By elementary algebra, if X + Y = T, then the required partner for any current element X is uniquely fixed as Y = T - X.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 3, label: "[0]", state: "default" },
+        { id: "c2", value: 7, label: "[1]", state: "default" },
+        { id: "c3", value: 4, label: "[2]", state: "active", pointers: ["X = 4"] },
+        { id: "c4", value: 8, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Instead of searching forward repeatedly, we store previously visited numbers in a key-value hash map named 'seen', mapping each value to its array index.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 3, label: "[0]", state: "visited" },
+              { id: "c2", value: 7, label: "[1]", state: "visited" },
+              { id: "c3", value: 4, label: "[2]", state: "active", pointers: ["i"] },
+              { id: "c4", value: 8, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-hash",
+          role: "auxiliary",
+          snapshot: {
+            kind: "hashtable",
+            name: "seen",
+            buckets: [
+              { index: 0, entries: [{ key: "3", value: 0, state: "visited" }] },
+              { index: 1, entries: [{ key: "7", value: 1, state: "visited" }] },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "For each element X, we compute complement = T - X and query 'seen'; because hash map lookups run in O(1) average time, checking for the partner takes constant time.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 3, label: "[0]", state: "visited" },
+              { id: "c2", value: 7, label: "[1]", state: "compare", pointers: ["match"] },
+              { id: "c3", value: 4, label: "[2]", state: "active", pointers: ["i"] },
+              { id: "c4", value: 8, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-hash",
+          role: "auxiliary",
+          snapshot: {
+            kind: "hashtable",
+            name: "seen",
+            buckets: [
+              { index: 0, entries: [{ key: "3", value: 0, state: "visited" }] },
+              { index: 1, entries: [{ key: "7", value: 1, state: "compare" }] },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Crucially, we query 'seen' BEFORE inserting the current element X into the hash map, ensuring an element can never accidentally pair with itself.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 3, label: "[0]", state: "visited" },
+              { id: "c2", value: 7, label: "[1]", state: "visited" },
+              { id: "c3", value: 4, label: "[2]", state: "active", pointers: ["i"] },
+              { id: "c4", value: 8, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-hash",
+          role: "auxiliary",
+          snapshot: {
+            kind: "hashtable",
+            name: "seen",
+            buckets: [
+              { index: 0, entries: [{ key: "3", value: 0, state: "visited" }] },
+              { index: 1, entries: [{ key: "7", value: 1, state: "visited" }] },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When the complement is found in 'seen', we immediately return the stored index pair [seen[complement], i], achieving a single-pass O(N) linear time solution with O(N) space.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 3, label: "[0]", state: "visited" },
+              { id: "c2", value: 7, label: "[1]", state: "sorted", pointers: ["match"] },
+              { id: "c3", value: 4, label: "[2]", state: "sorted", pointers: ["match"] },
+              { id: "c4", value: 8, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-hash",
+          role: "auxiliary",
+          snapshot: {
+            kind: "hashtable",
+            name: "seen",
+            buckets: [
+              { index: 0, entries: [{ key: "3", value: 0, state: "visited" }] },
+              { index: 1, entries: [{ key: "7", value: 1, state: "sorted" }] },
+            ],
+          },
+        },
+      ],
+    },
+  },
+];
+
 export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -28,130 +265,136 @@ export const generateTwoSumSteps = (input: TwoSumInput): AlgorithmStep[] => {
     Array.isArray(input?.nums) && input.nums.length > 0 ? input.nums : DEFAULT_TWO_SUM_INPUT.nums;
   const target = typeof input?.target === "number" ? input.target : DEFAULT_TWO_SUM_INPUT.target;
 
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.nums) &&
+      input.nums.length === DEFAULT_TWO_SUM_INPUT.nums.length &&
+      input.target === DEFAULT_TWO_SUM_INPUT.target);
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   const elements: ArrayElement[] = nums.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
+    label: `[${idx}]`,
     state: "default",
   }));
 
-  const hashMap: Record<string, number> = {};
+  const hashMap = new Map<number, number>();
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        hashMap: { ...hashMap },
-      },
-      variables,
+  const buildHashBuckets = (
+    activeKey?: number,
+    activeState: "compare" | "active" | "sorted" = "compare",
+  ): HashBucketItem[] => {
+    const buckets: HashBucketItem[] = [];
+    let idx = 0;
+    hashMap.forEach((storedIdx, numVal) => {
+      buckets.push({
+        index: idx++,
+        entries: [
+          {
+            key: String(numVal),
+            value: storedIdx,
+            state: numVal === activeKey ? activeState : "default",
+          },
+        ],
+      });
     });
+    return buckets;
   };
 
-  const n = elements.length;
+  const makeComposite = (
+    currentIdx?: number,
+    matchIdx?: number,
+    activeKey?: number,
+    activeState: "compare" | "active" | "sorted" = "compare",
+  ): CompositeCanvasSnapshot => ({
+    kind: "composite",
+    layout: "horizontal",
+    items: [
+      {
+        id: "two-sum-array",
+        role: "primary",
+        snapshot: {
+          kind: "array",
+          name: "nums",
+          mode: "box",
+          elements: elements.map((el, idx) => {
+            let state = el.state;
+            let pointers: string[] | undefined = undefined;
+            if (idx === currentIdx) {
+              state = matchIdx !== undefined ? "sorted" : "active";
+              pointers = matchIdx !== undefined ? ["match"] : ["i"];
+            } else if (idx === matchIdx) {
+              state = "sorted";
+              pointers = ["match"];
+            } else if (hashMap.has(Number(el.value))) {
+              state = "visited";
+            }
+            return { ...el, state, pointers };
+          }),
+        },
+      },
+      {
+        id: "two-sum-hash",
+        role: "auxiliary",
+        snapshot: {
+          kind: "hashtable",
+          name: "seen",
+          buckets: buildHashBuckets(activeKey, activeState),
+        },
+      },
+    ],
+  });
 
   addStep(
-    1,
-    "Start Two Sum search",
-    `Searching the array of ${n} elements for a pair summing to target ${target} using constant-time hash map lookups.`,
-    { target, length: n },
+    `Having established the mental model, let's now transition to our selected input array of ${nums.length} elements with target sum T = ${target}.`,
+    makeComposite(),
   );
 
-  addStep(
-    2,
-    "Initialize Hash Table",
-    "Allocating an empty hash map 'seen' to store array values mapped to their 0-based indices for constant-time complement lookups.",
-    { target },
-  );
-
-  for (let i = 0; i < n; i++) {
-    elements[i].state = "active";
-    elements[i].pointers = ["i"];
-
-    const currentVal = Number(elements[i].value);
-
-    addStep(
-      3,
-      `Inspect Element at Index ${i}`,
-      `Evaluating nums[${i}] = ${currentVal} to check if its matching complement has already been seen in prior steps.`,
-      { i, "nums[i]": currentVal, target },
-    );
-
+  let foundMatch = false;
+  for (let i = 0; i < nums.length; i++) {
+    const currentVal = nums[i];
     const complement = target - currentVal;
 
     addStep(
-      4,
-      `Compute Required Complement = ${complement}`,
-      `Subtracting current value ${currentVal} from target ${target} determines that exact required complement partner is ${complement}.`,
-      { i, "nums[i]": currentVal, complement, target },
+      `Inspect element nums[${i}] = ${currentVal}: compute required complement = ${target} - ${currentVal} = ${complement} and query 'seen' hash map.`,
+      makeComposite(i, undefined, complement, "compare"),
     );
 
-    const hasComplement = String(complement) in hashMap;
-
-    addStep(
-      5,
-      `Query Hash Table for Complement ${complement}`,
-      hasComplement
-        ? `Complement ${complement} exists in the hash table at stored index ${hashMap[String(complement)]}, proving a valid target pair has been discovered.`
-        : `Complement ${complement} is not present in the hash map. Current value ${currentVal} must be saved for future lookups.`,
-      { i, complement, hasComplement },
-    );
-
-    if (hasComplement) {
-      const prevIdx = hashMap[String(complement)];
-      elements[prevIdx].state = "sorted";
-      elements[prevIdx].pointers = ["match"];
-      elements[i].state = "sorted";
-      elements[i].pointers = ["match"];
-
+    if (hashMap.has(complement)) {
+      const matchIdx = hashMap.get(complement)!;
+      foundMatch = true;
       addStep(
-        6,
-        `Return matching indices [${prevIdx}, ${i}]`,
-        `Found matching pair nums[${prevIdx}] (${elements[prevIdx].value}) + nums[${i}] (${currentVal}) = ${target}. Returning index pair.`,
-        { resultIdx1: prevIdx, resultIdx2: i, target },
+        `Found matching complement ${complement} in 'seen' at index ${matchIdx}! The pair nums[${matchIdx}] (${nums[matchIdx]}) + nums[${i}] (${currentVal}) = ${target}. Returning index pair [${matchIdx}, ${i}].`,
+        makeComposite(i, matchIdx, complement, "sorted"),
       );
       break;
     }
 
-    hashMap[String(currentVal)] = i;
-    elements[i].state = "visited";
-    elements[i].pointers = undefined;
-
+    hashMap.set(currentVal, i);
     addStep(
-      7,
-      `Record Key-Value Pair in Hash Map`,
-      `Banked ${currentVal} -> index ${i} in the hash map so subsequent elements can locate it as their target complement.`,
-      { i, "nums[i]": currentVal },
+      `Complement ${complement} is not present in 'seen'. Bank current entry ${currentVal} → index ${i} into the hash map so future elements can locate it.`,
+      makeComposite(i, undefined, currentVal, "active"),
     );
   }
 
-  if (steps[steps.length - 1].codeLine !== 6) {
+  if (!foundMatch) {
     addStep(
-      8,
-      "Return empty array",
-      `Completed linear scan across all ${n} elements without finding any pair summing to target ${target}. Returning [].`,
-      { target },
-    );
-  }
-
-  while (steps.length < 20) {
-    addStep(
-      6,
-      `Verification step ${steps.length + 1}`,
-      "Verifying hash map lookup invariants and single-pass pair matching safety.",
-      { target },
+      `Scanned all ${nums.length} elements without finding any pair summing to target ${target}. Returning empty array [].`,
+      makeComposite(),
     );
   }
 
@@ -213,18 +456,20 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "nums = [2, 7, 11, 15], target = 9",
-      outputDisplay: "[0, 1]",
-      title: "Basic Example",
-      input: { nums: [2, 7, 11, 15], target: 9 },
-      output: "[0, 1]",
-      explanation: "Because nums[0] + nums[1] == 9, we return [0, 1].",
+      scenario: "standard",
+      inputDisplay: "nums = [3, 5, 2, 8, 11, 14, 7], target = 15",
+      outputDisplay: "[3, 6]",
+      title: "Standard 7-Element Array",
+      input: DEFAULT_TWO_SUM_INPUT,
+      output: "[3, 6]",
+      explanation: "Looking up complement 15 - 7 = 8 in the hash map finds index 3 (value 8), returning [3, 6].",
     },
     {
       kind: "complex",
-      inputDisplay: "nums = [3, 2, 4], target = 6",
-      outputDisplay: "[1, 2]",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      inputDisplay: "nums = [3, 2, 4, 1, 9, 8], target = 12",
+      outputDisplay: "[2, 5]",
+      title: "Adversarial Complement Search",
       input: { nums: [3, 2, 4, 1, 9, 8], target: 12 },
       output: "[2, 5]",
       explanation:
@@ -232,13 +477,14 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "nums = [1, 2, 3], target = 10",
-      outputDisplay: "None",
-      title: "Failing / Boundary Case",
-      input: { nums: [1, 2, 3, 4], target: 10 },
+      scenario: "boundary",
+      inputDisplay: "nums = [4], target = 4",
+      outputDisplay: "[]",
+      title: "Boundary Single Element",
+      input: { nums: [4], target: 4 },
       output: "[]",
       explanation:
-        "No pair adds up to 10. All elements are processed into the hash map and [] is returned.",
+        "Single element cannot pair with itself. Hash map stores [4: 0] and [] is returned.",
     },
   ],
   code: TWO_SUM_CODE,
@@ -306,3 +552,5 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   defaultInput: DEFAULT_TWO_SUM_INPUT,
   generateSteps: generateTwoSumSteps,
 };
+
+export default twoSum;

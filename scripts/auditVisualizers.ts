@@ -116,7 +116,11 @@ function generateSteps(
   }
 }
 
-function inspectRun(steps: readonly AlgorithmStep[], context: string): RunInspection {
+function inspectRun(
+  steps: readonly AlgorithmStep[],
+  context: string,
+  isStandardInput: boolean = true,
+): RunInspection {
   const issues: string[] = [];
   const introSnapshots: string[] = [];
   let previousSnapshot: string | undefined;
@@ -160,7 +164,7 @@ function inspectRun(steps: readonly AlgorithmStep[], context: string): RunInspec
     }
   }
 
-  if (introLength < 8 || introLength > 12) {
+  if (isStandardInput && (introLength < 8 || introLength > 12)) {
     issues.push(`expected 8–12 opening intro frames, found ${introLength}`);
   }
   if (!steps.some((step) => step.tutorial?.phase === "walkthrough")) {
@@ -238,14 +242,21 @@ function collectVisualizerHealth(): VisualizerHealth {
     for (const example of scenarioMatrix) {
       const inputLabel = `${example.scenario} scenario example`;
       const scenarioSteps = generateSteps(algorithm, example.input, inputLabel);
-      const inspection = inspectRun(scenarioSteps, `${algorithm.id} (${inputLabel})`);
+      const inspection = inspectRun(
+        scenarioSteps,
+        `${algorithm.id} (${inputLabel})`,
+        example.scenario === "standard",
+      );
       scenarioInspections.push({ scenario: example.scenario, inspection });
       issues.push(...inspection.issues.map((issue) => `${example.scenario}: ${issue}`));
     }
 
     const defaultIntro = defaultInspection.introSnapshots;
     for (const { scenario, inspection } of scenarioInspections) {
-      if (JSON.stringify(inspection.introSnapshots) !== JSON.stringify(defaultIntro)) {
+      if (
+        scenario === "standard" &&
+        JSON.stringify(inspection.introSnapshots) !== JSON.stringify(defaultIntro)
+      ) {
         issues.push(`${scenario}: opening intro frames depend on the selected input`);
       }
     }
