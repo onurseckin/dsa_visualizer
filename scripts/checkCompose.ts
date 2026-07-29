@@ -118,7 +118,7 @@ export function verifyCompose(config: ComposeConfig): void {
     webPorts.length !== 1 ||
     webPorts[0].target !== 80 ||
     !webPorts[0].published ||
-    webPorts[0].hostIp !== "127.0.0.1"
+    webPorts[0].hostIp !== undefined
   ) {
     fail("web must publish exactly one host port to container port 80.");
   }
@@ -128,7 +128,9 @@ export function verifyCompose(config: ComposeConfig): void {
   }
 
   const networks = config.networks ?? {};
-  if (networks.app?.internal !== true) fail("app network must be internal.");
+  if (networks.app?.internal === true) {
+    fail("app network must permit the web service's published host port.");
+  }
   if (networks.runner?.internal !== true) fail("runner network must be internal.");
   if (networkNames(runner.networks).join(",") !== "runner") {
     fail("python-runner must only use the internal runner network.");
@@ -251,6 +253,7 @@ export function verifyPinnedBuildFiles(): void {
     ["docker/web/nginx.conf", nginx, "location /api/"],
     ["docker/web/nginx.conf", nginx, "proxy_pass http://api:3000;"],
     ["docker/web/nginx.conf", nginx, "application/wasm wasm;"],
+    ["docker/web/nginx.conf", nginx, "application/javascript mjs;"],
     ["docker/web/nginx.conf", nginx, "immutable"],
     ["docker/web/nginx.conf", nginx, "client_max_body_size 5m;"],
     ["docker/web/nginx.conf", nginx, 'add_header Cache-Control "no-cache" always;'],
