@@ -2,7 +2,20 @@
 
 Research date: 2026-07-28
 
-Status: recommendation for review; no catalog or application code has been changed.
+Status: implemented as a clean-break migration.
+
+Implementation result:
+
+- 88 DSA + 69 ML-infrastructure = 157 active learning items;
+- 15 required ML topics + 8 electives = 23 connected roadmap nodes;
+- exactly 3 complementary ML assessments per topic;
+- six assessment modes plus semantic retrieval-practice trivia;
+- immutable reference code and editable, persisted Python playgrounds;
+- browser Pyodide and Docker CPython execution with authored cases and output;
+- 232 former ML-bound definitions accounted for in the disposition ledger and
+  removed from active enrollment without aliases; and
+- automated catalog, unit/coverage, Compose-topology, and browser-integration
+  gates.
 
 ## Executive conclusion
 
@@ -18,7 +31,7 @@ training, experiment lineage, feature consistency, workflow testing, artifact
 promotion, inference deployment, production monitoring, governance, cost, and
 incident response.
 
-The recommended clean-break target is:
+The implemented clean-break target is:
 
 - 15 required topics forming an end-to-end production ML lifecycle;
 - 8 advanced elective topics preserving the strongest material in the current
@@ -109,18 +122,9 @@ prerequisite for the production capstone.
 - [Migration roadmap](migration-roadmap.md) describes a staged, testable
   implementation sequence.
 
-## Decision requested before implementation
+## Ratified implementation decisions
 
-Ratify or revise these four choices before changing topic IDs or enrolling new
-definitions:
-
-1. the 15-topic required spine;
-2. the 8 electives;
-3. the 69-item cap and the rule of 3 complementary items per topic; and
-4. whether retired deep exercises remain available in a non-curricular archive
-   or are removed entirely.
-
-The recommendation intentionally does not preserve old topic IDs through
-aliases. The repository's catalog contract calls ID changes breaking content
-changes, so implementation should perform an explicit clean break once the
-target is approved.
+The migration adopted the 15-topic required spine, 8 electives, 69-item cap,
+and three-complementary-items rule. Retired deep exercises were removed from
+the active source tree; their dispositions and asset lineage remain auditable
+in the CSV ledger. No old topic or item ID is accepted as a runtime alias.
