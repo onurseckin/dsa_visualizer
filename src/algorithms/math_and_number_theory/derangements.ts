@@ -321,15 +321,6 @@ export const derangements: AlgorithmDefinition<DerangementsInput> = {
   trivia: DERANGEMENTS_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 634,
-      leetcodeId: 634,
-      url: "https://leetcode.com/problems/find-the-derangement-of-an-array/",
-      label: "LeetCode #634",
-      title: "Find the Derangement of An Array",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -339,10 +330,6 @@ export const derangements: AlgorithmDefinition<DerangementsInput> = {
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 634,
-    url: "https://leetcode.com/problems/find-the-derangement-of-an-array/",
-  },
   defaultInput: DEFAULT_DERANGEMENTS_INPUT,
   generateSteps: generateDerangementsSteps,
 };

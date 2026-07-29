@@ -523,9 +523,9 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
     {
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: 9,
-      section: "9.3 Segment tree / Dynamic segment tree",
-      label: "Competitive Programmer's Handbook, Ch 9",
+      chapter: 28,
+      section: "28.2 Dynamic trees",
+      label: "Competitive Programmer's Handbook, Ch 28",
     },
   ],
   defaultInput: DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT,

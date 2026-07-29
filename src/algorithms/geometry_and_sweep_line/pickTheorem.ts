@@ -374,15 +374,6 @@ export const pickTheorem: AlgorithmDefinition<PickTheoremInput> = {
   trivia: PICK_THEOREM_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 1037,
-      leetcodeId: 1037,
-      url: "https://leetcode.com/problems/valid-boomerang/",
-      label: "LeetCode #1037",
-      title: "Valid Boomerang",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -392,10 +383,6 @@ export const pickTheorem: AlgorithmDefinition<PickTheoremInput> = {
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 1037,
-    url: "https://leetcode.com/problems/valid-boomerang/",
-  },
   defaultInput: DEFAULT_PICK_THEOREM_INPUT,
   generateSteps: generatePickTheoremSteps,
 };

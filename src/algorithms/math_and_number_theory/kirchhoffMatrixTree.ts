@@ -16,21 +16,33 @@ export const PYTHON_KIRCHHOFF_MATRIX_TREE_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def numOfWays(self, nums: list[int]) -> int:
-        MOD = 10**9 + 7
-        import math
+    def spanningTreeCount(self, n: int, edges: list[list[int]]) -> int:
+        if n == 1:
+            return 1
+        laplacian = [[0] * n for _ in range(n)]
+        for u, v in edges:
+            laplacian[u][u] += 1
+            laplacian[v][v] += 1
+            laplacian[u][v] -= 1
+            laplacian[v][u] -= 1
 
-        def dfs(arr: list[int]) -> int:
-            if not arr:
-                return 1
-            left = [x for x in arr if x < arr[0]]
-            right = [x for x in arr if x > arr[0]]
-            ans = math.comb(len(left) + len(right), len(left)) % MOD
-            ans = (ans * dfs(left)) % MOD
-            ans = (ans * dfs(right)) % MOD
-            return ans
-
-        return (dfs(nums) - 1 + MOD) % MOD`;
+        matrix = [row[:-1] for row in laplacian[:-1]]
+        sign, previous = 1, 1
+        for col in range(n - 2):
+            pivot = next((row for row in range(col, n - 1) if matrix[row][col]), None)
+            if pivot is None:
+                return 0
+            if pivot != col:
+                matrix[col], matrix[pivot] = matrix[pivot], matrix[col]
+                sign *= -1
+            pivot_value = matrix[col][col]
+            for row in range(col + 1, n - 1):
+                for j in range(col + 1, n - 1):
+                    matrix[row][j] = (matrix[row][j] * pivot_value - matrix[row][col] * matrix[col][j]) // previous
+            previous = pivot_value
+            for row in range(col + 1, n - 1):
+                matrix[row][col] = 0
+        return sign * (matrix[0][0] if n == 2 else matrix[-1][-1])`;
 
 export const DEFAULT_KIRCHHOFF_MATRIX_TREE_INPUT: KirchhoffMatrixTreeInput = {
   n: 4,
@@ -361,15 +373,6 @@ export const kirchhoffMatrixTree: AlgorithmDefinition<KirchhoffMatrixTreeInput> 
   trivia: KIRCHHOFF_MATRIX_TREE_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 1569,
-      leetcodeId: 1569,
-      url: "https://leetcode.com/problems/number-of-ways-to-reorder-array-to-get-same-bst/",
-      label: "LeetCode #1569",
-      title: "Number of Ways to Reorder Array to Get Same BST",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -379,10 +382,6 @@ export const kirchhoffMatrixTree: AlgorithmDefinition<KirchhoffMatrixTreeInput> 
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 1569,
-    url: "https://leetcode.com/problems/number-of-ways-to-reorder-array-to-get-same-bst/",
-  },
   defaultInput: DEFAULT_KIRCHHOFF_MATRIX_TREE_INPUT,
   generateSteps: generateKirchhoffMatrixTreeSteps,
 };

@@ -12,29 +12,28 @@ export interface InclusionExclusionInput {
   primes: number[];
 }
 
-export const PYTHON_INCLUSION_EXCLUSION_CODE = `import math
-
-class Solution:
+export const PYTHON_INCLUSION_EXCLUSION_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def nthUglyNumber(self, n: int, a: int, b: int, c: int) -> int:
-        ab = (a * b) // math.gcd(a, b)
-        bc = (b * c) // math.gcd(b, c)
-        ac = (a * c) // math.gcd(a, c)
-        abc = (a * bc) // math.gcd(a, bc)
+    def countDivisible(self, n: int, divisors: list[int]) -> int:
+        def gcd(a, b):
+            while b:
+                a, b = b, a % b
+            return a
 
-        def count(m: int) -> int:
-            return m // a + m // b + m // c - m // ab - m // bc - m // ac + m // abc
-
-        left, right = 1, 2 * 10**9
-        while left < right:
-            mid = (left + right) // 2
-            if count(mid) < n:
-                left = mid + 1
-            else:
-                right = mid
-        return left`;
+        total = 0
+        for mask in range(1, 1 << len(divisors)):
+            lcm, bits = 1, 0
+            for i, divisor in enumerate(divisors):
+                if mask >> i & 1:
+                    lcm = lcm * divisor // gcd(lcm, divisor)
+                    bits += 1
+                    if lcm > n:
+                        break
+            if lcm <= n:
+                total += n // lcm if bits % 2 else -(n // lcm)
+        return total`;
 
 export const DEFAULT_INCLUSION_EXCLUSION_INPUT: InclusionExclusionInput = {
   n: 30,

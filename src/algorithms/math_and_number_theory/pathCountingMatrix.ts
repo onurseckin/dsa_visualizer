@@ -16,25 +16,18 @@ export const PYTHON_PATH_COUNTING_MATRIX_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def checkRecord(self, n: int) -> int:
-        MOD = 10**9 + 7
-        dp = [[[0] * 3 for _ in range(2)] for _ in range(n + 1)]
-        dp[0][0][0] = 1
-        for i in range(n):
-            for a in range(2):
-                for l in range(3):
-                    if dp[i][a][l] == 0:
-                        continue
-                    dp[i + 1][a][0] = (dp[i + 1][a][0] + dp[i][a][l]) % MOD
-                    if a == 0:
-                        dp[i + 1][1][0] = (dp[i + 1][1][0] + dp[i][a][l]) % MOD
-                    if l < 2:
-                        dp[i + 1][a][l + 1] = (dp[i + 1][a][l + 1] + dp[i][a][l]) % MOD
-        res = 0
-        for a in range(2):
-            for l in range(3):
-                res = (res + dp[n][a][l]) % MOD
-        return res`;
+    def pathCount(self, n: int, adj: list[list[int]], k: int) -> list[list[int]]:
+        def multiply(a, b):
+            return [[sum(a[i][t] * b[t][j] for t in range(n)) for j in range(n)] for i in range(n)]
+
+        result = [[int(i == j) for j in range(n)] for i in range(n)]
+        base = [row[:] for row in adj]
+        while k:
+            if k & 1:
+                result = multiply(result, base)
+            base = multiply(base, base)
+            k >>= 1
+        return result`;
 
 export const DEFAULT_PATH_COUNTING_MATRIX_INPUT: PathCountingMatrixInput = {
   adj: [
@@ -369,15 +362,6 @@ export const pathCountingMatrix: AlgorithmDefinition<PathCountingMatrixInput> = 
   },
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 552,
-      leetcodeId: 552,
-      url: "https://leetcode.com/problems/student-attendance-record-ii/",
-      label: "LeetCode #552",
-      title: "Student Attendance Record II",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -387,10 +371,6 @@ export const pathCountingMatrix: AlgorithmDefinition<PathCountingMatrixInput> = 
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 552,
-    url: "https://leetcode.com/problems/student-attendance-record-ii/",
-  },
   defaultInput: DEFAULT_PATH_COUNTING_MATRIX_INPUT,
   generateSteps: generatePathCountingMatrixSteps,
 };

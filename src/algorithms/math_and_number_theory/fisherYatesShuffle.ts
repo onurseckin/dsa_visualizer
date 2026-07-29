@@ -399,15 +399,6 @@ export const fisherYatesShuffle: AlgorithmDefinition<FisherYatesShuffleInput> = 
   trivia: FISHER_YATES_SHUFFLE_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 384,
-      leetcodeId: 384,
-      url: "https://leetcode.com/problems/shuffle-an-array/",
-      label: "LeetCode #384",
-      title: "Shuffle an Array",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "The Art of Computer Programming, Vol 2",
@@ -415,10 +406,6 @@ export const fisherYatesShuffle: AlgorithmDefinition<FisherYatesShuffleInput> = 
       section: "24.5 Randomized algorithms",
     },
   ],
-  leetcode: {
-    id: 384,
-    url: "https://leetcode.com/problems/shuffle-an-array/",
-  },
   defaultInput: DEFAULT_FISHER_YATES_SHUFFLE_INPUT,
   generateSteps: generateFisherYatesShuffleSteps,
 };

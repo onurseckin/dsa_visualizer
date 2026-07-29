@@ -716,15 +716,6 @@ export const pruferCode: AlgorithmDefinition<PruferCodeInput> = {
   trivia: PRUFER_CODE_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 2477,
-      leetcodeId: 2477,
-      url: "https://leetcode.com/problems/minimum-fuel-cost-to-report-to-the-capital/",
-      label: "LeetCode #2477",
-      title: "Minimum Fuel Cost to Report to the Capital",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -734,10 +725,6 @@ export const pruferCode: AlgorithmDefinition<PruferCodeInput> = {
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 2477,
-    url: "https://leetcode.com/problems/minimum-fuel-cost-to-report-to-the-capital/",
-  },
   defaultInput: DEFAULT_PRUFER_CODE_INPUT,
   generateSteps: generatePruferCodeSteps,
 };

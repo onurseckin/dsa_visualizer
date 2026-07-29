@@ -16,13 +16,12 @@ export const PYTHON_STIRLING_NUMBERS_SECOND_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def rearrangeSticks(self, n: int, k: int) -> int:
-        MOD = 10**9 + 7
+    def stirlingSecond(self, n: int, k: int) -> int:
         dp = [[0] * (k + 1) for _ in range(n + 1)]
         dp[0][0] = 1
         for i in range(1, n + 1):
             for j in range(1, min(i, k) + 1):
-                dp[i][j] = (dp[i - 1][j - 1] + (i - 1) * dp[i - 1][j]) % MOD
+                dp[i][j] = dp[i - 1][j - 1] + j * dp[i - 1][j]
         return dp[n][k]`;
 
 export const DEFAULT_STIRLING_NUMBERS_SECOND_INPUT: StirlingNumbersSecondInput = { n: 4, k: 2 };
@@ -362,15 +361,6 @@ export const stirlingNumbersSecond: AlgorithmDefinition<StirlingNumbersSecondInp
   trivia: STIRLING_NUMBERS_SECOND_TRIVIA,
   sources: [
     {
-      kind: "leetcode",
-      type: "leetcode",
-      id: 1866,
-      leetcodeId: 1866,
-      url: "https://leetcode.com/problems/number-of-ways-to-rearrange-sticks-with-k-sticks-visible/",
-      label: "LeetCode #1866",
-      title: "Number of Ways to Rearrange Sticks With K Sticks Visible",
-    },
-    {
       kind: "book",
       type: "book",
       bookTitle: "Competitive Programmer's Handbook",
@@ -380,10 +370,6 @@ export const stirlingNumbersSecond: AlgorithmDefinition<StirlingNumbersSecondInp
       url: "https://cses.fi/book/book.pdf",
     },
   ],
-  leetcode: {
-    id: 1866,
-    url: "https://leetcode.com/problems/number-of-ways-to-rearrange-sticks-with-k-sticks-visible/",
-  },
   defaultInput: DEFAULT_STIRLING_NUMBERS_SECOND_INPUT,
   generateSteps: generateStirlingNumbersSecondSteps,
 };
