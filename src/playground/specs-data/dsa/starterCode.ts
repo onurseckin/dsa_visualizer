@@ -15,28 +15,28 @@ export function createDsaStarterCode(
   }
 
   if (invocation.kind === "function") {
-    const parameterNames = callableParameterNames(referenceCode, entrypoint, false);
-    validateParameters(entrypoint, parameterNames, invocation.arguments.length);
+    const parameters = callableParameters(referenceCode, entrypoint, false);
+    validateParameters(entrypoint, parameters.names, invocation.arguments.length);
     return [
-      `def ${entrypoint}(${parameterNames.join(", ")}):`,
+      `def ${entrypoint}(${parameters.source}):`,
       '    raise NotImplementedError("Implement this function")',
     ].join("\n");
   }
 
   const classCode = classBody(referenceCode, entrypoint);
-  const constructorParameters = callableParameterNames(classCode, "__init__", true);
+  const constructorParameters = callableParameters(classCode, "__init__", true);
   validateMethodParameters(
     `${entrypoint}.__init__`,
-    constructorParameters,
+    constructorParameters.names,
     invocation.constructor.length,
   );
 
-  const methods = new Map<string, readonly string[]>();
+  const methods = new Map<string, CanonicalParameters>();
   const addMethod = (method: string, arity: number): void => {
     if (methods.has(method)) return;
-    const parameterNames = callableParameterNames(classCode, method, true);
-    validateMethodParameters(`${entrypoint}.${method}`, parameterNames, arity);
-    methods.set(method, parameterNames);
+    const parameters = callableParameters(classCode, method, true);
+    validateMethodParameters(`${entrypoint}.${method}`, parameters.names, arity);
+    methods.set(method, parameters);
   };
 
   for (const setup of invocation.setup ?? []) {
@@ -46,13 +46,13 @@ export function createDsaStarterCode(
 
   const lines = [
     `class ${entrypoint}:`,
-    `    def __init__(${constructorParameters.join(", ")}):`,
+    `    def __init__(${constructorParameters.source}):`,
     "        pass",
   ];
-  for (const [method, parameterNames] of methods) {
+  for (const [method, parameters] of methods) {
     lines.push(
       "",
-      `    def ${method}(${parameterNames.join(", ")}):`,
+      `    def ${method}(${parameters.source}):`,
       '        raise NotImplementedError("Implement this method")',
     );
   }
@@ -111,11 +111,16 @@ function classBody(referenceCode: string, className: string): string {
   return lines.slice(classLine + 1, endLine).join("\n");
 }
 
-function callableParameterNames(
+interface CanonicalParameters {
+  readonly source: string;
+  readonly names: readonly string[];
+}
+
+function callableParameters(
   source: string,
   callableName: string,
   allowIndentation: boolean,
-): readonly string[] {
+): CanonicalParameters {
   const indentation = allowIndentation ? "[ \\t]+" : "";
   const declaration = new RegExp(
     `(?:^|\\n)${indentation}def\\s+${escapeRegExp(callableName)}\\s*\\(`,
@@ -127,9 +132,12 @@ function callableParameterNames(
 
   const openParenthesis = match.index + match[0].lastIndexOf("(");
   const parameterText = balancedParenthesisContent(source, openParenthesis, callableName);
-  return splitTopLevel(parameterText)
-    .map((parameter) => parameter.trim().match(/^\*{0,2}([A-Za-z_]\w*)/)?.[1])
-    .filter((parameter): parameter is string => parameter !== undefined);
+  return {
+    source: parameterText,
+    names: splitTopLevel(parameterText)
+      .map((parameter) => parameter.trim().match(/^\*{0,2}([A-Za-z_]\w*)/)?.[1])
+      .filter((parameter): parameter is string => parameter !== undefined),
+  };
 }
 
 function balancedParenthesisContent(

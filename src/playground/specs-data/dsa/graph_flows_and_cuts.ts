@@ -25,14 +25,17 @@ export const graphFlowsAndCutsExecutions = [
         expected: 5,
       },
       {
-        label: "Disconnected sink",
+        label: "Parallel source-to-sink capacities",
         input: {
-          nodes: ["S", "A", "T"],
-          edges: [["S", "A", 4]],
+          nodes: ["S", "T"],
+          edges: [
+            ["S", "T", 2],
+            ["S", "T", 3],
+          ],
           source: "S",
           sink: "T",
         },
-        expected: 0,
+        expected: 5,
       },
       {
         label: "Residual rerouting required",

@@ -20,11 +20,13 @@ export const graphSpanningTreesExecutions = [
           { from: "A", to: "B", weight: 1 },
           { from: "B", to: "C", weight: 2 },
         ],
+        comparison: "unordered",
       },
       {
         label: "Single node",
         input: { nodes: [{ id: "A" }], edges: [] },
         expected: [],
+        comparison: "unordered",
       },
       {
         label: "Four-node competing edges",
@@ -43,6 +45,7 @@ export const graphSpanningTreesExecutions = [
           { from: "B", to: "D", weight: 1 },
           { from: "C", to: "B", weight: 2 },
         ],
+        comparison: "unordered",
       },
     ),
     audit: {

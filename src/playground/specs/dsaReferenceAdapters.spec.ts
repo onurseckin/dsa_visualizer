@@ -152,4 +152,36 @@ describe("DSA canonical Python execution adapters", () => {
       expect(result.cases.filter((testCase) => testCase.status !== "passed")).toEqual([]);
     },
   );
+
+  test("aggregates parallel Ford-Fulkerson capacities", () => {
+    const result = executeReference(
+      "ford-fulkerson",
+      functionSpec(
+        "ford_fulkerson",
+        [["nodes"], ["edges"], ["source"], ["sink"]],
+        [
+          {
+            id: "parallel",
+            label: "Parallel source-to-sink edges",
+            input: {
+              nodes: ["S", "T"],
+              edges: [
+                ["S", "T", 2],
+                ["S", "T", 3],
+              ],
+              source: "S",
+              sink: "T",
+            },
+            expected: 5,
+            comparison: "deep-equal",
+          },
+        ],
+      ),
+    );
+
+    expect(result.status).toBe("passed");
+    expect(result.cases).toEqual([
+      expect.objectContaining({ id: "parallel", status: "passed", actual: 5 }),
+    ]);
+  });
 });

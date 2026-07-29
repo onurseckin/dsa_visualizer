@@ -8,7 +8,7 @@ export interface FordFulkersonInput {
 export const FORD_FULKERSON_CODE = `def ford_fulkerson(nodes, edges, source, sink):
     capacity = {}
     for u, v, cap in edges:
-        capacity[(u, v)] = cap
+        capacity[(u, v)] = capacity.get((u, v), 0) + cap
     for u, v, _ in edges:
         capacity.setdefault((v, u), 0)
     flow = {edge: 0 for edge in capacity}

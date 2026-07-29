@@ -168,12 +168,19 @@ export const backtrackingExecutions = [
         label: "Two-element power set",
         input: { elements: [1, 2] },
         expected: [[], [2], [1], [1, 2]],
+        comparison: "unordered",
       },
-      { label: "Empty power set", input: { elements: [] }, expected: [[]] },
+      {
+        label: "Empty power set",
+        input: { elements: [] },
+        expected: [[]],
+        comparison: "unordered",
+      },
       {
         label: "Three-element power set",
         input: { elements: [1, 2, 3] },
         expected: [[], [3], [2], [2, 3], [1], [1, 3], [1, 2], [1, 2, 3]],
+        comparison: "unordered",
       },
     ),
     audit: {

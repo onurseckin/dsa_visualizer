@@ -19,6 +19,52 @@ const dsaAlgorithms = ALGORITHMS.filter((algorithm) =>
 const dsaIds = dsaAlgorithms.map((algorithm) => algorithm.id).sort();
 const harnessPath = resolve(process.cwd(), "apps/python-runner/execution_harness.py");
 
+function hasUniqueTopologicalOrder(input: unknown): boolean {
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    !("nodes" in input) ||
+    !Array.isArray(input.nodes) ||
+    !("edges" in input) ||
+    !Array.isArray(input.edges)
+  ) {
+    return false;
+  }
+
+  const nodes = input.nodes.filter((node): node is string => typeof node === "string");
+  const adjacency = new Map(nodes.map((node) => [node, [] as string[]]));
+  const inDegree = new Map(nodes.map((node) => [node, 0]));
+  for (const edge of input.edges) {
+    if (!Array.isArray(edge) || edge.length !== 2) return false;
+    const [from, to] = edge;
+    if (
+      typeof from !== "string" ||
+      typeof to !== "string" ||
+      !adjacency.has(from) ||
+      !inDegree.has(to)
+    ) {
+      return false;
+    }
+    adjacency.get(from)?.push(to);
+    inDegree.set(to, (inDegree.get(to) ?? 0) + 1);
+  }
+
+  const ready = nodes.filter((node) => inDegree.get(node) === 0);
+  let visited = 0;
+  while (ready.length > 0) {
+    if (ready.length !== 1) return false;
+    const node = ready.shift();
+    if (node === undefined) return false;
+    visited += 1;
+    for (const neighbor of adjacency.get(node) ?? []) {
+      const nextDegree = (inDegree.get(neighbor) ?? 0) - 1;
+      inDegree.set(neighbor, nextDegree);
+      if (nextDegree === 0) ready.push(neighbor);
+    }
+  }
+  return visited === nodes.length;
+}
+
 describe("DSA Python execution catalog", () => {
   test("covers exactly the 88 retained DSA algorithms once", () => {
     expect(dsaAlgorithms).toHaveLength(88);
@@ -81,6 +127,31 @@ describe("DSA Python execution catalog", () => {
       expect(new Set(inputs).size).toBe(spec.cases.length);
       expect(new Set(expected).size).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  test("uses semantic comparison or uniquely determined fixtures for order-ambiguous results", () => {
+    const topologicalSort = DSA_EXECUTION_SPECS.get("topological-sort");
+    expect(topologicalSort).toBeDefined();
+    for (const testCase of topologicalSort?.cases ?? []) {
+      expect(testCase.comparison).toBe("deep-equal");
+      expect(hasUniqueTopologicalOrder(testCase.input)).toBe(true);
+    }
+
+    for (const id of [
+      "generating-subsets",
+      "kosaraju-scc",
+      "kruskal-mst",
+      "sweep-line-intersections",
+    ]) {
+      const spec = DSA_EXECUTION_SPECS.get(id);
+      expect(spec, `missing audited execution spec ${id}`).toBeDefined();
+      expect(
+        spec?.cases.map((testCase) => testCase.comparison),
+        `${id} has order-insensitive mathematical output`,
+      ).toEqual(["unordered", "unordered", "unordered"]);
+    }
+
+    expect(DSA_EXECUTION_SPECS.size).toBe(88);
   });
 
   test("provides parseable starter code with canonical semantic Python signatures", () => {
@@ -148,6 +219,8 @@ describe("DSA Python execution catalog", () => {
           "            reference_names = parameter_names(reference_symbol)",
           "            if starter_names != reference_names:",
           "                issues.append(f\"{item['id']}: starter parameters {starter_names} do not match canonical {reference_names}\")",
+          "            if ast.dump(symbol.args, include_attributes=False) != ast.dump(reference_symbol.args, include_attributes=False):",
+          "                issues.append(f\"{item['id']}: starter ast.arguments differ from canonical semantics\")",
           "            if any(re.fullmatch(r'arg\\d+', name) for name in starter_names):",
           "                issues.append(f\"{item['id']}: generic argN function parameter\")",
           "        elif invocation['kind'] == 'class-method':",
@@ -169,6 +242,8 @@ describe("DSA Python execution catalog", () => {
           "                reference_names = parameter_names(reference_method)",
           "                if starter_names != reference_names:",
           "                    issues.append(f\"{item['id']}: {name} starter parameters {starter_names} do not match canonical {reference_names}\")",
+          "                if ast.dump(method.args, include_attributes=False) != ast.dump(reference_method.args, include_attributes=False):",
+          "                    issues.append(f\"{item['id']}: {name} starter ast.arguments differ from canonical semantics\")",
           "                if any(re.fullmatch(r'arg\\d+', parameter) for parameter in starter_names):",
           "                    issues.append(f\"{item['id']}: generic argN parameter in {name}\")",
           "    except (SyntaxError, TypeError, ValueError) as error:",

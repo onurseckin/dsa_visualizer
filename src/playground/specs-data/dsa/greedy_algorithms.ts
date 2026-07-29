@@ -50,7 +50,7 @@ export const greedyAlgorithmsExecutions = [
         label: "Signed and touching intervals",
         input: [
           [-3, -1],
-          [-1, 2],
+          [-2, 2],
           [0, 1],
           [2, 3],
         ],

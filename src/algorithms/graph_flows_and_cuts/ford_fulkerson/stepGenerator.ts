@@ -27,23 +27,32 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
   const capMap: Record<string, number> = {};
   const flowMap: Record<string, number> = {};
+  const aggregatedEdges: FordFulkersonInput["edges"] = [];
+  const aggregatedEdgeIndex = new Map<string, number>();
 
   rawEdges.forEach((e) => {
     const key = `${e.from}->${e.to}`;
-    capMap[key] = e.capacity;
+    capMap[key] = (capMap[key] ?? 0) + e.capacity;
+    const index = aggregatedEdgeIndex.get(key);
+    if (index === undefined) {
+      aggregatedEdgeIndex.set(key, aggregatedEdges.length);
+      aggregatedEdges.push({ ...e });
+    } else {
+      const current = aggregatedEdges[index];
+      if (current) current.capacity += e.capacity;
+    }
+  });
+  aggregatedEdges.forEach((e) => {
+    const reverseKey = `${e.to}->${e.from}`;
+    capMap[reverseKey] ??= 0;
+  });
+  Object.keys(capMap).forEach((key) => {
     flowMap[key] = 0;
   });
 
   const getResidualCapacity = (u: string, v: string): number => {
     const key = `${u}->${v}`;
-    const revKey = `${v}->${u}`;
-    if (capMap[key] !== undefined) {
-      return capMap[key] - (flowMap[key] || 0);
-    }
-    if (capMap[revKey] !== undefined) {
-      return flowMap[revKey] || 0;
-    }
-    return 0;
+    return (capMap[key] ?? 0) - (flowMap[key] ?? 0);
   };
 
   const getGraphNodes = (
@@ -84,10 +93,10 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
   ): GraphEdgeItem[] => {
     const pathEdgeSet = new Set((activePathEdges || []).map((e) => `${e.from}->${e.to}`));
 
-    return rawEdges.map((e) => {
+    return aggregatedEdges.map((e) => {
       const key = `${e.from}->${e.to}`;
       const f = flowMap[key] || 0;
-      const c = e.capacity;
+      const c = capMap[key] ?? 0;
       const res = c - f;
       const isPath = pathEdgeSet.has(key);
 
@@ -107,9 +116,9 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     extra?: Record<string, string | number>,
   ): Record<string, string | number> => {
     const edgeFlowSummary: string[] = [];
-    rawEdges.forEach((e) => {
+    aggregatedEdges.forEach((e) => {
       const key = `${e.from}->${e.to}`;
-      edgeFlowSummary.push(`${key}: ${flowMap[key]}/${e.capacity}`);
+      edgeFlowSummary.push(`${key}: ${flowMap[key]}/${capMap[key]}`);
     });
 
     return {
@@ -302,11 +311,8 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
       const forwardKey = `${u}->${v}`;
       const revKey = `${v}->${u}`;
 
-      if (capMap[forwardKey] !== undefined) {
-        flowMap[forwardKey] += bottleneck;
-      } else if (capMap[revKey] !== undefined) {
-        flowMap[revKey] -= bottleneck;
-      }
+      flowMap[forwardKey] = (flowMap[forwardKey] ?? 0) + bottleneck;
+      flowMap[revKey] = (flowMap[revKey] ?? 0) - bottleneck;
     }
 
     currentMaxFlow += bottleneck;
