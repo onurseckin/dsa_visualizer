@@ -5,7 +5,9 @@ import {
 } from "@dsa-visualizer/execution-contracts";
 
 import {
+  createPythonRunRequestSnapshot,
   executionErrorResult,
+  PYTHON_RUNNER_INFRASTRUCTURE_ERRORS,
   type PythonRunner,
   type PythonRunnerRunOptions,
   validatePythonRunResult,
@@ -14,12 +16,14 @@ import {
 export interface ServerPythonRunnerClientOptions {
   readonly cancelEndpoint?: string;
   readonly endpoint?: string;
+  readonly executionIdFactory?: () => string;
   readonly fetch?: (input: string, init?: RequestInit) => Promise<Response>;
   readonly timeoutMs?: number;
 }
 
 interface ActiveServerRun {
   readonly abortController: AbortController;
+  readonly logicalRunId: string;
   readonly request: PythonRunRequest;
   readonly resolve: (result: PythonRunResult) => void;
   readonly signal?: AbortSignal;
@@ -31,6 +35,15 @@ interface ActiveServerRun {
 }
 
 const DEFAULT_TIMEOUT_MS = 31_000;
+let clientSequence = 0;
+
+function createDefaultExecutionIdFactory(): () => string {
+  const clientId =
+    globalThis.crypto?.randomUUID?.() ??
+    `${Date.now().toString(36)}-${(++clientSequence).toString(36)}`;
+  let executionSequence = 0;
+  return () => `python-${clientId}-${(++executionSequence).toString(36)}`;
+}
 
 export function createServerPythonRunnerClient(
   options: ServerPythonRunnerClientOptions = {},
@@ -39,6 +52,7 @@ export function createServerPythonRunnerClient(
   const endpoint = options.endpoint ?? "/api/python/run";
   const cancelEndpoint = options.cancelEndpoint ?? "/api/python/cancel";
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const executionIdFactory = options.executionIdFactory ?? createDefaultExecutionIdFactory();
   let active: ActiveServerRun | undefined;
 
   const sendCancellation = async (runId: string) => {
@@ -73,7 +87,7 @@ export function createServerPythonRunnerClient(
     settle(
       record,
       executionErrorResult(
-        record.request.runId,
+        record.logicalRunId,
         "server",
         stderr,
         status,
@@ -84,14 +98,27 @@ export function createServerPythonRunnerClient(
 
   return {
     run(request, runOptions: PythonRunnerRunOptions = {}) {
-      const clonedRequest = cloneAsServerRequest(request);
+      const logicalRunId = request.runId;
+      const clonedRequest = cloneAsServerRequest(request, executionIdFactory());
       const requestValidation = validatePythonRunRequest(clonedRequest);
       if (!requestValidation.ok) {
         return Promise.resolve(
-          executionErrorResult(request.runId, "server", "Python execution request is invalid."),
+          executionErrorResult(logicalRunId, "server", "Python execution request is invalid."),
         );
       }
-      const serverRequest = requestValidation.value;
+      let serverRequest: PythonRunRequest;
+      try {
+        serverRequest = createPythonRunRequestSnapshot(requestValidation.value);
+      } catch {
+        return Promise.resolve(
+          executionErrorResult(logicalRunId, "server", "Python execution request is invalid."),
+        );
+      }
+      if (!validatePythonRunRequest(serverRequest).ok) {
+        return Promise.resolve(
+          executionErrorResult(logicalRunId, "server", "Python execution request is invalid."),
+        );
+      }
 
       if (active) {
         interruptActive("Python execution was superseded by a newer run.");
@@ -101,6 +128,7 @@ export function createServerPythonRunnerClient(
         const abortController = new AbortController();
         const record: ActiveServerRun = {
           abortController,
+          logicalRunId,
           request: serverRequest,
           resolve,
           signal: runOptions.signal,
@@ -140,11 +168,11 @@ export function createServerPythonRunnerClient(
               settle(
                 record,
                 executionErrorResult(
-                  request.runId,
+                  logicalRunId,
                   "server",
                   response.status >= 500
-                    ? "Python runner is unavailable."
-                    : "Python runner returned an invalid response.",
+                    ? PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.serverUnavailable
+                    : PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.serverInvalidResponse,
                   "error",
                   Date.now() - record.startedAt,
                 ),
@@ -161,11 +189,11 @@ export function createServerPythonRunnerClient(
             settle(
               record,
               resultValidation.ok
-                ? resultValidation.value
+                ? { ...resultValidation.value, runId: logicalRunId }
                 : executionErrorResult(
-                    request.runId,
+                    logicalRunId,
                     "server",
-                    "Python runner returned an invalid response.",
+                    PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.serverInvalidResponse,
                     "error",
                     Date.now() - record.startedAt,
                   ),
@@ -176,9 +204,9 @@ export function createServerPythonRunnerClient(
             settle(
               record,
               executionErrorResult(
-                request.runId,
+                logicalRunId,
                 "server",
-                "Python runner is unavailable.",
+                PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.serverUnavailable,
                 "error",
                 Date.now() - record.startedAt,
               ),
@@ -187,11 +215,9 @@ export function createServerPythonRunnerClient(
       });
     },
     async cancel(runId) {
-      if (active?.request.runId === runId) {
+      if (active?.logicalRunId === runId) {
         interruptActive("Python execution was cancelled.");
-        return;
       }
-      await sendCancellation(runId);
     },
     dispose() {
       if (active) interruptActive("Python execution was cancelled.");
@@ -199,9 +225,10 @@ export function createServerPythonRunnerClient(
   };
 }
 
-function cloneAsServerRequest(request: PythonRunRequest): PythonRunRequest {
+function cloneAsServerRequest(request: PythonRunRequest, executionId: string): PythonRunRequest {
   return {
     ...request,
+    runId: executionId,
     spec: {
       ...request.spec,
       runtime: "server",

@@ -7,6 +7,7 @@ import type {
 
 import {
   executionErrorResult,
+  isPythonRunnerInfrastructureFailure,
   type PythonRunner,
   type PythonRunnerRunOptions,
   type PythonRuntimePreference,
@@ -98,7 +99,7 @@ export function createHybridPythonRunner(options: HybridPythonRunnerOptions): Py
       if (
         runGeneration !== generation ||
         preference !== "auto" ||
-        !isInfrastructureFailure(primaryResult) ||
+        !isPythonRunnerInfrastructureFailure(primaryResult) ||
         !isBrowserCompatible(request.spec)
       ) {
         return primaryResult;
@@ -137,13 +138,4 @@ function cloneRequestRuntime(request: PythonRunRequest, runtime: PythonRuntime):
 
 function withoutRuntimePreference(options: PythonRunnerRunOptions): PythonRunnerRunOptions {
   return options.signal ? { signal: options.signal } : {};
-}
-
-function isInfrastructureFailure(result: PythonRunResult): boolean {
-  if (result.status !== "error" || result.cases.length > 0) return false;
-  return (
-    result.stderr === "Browser Python runtime is unavailable." ||
-    result.stderr === "Python runner is unavailable." ||
-    result.stderr === "Python runner returned an invalid response."
-  );
 }

@@ -5,7 +5,14 @@ import type {
   PythonRunResult,
 } from "@dsa-visualizer/execution-contracts";
 
-import { createServerPythonRunnerClient } from "../serverRunnerClient";
+import {
+  createServerPythonRunnerClient,
+  type ServerPythonRunnerClientOptions,
+} from "../serverRunnerClient";
+
+type Mutable<T> = {
+  -readonly [Key in keyof T]: T[Key] extends object ? Mutable<T[Key]> : T[Key];
+};
 
 const SPEC: PythonExecutionSpec = {
   runtime: "browser",
@@ -37,7 +44,7 @@ const REQUEST: PythonRunRequest = {
 };
 
 const RESULT: PythonRunResult = {
-  runId: REQUEST.runId,
+  runId: "transport-1",
   status: "passed",
   stdout: "",
   stderr: "",
@@ -55,12 +62,29 @@ const RESULT: PythonRunResult = {
   runtime: "server",
 };
 
+const LOGICAL_RESULT: PythonRunResult = {
+  ...RESULT,
+  runId: REQUEST.runId,
+};
+
+function createTestServerClient(
+  options: ServerPythonRunnerClientOptions = {},
+  executionIds = ["transport-1", "transport-2"],
+) {
+  let index = 0;
+  return createServerPythonRunnerClient({
+    ...options,
+    executionIdFactory:
+      options.executionIdFactory ?? (() => executionIds[index++] ?? `transport-${index}`),
+  });
+}
+
 describe("browser-to-server runner client", () => {
   it("posts a cloned server contract without mutating the authored browser spec", async () => {
     const fetch = vi.fn(async (_url: string, _init?: RequestInit) => Response.json(RESULT));
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
-    await expect(client.run(REQUEST)).resolves.toEqual(RESULT);
+    await expect(client.run(REQUEST)).resolves.toEqual(LOGICAL_RESULT);
 
     const body = JSON.parse(
       String((fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.body),
@@ -152,7 +176,7 @@ describe("browser-to-server runner client", () => {
       "Python runner returned an invalid response.",
     ],
   ])("normalizes %s", async (_label, fetch, stderr) => {
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
     await expect(client.run(REQUEST)).resolves.toMatchObject({
       runId: REQUEST.runId,
@@ -164,7 +188,7 @@ describe("browser-to-server runner client", () => {
 
   it("rejects an invalid cloned request before starting network work", async () => {
     const fetch = vi.fn(async () => Response.json(RESULT));
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
     const invalidRequest = {
       ...REQUEST,
       spec: {
@@ -189,7 +213,7 @@ describe("browser-to-server runner client", () => {
     [400, "Python runner returned an invalid response."],
     [503, "Python runner is unavailable."],
   ])("normalizes an HTTP %i response", async (status, stderr) => {
-    const client = createServerPythonRunnerClient({
+    const client = createTestServerClient({
       fetch: vi.fn(async () => new Response("failure", { status })),
     });
 
@@ -203,7 +227,7 @@ describe("browser-to-server runner client", () => {
     const fetch = vi.fn(async () => Response.json(RESULT));
     const controller = new AbortController();
     controller.abort();
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
     await expect(client.run(REQUEST, { signal: controller.signal })).resolves.toMatchObject({
       status: "error",
@@ -212,7 +236,7 @@ describe("browser-to-server runner client", () => {
     expect(fetch).toHaveBeenCalledOnce();
     expect(fetch).toHaveBeenCalledWith(
       "/api/python/cancel",
-      expect.objectContaining({ body: JSON.stringify({ runId: REQUEST.runId }) }),
+      expect.objectContaining({ body: JSON.stringify({ runId: "transport-1" }) }),
     );
   });
 
@@ -231,7 +255,7 @@ describe("browser-to-server runner client", () => {
             );
           }),
       );
-      const client = createServerPythonRunnerClient({ fetch, timeoutMs: 50 });
+      const client = createTestServerClient({ fetch, timeoutMs: 50 });
 
       const pending = client.run(REQUEST);
       await vi.advanceTimersByTimeAsync(51);
@@ -244,7 +268,7 @@ describe("browser-to-server runner client", () => {
         "/api/python/cancel",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ runId: REQUEST.runId }),
+          body: JSON.stringify({ runId: "transport-1" }),
         }),
       );
     } finally {
@@ -259,7 +283,7 @@ describe("browser-to-server runner client", () => {
       const body = JSON.parse(String(init?.body)) as PythonRunRequest;
       return new Promise<Response>((resolve) => responses.set(body.runId, resolve));
     });
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
     const stale = client.run(REQUEST);
     const currentRequest = { ...REQUEST, runId: "run-current" };
@@ -269,10 +293,8 @@ describe("browser-to-server runner client", () => {
       status: "error",
       stderr: "Python execution was superseded by a newer run.",
     });
-    responses.get(REQUEST.runId)?.(Response.json(RESULT));
-    responses.get(currentRequest.runId)?.(
-      Response.json({ ...RESULT, runId: currentRequest.runId }),
-    );
+    responses.get("transport-1")?.(Response.json(RESULT));
+    responses.get("transport-2")?.(Response.json({ ...RESULT, runId: "transport-2" }));
     await expect(current).resolves.toMatchObject({
       runId: currentRequest.runId,
       status: "passed",
@@ -293,7 +315,7 @@ describe("browser-to-server runner client", () => {
         }),
     );
     const controller = new AbortController();
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
     const pending = client.run(REQUEST, { signal: controller.signal });
     controller.abort();
@@ -306,9 +328,10 @@ describe("browser-to-server runner client", () => {
     expect(fetch).toHaveBeenCalledWith(
       "/api/python/cancel",
       expect.objectContaining({
-        body: JSON.stringify({ runId: "another-run" }),
+        body: JSON.stringify({ runId: "transport-1" }),
       }),
     );
+    expect(fetch.mock.calls.filter(([url]) => url === "/api/python/cancel")).toHaveLength(1);
   });
 
   it("supports explicit cancellation and disposal of active work", async () => {
@@ -324,7 +347,7 @@ describe("browser-to-server runner client", () => {
           );
         }),
     );
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
     const cancelled = client.run(REQUEST);
     await client.cancel(REQUEST.runId);
@@ -349,7 +372,7 @@ describe("browser-to-server runner client", () => {
         ? Promise.reject(new TypeError("runner stopped"))
         : new Promise<Response>(() => undefined),
     );
-    const client = createServerPythonRunnerClient({ fetch });
+    const client = createTestServerClient({ fetch });
 
     const pending = client.run(REQUEST);
     await client.cancel(REQUEST.runId);
@@ -358,5 +381,113 @@ describe("browser-to-server runner client", () => {
       status: "error",
       stderr: "Python execution was cancelled.",
     });
+  });
+
+  it("dispatches and validates against a deep request snapshot", async () => {
+    let resolveResponse: ((response: Response) => void) | undefined;
+    const fetch = vi.fn(
+      (_url: string, _init?: RequestInit) =>
+        new Promise<Response>((resolve) => {
+          resolveResponse = resolve;
+        }),
+    );
+    const mutableRequest = structuredClone(REQUEST) as Mutable<PythonRunRequest>;
+    const client = createServerPythonRunnerClient({
+      fetch,
+      executionIdFactory: () => "transport-snapshot",
+    });
+
+    const pending = client.run(mutableRequest);
+    mutableRequest.runId = "mutated-logical-id";
+    mutableRequest.code = "raise RuntimeError('mutated')";
+    mutableRequest.spec.cases[0]!.id = "mutated-case";
+    mutableRequest.spec.cases[0]!.input = 99;
+    mutableRequest.spec.cases[0]!.expected = 198;
+    (mutableRequest.spec.limits as { maxOutputBytes: number }).maxOutputBytes = 1;
+
+    const body = JSON.parse(
+      String((fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.body),
+    ) as PythonRunRequest;
+    expect(body).toMatchObject({
+      runId: "transport-snapshot",
+      code: REQUEST.code,
+      spec: {
+        runtime: "server",
+        cases: [
+          {
+            id: "public",
+            input: 2,
+            expected: 4,
+          },
+        ],
+        limits: {
+          maxOutputBytes: 16,
+        },
+      },
+    });
+
+    resolveResponse?.(Response.json({ ...RESULT, runId: "transport-snapshot" }));
+    await expect(pending).resolves.toEqual(LOGICAL_RESULT);
+  });
+
+  it("uses a distinct transport ID and remaps a validated result to the logical ID", async () => {
+    const fetch = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as PythonRunRequest;
+      return Response.json({ ...RESULT, runId: body.runId });
+    });
+    const client = createServerPythonRunnerClient({
+      fetch,
+      executionIdFactory: () => "transport-remap",
+    });
+
+    await expect(client.run(REQUEST)).resolves.toEqual(LOGICAL_RESULT);
+
+    const body = JSON.parse(
+      String((fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.body),
+    ) as PythonRunRequest;
+    expect(body.runId).toBe("transport-remap");
+    expect(body.runId).not.toBe(REQUEST.runId);
+  });
+
+  it("does not create cancellation tombstones for inactive logical IDs", async () => {
+    const fetch = vi.fn(async () => new Response(null));
+    const client = createServerPythonRunnerClient({ fetch });
+
+    await client.cancel("inactive-logical-id");
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("cancels only the old transport when the same logical ID is rapidly replaced", async () => {
+    const executionIds = ["transport-old", "transport-new"];
+    const responses = new Map<string, (response: Response) => void>();
+    const cancelledIds: string[] = [];
+    const fetch = vi.fn((url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { runId: string };
+      if (url === "/api/python/cancel") {
+        cancelledIds.push(body.runId);
+        return Promise.resolve(new Response(null));
+      }
+      return new Promise<Response>((resolve) => responses.set(body.runId, resolve));
+    });
+    const client = createServerPythonRunnerClient({
+      fetch,
+      executionIdFactory: () => executionIds.shift()!,
+    });
+
+    const stale = client.run(REQUEST);
+    const current = client.run(REQUEST);
+
+    await expect(stale).resolves.toMatchObject({
+      runId: REQUEST.runId,
+      status: "error",
+      stderr: "Python execution was superseded by a newer run.",
+    });
+    expect(cancelledIds).toEqual(["transport-old"]);
+
+    responses.get("transport-old")?.(Response.json({ ...RESULT, runId: "transport-old" }));
+    responses.get("transport-new")?.(Response.json({ ...RESULT, runId: "transport-new" }));
+    await expect(current).resolves.toEqual(LOGICAL_RESULT);
+    expect(cancelledIds).toEqual(["transport-old"]);
   });
 });
