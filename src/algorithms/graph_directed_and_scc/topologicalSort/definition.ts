@@ -117,7 +117,7 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "<p><strong>Kahn's algorithm</strong> produces a linear ordering of the vertices in a Directed Acyclic Graph (DAG) <code>G = (V, E)</code> such that for every edge <code>u → v</code>, vertex <code>u</code> appears before vertex <code>v</code>.</p><p>It tracks each node's in-degree (<code>in_degree[v]</code>) and repeatedly dequeues nodes with no remaining prerequisites (<code>in_degree === 0</code>). This is the classic tool for task scheduling, build-order resolution, and course prerequisite planning in <code>O(V + E)</code> time.</p>",
+    "<p>Given a Directed Acyclic Graph (DAG) <code>G = (V, E)</code>, compute a linear ordering of vertices such that for every directed edge <code>u → v</code>, vertex <code>u</code> appears before vertex <code>v</code> in the sequence.</p><h3>Problem Statement</h3><p>Compute a topological ordering using Kahn's in-degree algorithm. If the graph contains a directed cycle, indicate that no valid topological ordering exists.</p><h3>Input Parameters</h3><ul><li><code>nodes</code>: List of graph vertices.</li><li><code>edges</code>: List of directed edges connecting pairs of vertices.</li></ul><h3>Output</h3><p>Returns an array of vertex IDs in topological order, or an empty array if a directed cycle is present.</p>",
   constraints: [
     "1 <= V <= 10^4",
     "0 <= E <= 2 * 10^4",
@@ -126,62 +126,40 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
         "vertices = [5, 4, 2, 3, 1, 0], edges = [(5,2), (5,0), (4,0), (4,1), (2,3), (3,1)]",
       outputDisplay: "[5, 4, 2, 3, 1, 0]",
-      title: "Basic Example",
-      input: {
-        nodes: [
-          { id: "5", label: "5", x: 100, y: 100, state: "default" },
-          { id: "4", label: "4", x: 100, y: 200, state: "default" },
-          { id: "2", label: "2", x: 250, y: 100, state: "default" },
-          { id: "0", label: "0", x: 400, y: 100, state: "default" },
-          { id: "1", label: "1", x: 400, y: 200, state: "default" },
-          { id: "3", label: "3", x: 250, y: 200, state: "default" },
-        ],
-        edges: [
-          { from: "5", to: "2" },
-          { from: "5", to: "0" },
-          { from: "4", to: "0" },
-          { from: "4", to: "1" },
-          { from: "2", to: "3" },
-          { from: "3", to: "1" },
-        ],
-      },
+      title: "Standard DAG Topological Order",
+      input: DEFAULT_TOPO_SORT_INPUT,
       output: "[5, 4, 2, 0, 3, 1]",
       explanation:
         "Nodes 5 and 4 start with in-degree 0. Processing them unblocks nodes 2 and 0, leading to a complete valid topological order.",
     },
     {
       kind: "complex",
-      inputDisplay: "vertices = [A, B, C, D, E], edges = [(A,B), (B,C), (A,C), (C,D), (D,E)]",
-      outputDisplay: "[A, B, C, D, E]",
-      title: "Complex Edge Case",
+      scenario: "boundary",
+      inputDisplay: "vertices = [A, B, C], edges = []",
+      outputDisplay: "[A, B, C]",
+      title: "Boundary Disconnected Graph with No Edges",
       input: {
         nodes: [
-          { id: "A", label: "A", x: 100, y: 100, state: "default" },
-          { id: "B", label: "B", x: 200, y: 100, state: "default" },
-          { id: "C", label: "C", x: 200, y: 200, state: "default" },
-          { id: "D", label: "D", x: 300, y: 150, state: "default" },
-          { id: "E", label: "E", x: 400, y: 150, state: "default" },
+          { id: "A", label: "A", state: "default" },
+          { id: "B", label: "B", state: "default" },
+          { id: "C", label: "C", state: "default" },
         ],
-        edges: [
-          { from: "A", to: "B" },
-          { from: "A", to: "C" },
-          { from: "B", to: "D" },
-          { from: "C", to: "D" },
-          { from: "D", to: "E" },
-        ],
+        edges: [],
       },
-      output: "[A, B, C, D, E]",
+      output: "[A, B, C]",
       explanation:
-        "Node A has multiple outgoing paths (B and C) that merge into D before reaching E. Kahn's algorithm processes A first, then B and C, then D and E.",
+        "All vertices have in-degree 0 initially and can be ordered in any arbitrary sequence.",
     },
     {
       kind: "negative",
+      scenario: "adversarial",
       inputDisplay: "vertices = [A, B, C], edges = [(A,B), (B,C), (C,A)]",
       outputDisplay: "Cycle Detected (Not a DAG)",
-      title: "Failing / Boundary Case",
+      title: "Adversarial Directed Cycle",
       input: {
         nodes: [
           { id: "A", label: "A", state: "default" },
@@ -235,3 +213,5 @@ export const topologicalSort: AlgorithmDefinition<TopologicalSortInput> = {
   defaultInput: DEFAULT_TOPO_SORT_INPUT,
   generateSteps: generateTopologicalSortSteps,
 };
+
+export default topologicalSort;

@@ -9,6 +9,7 @@ import type {
   MlInfraSource,
 } from "../../types/dsa";
 import { getSourceKind } from "../../types/dsa";
+import { getSourceDisplayTag } from "../../components/problem-list/problemListUtils";
 import type { BadgeSize } from "./Badge";
 import { Badge } from "./Badge";
 import { LeetCodeBadge } from "./LeetCodeBadge";
@@ -33,6 +34,7 @@ export interface BookBadgeProps {
   shortTitle?: string;
   size?: BadgeSize;
   className?: string;
+  onSelectTag?: (tag: string) => void;
 }
 
 export const BookBadge: React.FC<BookBadgeProps> = ({
@@ -44,6 +46,7 @@ export const BookBadge: React.FC<BookBadgeProps> = ({
   shortTitle: shortTitleProp,
   size = "sm",
   className,
+  onSelectTag,
 }) => {
   if (!book && (chapterProp === undefined || chapterProp === null)) {
     return null;
@@ -55,13 +58,34 @@ export const BookBadge: React.FC<BookBadgeProps> = ({
   const section = book?.section ?? sectionProp ?? "";
   const shortTitle = book?.shortTitle ?? shortTitleProp;
 
+  const tagLabel = getSourceDisplayTag(
+    (book ?? {
+      kind: "book",
+      bookTitle,
+      chapter,
+      chapterTitle,
+      section,
+      shortTitle,
+    }) as ProblemSource,
+  );
+  const isClickable = Boolean(onSelectTag && tagLabel);
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (onSelectTag && tagLabel) {
+      e.stopPropagation();
+      onSelectTag(tagLabel);
+    }
+  };
+
   if (chapter === undefined || chapter === null) {
     return (
       <Badge
         variant="neutral"
         size={size}
+        onClick={isClickable ? handleClick : undefined}
         className={cx(
           "inline-flex items-center gap-1.5 font-mono text-cyan-300 border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/40 transition-colors",
+          isClickable && "cursor-pointer hover:border-indigo-400 hover:text-cyan-200",
           className,
         )}
         title={bookTitle}
@@ -90,8 +114,10 @@ export const BookBadge: React.FC<BookBadgeProps> = ({
     <Badge
       variant="neutral"
       size={size}
+      onClick={isClickable ? handleClick : undefined}
       className={cx(
         "inline-flex items-center gap-1.5 font-mono text-cyan-300 border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/40 transition-colors",
+        isClickable && "cursor-pointer hover:border-indigo-400 hover:text-cyan-200",
         className,
       )}
       title={titleText}
@@ -160,9 +186,15 @@ export interface SourceBadgeProps {
   source?: ProblemSource | LearningSource;
   size?: BadgeSize;
   className?: string;
+  onSelectTag?: (tag: string) => void;
 }
 
-export const SourceBadge: React.FC<SourceBadgeProps> = ({ source, size = "sm", className }) => {
+export const SourceBadge: React.FC<SourceBadgeProps> = ({
+  source,
+  size = "sm",
+  className,
+  onSelectTag,
+}) => {
   if (!source) {
     return null;
   }
@@ -195,7 +227,14 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({ source, size = "sm", c
   }
 
   if (kind === "book") {
-    return <BookBadge book={source as BookSource} size={size} className={className} />;
+    return (
+      <BookBadge
+        book={source as BookSource}
+        size={size}
+        className={className}
+        onSelectTag={onSelectTag}
+      />
+    );
   }
 
   if (kind === "standard") {
@@ -217,6 +256,7 @@ export interface SourceBadgeListProps {
   leetcode?: { id: number; url: string };
   size?: BadgeSize;
   className?: string;
+  onSelectTag?: (tag: string) => void;
 }
 
 export const SourceBadgeList: React.FC<SourceBadgeListProps> = ({
@@ -224,6 +264,7 @@ export const SourceBadgeList: React.FC<SourceBadgeListProps> = ({
   leetcode,
   size = "sm",
   className = "inline-flex items-center gap-1.5 flex-wrap",
+  onSelectTag,
 }) => {
   const effectiveSources: readonly (ProblemSource | LearningSource)[] =
     sources && sources.length > 0
@@ -243,7 +284,7 @@ export const SourceBadgeList: React.FC<SourceBadgeListProps> = ({
   return (
     <div className={className}>
       {effectiveSources.map((src, i) => (
-        <SourceBadge key={i} source={src} size={size} />
+        <SourceBadge key={i} source={src} size={size} onSelectTag={onSelectTag} />
       ))}
     </div>
   );

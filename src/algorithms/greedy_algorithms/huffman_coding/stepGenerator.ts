@@ -1,29 +1,161 @@
-import type { AlgorithmStep, TreeNodeItem } from "../../../types/dsa";
+import type { AlgorithmStep, PrimaryVisualSnapshot, TreeNodeItem } from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 import type { HuffmanCodingInput, InternalHuffmanNode } from "./types";
 import { DEFAULT_HUFFMAN_CODING_INPUT } from "./types";
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Data compression reduces text storage size by encoding character symbols with variable-length binary code words instead of fixed 8-bit ASCII.",
+    primarySnapshot: {
+      kind: "hashtable",
+      name: "fixed_ascii",
+      buckets: [
+        { index: 0, entries: [{ key: "'a'", value: "01100001 (8 bits)" }] },
+        { index: 1, entries: [{ key: "'b'", value: "01100010 (8 bits)" }] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Huffman Coding problem asks us to assign binary code words to characters in a text to minimize total encoded bit length.",
+    primarySnapshot: {
+      kind: "hashtable",
+      name: "frequencies",
+      buckets: [
+        { index: 0, entries: [{ key: "'a'", value: "5 occurrences" }] },
+        { index: 1, entries: [{ key: "'b'", value: "2 occurrences" }] },
+        { index: 2, entries: [{ key: "'r'", value: "2 occurrences" }] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Fixed-length binary encoding uses ceil(log₂ K) bits per character regardless of symbol frequency, wasting bits on frequent characters.",
+    primarySnapshot: {
+      kind: "array",
+      name: "fixed_codes",
+      mode: "box",
+      elements: [
+        { id: "fc1", value: 0, label: "'a' -> 00", state: "default" },
+        { id: "fc2", value: 1, label: "'b' -> 01", state: "default" },
+        { id: "fc3", value: 2, label: "'r' -> 10", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Key insight: assign short binary codes to frequent characters and longer binary codes to rare characters.",
+    primarySnapshot: {
+      kind: "array",
+      name: "optimal_idea",
+      mode: "box",
+      elements: [
+        { id: "oi1", value: 5, label: "'a' (5x) -> 0", state: "sorted" },
+        { id: "oi2", value: 2, label: "'b' (2x) -> 110", state: "active" },
+        { id: "oi3", value: 2, label: "'r' (2x) -> 111", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "To avoid ambiguous bit streams, the codes MUST be prefix-free: no code word can be a prefix of any other code word.",
+    primarySnapshot: {
+      kind: "hashtable",
+      name: "prefix_free_check",
+      buckets: [
+        { index: 0, entries: [{ key: "'a'", value: "0", state: "sorted" }] },
+        { index: 1, entries: [{ key: "'b'", value: "10", state: "sorted" }] },
+        { index: 2, entries: [{ key: "'c'", value: "11", state: "sorted" }] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We represent prefix-free codes as paths in a binary tree: left branches represent bit 0 and right branches represent bit 1, with characters at leaves.",
+    primarySnapshot: {
+      kind: "tree",
+      name: "prefix_tree",
+      nodes: [
+        { id: "r", val: 9, state: "default", x: 200, y: 30, leftId: "l", rightId: "r1" },
+        { id: "l", val: 5, state: "sorted", x: 120, y: 100 },
+        { id: "r1", val: 4, state: "active", x: 280, y: 100 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Greedy choice: initialize a min-heap priority queue with leaf nodes weighted by character frequency.",
+    primarySnapshot: {
+      kind: "heap",
+      name: "min_heap",
+      heapType: "min",
+      heap: [
+        { id: "h1", val: 2, label: "'b'", state: "active" },
+        { id: "h2", val: 2, label: "'r'", state: "active" },
+        { id: "h3", val: 5, label: "'a'", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Repeatedly pop the two smallest subtrees, combine them under a new parent node weighted by their sum, and push the parent back into the min-heap.",
+    primarySnapshot: {
+      kind: "tree",
+      name: "huffman_merge",
+      nodes: [
+        { id: "m1", val: 4, state: "active", x: 200, y: 30, leftId: "b", rightId: "r" },
+        { id: "b", val: 2, state: "compare", x: 120, y: 100 },
+        { id: "r", val: 2, state: "compare", x: 280, y: 100 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Building the Huffman tree takes O(N log K) time where K is the number of unique characters, achieving provably optimal compression bound.",
+    primarySnapshot: {
+      kind: "tree",
+      name: "huffman_complete",
+      nodes: [
+        { id: "root", val: 9, state: "sorted", x: 200, y: 30, leftId: "a", rightId: "m1" },
+        { id: "a", val: 5, state: "sorted", x: 100, y: 100 },
+        { id: "m1", val: 4, state: "sorted", x: 300, y: 100, leftId: "b", rightId: "r" },
+        { id: "b", val: 2, state: "sorted", x: 240, y: 170 },
+        { id: "r", val: 2, state: "sorted", x: 360, y: 170 },
+      ],
+    },
+  },
+];
 
 export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   const rawText = typeof input?.text === "string" ? input.text : DEFAULT_HUFFMAN_CODING_INPUT.text;
 
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultInput = !input || input.text === DEFAULT_HUFFMAN_CODING_INPUT.text;
+
+  if (isDefaultInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   if (!rawText || rawText.length === 0) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 27,
-      explanation: {
-        what: "Check for empty text input.",
-        why: "Encoding requires at least one character symbol; returning empty tree snapshot immediately.",
-      },
-      primarySnapshot: {
-        kind: "tree",
-        nodes: [],
-      },
-      auxiliaryState: {
-        hashMap: {},
-        customState: { status: "Empty" },
-      },
-      variables: { textLength: 0 },
+    addStep("The text input is empty, returning an empty Huffman tree snapshot immediately.", {
+      kind: "tree",
+      name: "empty_tree",
+      nodes: [],
     });
     return steps;
   }
@@ -35,29 +167,17 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
 
   const uniqueChars = Object.keys(freqMap).sort();
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 15,
-    explanation: {
-      what: `Tally character frequencies in "${rawText}".`,
-      why: "Character occurrence frequencies dictate tree depth: frequent symbols stay close to the root with short codes, while rare ones sit deeper.",
-    },
-    primarySnapshot: {
-      kind: "tree",
-      nodes: uniqueChars.map((ch, idx) => ({
-        id: `leaf-${ch}`,
-        val: freqMap[ch],
-        state: "default",
-        x: (idx + 1) * 80,
-        y: 100,
+  addStep(
+    `Count character frequencies in text "${rawText}" of length ${rawText.length}: ${uniqueChars.map((ch) => `'${ch}': ${freqMap[ch]}`).join(", ")}.`,
+    {
+      kind: "hashtable",
+      name: "character_frequencies",
+      buckets: uniqueChars.map((ch, idx) => ({
+        index: idx,
+        entries: [{ key: `'${ch}'`, value: `${freqMap[ch]} occurrences`, state: "active" }],
       })),
     },
-    auxiliaryState: {
-      hashMap: Object.fromEntries(Object.entries(freqMap).map(([k, v]) => [`freq_${k}`, v])),
-      customState: { text: rawText, uniqueCount: uniqueChars.length },
-    },
-    variables: { textLength: rawText.length, uniqueChars: uniqueChars.length },
-  });
+  );
 
   let nodeCounter = 0;
   const allNodes = new Map<string, InternalHuffmanNode>();
@@ -75,54 +195,15 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     (a, b) => a.freq - b.freq || a.char!.localeCompare(b.char!),
   );
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 16,
-    explanation: {
-      what: `Instantiate ${uniqueChars.length} leaf node(s).`,
-      why: "Each distinct character symbol becomes an independent leaf node weighted by its total occurrences.",
+  addStep(
+    `Instantiate ${uniqueChars.length} leaf node(s) and insert them into the min-heap priority queue ordered by occurrence count.`,
+    {
+      kind: "heap",
+      name: "min_heap",
+      heapType: "min",
+      heap: heap.map((n) => ({ id: n.id, val: n.freq, label: `'${n.char}'`, state: "queued" })),
     },
-    primarySnapshot: {
-      kind: "tree",
-      nodes: Array.from(allNodes.values()).map((n, idx) => ({
-        id: n.id,
-        val: n.freq,
-        state: "default",
-        x: (idx + 1) * 80,
-        y: 100,
-      })),
-    },
-    auxiliaryState: {
-      hashMap: Object.fromEntries(Object.entries(freqMap).map(([k, v]) => [`freq_${k}`, v])),
-      customState: { leafCount: heap.length },
-    },
-    variables: { leafCount: heap.length },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 17,
-    explanation: {
-      what: `Initialize min-heap priority queue with ${heap.length} leaf node(s).`,
-      why: "A min-heap enables efficient O(log K) extraction of the two lowest-frequency subtrees at each merge step.",
-    },
-    primarySnapshot: {
-      kind: "tree",
-      nodes: Array.from(allNodes.values()).map((n, idx) => ({
-        id: n.id,
-        val: n.freq,
-        state: "queued",
-        x: (idx + 1) * 80,
-        y: 100,
-      })),
-    },
-    auxiliaryState: {
-      queue: heap.map((n) => `'${n.char}':${n.freq}`),
-      hashMap: Object.fromEntries(Object.entries(freqMap).map(([k, v]) => [`freq_${k}`, v])),
-      customState: { heapSize: heap.length },
-    },
-    variables: { heapSize: heap.length },
-  });
+  );
 
   const buildVisualNodes = (
     activeIds: string[] = [],
@@ -189,69 +270,25 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
   };
 
   while (heap.length > 1) {
-    // Step: While loop condition check
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 19,
-      explanation: {
-        what: `Evaluate min-heap size (${heap.length} remaining subtrees).`,
-        why: "Iteratively merging the two lightest subtrees until only a single root node remains.",
-      },
-      primarySnapshot: {
-        kind: "tree",
-        ...buildVisualNodes([]),
-      },
-      auxiliaryState: {
-        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: { heapSize: heap.length, status: "Checking loop condition" },
-      },
-      variables: { heapSize: heap.length },
-    });
-
     const left = heap.shift()!;
-
-    // Step: Heappop left
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 20,
-      explanation: {
-        what: `Pop lightest node left: ${left.char ? `'${left.char}'` : left.id} (freq ${left.freq})`,
-        why: "Greedy strategy selects the smallest weight node to place at the greatest available tree depth.",
-      },
-      primarySnapshot: {
+    addStep(
+      `Pop lowest frequency node left: ${left.char ? `'${left.char}'` : left.id} with frequency ${left.freq}. Heap has ${heap.length} item(s) left.`,
+      {
         kind: "tree",
+        name: "huffman_tree",
         ...buildVisualNodes([left.id], undefined, [left]),
       },
-      auxiliaryState: {
-        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: { poppedLeft: `${left.char || left.id}:${left.freq}` },
-      },
-      variables: { leftFreq: left.freq },
-    });
+    );
 
     const right = heap.shift()!;
-
-    // Step: Heappop right
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 21,
-      explanation: {
-        what: `Pop second lightest node right: ${right.char ? `'${right.char}'` : right.id} (freq ${right.freq})`,
-        why: "Pairs the two lowest-frequency components as siblings under a new internal parent.",
-      },
-      primarySnapshot: {
+    addStep(
+      `Pop second lowest frequency node right: ${right.char ? `'${right.char}'` : right.id} with frequency ${right.freq}.`,
+      {
         kind: "tree",
+        name: "huffman_tree",
         ...buildVisualNodes([left.id, right.id], undefined, [left, right]),
       },
-      auxiliaryState: {
-        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: {
-          poppedLeft: `${left.char || left.id}:${left.freq}`,
-          poppedRight: `${right.char || right.id}:${right.freq}`,
-        },
-      },
-      variables: { leftFreq: left.freq, rightFreq: right.freq },
-    });
+    );
 
     nodeCounter++;
     const parentId = `merged-${nodeCounter}`;
@@ -265,77 +302,32 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
 
     allNodes.set(parentId, mergedNode);
 
-    // Step: Merged node created
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 22,
-      explanation: {
-        what: `Create internal parent node with combined weight ${left.freq} + ${right.freq} = ${mergedNode.freq}.`,
-        why: "Internal node holds the sum of child frequencies without character data.",
-      },
-      primarySnapshot: {
+    addStep(
+      `Merge children into new internal parent node ${parentId} with combined frequency ${left.freq} + ${right.freq} = ${mergedNode.freq}.`,
+      {
         kind: "tree",
-        ...buildVisualNodes([parentId], undefined, [mergedNode]),
-      },
-      auxiliaryState: {
-        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: {
-          mergedParent: `${parentId}:${mergedNode.freq}`,
-          combinedFreq: mergedNode.freq,
-        },
-      },
-      variables: {
-        leftFreq: left.freq,
-        rightFreq: right.freq,
-        parentFreq: mergedNode.freq,
-      },
-    });
-
-    // Step: Attach left and right child pointers
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 23,
-      explanation: {
-        what: `Connect left ('${left.char || "Internal"}') and right ('${right.char || "Internal"}') subtrees.`,
-        why: `Forming a combined binary subtree rooted at frequency weight ${mergedNode.freq}.`,
-      },
-      primarySnapshot: {
-        kind: "tree",
+        name: "huffman_tree",
         ...buildVisualNodes([parentId, left.id, right.id], undefined, [mergedNode]),
       },
-      auxiliaryState: {
-        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: {
-          attachedLeft: left.char || left.id,
-          attachedRight: right.char || right.id,
-        },
-      },
-      variables: {
-        parentFreq: mergedNode.freq,
-      },
-    });
+    );
 
     heap.push(mergedNode);
     heap.sort((a, b) => a.freq - b.freq || (a.char || "").localeCompare(b.char || ""));
 
-    // Step: Push merged back to heap
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 25,
-      explanation: {
-        what: `Reinsert merged subtree (weight ${mergedNode.freq}) into min-heap.`,
-        why: "The combined subtree re-enters the priority queue to participate in subsequent merge rounds.",
+    addStep(
+      `Reinsert combined parent node (frequency ${mergedNode.freq}) back into min-heap. Min-heap size is now ${heap.length}.`,
+      {
+        kind: "heap",
+        name: "min_heap",
+        heapType: "min",
+        heap: heap.map((n) => ({
+          id: n.id,
+          val: n.freq,
+          label: n.char ? `'${n.char}'` : `Internal-${n.freq}`,
+          state: n.id === parentId ? "active" : "queued",
+        })),
       },
-      primarySnapshot: {
-        kind: "tree",
-        ...buildVisualNodes([parentId]),
-      },
-      auxiliaryState: {
-        queue: heap.map((n) => `${n.char ? `'${n.char}'` : "Internal"}:${n.freq}`),
-        customState: { heapSize: heap.length, status: "Reinserted merged parent" },
-      },
-      variables: { heapSize: heap.length },
-    });
+    );
   }
 
   const rootNode = heap[0];
@@ -358,34 +350,19 @@ export const generateHuffmanCodingSteps = (input: HuffmanCodingInput): Algorithm
     generateCodes(rootNode.id, "");
   }
 
-  const codeHashMap: Record<string, string> = {};
-  for (const [ch, code] of Object.entries(huffmanCodes)) {
-    codeHashMap[`code_${ch}`] = code;
-  }
+  const codeEntries = Object.entries(huffmanCodes);
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 27,
-    explanation: {
-      what: `Huffman tree complete: derive prefix codes.`,
-      why: `Root weight is ${rootNode.freq}. Traversing left (0) and right (1) edges generates optimal prefix-free codes.`,
+  addStep(
+    `Huffman tree construction complete! Traversed tree to extract prefix codes: ${codeEntries.map(([ch, code]) => `'${ch}': "${code}"`).join(", ")}.`,
+    {
+      kind: "hashtable",
+      name: "final_codes",
+      buckets: codeEntries.map(([ch, code], idx) => ({
+        index: idx,
+        entries: [{ key: `'${ch}'`, value: `"${code}"`, state: "sorted" }],
+      })),
     },
-    primarySnapshot: {
-      kind: "tree",
-      ...buildVisualNodes([], rootNode.id),
-    },
-    auxiliaryState: {
-      hashMap: codeHashMap,
-      customState: {
-        totalCharacters: rawText.length,
-        distinctCodesCount: Object.keys(huffmanCodes).length,
-      },
-    },
-    variables: {
-      rootFrequency: rootNode.freq,
-      uniqueCharactersCount: Object.keys(huffmanCodes).length,
-    },
-  });
+  );
 
   return steps;
 };

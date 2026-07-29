@@ -1,5 +1,188 @@
-import type { AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../../types/dsa";
-import { FordFulkersonInput, DEFAULT_NODE_POSITIONS } from "./types";
+import type {
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
+import type { FordFulkersonInput } from "./types";
+import { DEFAULT_NODE_POSITIONS } from "./types";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Maximum Flow problem seeks to route the maximum possible throughput from a source vertex S to a sink vertex T through a directed graph with capacity limits.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S (Source)", state: "active" },
+        { id: "A", label: "A", state: "default" },
+        { id: "B", label: "B", state: "default" },
+        { id: "T", label: "T (Sink)", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10 },
+        { from: "S", to: "B", weight: 10 },
+        { from: "A", to: "T", weight: 10 },
+        { from: "B", to: "T", weight: 10 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Bottleneck Constraint specifies that the flow pushed along any simple path from S to T is strictly limited by the edge with the smallest remaining capacity.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A (Bottleneck)", state: "swap" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10, isTraversed: true },
+        { from: "A", to: "T", weight: 4, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Residual Graph G_f tracks unused capacity c(u,v) - f(u,v) on forward edges and flow cancellation capacity f(u,v) on reverse edges.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A", state: "visited" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 6, isPath: true },
+        { from: "A", to: "T", weight: 0, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "An Augmenting Path is any simple directed path from S to T in the residual graph G_f along which every edge has positive residual capacity.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "Path A", state: "active" },
+        { id: "B", label: "Path B", state: "active" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10, isTraversed: true },
+        { from: "A", to: "B", weight: 5, isTraversed: true },
+        { from: "B", to: "T", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Augmenting a path pushes bottleneck flow delta along forward edges and adds delta to reverse edge capacities, enabling future flow redirection.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A (+5)", state: "swap" },
+        { id: "B", label: "B (+5)", state: "swap" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 5, isPath: true },
+        { from: "A", to: "B", weight: 0, isPath: true },
+        { from: "B", to: "T", weight: 3, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Reverse residual edges allow Ford-Fulkerson to dynamically cancel previously sent flow if a superior routing path becomes available later.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A", state: "active" },
+        { id: "B", label: "B", state: "active" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "B", weight: 5, isTraversed: true },
+        { from: "B", to: "A", weight: 5, isTraversed: true },
+        { from: "A", to: "T", weight: 5, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "According to the Max-Flow Min-Cut Theorem, the maximum throughput from S to T equals the total capacity sum of the bottleneck cut separating S and T.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "Cut S", state: "visited" },
+        { id: "A", label: "Cut S", state: "visited" },
+        { id: "B", label: "Cut T", state: "compare" },
+        { id: "T", label: "Cut T", state: "compare" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 0, isPath: true },
+        { from: "A", to: "B", weight: 0, isPath: true },
+        { from: "B", to: "T", weight: 0, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The algorithm terminates when DFS finds no remaining augmenting path from S to T with positive residual capacity.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S (No Path)", state: "default" },
+        { id: "A", label: "A", state: "default" },
+        { id: "B", label: "B", state: "default" },
+        { id: "T", label: "T", state: "default" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 0 },
+        { from: "S", to: "B", weight: 0 },
+        { from: "A", to: "T", weight: 0 },
+        { from: "B", to: "T", weight: 0 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "With integer capacities, Ford-Fulkerson runs in O(E * max_flow) time and uses O(V + E) memory to maintain residual graph structures.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "Max Flow: 20", state: "sorted" },
+        { id: "A", label: "A", state: "sorted" },
+        { id: "B", label: "B", state: "sorted" },
+        { id: "T", label: "T", state: "sorted" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 0, isPath: true },
+        { from: "S", to: "B", weight: 0, isPath: true },
+        { from: "A", to: "T", weight: 0, isPath: true },
+        { from: "B", to: "T", weight: 0, isPath: true },
+      ],
+    },
+  },
+];
 
 export const generateFordFulkersonSteps = (input: FordFulkersonInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -10,18 +193,30 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
   const source = input?.source || (rawNodes[0] ?? "");
   const sink = input?.sink || (rawNodes[rawNodes.length - 1] ?? "");
 
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   if (rawNodes.length === 0 || !source || !sink) {
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: {
-        what: "Handle the empty network",
-        why: "There are no usable nodes or the source/sink is missing, so no flow can travel anywhere — the answer is simply 0.",
-      },
-      primarySnapshot: { kind: "graph", nodes: [], edges: [] },
-      auxiliaryState: { customState: { "Max Flow": 0 } },
-      variables: { completed: true },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: "Network contains no nodes or valid source/sink, returning max flow 0.",
+        primarySnapshot: { kind: "graph", directed: true, nodes: [], edges: [] },
+        variables: { completed: true, maxFlow: 0 },
+      }),
+    );
     return steps;
   }
 
@@ -59,19 +254,22 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     activeNodeId?: string,
     pathNodeSet?: Set<string>,
     visitedNodeSet?: Set<string>,
+    nodeStateOverride?: "active" | "swap" | "compare" | "visited" | "default",
   ): GraphNodeItem[] =>
     rawNodes.map((id, index) => {
       let label = id;
       if (id === source) label = `${id} (S)`;
       if (id === sink) label = `${id} (T)`;
 
-      let state: GraphNodeItem["state"] = "default";
-      if (id === activeNodeId) {
-        state = "active";
-      } else if (pathNodeSet && pathNodeSet.has(id)) {
-        state = "path";
-      } else if (visitedNodeSet && visitedNodeSet.has(id)) {
-        state = "visited";
+      let state: GraphNodeItem["state"] = nodeStateOverride ?? "default";
+      if (!nodeStateOverride) {
+        if (id === activeNodeId) {
+          state = "active";
+        } else if (pathNodeSet && pathNodeSet.has(id)) {
+          state = "path";
+        } else if (visitedNodeSet && visitedNodeSet.has(id)) {
+          state = "visited";
+        }
       }
 
       const pos = DEFAULT_NODE_POSITIONS[id] || {
@@ -112,65 +310,46 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
   let currentMaxFlow = 0;
 
-  const getFormattedCustomState = (
-    extra?: Record<string, string | number>,
-  ): Record<string, string | number> => {
-    const edgeFlowSummary: string[] = [];
-    aggregatedEdges.forEach((e) => {
-      const key = `${e.from}->${e.to}`;
-      edgeFlowSummary.push(`${key}: ${flowMap[key]}/${capMap[key]}`);
-    });
-
-    return {
-      Source: source,
-      Sink: sink,
-      "Max Flow": currentMaxFlow,
-      "Flows (F/C)": edgeFlowSummary.join(", "),
-      ...(extra || {}),
-    };
-  };
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Set up flow network from '${source}' to '${sink}'`,
-      why: `Every edge starts carrying 0 of its capacity, and we want to push as much flow as possible from '${source}' to '${sink}'. As long as some path with spare capacity exists, we can still do better.`,
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: getGraphNodes(),
-      edges: getGraphEdges(),
-    },
-    auxiliaryState: {
-      customState: getFormattedCustomState(),
-    },
-    variables: { source, sink, maxFlow: 0 },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Initialized flow network from source '${source}' to sink '${sink}' with 0 initial flow on all edges.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: getGraphNodes(source, undefined, undefined, "active"),
+        edges: getGraphEdges(),
+      },
+      auxiliaryState: {
+        visited: [],
+      },
+      variables: { source, sink, currentMaxFlow: 0 },
+    }),
+  );
 
   let searching = true;
   while (searching) {
     const visited = new Set<string>();
     const path: string[] = [];
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 26,
-      explanation: {
-        what: `Reset visited set for a new DFS augmenting path search from source '${source}'.`,
-        why: "Each round requires a fresh residual graph search to locate available capacity.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: getGraphNodes(source),
-        edges: getGraphEdges(),
-      },
-      auxiliaryState: {
-        visited: [],
-        customState: getFormattedCustomState({ Phase: "DFS Search Start" }),
-      },
-      variables: { currentMaxFlow },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Starting fresh DFS search from source '${source}' to locate residual augmenting path to sink '${sink}'.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: getGraphNodes(source, undefined, undefined, "compare"),
+          edges: getGraphEdges(),
+        },
+        auxiliaryState: {
+          visited: [],
+        },
+        variables: { currentMaxFlow },
+      }),
+    );
 
     const findAugmentingPath = (
       u: string,
@@ -180,24 +359,23 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
       path.push(u);
       visited.add(u);
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 12,
-        explanation: {
-          what: `DFS visiting node '${u}' (current path bottleneck capacity = ${currentFlow === Infinity ? "∞" : currentFlow}).`,
-          why: `Node '${u}' added to current search path.`,
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: getGraphNodes(u, new Set(path), visited),
-          edges: getGraphEdges(),
-        },
-        auxiliaryState: {
-          visited: Array.from(visited),
-          customState: getFormattedCustomState({ "Current Path": path.join(" → ") }),
-        },
-        variables: { currentNode: u, currentFlow: currentFlow === Infinity ? "inf" : currentFlow },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `DFS visited node '${u}' (current path bottleneck = ${currentFlow === Infinity ? "∞" : currentFlow}).`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: getGraphNodes(u, new Set(path), visited),
+            edges: getGraphEdges(),
+          },
+          auxiliaryState: {
+            visited: Array.from(visited),
+          },
+          variables: { currentNode: u, bottleneck: currentFlow === Infinity ? "∞" : currentFlow },
+        }),
+      );
 
       if (u === target) {
         return { bottleneck: currentFlow, pathNodes: [...path] };
@@ -220,49 +398,23 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
     const pathResult = findAugmentingPath(source, sink, Infinity);
 
     if (!pathResult || pathResult.bottleneck === 0) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 29,
-        explanation: {
-          what: `Stop — no augmenting path remains`,
-          why: `We searched the residual graph and found no route from '${source}' to '${sink}' with spare capacity left. The max-flow min-cut theorem tells us that means our total of ${currentMaxFlow} cannot be improved — the saturated edges form a minimum cut sealing off the sink.`,
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: getGraphNodes(),
-          edges: getGraphEdges(),
-        },
-        auxiliaryState: {
-          visited: Array.from(visited),
-          customState: getFormattedCustomState({
-            Status: "Terminated",
-            "Final Max Flow": currentMaxFlow,
-          }),
-        },
-        variables: { maxFlow: currentMaxFlow, completed: true },
-      });
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 32,
-        explanation: {
-          what: `Ford-Fulkerson complete. Returned max_flow = ${currentMaxFlow}.`,
-          why: "Algorithm returns maximum total flow.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: getGraphNodes(),
-          edges: getGraphEdges(),
-        },
-        auxiliaryState: {
-          visited: Array.from(visited),
-          customState: getFormattedCustomState({
-            Status: "Completed",
-            "Final Max Flow": currentMaxFlow,
-          }),
-        },
-        variables: { maxFlow: currentMaxFlow, completed: true },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `No further augmenting path exists from '${source}' to '${sink}' in the residual graph. Maximum Flow is finalized at ${currentMaxFlow}.`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: getGraphNodes(undefined, undefined, visited, "visited"),
+            edges: getGraphEdges(),
+          },
+          auxiliaryState: {
+            visited: Array.from(visited),
+          },
+          variables: { maxFlow: currentMaxFlow, completed: true },
+        }),
+      );
       searching = false;
       break;
     }
@@ -275,35 +427,28 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
       pathEdges.push({ from: pathNodes[i], to: pathNodes[i + 1] });
     }
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 27,
-      explanation: {
-        what: `Find augmenting path ${pathNodes.join(" → ")}`,
-        why: `Every edge along this route still has spare capacity, and the tightest one allows only ${bottleneck} more units — that bottleneck is exactly how much we can push in one go.`,
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: getGraphNodes(
-          pathResult.pathNodes[pathResult.pathNodes.length - 1],
-          pathNodeSet,
-          visited,
-        ),
-        edges: getGraphEdges(pathEdges),
-      },
-      auxiliaryState: {
-        visited: Array.from(visited),
-        customState: getFormattedCustomState({
-          "Augmenting Path": pathNodes.join(" → "),
-          Bottleneck: bottleneck,
-        }),
-      },
-      variables: {
-        bottleneck,
-        path: pathNodes.join(" → "),
-        currentMaxFlow,
-      },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Found augmenting path [${pathNodes.join(" -> ")}] with bottleneck capacity ${bottleneck}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: getGraphNodes(
+            pathResult.pathNodes[pathResult.pathNodes.length - 1],
+            pathNodeSet,
+            visited,
+            "swap",
+          ),
+          edges: getGraphEdges(pathEdges),
+        },
+        auxiliaryState: {
+          visited: Array.from(visited),
+        },
+        variables: { bottleneck, path: pathNodes.join(" -> "), currentMaxFlow },
+      }),
+    );
 
     for (let i = 0; i < pathNodes.length - 1; i++) {
       const u = pathNodes[i];
@@ -317,30 +462,23 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
 
     currentMaxFlow += bottleneck;
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 19,
-      explanation: {
-        what: `Push ${bottleneck} units along the path ${pathNodes.join(" → ")}`,
-        why: `We add ${bottleneck} to the flow on each forward edge and record the same amount as reverse capacity, so a later path can undo part of this routing if a better one exists. Total flow is now ${currentMaxFlow}.`,
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: getGraphNodes(undefined, pathNodeSet),
-        edges: getGraphEdges(pathEdges),
-      },
-      auxiliaryState: {
-        visited: Array.from(visited),
-        customState: getFormattedCustomState({
-          "Last Bottleneck": bottleneck,
-          "Total Max Flow": currentMaxFlow,
-        }),
-      },
-      variables: {
-        bottleneck,
-        maxFlow: currentMaxFlow,
-      },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Augmented flow by ${bottleneck} along path [${pathNodes.join(" -> ")}]. Total max flow is now ${currentMaxFlow}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: getGraphNodes(undefined, pathNodeSet, undefined, "visited"),
+          edges: getGraphEdges(pathEdges),
+        },
+        auxiliaryState: {
+          visited: Array.from(visited),
+        },
+        variables: { bottleneck, currentMaxFlow },
+      }),
+    );
   }
 
   return steps;

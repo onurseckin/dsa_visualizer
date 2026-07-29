@@ -5,8 +5,10 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
   GraphVisualSnapshot,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface DagEdge {
   from: number;
@@ -52,6 +54,201 @@ export const PYTHON_MINIMUM_PATH_COVER_CODE = `def min_path_cover(n, edges):
             
     return n - matching_size`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "A Minimum Path Cover in a Directed Acyclic Graph (DAG) finds the minimum number of vertex-disjoint directed paths needed to cover every vertex.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "Node 0", state: "active" },
+        { id: "node-1", label: "Node 1", state: "default" },
+        { id: "node-2", label: "Node 2", state: "default" },
+        { id: "node-3", label: "Node 3", state: "default" },
+        { id: "node-4", label: "Node 4", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1" },
+        { from: "node-1", to: "node-2" },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Without any path edges, N isolated single-vertex paths are required to cover N vertices, providing the initial baseline.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "Path 1", state: "visited" },
+        { id: "node-1", label: "Path 2", state: "visited" },
+        { id: "node-2", label: "Path 3", state: "visited" },
+        { id: "node-3", label: "Path 4", state: "visited" },
+        { id: "node-4", label: "Path 5", state: "visited" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1" },
+        { from: "node-1", to: "node-2" },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Adding a directed edge u -> v to a path cover merges two separate path segments into one longer path, reducing total path count by 1.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "Node 0", state: "visited" },
+        { id: "node-1", label: "Node 1", state: "visited" },
+        { id: "node-2", label: "Node 2", state: "default" },
+        { id: "node-3", label: "Node 3", state: "default" },
+        { id: "node-4", label: "Node 4", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", isPath: true },
+        { from: "node-1", to: "node-2" },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The vertex-disjoint constraint dictates that no vertex may have in-degree > 1 or out-degree > 1 within the selected path cover edges.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "Node 0 (out <= 1)", state: "active" },
+        { id: "node-1", label: "Node 1", state: "visited" },
+        { id: "node-2", label: "Node 2", state: "default" },
+        { id: "node-3", label: "Node 3 (in <= 1)", state: "compare" },
+        { id: "node-4", label: "Node 4", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", isPath: true },
+        { from: "node-1", to: "node-2" },
+        { from: "node-0", to: "node-3", isTraversed: true },
+        { from: "node-3", to: "node-4" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Vertex splitting transforms each DAG node u into dual nodes u_out (left) and u_in (right) of a bipartite matching graph.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "0_out", state: "active" },
+        { id: "node-1", label: "1_in", state: "compare" },
+        { id: "node-2", label: "2_in", state: "compare" },
+        { id: "node-3", label: "3_in", state: "compare" },
+        { id: "node-4", label: "4_in", state: "compare" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1" },
+        { from: "node-1", to: "node-2" },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Every directed edge u -> v in the original DAG maps to a bipartite matching edge connecting u_out to v_in.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "0_out", state: "visited" },
+        { id: "node-1", label: "1_in", state: "visited" },
+        { id: "node-2", label: "2_in", state: "default" },
+        { id: "node-3", label: "3_in", state: "default" },
+        { id: "node-4", label: "4_in", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", isTraversed: true },
+        { from: "node-1", to: "node-2" },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Computing the Maximum Bipartite Matching M* maximizes the number of path edge merges without exceeding degree limits.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "0_out", state: "sorted" },
+        { id: "node-1", label: "1_in", state: "sorted" },
+        { id: "node-2", label: "2_in", state: "sorted" },
+        { id: "node-3", label: "3_out", state: "sorted" },
+        { id: "node-4", label: "4_in", state: "sorted" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", isPath: true },
+        { from: "node-1", to: "node-2", isPath: true },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Gallai's Identity proves that Minimum Path Cover size equals N - |M*| (total vertices minus maximum matching size).",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "Path 1", state: "sorted" },
+        { id: "node-1", label: "Path 1", state: "sorted" },
+        { id: "node-2", label: "Path 1", state: "sorted" },
+        { id: "node-3", label: "Path 2", state: "swap" },
+        { id: "node-4", label: "Path 2", state: "swap" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", isPath: true },
+        { from: "node-1", to: "node-2", isPath: true },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Kuhn's augmenting path algorithm solves Maximum Bipartite Matching in O(V * E) time and O(V + E) memory space.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "node-0", label: "Cover: 2", state: "sorted" },
+        { id: "node-1", label: "Node 1", state: "sorted" },
+        { id: "node-2", label: "Node 2", state: "sorted" },
+        { id: "node-3", label: "Node 3", state: "sorted" },
+        { id: "node-4", label: "Node 4", state: "sorted" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", isPath: true },
+        { from: "node-1", to: "node-2", isPath: true },
+        { from: "node-0", to: "node-3" },
+        { from: "node-3", to: "node-4", isPath: true },
+      ],
+    },
+  },
+];
+
 export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): AlgorithmStep[] => {
   const numNodes = Math.max(1, input?.numNodes ?? DEFAULT_MINIMUM_PATH_COVER_INPUT.numNodes);
   const edges = input?.edges ?? DEFAULT_MINIMUM_PATH_COVER_INPUT.edges;
@@ -61,6 +258,20 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const adj: number[][] = Array.from({ length: numNodes }, () => []);
   for (const e of validEdges) {
     adj[e.from].push(e.to);
@@ -68,7 +279,6 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
 
   const match = new Array<number>(numNodes).fill(-1);
 
-  // Graph node layout in a clean circular arrangement
   const nodes: GraphNodeItem[] = Array.from({ length: numNodes }, (_, i) => {
     const angle = (2 * Math.PI * i) / numNodes - Math.PI / 2;
     return {
@@ -91,7 +301,11 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
     return set;
   };
 
-  const createSnapshot = (activeU?: number, activeV?: number): GraphVisualSnapshot => {
+  const createSnapshot = (
+    activeU?: number,
+    activeV?: number,
+    overrideState?: "active" | "swap" | "compare" | "sorted",
+  ): GraphVisualSnapshot => {
     const matchedSet = getMatchedEdgeSet();
     const edgeItems: GraphEdgeItem[] = validEdges.map((e) => {
       const key = `${e.from}->${e.to}`;
@@ -107,14 +321,17 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
 
     return {
       kind: "graph",
+      directed: true,
       nodes: nodes.map((node, i) => {
-        let state: ElementState = "default";
-        if (i === activeV) {
-          state = "active";
-        } else if (i === activeU) {
-          state = "pivot";
-        } else if (match[i] !== -1 || match.includes(i)) {
-          state = "visited";
+        let state: ElementState = overrideState ?? "default";
+        if (!overrideState) {
+          if (i === activeV) {
+            state = "compare";
+          } else if (i === activeU) {
+            state = "active";
+          } else if (match[i] !== -1 || match.includes(i)) {
+            state = "visited";
+          }
         }
         return {
           ...node,
@@ -125,203 +342,99 @@ export const generateMinimumPathCoverSteps = (input: MinimumPathCoverInput): Alg
     };
   };
 
-  // Step 1: Initialize adjacency list
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Initialize graph adjacency list for ${numNodes} vertices`,
-      why: `Build adjacency structure with ${validEdges.length} directed edges to find minimum vertex-disjoint path cover.`,
-    },
-    primarySnapshot: createSnapshot(),
-    auxiliaryState: { customState: { numNodes, edgeCount: validEdges.length } },
-    variables: { n: numNodes, edge_count: validEdges.length },
-  });
-
-  // Step 2: Initialize match array
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: "Initialize match array to [-1] for all vertices",
-      why: "match[v] stores the predecessor node u matched to right-side vertex v. -1 denotes unmatched.",
-    },
-    primarySnapshot: createSnapshot(),
-    auxiliaryState: { customState: { match: [...match] } },
-    variables: { match: [...match] },
-  });
-
-  // Step 3: Initialize matching size counter
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 17,
-    explanation: {
-      what: "Initialize matching_size = 0",
-      why: "Tracks the size of maximum bipartite matching M*.",
-    },
-    primarySnapshot: createSnapshot(),
-    auxiliaryState: { customState: { matchingSize: 0 } },
-    variables: { matching_size: 0 },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Initializing bipartite matching for ${numNodes} vertices and ${validEdges.length} DAG edges.`,
+      primarySnapshot: createSnapshot(undefined, undefined, "active"),
+      variables: { numNodes, edgeCount: validEdges.length, matchingSize: 0 },
+    }),
+  );
 
   const dfs = (u: number, visited: boolean[]): boolean => {
     for (const v of adj[u]) {
-      // Step: Check neighbor v
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 10,
-        explanation: {
-          what: `Check neighbor node ${v} from node ${u}`,
-          why: `Evaluate node ${v} status (visited = ${visited[v]}) to find an augmenting path.`,
-        },
-        primarySnapshot: createSnapshot(u, v),
-        auxiliaryState: { customState: { u, v, visited: [...visited] } },
-        variables: { u, v, visited: [...visited] },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `DFS testing candidate edge Node ${u} -> Node ${v}.`,
+          primarySnapshot: createSnapshot(u, v),
+          variables: { u, v, visited: visited[v] },
+        }),
+      );
 
       if (!visited[v]) {
         visited[v] = true;
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 11,
-          explanation: {
-            what: `Mark node ${v} as visited`,
-            why: `Prevents visiting node ${v} again within current DFS augmenting path search.`,
-          },
-          primarySnapshot: createSnapshot(u, v),
-          auxiliaryState: { customState: { u, v, visited: [...visited] } },
-          variables: { u, v, visited: [...visited] },
-        });
-
-        // Step: Check if v is free or match[v] can be re-routed
         const isFree = match[v] === -1;
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 12,
-          explanation: {
-            what: `Check match status of node ${v} (match[${v}] = ${match[v]})`,
-            why: isFree
-              ? `Node ${v} is unmatched. Direct matching (${u} -> ${v}) is available.`
-              : `Node ${v} is currently matched to node ${match[v]}. Recursively attempt to re-match node ${match[v]}.`,
-          },
-          primarySnapshot: createSnapshot(u, v),
-          auxiliaryState: { customState: { u, v, currMatch: match[v] } },
-          variables: { u, v, "match[v]": match[v] },
-        });
+
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIndex++,
+            phase: "walkthrough",
+            narrative: isFree
+              ? `Node ${v} is unmatched. Direct matching Node ${u} -> Node ${v} is available.`
+              : `Node ${v} is currently matched to Node ${match[v]}. Attempting to re-route Node ${match[v]}.`,
+            primarySnapshot: createSnapshot(u, v, "swap"),
+            variables: { u, v, currentMatch: match[v] },
+          }),
+        );
 
         if (isFree || dfs(match[v], visited)) {
           match[v] = u;
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 13,
-            explanation: {
-              what: `Match node ${u} -> node ${v} (set match[${v}] = ${u})`,
-              why: isFree
-                ? `Node ${v} was free. Successfully assigned edge (${u} -> ${v}) to matching.`
-                : `Re-routed previous match for node ${v}. Assigned edge (${u} -> ${v}) to matching.`,
-            },
-            primarySnapshot: createSnapshot(u, v),
-            auxiliaryState: { customState: { u, v, match: [...match] } },
-            variables: { u, v, match: [...match] },
-          });
-
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 14,
-            explanation: {
-              what: `Return True: Found augmenting path for node ${u}`,
-              why: `DFS search successfully updated matching with edge (${u} -> ${v}).`,
-            },
-            primarySnapshot: createSnapshot(u, v),
-            auxiliaryState: { customState: { u, v } },
-            variables: { u, v, result: true },
-          });
+          steps.push(
+            createTutorialStep({
+              stepIndex: stepIndex++,
+              phase: "walkthrough",
+              narrative: `Matched Node ${u} -> Node ${v} (set match[${v}] = ${u}). Augmenting path search succeeded!`,
+              primarySnapshot: createSnapshot(u, v, "sorted"),
+              variables: { u, v, updatedMatch: u },
+            }),
+          );
           return true;
         }
       }
     }
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 15,
-      explanation: {
-        what: `Return False: No augmenting path found from node ${u}`,
-        why: `All outgoing neighbors of node ${u} are either visited or cannot be re-routed.`,
-      },
-      primarySnapshot: createSnapshot(u),
-      auxiliaryState: { customState: { u } },
-      variables: { u, result: false },
-    });
     return false;
   };
 
   let matchingSize = 0;
   for (let i = 0; i < numNodes; i++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 18,
-      explanation: {
-        what: `Iterate to vertex i = ${i}`,
-        why: `Search for an augmenting path starting from left-side vertex ${i}.`,
-      },
-      primarySnapshot: createSnapshot(i),
-      auxiliaryState: { customState: { i, matchingSize } },
-      variables: { i, matching_size: matchingSize },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Searching for an augmenting path starting from vertex ${i}.`,
+        primarySnapshot: createSnapshot(i),
+        variables: { currentVertex: i, matchingSize },
+      }),
+    );
 
     const visited = new Array<boolean>(numNodes).fill(false);
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 19,
-      explanation: {
-        what: `Reset visited array for vertex i = ${i}`,
-        why: `Fresh DFS traversal state required for each augmenting path search.`,
-      },
-      primarySnapshot: createSnapshot(i),
-      auxiliaryState: { customState: { i, visited: [...visited] } },
-      variables: { i, visited: [...visited] },
-    });
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 20,
-      explanation: {
-        what: `Execute DFS from vertex i = ${i}`,
-        why: `Traverse DAG edges from node ${i} to augment matching size.`,
-      },
-      primarySnapshot: createSnapshot(i),
-      auxiliaryState: { customState: { i } },
-      variables: { i },
-    });
-
     if (dfs(i, visited)) {
       matchingSize++;
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 21,
-        explanation: {
-          what: `Augmenting path found for node ${i}. Increment matching_size to ${matchingSize}`,
-          why: `Total edges in bipartite matching increased to ${matchingSize}.`,
-        },
-        primarySnapshot: createSnapshot(i),
-        auxiliaryState: { customState: { i, matchingSize } },
-        variables: { i, matching_size: matchingSize },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Found augmenting path for vertex ${i}. Incremented maximum bipartite matching size to ${matchingSize}.`,
+          primarySnapshot: createSnapshot(i, undefined, "swap"),
+          variables: { i, matchingSize },
+        }),
+      );
     }
   }
 
   const minPathCover = numNodes - matchingSize;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 23,
-    explanation: {
-      what: `Minimum Path Cover = ${minPathCover}`,
-      why: `Calculated N - Max Matching: ${numNodes} - ${matchingSize} = ${minPathCover} vertex-disjoint paths cover all vertices.`,
-    },
-    primarySnapshot: createSnapshot(),
-    auxiliaryState: { customState: { minPathCover, matchingSize, numNodes } },
-    variables: { result: minPathCover, matching_size: matchingSize, n: numNodes },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Minimum Path Cover complete. By Gallai's Identity: N - |M*| = ${numNodes} - ${matchingSize} = ${minPathCover} vertex-disjoint paths cover all vertices.`,
+      primarySnapshot: createSnapshot(undefined, undefined, "sorted"),
+      variables: { completed: true, minPathCover, matchingSize, totalNodes: numNodes },
+    }),
+  );
 
   return steps;
 };
@@ -332,21 +445,21 @@ const MINIMUM_PATH_COVER_TRIVIA: TriviaMeta = {
     2: "Initializes adjacency list adj for n nodes.",
     3: "Iterates through each directed edge (u, v) in the input edges.",
     4: "Appends node v to u's adjacency list in the DAG.",
-    6: "Initializes match array of length n with -1 (all right-side nodes initially unmatched).",
+    6: "Initializes match array of length n with -1.",
     8: "Defines recursive helper function dfs(u, visited) to find augmenting paths.",
     9: "Iterates over all outgoing neighbors v of node u in the DAG.",
-    10: "Checks if node v has not been visited in the current DFS traversal.",
-    11: "Marks node v as visited in the current DFS path search.",
-    12: "Checks if v is unmatched (match[v] < 0) or if its current owner match[v] can be re-matched via DFS.",
+    10: "Checks if node v has not been visited in current DFS.",
+    11: "Marks node v as visited in current DFS path search.",
+    12: "Checks if v is unmatched or if its owner match[v] can be re-matched.",
     13: "Assigns u as the new match for node v (match[v] = u).",
-    14: "Returns True to indicate an augmenting matching path was successfully found.",
-    15: "Returns False if no augmenting path could be found starting from node u.",
+    14: "Returns True to indicate an augmenting path was found.",
+    15: "Returns False if no augmenting path could be found.",
     17: "Initializes matching_size counter to 0.",
     18: "Iterates through each vertex i from 0 to n - 1.",
-    19: "Resets the visited boolean array for the new augmenting path search from vertex i.",
+    19: "Resets visited boolean array.",
     20: "Attempts to find an augmenting path starting from vertex i.",
-    21: "Increments matching_size by 1 when an augmenting path is successfully found.",
-    23: "Calculates and returns n - matching_size (Minimum Path Cover per Gallai's Identity).",
+    21: "Increments matching_size when augmenting path is found.",
+    23: "Returns n - matching_size per Gallai's Identity.",
   },
 };
 
@@ -356,23 +469,25 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   topicIds: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
-    "<p>Finds the minimum number of vertex-disjoint paths needed to cover all vertices in a Directed Acyclic Graph (DAG) using Maximum Bipartite Matching.</p><p>Given a DAG with <code>N</code> vertices and <code>M</code> directed edges, a vertex-disjoint path cover is a set of paths such that every vertex belongs to exactly one path. By <strong>Gallai's Identity</strong>, finding the minimum number of paths is equivalent to constructing a bipartite graph by splitting each vertex <code>u</code> into <code>u<sub>out</sub></code> and <code>u<sub>in</sub></code>, computing the Maximum Bipartite Matching size <code>M*</code>, and evaluating <code>N - M*</code>.</p>",
+    "<p>Given a Directed Acyclic Graph (DAG) <code>G = (V, E)</code>, find the minimum number of vertex-disjoint directed paths needed to cover every vertex in the graph.</p><h3>Problem Statement</h3><p>Compute the Minimum Path Cover size using Gallai's Identity <code>N - |M*|</code>, where <code>N</code> is the number of vertices and <code>|M*|</code> is the Maximum Bipartite Matching size obtained by splitting each vertex into Dual in/out nodes.</p><h3>Input Parameters</h3><ul><li><code>numNodes</code>: Total number of vertices in the DAG.</li><li><code>edges</code>: Array of directed edges <code>(from, to)</code>.</li></ul><h3>Output</h3><p>Returns the minimum number of vertex-disjoint paths covering all vertices.</p>",
   constraints: ["1 <= V <= 10", "0 <= E <= 20"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "5 nodes DAG (0->1->2, 0->3->4)",
-      outputDisplay: "2",
-      title: "5-Node DAG",
+      outputDisplay: "Minimum Paths = 2",
+      title: "Standard 5-Node DAG",
       input: DEFAULT_MINIMUM_PATH_COVER_INPUT,
       output: "2",
       explanation: "Covered by 2 paths: 0->1->2 and 3->4.",
     },
     {
       kind: "complex",
-      inputDisplay: "6 nodes with multiple paths",
-      outputDisplay: "2",
-      title: "Complex DAG",
+      scenario: "adversarial",
+      inputDisplay: "6 nodes with overlapping paths",
+      outputDisplay: "Minimum Paths = 2",
+      title: "Adversarial 6-Node DAG",
       input: {
         numNodes: 6,
         edges: [
@@ -388,9 +503,10 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "4 isolated nodes (0 edges)",
-      outputDisplay: "4",
-      title: "Isolated Nodes",
+      outputDisplay: "Minimum Paths = 4",
+      title: "Boundary Isolated Nodes",
       input: {
         numNodes: 4,
         edges: [],
@@ -429,7 +545,7 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
       },
       {
         heading: "Complexity Analysis",
-        body: "<p><strong>Time Complexity:</strong> <code>O(V &middot; E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Matching Pass:</strong> DFS-based augmenting path search (Kuhn's algorithm) takes <code>O(E)</code> per vertex for <code>V</code> vertices, yielding <code>O(V &middot; E)</code> total time.</li><li><strong>Space:</strong> Adjacency lists and matching arrays consume <code>O(V + E)</code> space.</li></ul>",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V &middot; E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>DFS-based augmenting path search (Kuhn's algorithm) takes <code>O(E)</code> per vertex for <code>V</code> vertices, yielding <code>O(V &middot; E)</code> total time.</p>",
       },
     ],
     keyTerms: [
@@ -463,13 +579,14 @@ export const minimumPathCover: AlgorithmDefinition<MinimumPathCoverInput> = {
   trivia: MINIMUM_PATH_COVER_TRIVIA,
   sources: [
     {
-      type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 20",
+      chapter: 20,
       label: "Competitive Programmer's Handbook, Ch 20",
     },
   ],
   defaultInput: DEFAULT_MINIMUM_PATH_COVER_INPUT,
   generateSteps: generateMinimumPathCoverSteps,
 };
+
+export default minimumPathCover;

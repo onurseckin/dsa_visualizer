@@ -130,7 +130,6 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay:
         "matrix = [[1, 3, 5, 7, 9], [10, 12, 14, 16, 18], [20, 22, 24, 26, 28], [30, 32, 34, 36, 38], [40, 42, 44, 46, 48]], target = 34",
@@ -141,7 +140,6 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
       explanation: "5x5 matrix search; flat index 17 maps to row 3, col 2 where 34 is located.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay:
@@ -161,7 +159,6 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
       explanation: "4x4 matrix search; flat index 11 maps to row 2, col 3 where 50 is located.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13",

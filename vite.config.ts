@@ -42,5 +42,18 @@ export default defineConfig({
     react(),
   ],
   server:
-    process.env.VITE_USE_DOCKER_API === "1" ? { proxy: { "/api": "http://api:3000" } } : undefined,
+    process.env.VITE_USE_DOCKER_API === "1"
+      ? {
+          proxy: { "/api": "http://api:3000" },
+          headers: {
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+          },
+        }
+      : {
+          headers: {
+            "Cross-Origin-Opener-Policy": "same-origin",
+            "Cross-Origin-Embedder-Policy": "require-corp",
+          },
+        },
 });

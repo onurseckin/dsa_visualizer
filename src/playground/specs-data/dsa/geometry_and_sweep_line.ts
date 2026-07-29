@@ -3,48 +3,60 @@ import { cases, defineDsaExecution, input } from "./helpers";
 export const geometryAndSweepLineExecutions = [
   defineDsaExecution({
     id: "convex-hull",
-    entrypoint: "convex_hull",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "outerTrees",
+      arguments: [input()],
+    },
     cases: cases(
       {
-        label: "Triangle remains unchanged",
+        label: "Points [[1,1],[2,2],[2,0],[2,4],[3,3],[4,2]]",
         input: [
-          [0, 0],
+          [1, 1],
+          [2, 2],
           [2, 0],
-          [1, 2],
+          [2, 4],
+          [3, 3],
+          [4, 2],
         ],
         expected: [
-          [0, 0],
-          [2, 0],
-          [1, 2],
-        ],
-      },
-      { label: "No points", input: [], expected: [] },
-      {
-        label: "Interior and collinear points removed",
-        input: [
-          [0, 0],
           [1, 1],
           [2, 0],
+          [4, 2],
+          [3, 3],
+          [2, 4],
+        ],
+        comparison: "unordered",
+      },
+      {
+        label: "Points [[1,2],[2,2],[4,2]]",
+        input: [
+          [1, 2],
           [2, 2],
-          [0, 2],
-          [1, 0],
+          [4, 2],
         ],
         expected: [
-          [0, 0],
-          [2, 0],
+          [1, 2],
           [2, 2],
-          [0, 2],
+          [4, 2],
         ],
+        comparison: "unordered",
+      },
+      {
+        label: "Single point [[0,0]]",
+        input: [[0, 0]],
+        expected: [[0, 0]],
+        comparison: "unordered",
       },
     ),
     audit: {
-      signature: "convex_hull(points: list[tuple[float, float]]) -> list[tuple[float, float]]",
-      defaultInputShape: "Array<{ id: string; x: number; y: number }>",
-      argumentMapping: ["points <- $"],
-      mutation: "Does not mutate points; sorts a copy.",
-      returnBehavior:
-        "Returns strict hull vertices counter-clockwise from the lexicographically smallest point, as fixed by monotone-chain order.",
+      signature: "Solution().outerTrees(trees: list[list[int]]) -> list[list[int]]",
+      defaultInputShape: "number[][]",
+      argumentMapping: ["trees <- $"],
+      mutation: "Does not mutate points.",
+      returnBehavior: "Returns outer trees forming the convex hull boundary.",
     },
   }),
   defineDsaExecution({
@@ -91,58 +103,55 @@ export const geometryAndSweepLineExecutions = [
   }),
   defineDsaExecution({
     id: "line-segment-intersection",
-    entrypoint: "line_segment_intersection",
-    invocation: { kind: "function", arguments: [input("segment1"), input("segment2")] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "computeArea",
+      arguments: [
+        input("ax1"),
+        input("ay1"),
+        input("ax2"),
+        input("ay2"),
+        input("bx1"),
+        input("by1"),
+        input("bx2"),
+        input("by2"),
+      ],
+    },
     cases: cases(
       {
-        label: "Proper crossing",
-        input: {
-          segment1: [
-            [0, 0],
-            [4, 4],
-          ],
-          segment2: [
-            [0, 4],
-            [4, 0],
-          ],
-        },
-        expected: true,
+        label: "Overlapping rectangles",
+        input: { ax1: -3, ay1: 0, ax2: 3, ay2: 4, bx1: 0, by1: -1, bx2: 9, by2: 2 },
+        expected: 45,
       },
       {
-        label: "Separated collinear segments",
-        input: {
-          segment1: [
-            [0, 0],
-            [1, 0],
-          ],
-          segment2: [
-            [2, 0],
-            [3, 0],
-          ],
-        },
-        expected: false,
+        label: "Non-overlapping rectangles",
+        input: { ax1: -2, ay1: -2, ax2: 2, ay2: 2, bx1: 3, by1: 3, bx2: 4, by2: 4 },
+        expected: 17,
       },
       {
-        label: "Shared endpoint",
-        input: {
-          segment1: [
-            [-2, 1],
-            [2, 1],
-          ],
-          segment2: [
-            [2, 1],
-            [4, 3],
-          ],
-        },
-        expected: true,
+        label: "Identical rectangles",
+        input: { ax1: 0, ay1: 0, ax2: 2, ay2: 2, bx1: 0, by1: 0, bx2: 2, by2: 2 },
+        expected: 4,
       },
     ),
     audit: {
-      signature: "line_segment_intersection(seg1, seg2) -> bool",
-      defaultInputShape: "{ segment1: Segment; segment2: Segment }",
-      argumentMapping: ["seg1 <- $.segment1", "seg2 <- $.segment2"],
-      mutation: "Does not mutate segments.",
-      returnBehavior: "Returns whether closed segments properly cross, overlap, or touch.",
+      signature: "Solution().computeArea(...) -> int",
+      defaultInputShape:
+        "{ ax1: number; ay1: number; ax2: number; ay2: number; bx1: number; by1: number; bx2: number; by2: number }",
+      argumentMapping: [
+        "ax1 <- $.ax1",
+        "ay1 <- $.ay1",
+        "ax2 <- $.ax2",
+        "ay2 <- $.ay2",
+        "bx1 <- $.bx1",
+        "by1 <- $.by1",
+        "bx2 <- $.bx2",
+        "by2 <- $.by2",
+      ],
+      mutation: "Does not mutate inputs.",
+      returnBehavior: "Returns total area covered by two 2D rectangles.",
     },
   }),
   defineDsaExecution({
@@ -326,54 +335,48 @@ export const geometryAndSweepLineExecutions = [
   }),
   defineDsaExecution({
     id: "point-in-polygon",
-    entrypoint: "point_in_polygon",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "isBoomerang",
+      arguments: [input()],
+    },
     cases: cases(
       {
-        label: "Inside square",
-        input: {
-          point: [1, 1],
-          polygon: [
-            [0, 0],
-            [2, 0],
-            [2, 2],
-            [0, 2],
-          ],
-        },
+        label: "Non-collinear points",
+        input: [
+          [1, 1],
+          [2, 3],
+          [3, 2],
+        ],
         expected: true,
       },
       {
-        label: "Outside square",
-        input: {
-          point: [3, 3],
-          polygon: [
-            [0, 0],
-            [2, 0],
-            [2, 2],
-            [0, 2],
-          ],
-        },
+        label: "Collinear points",
+        input: [
+          [1, 1],
+          [2, 2],
+          [3, 3],
+        ],
         expected: false,
       },
       {
-        label: "Inside triangle",
-        input: {
-          point: [0.5, 0.5],
-          polygon: [
-            [0, 0],
-            [2, 0],
-            [0, 2],
-          ],
-        },
-        expected: true,
+        label: "Horizontal line",
+        input: [
+          [0, 0],
+          [1, 0],
+          [2, 0],
+        ],
+        expected: false,
       },
     ),
     audit: {
-      signature: "solve(input: dict) -> bool",
-      defaultInputShape: "{ point: number[]; polygon: number[][] }",
-      argumentMapping: ["input <- $"],
+      signature: "Solution().isBoomerang(points: list[list[int]]) -> bool",
+      defaultInputShape: "number[][]",
+      argumentMapping: ["points <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Checks if point is inside polygon via ray casting.",
+      returnBehavior: "Returns True if points form a non-collinear triangle.",
     },
   }),
   defineDsaExecution({

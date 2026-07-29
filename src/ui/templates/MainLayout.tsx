@@ -95,6 +95,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           title={algorithm.title}
           topicIds={algorithm.topicIds}
           difficulty={algorithm.difficulty}
+          sources={algorithm.sources}
+          leetcode={algorithm.leetcode}
         />
       </div>
 

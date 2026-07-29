@@ -238,20 +238,8 @@ export const generateBinarySearchMatrixSteps = (
     steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  const isDefaultTutorialInput =
-    !input ||
-    (Array.isArray(input.matrix) &&
-      input.target === DEFAULT_BINARY_SEARCH_MATRIX_INPUT.target &&
-      input.matrix.length === DEFAULT_BINARY_SEARCH_MATRIX_INPUT.matrix.length &&
-      input.matrix[0].length === DEFAULT_BINARY_SEARCH_MATRIX_INPUT.matrix[0].length &&
-      input.matrix.every((row, r) =>
-        row.every((val, c) => val === DEFAULT_BINARY_SEARCH_MATRIX_INPUT.matrix[r][c]),
-      ));
-
-  if (isDefaultTutorialInput) {
-    for (const intro of createIntroSnapshots()) {
-      addStep(intro.narrative, intro.primarySnapshot, "intro");
-    }
+  for (const intro of createIntroSnapshots()) {
+    addStep(intro.narrative, intro.primarySnapshot, "intro");
   }
 
   if (

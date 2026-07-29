@@ -302,12 +302,8 @@ export const generateNQueensSteps = (input: NQueensInput): AlgorithmStep[] => {
     steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  const isDefaultTutorialInput = !input || input.n === DEFAULT_NQUEENS_INPUT.n;
-
-  if (isDefaultTutorialInput) {
-    for (const intro of createIntroSnapshots()) {
-      addStep(intro.narrative, intro.primarySnapshot, "intro");
-    }
+  for (const intro of createIntroSnapshots()) {
+    addStep(intro.narrative, intro.primarySnapshot, "intro");
   }
 
   const board: string[][] = Array.from({ length: n }, () => Array(n).fill("."));

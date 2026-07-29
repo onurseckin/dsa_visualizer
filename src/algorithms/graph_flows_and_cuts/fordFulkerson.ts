@@ -13,7 +13,7 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   topicIds: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
-    "<p>Computes the maximum flow from a source vertex <code>S</code> to a sink vertex <code>T</code> in a flow network by repeatedly finding augmenting paths in the residual graph. The algorithm terminates when no path with positive residual capacity exists, guaranteeing maximum throughput according to the Max-Flow Min-Cut Theorem in <code>O(E &middot; |f*|)</code> time.</p>",
+    "<p>Given a directed flow network <code>G = (V, E)</code> with non-negative edge capacities, a source vertex <code>S</code>, and a sink vertex <code>T</code>, compute the maximum total throughput flow that can be routed from <code>S</code> to <code>T</code>.</p><h3>Problem Statement</h3><p>Find a valid network flow assignment that satisfies capacity constraints <code>0 <= f(u, v) <= c(u, v)</code> and conservation constraints at all intermediate vertices while maximizing total flow into <code>T</code>.</p><h3>Input Parameters</h3><ul><li><code>source</code>: Identifier for the source vertex S.</li><li><code>sink</code>: Identifier for the sink vertex T.</li><li><code>nodes</code>: Array of vertex identifiers.</li><li><code>edges</code>: Array of directed edges with numeric capacities <code>(from, to, capacity)</code>.</li></ul><h3>Output</h3><p>Returns the integer value of the maximum total throughput flow reaching sink T.</p>",
   constraints: [
     "2 <= V <= 50",
     "1 <= capacity <= 10^4",
@@ -23,10 +23,10 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay:
-        "source = S, sink = T, edges = [(S,A,10), (S,C,10), (A,B,4), (A,C,2), (A,D,8), (C,D,9), (B,T,10), (D,T,10)]",
-      outputDisplay: "Max Flow = 19",
-      title: "Basic Example",
+      scenario: "standard",
+      inputDisplay: "source = S, sink = T, 4 nodes, 5 edges",
+      outputDisplay: "Max Flow = 20",
+      title: "Standard Flow Network",
       input: {
         source: "S",
         sink: "T",
@@ -45,10 +45,10 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
     },
     {
       kind: "complex",
-      inputDisplay:
-        "source = S, sink = T, edges = [(S,1,16), (S,2,13), (1,2,10), (2,1,4), (1,3,12), (3,2,9), (2,4,14), (4,3,7), (3,T,20), (4,T,4)]",
-      outputDisplay: "Max Flow = 23",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      inputDisplay: "source = S, sink = T, bottleneck node C",
+      outputDisplay: "Max Flow = 7",
+      title: "Adversarial Bottleneck Network",
       input: {
         source: "S",
         sink: "T",
@@ -67,9 +67,10 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "source = S, sink = T, edges = [(S,A,10), (T,A,10)]",
       outputDisplay: "Max Flow = 0",
-      title: "Failing / Boundary Case",
+      title: "Boundary Disconnected Sink",
       input: {
         source: "S",
         sink: "T",
@@ -114,3 +115,5 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   defaultInput: DEFAULT_FORD_FULKERSON_INPUT,
   generateSteps: generateFordFulkersonSteps,
 };
+
+export default fordFulkerson;

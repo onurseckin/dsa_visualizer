@@ -496,7 +496,6 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: 'graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = "A"',
       outputDisplay: "{A: 0, B: 4, C: 2, D: 9, E: 11}",
@@ -507,7 +506,6 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
         "Dijkstra pops C (dist 2) and B (dist 4) first, then relaxes edges to find optimal distances: D (9) and E (11).",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'graph = {A-B:2, B-C:3, A-C:10, C-D:1}, start = "A"',
@@ -528,7 +526,6 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
         "Direct edge A->C has weight 10, but multi-hop path A->B->C has total weight 5 (2+3). Dijkstra correctly picks the cheaper path.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'graph = {A-B:5, C:isolated}, start = "A"',

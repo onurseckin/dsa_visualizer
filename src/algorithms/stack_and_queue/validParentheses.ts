@@ -466,7 +466,6 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: 's = "({[()]}())"',
       outputDisplay: "true",
@@ -476,7 +475,6 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
       explanation: "Nested brackets matching correctly in Last-In, First-Out order.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: 's = "()[]{}()({[]})"',
@@ -488,7 +486,6 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
         "Multiple sequential and deeply nested bracket pairs correctly pushing and popping from the stack.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 's = "(]"',

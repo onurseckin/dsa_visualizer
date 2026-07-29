@@ -55,6 +55,22 @@ export const cases = (
     ...(fixture.tolerance === undefined ? {} : { tolerance: fixture.tolerance }),
   }));
 
+/**
+ * Generates extra test cases on top of the three canonical ones.
+ * IDs are sequential (extra-0, extra-1 …) so they never collide with the
+ * basic/boundary/complex slots.  Use with spread syntax:
+ *   cases: [...cases(basic, boundary, complex), ...extraCases(...)],
+ */
+export const extraCases = (...fixtures: readonly DsaCaseFixture[]): readonly PythonTestCase[] =>
+  fixtures.map((fixture, index) => ({
+    id: `extra-${index}`,
+    label: fixture.label,
+    input: fixture.input,
+    expected: fixture.expected,
+    comparison: fixture.comparison ?? "deep-equal",
+    ...(fixture.tolerance === undefined ? {} : { tolerance: fixture.tolerance }),
+  }));
+
 export const defineDsaExecution = (definition: {
   readonly id: string;
   readonly entrypoint: string;

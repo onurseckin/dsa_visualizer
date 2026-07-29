@@ -385,7 +385,6 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [5, 2, 8, 1, 4]",
       outputDisplay: "[1, 2, 4, 5, 8]",
@@ -396,7 +395,6 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [64, 34, 25, 12, 22, 11, 90]",
       outputDisplay: "[11, 12, 22, 25, 34, 64, 90]",
@@ -406,7 +404,6 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
       explanation: "A larger array demonstrating repeated adjacent swaps until fully sorted.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [1, 2, 3, 4, 5]",

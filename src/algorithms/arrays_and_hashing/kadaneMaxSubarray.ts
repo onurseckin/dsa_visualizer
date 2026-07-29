@@ -354,7 +354,6 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]",
       outputDisplay: "6",
@@ -364,7 +363,6 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
       explanation: "The contiguous subarray [4, -1, 2, 1] has the largest sum = 6.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [5, 4, -1, 7, 8]",
@@ -376,7 +374,6 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
         "All positive elements except -1; the maximum subarray spans the entire array with sum 23.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [-8, -3, -6, -2, -5]",

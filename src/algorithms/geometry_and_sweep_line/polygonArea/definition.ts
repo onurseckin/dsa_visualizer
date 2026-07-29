@@ -76,7 +76,13 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Medium",
   description:
-    "<p>Calculates the exact area of a simple 2D polygon <code>P</code> from its ordered vertices using the Shoelace (Gauss) formula in <code>O(N)</code> time:</p><p><code>A = 0.5 × |∑ (x_i y_{i+1} - x_{i+1} y_i)|</code></p><h3>Graph Snapshot Representation</h3><p>The polygon vertices and perimeter edges are rendered on a 2D graph coordinate grid, with active cross-multiplied edges highlighted.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of ordered 2D polygon vertices.</li></ul><h3>Output</h3><ul><li><code>float</code>: Total surface area of the enclosed polygon.</li></ul>",
+    "<p>Given an ordered list of 2D vertices defining a simple polygon, calculate its exact enclosed surface area using the Shoelace (Gauss) formula.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "  <li><code>points</code>: An array of ordered 2D vertex objects <code>{ x: number, y: number }</code> where <code>3 &le; N &le; 1000</code>.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<p>Returns a floating-point number representing the exact surface area of the enclosed polygon.</p>",
   constraints: [
     "3 <= vertices.length <= 1000",
     "-1000 <= x, y <= 1000",
@@ -85,25 +91,20 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "points = [(100,100), (400,100), (350,300), (150,300)]",
       outputDisplay: "45000",
-      title: "Basic Example",
-      input: {
-        points: [
-          { x: 100, y: 100, id: "P0", label: "P0 (100, 100)" },
-          { x: 400, y: 100, id: "P1", label: "P1 (400, 100)" },
-          { x: 350, y: 300, id: "P2", label: "P2 (350, 300)" },
-          { x: 150, y: 300, id: "P3", label: "P3 (150, 300)" },
-        ],
-      },
+      title: "Standard 4-Vertex Trapezoid",
+      input: DEFAULT_POLYGON_AREA_INPUT,
       output: "45000",
       explanation: "Trapezoid area calculated via Shoelace cross-products 0.5 * |sum| = 45000.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "points = [(100,100), (300,100), (300,300), (200,200), (100,300)]",
       outputDisplay: "30000",
-      title: "Complex Edge Case",
+      title: "Non-Convex L-Shaped Polygon",
       input: {
         points: [
           { x: 100, y: 100, id: "P0", label: "P0" },
@@ -119,9 +120,10 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "points = [(100,100), (200,200), (300,300)]",
       outputDisplay: "0",
-      title: "Failing / Boundary Case",
+      title: "Boundary Collinear Degenerate Triangle",
       input: {
         points: [
           { x: 100, y: 100, id: "P0", label: "P0" },

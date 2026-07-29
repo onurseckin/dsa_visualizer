@@ -4,8 +4,10 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
   GraphVisualSnapshot,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface TspBitmaskDpInput {
   n: number;
@@ -46,6 +48,169 @@ export const PYTHON_TSP_BITMASK_CODE = `def tsp_bitmask(dist: list[list[int]]) -
 
     return ans if ans != INF else -1`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Traveling Salesperson Problem (TSP) seeks the minimum-weight closed tour that starts at City 0, visits every city exactly once, and returns to City 0.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "c0", label: "City 0", x: 100, y: 100, state: "active" },
+        { id: "c1", label: "City 1", x: 250, y: 100, state: "default" },
+        { id: "c2", label: "City 2", x: 250, y: 250, state: "default" },
+        { id: "c3", label: "City 3", x: 100, y: 250, state: "default" },
+      ],
+      edges: [
+        { from: "c0", to: "c1", weight: 10, isPath: true },
+        { from: "c1", to: "c2", weight: 35, isPath: true },
+        { from: "c2", to: "c3", weight: 30, isPath: true },
+        { from: "c3", to: "c0", weight: 20, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Checking all (N-1)! permutations in brute-force order takes factorial O(N!) time, which quickly becomes intractable even for modest city counts (N > 12).",
+    primarySnapshot: {
+      kind: "array",
+      name: "complexity_contrast",
+      mode: "box",
+      elements: [
+        { id: "b1", value: "Brute-Force Search: O(N!)", state: "compare" },
+        { id: "b2", value: "Held-Karp Bitmask DP: O(N^2 * 2^N)", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Held-Karp DP recognizes that the minimum cost to complete a tour depends only on the set of visited cities and the current endpoint, independent of exact traversal history.",
+    primarySnapshot: {
+      kind: "array",
+      name: "state_tuple",
+      mode: "box",
+      elements: [
+        { id: "st1", value: "Visited Subset (Bitmask)", state: "active" },
+        { id: "st2", value: "Current Endpoint (u)", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "An N-bit integer mask encodes the visited city subset, where bit i = 1 if City i has been visited and 0 if unvisited.",
+    primarySnapshot: {
+      kind: "bitmask",
+      name: "subset_bitmask",
+      value: 13,
+      bitWidth: 4,
+      label: "Visited Cities Subset (1101₂ = {0, 2, 3})",
+      bits: [
+        { index: 0, value: 1, label: "City 0", state: "active" },
+        { index: 1, value: 0, label: "City 1", state: "default" },
+        { index: 2, value: 1, label: "City 2", state: "active" },
+        { index: 3, value: 1, label: "City 3", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We define dp[mask][u] as the minimum path distance to visit the subset of cities in mask and terminate at City u.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 4,
+      cols: 4,
+      rowHeaders: ["0001₂", "0011₂", "0101₂", "1111₂"],
+      colHeaders: ["u=0", "u=1", "u=2", "u=3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: "∞", state: "default" },
+        { row: 0, col: 2, value: "∞", state: "default" },
+        { row: 0, col: 3, value: "∞", state: "default" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 10, state: "active" },
+        { row: 1, col: 2, value: "∞", state: "default" },
+        { row: 1, col: 3, value: "∞", state: "default" },
+        { row: 2, col: 0, value: "∞", state: "default" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 15, state: "active" },
+        { row: 2, col: 3, value: "∞", state: "default" },
+        { row: 3, col: 0, value: "∞", state: "default" },
+        { row: 3, col: 1, value: 85, state: "compare" },
+        { row: 3, col: 2, value: 80, state: "sorted" },
+        { row: 3, col: 3, value: 90, state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The base case sets dp[1][0] = 0 (bitmask 0001₂), representing the start of the tour at City 0 with 0 accumulated distance.",
+    primarySnapshot: {
+      kind: "bitmask",
+      name: "base_case",
+      value: 1,
+      bitWidth: 4,
+      label: "Base Case: dp[1][0] = 0",
+      bits: [
+        { index: 0, value: 1, label: "City 0 (Start)", state: "sorted" },
+        { index: 1, value: 0, label: "City 1", state: "default" },
+        { index: 2, value: 0, label: "City 2", state: "default" },
+        { index: 3, value: 0, label: "City 3", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "For an active state dp[mask][u] and unvisited city v, we transition to next_mask = mask | (1 << v), updating dp[next_mask][v] = min(dp[next_mask][v], dp[mask][u] + dist[u][v]).",
+    primarySnapshot: {
+      kind: "array",
+      name: "recurrence",
+      mode: "box",
+      elements: [
+        { id: "r1", value: "Current State: dp[mask][u]", state: "compare" },
+        { id: "r2", value: "+ Edge dist[u][v]", state: "compare" },
+        { id: "r3", value: "-> dp[mask | (1<<v)][v]", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "After expanding all subproblems up to full_mask = (1 << N) - 1, we close the Hamiltonian cycle by adding return edge dist[u][0] back to City 0.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "c0", label: "City 0", x: 100, y: 100, state: "active" },
+        { id: "c1", label: "City 1", x: 250, y: 100, state: "visited" },
+        { id: "c2", label: "City 2", x: 250, y: 250, state: "visited" },
+        { id: "c3", label: "City 3", x: 100, y: 250, state: "pivot" },
+      ],
+      edges: [
+        { from: "c0", to: "c1", weight: 10, isTraversed: true },
+        { from: "c1", to: "c2", weight: 35, isTraversed: true },
+        { from: "c2", to: "c3", weight: 30, isTraversed: true },
+        { from: "c3", to: "c0", weight: 20, isPath: true, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Held-Karp reduces TSP complexity to O(N^2 * 2^N) time and O(N * 2^N) space, finding the exact optimal tour for up to N = 20 cities.",
+    primarySnapshot: {
+      kind: "array",
+      name: "summary",
+      mode: "box",
+      elements: [
+        { id: "s1", value: "Exact TSP Time: O(N^2 * 2^N)", state: "sorted" },
+        { id: "s2", value: "Auxiliary Space: O(N * 2^N)", state: "default" },
+      ],
+    },
+  },
+];
+
 export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmStep[] => {
   const n = Math.min(6, Math.max(2, input?.n ?? DEFAULT_TSP_BITMASK_INPUT.n));
   const rawDist = input?.dist ?? DEFAULT_TSP_BITMASK_INPUT.dist;
@@ -64,6 +229,28 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
   const dp: number[][] = Array.from({ length: numMasks }, () => new Array<number>(n).fill(INF));
   dp[1][0] = 0;
 
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (input.n === DEFAULT_TSP_BITMASK_INPUT.n &&
+      Array.isArray(input.dist) &&
+      input.dist.every((row, u) =>
+        row.every((val, v) => val === DEFAULT_TSP_BITMASK_INPUT.dist[u][v]),
+      ));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   const nodes: GraphNodeItem[] = Array.from({ length: n }, (_, i) => {
     const angle = (2 * Math.PI * i) / n;
     return {
@@ -72,11 +259,10 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
       x: Math.round(150 + 100 * Math.cos(angle)),
       y: Math.round(150 + 100 * Math.sin(angle)),
       state: i === 0 ? "active" : "default",
-      val: i,
     };
   });
 
-  const getEdges = (activeU?: number, activeV?: number): GraphEdgeItem[] => {
+  const makeGraphSnapshot = (activeU?: number, activeV?: number): GraphVisualSnapshot => {
     const edgesList: GraphEdgeItem[] = [];
     for (let u = 0; u < n; u++) {
       for (let v = 0; v < n; v++) {
@@ -92,223 +278,37 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         }
       }
     }
-    return edgesList;
-  };
-
-  const createSnapshot = (activeU?: number, activeV?: number): GraphVisualSnapshot => {
     return {
       kind: "graph",
+      directed: true,
       nodes: nodes.map((node, i) => ({
         ...node,
         state: i === activeV ? "active" : i === activeU ? "pivot" : "default",
       })),
-      edges: getEdges(activeU, activeV),
+      edges: edgesList,
     };
   };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Initialize Held-Karp Bitmask DP for ${n} cities.`,
-      why: "Computing the optimal closed Hamiltonian cycle visiting every city once before returning to City 0.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { n } },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Read city count n = ${n} from distance matrix.`,
-      why: "The total number of cities defines both the bitmask size and the state space dimensions.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { n } },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: "Set infinity sentinel for unreachable state distances.",
-      why: "Initializes uncalculated state costs so dynamic programming relaxation can cleanly select minimum path values.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { INF: "inf" } },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: `Compute total city subset bitmasks: 2^${n} = ${numMasks}.`,
-      why: "An n-bit integer binary mask efficiently encodes all 2^n possible subsets of visited cities.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { numMasks } },
-    variables: { numMasks },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Allocate 2D state matrix dp[2^${n}][${n}] initialized to infinity.`,
-      why: "dp[mask][u] tracks the minimum path distance to visit city subset mask and terminate at city u.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { rows: numMasks, cols: n } },
-    variables: { numMasks, n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: "Set base case: start at City 0 with mask 1 (0001₂).",
-      why: "dp[1][0] = 0 represents starting the tour at City 0 with zero path cost accumulated.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { startCity: 0, mask: 1 } },
-    variables: { n, "dp[1][0]": 0 },
-  });
+  addStep(
+    `Initializing Held-Karp Bitmask DP for ${n} cities. Setting base case dp[1][0] = 0 (City 0 visited).`,
+    makeGraphSnapshot(0),
+  );
 
   for (let mask = 1; mask < numMasks; mask++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 8,
-      explanation: {
-        what: `Evaluate city subset bitmask = ${mask} (${mask.toString(2)}₂).`,
-        why: "Sweeping subproblem sizes systematically ensures all smaller sub-tours are solved before larger subsets.",
-      },
-      primarySnapshot: createSnapshot(0),
-      auxiliaryState: { customState: { mask: mask.toString(2) } },
-      variables: { mask },
-    });
-
     for (let u = 0; u < n; u++) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 9,
-        explanation: {
-          what: `Test endpoint City ${u} for visited subset ${mask.toString(2)}₂.`,
-          why: "Determines whether a valid sub-tour ending at city u exists for the current city subset.",
-        },
-        primarySnapshot: createSnapshot(u),
-        auxiliaryState: { customState: { u, mask: mask.toString(2) } },
-        variables: { u, mask },
-      });
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 10,
-        explanation: {
-          what: `Check state accessibility for dp[${mask.toString(2)}₂][${u}].`,
-          why:
-            dp[mask][u] === INF
-              ? "State is unreachable from City 0; skipping transitions from this endpoint."
-              : `State is reachable with cost ${dp[mask][u]}; exploring potential extensions to unvisited cities.`,
-        },
-        primarySnapshot: createSnapshot(u),
-        auxiliaryState: { customState: { u, cost: dp[mask][u] } },
-        variables: { u, mask, reachable: dp[mask][u] !== INF },
-      });
-
-      if (dp[mask][u] === INF) {
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 11,
-          explanation: {
-            what: `Bypass unreachable state dp[${mask.toString(2)}₂][${u}].`,
-            why: "No valid path visits this specific city subset ending at city u, so no sub-tour extension can proceed.",
-          },
-          primarySnapshot: createSnapshot(u),
-          auxiliaryState: { customState: { u, mask: mask.toString(2), unreachable: true } },
-          variables: { u, mask, reachable: false },
-        });
-        continue;
-      }
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 12,
-        explanation: {
-          what: `Attempt sub-tour extensions from City ${u}.`,
-          why: "With a valid sub-tour in hand, evaluate moving to each remaining unvisited city.",
-        },
-        primarySnapshot: createSnapshot(u),
-        auxiliaryState: { customState: { u, mask: mask.toString(2), reachable: true } },
-        variables: { u, mask, n },
-      });
+      if (dp[mask][u] === INF) continue;
 
       for (let v = 0; v < n; v++) {
-        const unvisited = !(mask & (1 << v));
-        const edgeExists = dist[u][v] !== INF;
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 13,
-          explanation: {
-            what: `Inspect edge transition City ${u} -> City ${v}.`,
-            why:
-              unvisited && edgeExists
-                ? `City ${v} is unvisited in subset ${mask.toString(2)}₂ and edge (${u}, ${v}) has weight ${dist[u][v]}.`
-                : `Transition to City ${v} is invalid (already visited or no direct edge exists).`,
-          },
-          primarySnapshot: createSnapshot(u, v),
-          auxiliaryState: { customState: { u, v, unvisited, edgeExists } },
-          variables: { u, v, unvisited, edgeExists },
-        });
-
-        if (unvisited && edgeExists) {
+        if (!(mask & (1 << v)) && dist[u][v] !== INF) {
           const nextMask = mask | (1 << v);
           const candidate = dp[mask][u] + dist[u][v];
 
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 14,
-            explanation: {
-              what: `Form new subset bitmask ${nextMask.toString(2)}₂ by including City ${v}.`,
-              why: "Bitwise OR sets the bit for city v, generating the bitmask for the expanded city subset.",
-            },
-            primarySnapshot: createSnapshot(u, v),
-            auxiliaryState: { customState: { nextMask: nextMask.toString(2) } },
-            variables: { nextMask },
-          });
-
           if (candidate < dp[nextMask][v]) {
             dp[nextMask][v] = candidate;
-
-            steps.push({
-              stepIndex: stepIndex++,
-              codeLine: 15,
-              explanation: {
-                what: `Relax path cost dp[${nextMask.toString(2)}₂][${v}] = ${candidate}.`,
-                why: `A shorter sub-tour reaching City ${v} through City ${u} was found, reducing path cost from ${dp[nextMask][v] === candidate ? "previous cost" : "inf"} to ${candidate}.`,
-              },
-              primarySnapshot: createSnapshot(u, v),
-              auxiliaryState: {
-                customState: {
-                  currMask: mask.toString(2),
-                  nextMask: nextMask.toString(2),
-                  u,
-                  v,
-                  cost: dp[nextMask][v],
-                },
-              },
-              variables: {
-                mask,
-                u,
-                v,
-                "dist[u][v]": dist[u][v],
-                "dp[next_mask][v]": dp[nextMask][v],
-              },
-            });
+            addStep(
+              `Sub-tour transition from City ${u} to City ${v} (weight ${dist[u][v]}): expanding visited subset ${mask.toString(2)}₂ -> ${nextMask.toString(2)}₂ with updated path cost dp[${nextMask.toString(2)}₂][${v}] = ${candidate}.`,
+              makeGraphSnapshot(u, v),
+            );
           }
         }
       }
@@ -316,75 +316,12 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
   }
 
   const fullMask = (1 << n) - 1;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 17,
-    explanation: {
-      what: `Construct full-coverage bitmask ${fullMask.toString(2)}₂ representing all ${n} cities.`,
-      why: "Full bitmask represents complete coverage where every city has been visited exactly once.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { fullMask: fullMask.toString(2) } },
-    variables: { fullMask },
-  });
-
   let ans = INF;
   let bestLastCity = -1;
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 18,
-    explanation: {
-      what: "Initialize tour cost accumulator ans = ∞.",
-      why: "Preparing to find the minimum closed tour cost across all possible ending cities.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { ans: "INF", fullMask: fullMask.toString(2) } },
-    variables: { ans: "INF", fullMask },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 19,
-    explanation: {
-      what: "Evaluate closing return edges to City 0 from every candidate ending city u.",
-      why: "Completes the Hamiltonian cycle by adding edge cost dist[u][0] to full-coverage path cost dp[full_mask][u].",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: { customState: { fullMask: fullMask.toString(2) } },
-    variables: { fullMask },
-  });
-
   for (let u = 1; u < n; u++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 20,
-      explanation: {
-        what: `Verify return edge validity from City ${u} to City 0.`,
-        why:
-          dist[u][0] !== INF && dp[fullMask][u] !== INF
-            ? `Reachable full tour ending at City ${u} (cost ${dp[fullMask][u]}) with return edge cost ${dist[u][0]}.`
-            : `Cannot close tour via City ${u} (either path to city ${u} or return edge is non-existent).`,
-      },
-      primarySnapshot: createSnapshot(u, 0),
-      auxiliaryState: { customState: { u, returnEdge: dist[u][0], pathCost: dp[fullMask][u] } },
-      variables: { u, validReturn: dist[u][0] !== INF && dp[fullMask][u] !== INF },
-    });
-
     if (dist[u][0] !== INF && dp[fullMask][u] !== INF) {
       const totalCost = dp[fullMask][u] + dist[u][0];
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 21,
-        explanation: {
-          what: `Calculate candidate tour cost ending at City ${u}: ${dp[fullMask][u]} + ${dist[u][0]} = ${totalCost}.`,
-          why: `Compares candidate Hamiltonian cycle cost ${totalCost} against best recorded tour cost ${ans === INF ? "∞" : ans}.`,
-        },
-        primarySnapshot: createSnapshot(u, 0),
-        auxiliaryState: { customState: { u, totalCost } },
-        variables: { u, totalCost },
-      });
-
       if (totalCost < ans) {
         ans = totalCost;
         bestLastCity = u;
@@ -392,21 +329,13 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     }
   }
 
-  const finalCost = ans === INF ? -1 : ans;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 23,
-    explanation: {
-      what: `Final optimal TSP tour cost = ${finalCost}.`,
-      why:
-        finalCost !== -1
-          ? `Successfully identified shortest closed Hamiltonian cycle returning to City 0 via City ${bestLastCity} with total cost ${finalCost}.`
-          : "Graph is disconnected; no valid closed Hamiltonian tour visiting all cities exists.",
-    },
-    primarySnapshot: createSnapshot(bestLastCity !== -1 ? bestLastCity : 0, 0),
-    auxiliaryState: { customState: { minTourCost: finalCost } },
-    variables: { result: finalCost },
-  });
+  const finalAns = ans === INF ? -1 : ans;
+  addStep(
+    finalAns !== -1
+      ? `Completed TSP Bitmask DP: optimal closed tour cost = ${finalAns} (closing return edge from City ${bestLastCity} back to City 0).`
+      : `Completed TSP Bitmask DP: graph is disconnected, returning -1.`,
+    makeGraphSnapshot(bestLastCity !== -1 ? bestLastCity : 0, 0),
+  );
 
   return steps;
 };
@@ -444,7 +373,8 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   title: "Traveling Salesperson Problem (Bitmask DP)",
   topicIds: ["dp_2d"],
   difficulty: "Hard",
-  description: `<p>The <strong>Traveling Salesperson Problem (TSP)</strong> (LeetCode #943 / Held-Karp Algorithm) asks for the minimum cost closed tour that visits every city <span>v &isin; {0, 1, &hellip;, N-1}</span> exactly once and returns to the starting city (City 0).</p><h3>Held-Karp Dynamic Programming &amp; Bitmask State</h3><p>Brute-force permutation checking requires <span>O(N!)</span> time. The Held-Karp algorithm uses bitmask dynamic programming to solve TSP in <span>O(N&sup2; &middot; 2ᴺ)</span> time.</p><p>Let <code>dp[mask][u]</code> represent the minimum cost to visit the subset of cities encoded by the bitmask <code>mask</code>, ending at city <code>u</code>.</p><h3>Base Case</h3><p><code>dp[1][0] = 0</code> (bitmask <code>1</code> representing <code>0001₂</code> means only City 0 is visited, starting at cost 0).</p><h3>State Transitions</h3><p>For any active state (<code>dp[mask][u] &ne; &infin;</code>) and unvisited neighbor city <code>v</code> (<code>v &notin; mask</code>, <code>dist[u][v] &ne; &infin;</code>):</p><p><code>next_mask = mask | (1 &lt;&lt; v)</code><br /><code>dp[next_mask][v] = min(dp[next_mask][v], dp[mask][u] + dist[u][v])</code></p><h3>Closing the Tour</h3><p>After filling all states up to <code>full_mask = 2ᴺ - 1</code>, add the return edge <code>dist[u][0]</code> to complete the cycle back to City 0:</p><p><code>Ans = min_{1 &le; u &lt; N} (dp[full_mask][u] + dist[u][0])</code></p><h3>Key Interview Insights</h3><ul><li><strong>Factorial to Exponential:</strong> Reduces runtime from <span>O(N!)</span> to <span>O(N&sup2; &middot; 2ᴺ)</span> and space to <span>O(N &middot; 2ᴺ)</span>.</li><li><strong>Subset Overlap:</strong> States are defined by <code>(mask, last_city)</code> rather than exact visiting order.</li></ul>`,
+  description:
+    "<p>Given <code>N</code> cities and an <code>N &times; N</code> distance matrix <code>dist</code> where <code>dist[u][v]</code> is the travel cost between city <code>u</code> and city <code>v</code>, find the minimum total cost of a closed tour that starts at city 0, visits every city exactly once, and returns to city 0. If no valid tour exists, return <code>-1</code>.</p><p><strong>Input:</strong> An integer <code>n</code> and a 2D integer array <code>dist</code>.</p><p><strong>Output:</strong> The minimum path cost of a complete closed Hamiltonian tour, or <code>-1</code> if no valid tour exists.</p>",
   constraints: [
     "2 <= N <= 20",
     "0 <= dist[u][v] <= 10^4",
@@ -454,9 +384,10 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "n = 4, 4x4 dist matrix",
       outputDisplay: "80",
-      title: "4 Cities Tour",
+      title: "Standard Case",
       input: {
         n: 4,
         dist: [
@@ -471,9 +402,10 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "n = 4, asymmetric dist matrix",
       outputDisplay: "21",
-      title: "Asymmetric Distances",
+      title: "Adversarial Asymmetric Distances",
       input: {
         n: 4,
         dist: [
@@ -488,9 +420,10 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "n = 3, disconnected graph",
       outputDisplay: "-1",
-      title: "Disconnected Graph",
+      title: "Disconnected Graph Boundary",
       input: {
         n: 3,
         dist: [
@@ -557,7 +490,7 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
       type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 10",
+      chapter: 10,
       label: "Competitive Programmer's Handbook, Ch 10",
     },
   ],

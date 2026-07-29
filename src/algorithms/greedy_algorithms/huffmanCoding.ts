@@ -13,23 +13,21 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   topicIds: ["heap_and_priority_queue", "greedy_algorithms"],
   difficulty: "Medium",
   description:
-    "<p>Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.</p>" +
-    "<h3>Problem Overview</h3>" +
-    "<p>Huffman Coding calculates character frequencies and constructs a binary tree with minimum total weighted path length <span>&sum; f_i &middot; d_i</span>, where <code>f_i</code> is the frequency of character <code>i</code> and <code>d_i</code> is its depth in the tree. High-frequency characters receive shorter binary codes, while rare characters receive longer ones.</p>" +
-    "<h3>Key Insights &amp; Intuition</h3>" +
-    "<ul><li><strong>Prefix-Free Property:</strong> No code word is a prefix of any other code word, enabling unambiguous bit-by-bit decoding without separators.</li>" +
-    "<li><strong>Greedy Choice:</strong> Repeatedly merge the two nodes with the lowest frequency sum. By exchange argument, placing the two least frequent symbols at maximum depth is optimal.</li>" +
-    "<li><strong>Shannon Entropy Bound:</strong> Average code length <code>L</code> satisfies <code>H(X) &le; L &lt; H(X) + 1</code>, where <code>H(X) = -&sum; p_i log₂ p_i</code>.</li></ul>" +
-    "<h3>Complexity</h3>" +
-    "<ul><li><strong>Time:</strong> <span>O(N log K)</span> where N is string length and K is the number of unique characters.</li>" +
-    "<li><strong>Space:</strong> <span>O(K)</span> auxiliary space for leaf and internal nodes in the min-heap.</li></ul>",
+    "<p>Given a text string, construct an optimal prefix-free binary code using Huffman's greedy min-heap algorithm to minimize the total encoded bit length.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "  <li><code>text</code>: A string of ASCII characters where <code>1 &le; N &le; 10<sup>4</sup></code>.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<p>Returns a dictionary mapping each unique character to its optimal variable-length binary prefix code string.</p>",
   constraints: ["1 <= text.length <= 10^4", "Text consists of ASCII characters"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: 'text = "abracadabra"',
       outputDisplay: 'Codes: a: "0", b: "110", r: "111", c: "100", d: "101"',
-      title: "Basic Example",
+      title: "Standard Text Sample",
       input: { text: "abracadabra" },
       output: 'Codes: a: "0", b: "110", r: "111", c: "100", d: "101"',
       explanation:
@@ -37,9 +35,10 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: 'text = "BEEP BOOP BEER"',
       outputDisplay: 'Codes: E: "00", B: "01", P: "100", O: "101", R: "110", " ": "111"',
-      title: "Complex Edge Case",
+      title: "Adversarial Multi-Symbol with Spaces",
       input: { text: "BEEP BOOP BEER" },
       output: 'Codes: E: "00", B: "01", P: "100", O: "101", R: "110", " ": "111"',
       explanation:
@@ -47,9 +46,10 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: 'text = "AAAAA"',
       outputDisplay: 'Codes: A: "0"',
-      title: "Failing / Boundary Case",
+      title: "Boundary Single Character String",
       input: { text: "AAAAA" },
       output: 'Codes: A: "0"',
       explanation:

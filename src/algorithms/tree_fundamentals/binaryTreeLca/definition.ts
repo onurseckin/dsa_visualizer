@@ -51,7 +51,6 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8], p = 5, q = 1",
       outputDisplay: "3",
@@ -62,7 +61,6 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
         "Node 5 is in the left subtree and Node 1 is in the right subtree of Root 3. The lowest common ancestor is Node 3.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4], p = 7, q = 4",
@@ -89,7 +87,6 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
         "Both Node 7 and Node 4 lie deep within the subtree rooted at Node 2. Their paths diverge at Node 2, making Node 2 the LCA.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "root = [1, 2], p = 1, q = 2",

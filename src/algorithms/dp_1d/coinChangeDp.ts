@@ -1,5 +1,6 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, PrimaryVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface CoinChangeInput {
   coins: number[];
@@ -22,6 +23,242 @@ export const PYTHON_COIN_CHANGE_CODE = `def coin_change(coins: list[int], amount
 
     return dp[amount] if dp[amount] != float('inf') else -1`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Coin Change problem asks for the minimum number of coins needed to make up a given target amount using a set of coin denominations with an infinite supply of each coin.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "Coin Change Problem Setup",
+      items: [
+        {
+          id: "coins-array",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "coins",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 1, label: "[0]", state: "default" },
+              { id: "c2", value: 3, label: "[1]", state: "default" },
+              { id: "c3", value: 4, label: "[2]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "target-display",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "dp",
+            mode: "box",
+            elements: [{ id: "target-6", value: "Target: 6", state: "active" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A greedy strategy of choosing the largest coin first fails for general coin sets; for example, with coins [1, 3, 4] and target 6, greedy picks 4 + 1 + 1 (3 coins), whereas 3 + 3 (2 coins) is optimal.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "Greedy Strategy Failure Case",
+      items: [
+        {
+          id: "coins-array",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "coins",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 1, label: "Greedy", state: "compare" },
+              { id: "c2", value: 3, label: "Optimal", state: "sorted" },
+              { id: "c3", value: 4, label: "Greedy", state: "compare" },
+            ],
+          },
+        },
+        {
+          id: "comparison",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "dp",
+            mode: "box",
+            elements: [
+              { id: "g1", value: "Greedy: 4+1+1 (3)", state: "compare" },
+              { id: "g2", value: "Optimal: 3+3 (2)", state: "sorted" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "To guarantee finding the true minimum, we decompose the problem into subproblems: for any target amount i, we consider taking each valid coin c and reducing to subproblem i - c.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "Subproblem Decomposition",
+      items: [
+        {
+          id: "coins-array",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "coins",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 1, state: "active", pointers: ["c"] },
+              { id: "c2", value: 3, state: "default" },
+              { id: "c3", value: 4, state: "default" },
+            ],
+          },
+        },
+        {
+          id: "dp-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "dp",
+            mode: "box",
+            elements: [
+              { id: "dp-sub", value: "dp[i - c]", label: "[i-c]", state: "compare" },
+              { id: "dp-curr", value: "dp[i]", label: "[i]", state: "active" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We define dp[i] as the minimum number of coins required to form target amount i, storing subproblem answers in a 1D table of size amount + 1.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: Array.from({ length: 7 }, (_, idx) => ({
+        id: `dp-init-${idx}`,
+        value: "uncomputed",
+        label: `[${idx}]`,
+        state: "default",
+      })),
+    },
+  },
+  {
+    narrative:
+      "The base case is dp[0] = 0 because zero coins are needed to form a total amount of zero.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: Array.from({ length: 7 }, (_, idx) => ({
+        id: `dp-base-${idx}`,
+        value: idx === 0 ? 0 : "∞",
+        label: `[${idx}]`,
+        state: idx === 0 ? "sorted" : "default",
+        pointers: idx === 0 ? ["base: 0"] : undefined,
+      })),
+    },
+  },
+  {
+    narrative:
+      "All other table entries dp[1 ... amount] are initialized to infinity to represent unreached amounts before iteration.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: Array.from({ length: 7 }, (_, idx) => ({
+        id: `dp-inf-${idx}`,
+        value: idx === 0 ? 0 : "∞",
+        label: `[${idx}]`,
+        state: idx === 0 ? "sorted" : "active",
+      })),
+    },
+  },
+  {
+    narrative:
+      "The state transition recurrence is dp[i] = min(dp[i], dp[i - c] + 1) for every coin denomination c where c <= i.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "Recurrence Relation",
+      items: [
+        {
+          id: "coins-array",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "coins",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 1, state: "active" },
+              { id: "c2", value: 3, state: "active" },
+              { id: "c3", value: 4, state: "active" },
+            ],
+          },
+        },
+        {
+          id: "dp-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "dp",
+            mode: "box",
+            elements: [
+              { id: "rec-0", value: 0, label: "[0]", state: "sorted" },
+              { id: "rec-rem", value: "min(dp[i-c] + 1)", label: "[i]", state: "active" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We iterate target amount i from 1 to target amount in bottom-up order, ensuring each subproblem dp[i - c] is already solved.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: Array.from({ length: 7 }, (_, idx) => ({
+        id: `dp-sweep-${idx}`,
+        value: idx === 0 ? 0 : "∞",
+        label: `[${idx}]`,
+        state: idx === 1 ? "active" : idx === 0 ? "visited" : "default",
+        pointers: idx === 1 ? ["i = 1"] : undefined,
+      })),
+    },
+  },
+  {
+    narrative:
+      "If after filling the entire table dp[amount] remains infinity, no coin combination can sum to the target amount and we return -1.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: [
+        { id: "unreachable-0", value: 0, label: "[0]", state: "visited" },
+        {
+          id: "unreachable-target",
+          value: "∞ -> -1",
+          label: "[amount]",
+          state: "compare",
+          pointers: ["return -1"],
+        },
+      ],
+    },
+  },
+];
+
 export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[] => {
   const coins = input?.coins && input.coins.length > 0 ? [...input.coins] : [1, 3, 4];
   const amount = Math.max(0, input?.amount ?? 6);
@@ -30,206 +267,132 @@ export const generateCoinChangeSteps = (input: CoinChangeInput): AlgorithmStep[]
 
   const dp: number[] = new Array(amount + 1).fill(Infinity);
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Start Coin Change algorithm with coins=[${coins.join(", ")}] and amount=${amount}`,
-      why: "The goal is to find the minimum number of coins needed to make up the target amount using unlimited coins of each denomination.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v === Infinity ? -1 : v,
-        state: "default",
-      })),
-    },
-    auxiliaryState: {
-      customState: { amount, coins: coins.join(", ") },
-    },
-    variables: { amount, coinsCount: coins.length },
-  });
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Initialize DP table of size ${amount + 1} with infinity (float('inf'))`,
-      why: `dp[i] stores the minimum coins required for target amount i. Infinity represents an unreached/uncomputed amount.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v === Infinity ? -1 : v,
-        state: "default",
-      })),
-    },
-    auxiliaryState: {
-      customState: { amount, coins: coins.join(", ") },
-    },
-    variables: { amount, "dp[0]": -1 },
-  });
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input?.coins) &&
+      input.coins.length === DEFAULT_COIN_CHANGE_INPUT.coins.length &&
+      input.coins.every((val, idx) => val === DEFAULT_COIN_CHANGE_INPUT.coins[idx]) &&
+      input.amount === DEFAULT_COIN_CHANGE_INPUT.amount);
 
-  dp[0] = 0;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: "Set base case dp[0] = 0",
-      why: "Exactly 0 coins are required to form a total amount of 0.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v === Infinity ? -1 : v,
-        state: idx === 0 ? "sorted" : "default",
-        pointers: idx === 0 ? ["base: 0"] : undefined,
-      })),
-    },
-    auxiliaryState: {
-      customState: { amount, coins: coins.join(", ") },
-    },
-    variables: { amount, "dp[0]": 0 },
-  });
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
 
-  for (let i = 1; i <= amount; i++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 5,
-      explanation: {
-        what: `Begin outer loop evaluating target subproblem amount i = ${i}`,
-        why: `We will test each available coin denomination to find the minimal coin count for amount ${i}.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: dp.map((v, idx) => ({
-          id: `dp-${idx}`,
-          value: v === Infinity ? -1 : v,
-          state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? [`target: ${i}`] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: { targetAmount: i, currentCoins: coins.join(", ") },
-      },
-      variables: { i, amount },
-    });
-
-    for (const coin of coins) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 6,
-        explanation: {
-          what: `Inspect coin denomination ${coin} for target amount ${i}`,
-          why: `Iterating over available coin choices for amount ${i}.`,
-        },
-        primarySnapshot: {
+  const makeSnapshot = (
+    currentI: number,
+    currentCoin?: number,
+    subI?: number,
+    highlightResult = false,
+  ): PrimaryVisualSnapshot => ({
+    kind: "composite",
+    layout: "vertical",
+    heading: `Target Amount: ${currentI}`,
+    items: [
+      {
+        id: "coins-array",
+        role: "auxiliary",
+        snapshot: {
           kind: "array",
-          elements: dp.map((v, idx) => ({
-            id: `dp-${idx}`,
-            value: v === Infinity ? -1 : v,
-            state: idx === i ? "active" : "default",
-            pointers: idx === i ? [`target ${i}`] : undefined,
+          name: "coins",
+          mode: "box",
+          elements: coins.map((c, idx) => ({
+            id: `c-${idx}`,
+            value: c,
+            label: `[${idx}]`,
+            state: c === currentCoin ? "active" : "default",
           })),
         },
-        auxiliaryState: {
-          customState: { targetAmount: i, currentCoin: coin },
-        },
-        variables: { i, coin },
-      });
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 7,
-        explanation: {
-          what: `Evaluate condition if i - coin >= 0 (${i} - ${coin} = ${i - coin})`,
-          why:
-            i - coin >= 0
-              ? `Coin ${coin} <= amount ${i}, so subtracting coin ${coin} yields valid subproblem amount ${i - coin}.`
-              : `Coin ${coin} > amount ${i}, so this coin cannot be used to form amount ${i}.`,
-        },
-        primarySnapshot: {
+      },
+      {
+        id: "dp-array",
+        role: "primary",
+        snapshot: {
           kind: "array",
+          name: "dp",
+          mode: "box",
           elements: dp.map((v, idx) => ({
             id: `dp-${idx}`,
-            value: v === Infinity ? -1 : v,
-            state: idx === i ? "active" : idx === i - coin ? "compare" : "default",
+            value: v === Infinity ? "∞" : v,
+            label: `[${idx}]`,
+            state:
+              highlightResult && idx === amount
+                ? v === Infinity
+                  ? "compare"
+                  : "sorted"
+                : idx === currentI
+                  ? "active"
+                  : subI !== undefined && idx === subI
+                    ? "compare"
+                    : idx < currentI
+                      ? "visited"
+                      : "default",
             pointers:
-              idx === i
-                ? [`target ${i}`]
-                : i - coin >= 0 && idx === i - coin
-                  ? [`sub ${i - coin}`]
+              idx === currentI
+                ? [`i = ${currentI}`]
+                : subI !== undefined && idx === subI
+                  ? [`sub = ${subI}`]
                   : undefined,
           })),
         },
-        auxiliaryState: {
-          customState: { targetAmount: i, currentCoin: coin, valid: i - coin >= 0 },
-        },
-        variables: { i, coin, "i - coin": i - coin },
-      });
+      },
+    ],
+  });
 
+  addStep(
+    `We initialize a DP table of size ${amount + 1} with infinity representing uncomputed states, and set base case dp[0] = 0 because 0 coins form amount 0.`,
+    makeSnapshot(0),
+  );
+
+  dp[0] = 0;
+
+  addStep(
+    `With dp[0] set to 0, we begin filling the DP table for target subproblems from amount 1 up to ${amount}.`,
+    makeSnapshot(0),
+  );
+
+  for (let i = 1; i <= amount; i++) {
+    addStep(
+      `Evaluating target subproblem amount i = ${i}; we will test all available coins [${coins.join(", ")}] to compute the minimum coins needed for amount ${i}.`,
+      makeSnapshot(i),
+    );
+
+    for (const coin of coins) {
       if (i - coin >= 0) {
+        const subVal = dp[i - coin];
+        const candidate = subVal === Infinity ? Infinity : subVal + 1;
         const prevVal = dp[i];
-        const prevSubVal = dp[i - coin];
-        const candidate = prevSubVal === Infinity ? Infinity : prevSubVal + 1;
         dp[i] = Math.min(dp[i], candidate);
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 8,
-          explanation: {
-            what: `Update dp[${i}] = min(dp[${i}], dp[${i - coin}] + 1)`,
-            why: `Previous cost: ${prevVal === Infinity ? "∞" : prevVal}, subproblem dp[${i - coin}] cost: ${prevSubVal === Infinity ? "∞" : prevSubVal}, candidate cost: ${candidate === Infinity ? "∞" : candidate}. Updated dp[${i}] = ${dp[i] === Infinity ? "∞" : dp[i]}.`,
-          },
-          primarySnapshot: {
-            kind: "array",
-            elements: dp.map((v, idx) => ({
-              id: `dp-${idx}`,
-              value: v === Infinity ? -1 : v,
-              state: idx === i ? "active" : idx === i - coin ? "compare" : "default",
-              pointers:
-                idx === i ? [`target: ${i}`] : idx === i - coin ? [`sub: ${i - coin}`] : undefined,
-            })),
-          },
-          auxiliaryState: {
-            customState: {
-              targetAmount: i,
-              currentCoin: coin,
-              subproblemIndex: i - coin,
-              newDpVal: dp[i] === Infinity ? "∞" : dp[i],
-            },
-          },
-          variables: { i, coin, "i - coin": i - coin, "dp[i]": dp[i] === Infinity ? -1 : dp[i] },
-        });
+        addStep(
+          `Testing coin denomination ${coin} for amount ${i}: subtracting coin ${coin} points to subproblem dp[${i - coin}] = ${subVal === Infinity ? "∞" : subVal}. Candidate coins count is ${candidate === Infinity ? "∞" : candidate}, updating dp[${i}] from ${prevVal === Infinity ? "∞" : prevVal} to ${dp[i] === Infinity ? "∞" : dp[i]}.`,
+          makeSnapshot(i, coin, i - coin),
+        );
+      } else {
+        addStep(
+          `Testing coin denomination ${coin} for amount ${i}: coin ${coin} exceeds target amount ${i}, so this coin cannot be used.`,
+          makeSnapshot(i, coin),
+        );
       }
     }
   }
 
-  const result = dp[amount] === Infinity ? -1 : dp[amount];
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 10,
-    explanation: {
-      what: `Final result dp[${amount}] = ${result}`,
-      why: `${result === -1 ? `No combination of given coins can sum to target amount ${amount}. Returning -1.` : `Minimum coins needed to form amount ${amount} is ${result}.`}`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v === Infinity ? -1 : v,
-        state: idx === amount ? (result !== -1 ? "sorted" : "visited") : "default",
-        pointers: idx === amount ? [`result: ${result}`] : undefined,
-      })),
-    },
-    auxiliaryState: {
-      customState: { result, targetAmount: amount },
-    },
-    variables: { result, amount },
-  });
+  const finalResult = dp[amount] === Infinity ? -1 : dp[amount];
+  addStep(
+    finalResult === -1
+      ? `Completed table evaluation: dp[${amount}] remains infinity, meaning no coin combination can form target amount ${amount}. We return -1.`
+      : `Completed table evaluation: dp[${amount}] = ${finalResult}. The minimum number of coins required to form target amount ${amount} is ${finalResult}.`,
+    makeSnapshot(amount, undefined, undefined, true),
+  );
 
   return steps;
 };
@@ -255,7 +418,7 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   topicIds: ["dp_1d"],
   difficulty: "Medium",
   description:
-    "<p>The <strong>Coin Change Problem</strong> (LeetCode #322) asks for the minimum number of coins needed to make a target sum <code>A</code> (amount) using a set of coin denominations <code>C = {c<sub>1</sub>, c<sub>2</sub>, &hellip;, c<sub>n</sub>}</code> with an unlimited supply of each coin. If the amount cannot be formed, return <code>-1</code>.</p><p>We build the solution bottom-up using the recurrence: <code>dp[i] = min(dp[i - c] + 1)</code> for <code>c &le; i</code>, with base case <code>dp[0] = 0</code>.</p>",
+    "<p>Given an array of distinct positive integers <code>coins</code> representing coin denominations and an integer <code>amount</code> representing a target total value, determine the minimum number of coins needed to make up that amount. You may assume an infinite supply of each coin denomination.</p><p><strong>Input:</strong> An array of integers <code>coins</code> and an integer <code>amount</code>.</p><p><strong>Output:</strong> The minimum number of coins required to form <code>amount</code>, or <code>-1</code> if that amount cannot be formed by any combination of the coins.</p>",
   constraints: [
     "1 <= coins.length <= 12",
     "1 <= coins[i] <= 2^31 - 1",
@@ -265,29 +428,32 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "coins = [1, 3, 4], amount = 6",
       outputDisplay: "2",
-      title: "Basic Example",
+      title: "Standard Case",
       input: { coins: [1, 3, 4], amount: 6 },
       output: "2",
       explanation:
-        "Optimal combination is 3 + 3 = 6 (2 coins). A greedy strategy (4 + 1 + 1) would yield 3 coins, demonstrating why dynamic programming is necessary.",
+        "Optimal combination is 3 + 3 = 6 (2 coins). A greedy choice (4 + 1 + 1 = 3 coins) would be suboptimal.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "coins = [2, 5, 10, 12], amount = 15",
       outputDisplay: "2",
-      title: "Complex Edge Case",
+      title: "Adversarial Greedy Trap",
       input: { coins: [2, 5, 10, 12], amount: 15 },
       output: "2",
       explanation:
-        "Optimal combination 10 + 5 = 15 uses 2 coins. Taking the largest coin 12 leads to suboptimal coin counts.",
+        "Optimal combination 10 + 5 = 15 uses 2 coins. Taking the largest coin 12 leads to 12 + 2 = 14 (incomplete/suboptimal).",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "coins = [2, 4], amount = 7",
       outputDisplay: "-1",
-      title: "Failing / Boundary Case",
+      title: "Unreachable Amount Boundary",
       input: { coins: [2, 4], amount: 7 },
       output: "-1",
       explanation:

@@ -35,12 +35,12 @@ export const ProblemHeader: React.FC<ProblemHeaderProps> = ({
         <Badge variant={difficultyBadgeVariant(difficulty)} size="md">
           {difficulty}
         </Badge>
+        <SourceBadgeList sources={sources} leetcode={leetcode} size="md" />
         {topicIds.map((topicId) => (
           <Badge key={topicId} variant="neutral" size="md">
             {getTopicLabel(topicId)}
           </Badge>
         ))}
-        <SourceBadgeList sources={sources} leetcode={leetcode} size="md" />
       </div>
     </div>
   );

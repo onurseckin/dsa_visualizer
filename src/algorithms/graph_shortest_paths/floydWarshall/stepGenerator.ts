@@ -1,5 +1,224 @@
-import type { AlgorithmStep, MatrixCellItem, MatrixVisualSnapshot } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  MatrixCellItem,
+  MatrixVisualSnapshot,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
 import type { FloydWarshallInput } from "./definition";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "All-Pairs Shortest Path (APSP) computes the shortest path distance between every pair of vertices (u, v) in a weighted directed graph.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dist",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 4, state: "default" },
+        { row: 0, col: 2, value: "∞", state: "default" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "default" },
+        { row: 2, col: 0, value: 1, state: "default" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Running Single-Source Shortest Path (SSSP) like Dijkstra's algorithm V times requires O(V * E log V) time, complex priority queues, and fails when negative weights exist.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dist",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "active" },
+        { row: 0, col: 1, value: 4, state: "compared" },
+        { row: 0, col: 2, value: "∞", state: "default" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 0, state: "active" },
+        { row: 1, col: 2, value: 2, state: "compared" },
+        { row: 2, col: 0, value: 1, state: "compared" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 0, state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Floyd-Warshall uses Dynamic Programming over a 2D distance matrix D, where entry D[i][j] holds the shortest distance found so far from vertex i to vertex j.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "D",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 4, state: "default" },
+        { row: 0, col: 2, value: "∞", state: "default" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "default" },
+        { row: 2, col: 0, value: 1, state: "default" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Base matrix initialization sets diagonal entries D[i][i] = 0 (distance to self), direct edge weights D[i][j] = w, and all remaining unconnected pairs to ∞.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "D",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 4, state: "active" },
+        { row: 0, col: 2, value: "∞", state: "default" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "active" },
+        { row: 2, col: 0, value: 1, state: "active" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The core intuition introduces pivot stage k: for every pair (i, j), we check if detouring through intermediate vertex k yields a shorter path: i -> k -> j.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "Pivot Stage k=2",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 4, state: "pivot" },
+        { row: 0, col: 2, value: 6, state: "active" },
+        { row: 1, col: 0, value: "∞", state: "pivot" },
+        { row: 1, col: 1, value: 0, state: "pivot" },
+        { row: 1, col: 2, value: 2, state: "pivot" },
+        { row: 2, col: 0, value: 1, state: "default" },
+        { row: 2, col: 1, value: "∞", state: "pivot" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The DP recurrence updates D[i][j] = min(D[i][j], D[i][k] + D[k][j]), combining the optimal subpaths i -> k and k -> j into a shorter route.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "DP Relaxation",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 4, state: "compared" },
+        { row: 0, col: 2, value: 6, state: "swap" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "compared" },
+        { row: 2, col: 0, value: 1, state: "default" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Keeping pivot k as the outermost loop guarantees that when stage k runs, all paths using intermediate vertices indexed 0..k-1 have already been optimized.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "Outer Pivot Order",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "pivot" },
+        { row: 0, col: 1, value: 4, state: "pivot" },
+        { row: 0, col: 2, value: 6, state: "pivot" },
+        { row: 1, col: 0, value: "∞", state: "default" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "default" },
+        { row: 2, col: 0, value: 1, state: "default" },
+        { row: 2, col: 1, value: "∞", state: "default" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Three nested loops sweep V pivots, V sources, and V targets, producing an O(V^3) runtime with simple contiguous O(V^2) memory access.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "Complexity O(V³)",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 4, state: "active" },
+        { row: 0, col: 2, value: 6, state: "active" },
+        { row: 1, col: 0, value: 3, state: "active" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "active" },
+        { row: 2, col: 0, value: 1, state: "active" },
+        { row: 2, col: 1, value: 5, state: "active" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "If any diagonal cell D[i][i] becomes negative after completion, a reachable negative cycle exists because vertex i can reach itself at cost less than zero.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "Negative Cycle Check",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["1", "2", "3"],
+      colHeaders: ["1", "2", "3"],
+      cells: [
+        { row: 0, col: 0, value: -2, state: "swap" },
+        { row: 0, col: 1, value: 4, state: "default" },
+        { row: 0, col: 2, value: 6, state: "default" },
+        { row: 1, col: 0, value: 3, state: "default" },
+        { row: 1, col: 1, value: 0, state: "sorted" },
+        { row: 1, col: 2, value: 2, state: "default" },
+        { row: 2, col: 0, value: 1, state: "default" },
+        { row: 2, col: 1, value: 5, state: "default" },
+        { row: 2, col: 2, value: 0, state: "sorted" },
+      ],
+    },
+  },
+];
 
 export const generateFloydWarshallSteps = (input: FloydWarshallInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -9,26 +228,38 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
   const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
   const n = rawNodes.length;
 
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   if (n === 0) {
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: {
-        what: "Initialize on an empty graph",
-        why: "There are no vertices, so the all-pairs table is empty and we are done before we start.",
-      },
-      primarySnapshot: {
-        kind: "matrix",
-        rows: 0,
-        cols: 0,
-        cells: [],
-        rowHeaders: [],
-        colHeaders: [],
-        title: "Empty Matrix",
-      },
-      auxiliaryState: { customState: { NodeCount: 0 } },
-      variables: { completed: true },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: "The input graph has no vertices, so the all-pairs distance matrix is empty.",
+        primarySnapshot: {
+          kind: "matrix",
+          name: "dist",
+          rows: 0,
+          cols: 0,
+          cells: [],
+          rowHeaders: [],
+          colHeaders: [],
+        },
+        variables: { completed: true },
+      }),
+    );
     return steps;
   }
 
@@ -43,6 +274,7 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
     activePos?: [number, number],
     comparePositions: Array<[number, number]> = [],
     pivotIdx?: number,
+    isSwap?: boolean,
   ): MatrixVisualSnapshot => {
     const compSet = new Set(comparePositions.map(([r, c]) => `${r},${c}`));
     const cells: MatrixCellItem[] = [];
@@ -55,7 +287,7 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
 
         let state: MatrixCellItem["state"] = "default";
         if (isActive) {
-          state = "active";
+          state = isSwap ? "swap" : "active";
         } else if (isCompare) {
           state = "compared";
         } else if (isPivotRowOrCol) {
@@ -76,116 +308,39 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
 
     return {
       kind: "matrix",
+      name: pivotIdx !== undefined ? `dist (k=${rawNodes[pivotIdx]})` : "dist",
       rows: n,
       cols: n,
       cells,
       rowHeaders: rawNodes,
       colHeaders: rawNodes,
-      title:
-        pivotIdx !== undefined
-          ? `Distance Matrix (Pivot k = ${rawNodes[pivotIdx]})`
-          : "Distance Matrix",
     };
   };
 
-  const getDistanceTableRecord = (): Record<string, number> => {
-    const rec: Record<string, number> = {};
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        rec[`${rawNodes[i]}→${rawNodes[j]}`] = dist[i][j];
-      }
-    }
-    return rec;
-  };
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `n = ${n} nodes in the graph`,
-      why: "We record the vertex count once. All three loop bounds and matrix dimensions derive from n.",
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: {
-      customState: { n, "Total Edges": rawEdges.length },
-    },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: `Initialize the ${n}x${n} distance matrix to infinity`,
-      why: "We allocate an n×n table and fill every cell with ∞ — meaning 'no direct route yet'.",
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: {
-      distanceTable: getDistanceTableRecord(),
-      customState: { "Total Nodes": n, "Total Edges": rawEdges.length },
-    },
-    variables: { n, edgeCount: rawEdges.length },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: "Build node-to-index mapping",
-      why: "We map node labels to integer indices so we can address the dist matrix with integers.",
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: {
-      customState: { "Node Map": rawNodes.map((node, i) => `${node}=${i}`).join(", ") },
-    },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: "Set diagonal entries: each node is 0 away from itself",
-      why: "The distance from any node to itself is 0. This is the base case for self-paths.",
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: {
-      distanceTable: getDistanceTableRecord(),
-      customState: { Diagonal: "dist[i][i] = 0" },
-    },
-    variables: { n },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Initializing an ${n} × ${n} distance matrix with all non-diagonal cells set to ∞.`,
+      primarySnapshot: buildMatrixSnapshot(),
+      variables: { n, edgeCount: rawEdges.length },
+    }),
+  );
 
   for (let i = 0; i < n; i++) {
     dist[i][i] = 0;
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: `All ${n} diagonal cells set to 0`,
-      why: `dist[0][0] through dist[${n - 1}][${n - 1}] are now 0. Every other cell stays at ∞ until populated.`,
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: { distanceTable: getDistanceTableRecord() },
-    variables: { n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 9,
-    explanation: {
-      what: "Seed matrix with direct edge weights",
-      why: "We copy each direct edge (u, v, w) directly into dist[u][v] = w.",
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: {
-      distanceTable: getDistanceTableRecord(),
-      customState: { "Edges Seeded": rawEdges.length },
-    },
-    variables: { edgeCount: rawEdges.length },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative:
+        "Setting all diagonal entries dist[i][i] = 0, reflecting that every vertex is 0 distance away from itself.",
+      primarySnapshot: buildMatrixSnapshot(),
+      variables: { diagonalSeeded: true },
+    }),
+  );
 
   for (const edge of rawEdges) {
     const uIdx = nodeToIdx[edge.from];
@@ -195,160 +350,77 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
     }
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 10,
-    explanation: {
-      what: `All ${rawEdges.length} direct edge weights loaded into dist matrix`,
-      why: "The matrix now holds initial edge costs. The triple loop will evaluate detours through intermediate pivots.",
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: { distanceTable: getDistanceTableRecord() },
-    variables: { edgeCount: rawEdges.length },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Loaded all ${rawEdges.length} direct edge weights into the distance matrix.`,
+      primarySnapshot: buildMatrixSnapshot(),
+      variables: { edgeWeightsLoaded: true },
+    }),
+  );
 
   for (let k = 0; k < n; k++) {
     const pivotNode = rawNodes[k];
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 12,
-      explanation: {
-        what: `Try node '${pivotNode}' (index ${k}) as the pivot`,
-        why: `We now allow paths to pass through '${pivotNode}'. For every pair (i, j), we check if going i → ${pivotNode} → j is cheaper than current dist[i][j].`,
-      },
-      primarySnapshot: buildMatrixSnapshot(undefined, [], k),
-      auxiliaryState: {
-        distanceTable: getDistanceTableRecord(),
-        customState: { "Pivot Node (k)": pivotNode, "Pivot Index": k },
-      },
-      variables: { k, pivotNode },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Starting outer loop stage with pivot vertex k = '${pivotNode}' (index ${k}). Highlighted pivot row and column ${k}.`,
+        primarySnapshot: buildMatrixSnapshot(undefined, [], k),
+        variables: { k, pivotNode },
+      }),
+    );
 
     for (let i = 0; i < n; i++) {
       const uNode = rawNodes[i];
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 13,
-        explanation: {
-          what: `Pivot ${pivotNode}: iterate source i = ${uNode}`,
-          why: `Testing source '${uNode}' to see if routing through '${pivotNode}' improves any paths starting at '${uNode}'.`,
-        },
-        primarySnapshot: buildMatrixSnapshot(undefined, [], k),
-        auxiliaryState: {
-          distanceTable: getDistanceTableRecord(),
-          customState: { "Pivot (k)": pivotNode, "Source (i)": uNode },
-        },
-        variables: { k, i },
-      });
-
       for (let j = 0; j < n; j++) {
         const vNode = rawNodes[j];
         const distIK = dist[i][k];
         const distKJ = dist[k][j];
         const distIJ = dist[i][j];
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 14,
-          explanation: {
-            what: `Test destination j = ${vNode}`,
-            why: `Check whether dist[${uNode}][${pivotNode}] + dist[${pivotNode}][${vNode}] improves dist[${uNode}][${vNode}] = ${distIJ === Infinity ? "∞" : distIJ}.`,
-          },
-          primarySnapshot: buildMatrixSnapshot(
-            [i, j],
-            [
-              [i, k],
-              [k, j],
-            ],
-            k,
-          ),
-          auxiliaryState: {
-            distanceTable: getDistanceTableRecord(),
-            customState: { "Source (i)": uNode, "Target (j)": vNode, "Pivot (k)": pivotNode },
-          },
-          variables: { i, j, k },
-        });
-
         if (distIK !== Infinity && distKJ !== Infinity) {
           const newDist = distIK + distKJ;
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 15,
-            explanation: {
-              what: `Check if detour is finite: dist[${uNode}][${pivotNode}] and dist[${pivotNode}][${vNode}] are both finite`,
-              why: `Detour ${uNode} → ${pivotNode} → ${vNode} costs ${distIK} + ${distKJ} = ${newDist}.`,
-            },
-            primarySnapshot: buildMatrixSnapshot(
-              [i, j],
-              [
-                [i, k],
-                [k, j],
-              ],
-              k,
-            ),
-            auxiliaryState: {
-              distanceTable: getDistanceTableRecord(),
-              customState: {
-                "Source (i)": uNode,
-                "Target (j)": vNode,
-                "Pivot (k)": pivotNode,
-                "Detour Dist": newDist,
-                "Current Dist": distIJ === Infinity ? "∞" : distIJ,
-              },
-            },
-            variables: { i, j, k, uNode, vNode, pivotNode, newDist, distIJ },
-          });
-
           if (newDist < distIJ) {
-            steps.push({
-              stepIndex: stepIndex++,
-              codeLine: 16,
-              explanation: {
-                what: `Improvement condition: detour cost ${newDist} < current ${distIJ === Infinity ? "∞" : distIJ}`,
-                why: `Routing via '${pivotNode}' saves distance. We will update dist[${uNode}][${vNode}] in the next step.`,
-              },
-              primarySnapshot: buildMatrixSnapshot(
-                [i, j],
-                [
-                  [i, k],
-                  [k, j],
-                ],
-                k,
-              ),
-              auxiliaryState: { distanceTable: getDistanceTableRecord() },
-              variables: { i, j, k, newDist, distIJ },
-            });
+            steps.push(
+              createTutorialStep({
+                stepIndex: stepIndex++,
+                phase: "walkthrough",
+                narrative: `Checking pair (${uNode}, ${vNode}) via pivot '${pivotNode}': detour ${uNode} -> ${pivotNode} -> ${vNode} cost ${distIK} + (${distKJ}) = ${newDist} beats current dist[${uNode}][${vNode}] (${distIJ === Infinity ? "∞" : distIJ}).`,
+                primarySnapshot: buildMatrixSnapshot(
+                  [i, j],
+                  [
+                    [i, k],
+                    [k, j],
+                  ],
+                  k,
+                  false,
+                ),
+                variables: { i, j, k, newDist, oldDist: distIJ === Infinity ? "∞" : distIJ },
+              }),
+            );
 
             dist[i][j] = newDist;
 
-            steps.push({
-              stepIndex: stepIndex++,
-              codeLine: 17,
-              explanation: {
-                what: `Update dist['${uNode}']['${vNode}'] = ${newDist}`,
-                why: `Detouring through '${pivotNode}' gets us from '${uNode}' to '${vNode}' for ${distIK} + ${distKJ} = ${newDist}, beating the previous ${distIJ === Infinity ? "∞" : distIJ}.`,
-              },
-              primarySnapshot: buildMatrixSnapshot(
-                [i, j],
-                [
-                  [i, k],
-                  [k, j],
-                ],
-                k,
-              ),
-              auxiliaryState: {
-                distanceTable: getDistanceTableRecord(),
-                customState: {
-                  "Source (i)": uNode,
-                  "Target (j)": vNode,
-                  "Pivot (k)": pivotNode,
-                  "New Dist": newDist,
-                  "Old Dist": distIJ === Infinity ? "∞" : distIJ,
-                },
-              },
-              variables: { i, j, k, uNode, vNode, pivotNode, newDist },
-            });
+            steps.push(
+              createTutorialStep({
+                stepIndex: stepIndex++,
+                phase: "walkthrough",
+                narrative: `Relaxation succeeds: updated dist[${uNode}][${vNode}] to ${newDist}.`,
+                primarySnapshot: buildMatrixSnapshot(
+                  [i, j],
+                  [
+                    [i, k],
+                    [k, j],
+                  ],
+                  k,
+                  true,
+                ),
+                variables: { i, j, k, updatedDist: newDist },
+              }),
+            );
           }
         }
       }
@@ -363,27 +435,28 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
     }
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 19,
-    explanation: {
-      what: hasNegativeCycle
-        ? "Floyd-Warshall complete: negative cycle detected"
-        : "Floyd-Warshall complete",
-      why: hasNegativeCycle
-        ? "A diagonal entry dist[i][i] dropped below 0, indicating a negative-weight cycle."
-        : `Every pair has now been tested against all ${n} possible pivots, so the matrix holds the true shortest distance between every pair of nodes.`,
-    },
-    primarySnapshot: buildMatrixSnapshot(),
-    auxiliaryState: {
-      distanceTable: getDistanceTableRecord(),
-      customState: {
-        "Has Negative Cycle": hasNegativeCycle ? "Yes" : "No",
-        Completed: "True",
-      },
-    },
-    variables: { completed: true, hasNegativeCycle },
-  });
+  if (hasNegativeCycle) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative:
+          "Floyd-Warshall complete: a diagonal entry dist[i][i] dropped below 0, signaling a reachable negative-weight cycle.",
+        primarySnapshot: buildMatrixSnapshot(),
+        variables: { completed: true, hasNegativeCycle: true },
+      }),
+    );
+  } else {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Floyd-Warshall complete. Tested all vertex pairs across all ${n} pivots; matrix dist contains final all-pairs shortest path distances.`,
+        primarySnapshot: buildMatrixSnapshot(),
+        variables: { completed: true, hasNegativeCycle: false },
+      }),
+    );
+  }
 
   return steps;
 };

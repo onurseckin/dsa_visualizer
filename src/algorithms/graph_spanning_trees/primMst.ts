@@ -4,8 +4,10 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
   GraphVisualSnapshot,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface PrimEdge {
   from: number;
@@ -60,6 +62,183 @@ def prim_mst(num_nodes, edges):
                 
     return total_weight if nodes_visited == num_nodes else -1`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "A Minimum Spanning Tree (MST) connects all vertices in a weighted undirected graph with minimum total edge weight and no cycles.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Node 0", state: "active" },
+        { id: "node-1", label: "Node 1", state: "default" },
+        { id: "node-2", label: "Node 2", state: "default" },
+        { id: "node-3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2 },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1 },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Unlike Kruskal's algorithm which sorts global edges and merges forest components, Prim's algorithm grows a single tree component outward from a start seed.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Node 0", state: "visited" },
+        { id: "node-1", label: "Node 1", state: "visited" },
+        { id: "node-2", label: "Node 2", state: "active" },
+        { id: "node-3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isPath: true },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1, isTraversed: true },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Cut Property guarantees that for any cut partition between visited tree vertices S and unvisited vertices V \\ S, the minimum-weight cross-cut edge must belong to an MST.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Tree 0", state: "visited" },
+        { id: "node-1", label: "Tree 1", state: "visited" },
+        { id: "node-2", label: "Unvisited 2", state: "compare" },
+        { id: "node-3", label: "Unvisited 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isPath: true },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1, isTraversed: true },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Prim's algorithm initializes by picking an arbitrary seed vertex (such as Node 0) and adding it to the growing tree set S.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Seed 0", state: "active" },
+        { id: "node-1", label: "Node 1", state: "default" },
+        { id: "node-2", label: "Node 2", state: "default" },
+        { id: "node-3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2 },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1 },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A min-priority queue maintains all candidate cross-cut edges leading from visited tree nodes to unvisited neighbors, ordered by weight.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Tree 0", state: "visited" },
+        { id: "node-1", label: "Candidate 1", state: "compare" },
+        { id: "node-2", label: "Candidate 2", state: "compare" },
+        { id: "node-3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isTraversed: true },
+        { from: "node-0", to: "node-2", weight: 4, isTraversed: true },
+        { from: "node-1", to: "node-2", weight: 1 },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "In each iteration, popping the top of the min-priority queue retrieves the lightest edge leaving the tree component, greedily absorbing a new vertex.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Tree 0", state: "visited" },
+        { id: "node-1", label: "Absorbed 1", state: "swap" },
+        { id: "node-2", label: "Node 2", state: "default" },
+        { id: "node-3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isPath: true },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1 },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "If a popped candidate edge connects to a vertex that is already inside the tree set S, it is skipped to prevent cycle creation.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Tree 0", state: "visited" },
+        { id: "node-1", label: "Tree 1", state: "visited" },
+        { id: "node-2", label: "Tree 2", state: "visited" },
+        { id: "node-3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isPath: true },
+        { from: "node-0", to: "node-2", weight: 4, isTraversed: true },
+        { from: "node-1", to: "node-2", weight: 1, isPath: true },
+        { from: "node-2", to: "node-3", weight: 3 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Newly added vertices push their incident edges to unvisited neighbors into the min-priority queue, expanding the frontier cut.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "Tree 0", state: "visited" },
+        { id: "node-1", label: "Tree 1", state: "visited" },
+        { id: "node-2", label: "Tree 2", state: "visited" },
+        { id: "node-3", label: "Frontier 3", state: "active" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isPath: true },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1, isPath: true },
+        { from: "node-2", to: "node-3", weight: 3, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The algorithm terminates when all V vertices are absorbed into the MST tree, achieving O(E log V) runtime using a binary min-heap.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "node-0", label: "MST 0", state: "visited" },
+        { id: "node-1", label: "MST 1", state: "visited" },
+        { id: "node-2", label: "MST 2", state: "visited" },
+        { id: "node-3", label: "MST 3", state: "visited" },
+      ],
+      edges: [
+        { from: "node-0", to: "node-1", weight: 2, isPath: true },
+        { from: "node-0", to: "node-2", weight: 4 },
+        { from: "node-1", to: "node-2", weight: 1, isPath: true },
+        { from: "node-2", to: "node-3", weight: 3, isPath: true },
+      ],
+    },
+  },
+];
+
 export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
   const numNodes = Math.max(
     1,
@@ -69,12 +248,25 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const visited = new Array<boolean>(numNodes).fill(false);
   const mstEdgesSet = new Set<string>();
   let totalWeight = 0;
   let nodesVisited = 0;
 
-  // Node layout in ring
   const nodes: GraphNodeItem[] = Array.from({ length: numNodes }, (_, i) => {
     const angle = (2 * Math.PI * i) / numNodes - Math.PI / 2;
     return {
@@ -89,7 +281,11 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
 
   const getEdgeKey = (u: number, v: number) => (u < v ? `${u}-${v}` : `${v}-${u}`);
 
-  const createSnapshot = (activeU?: number, candidateV?: number): GraphVisualSnapshot => {
+  const createSnapshot = (
+    activeU?: number,
+    candidateV?: number,
+    highlightState: "active" | "compare" | "swap" = "active",
+  ): GraphVisualSnapshot => {
     const edgeItems: GraphEdgeItem[] = edges.map((e) => {
       const key = getEdgeKey(e.from, e.to);
       const isMst = mstEdgesSet.has(key);
@@ -112,7 +308,7 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
       kind: "graph",
       nodes: nodes.map((node, idx) => {
         let state: GraphNodeItem["state"] = "default";
-        if (idx === activeU) state = "active";
+        if (idx === activeU) state = highlightState;
         else if (idx === candidateV) state = "compare";
         else if (visited[idx]) state = "visited";
         return {
@@ -130,92 +326,46 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
     return sorted.map(([w, u]) => `(w:${w}, node:${u})`).join(", ");
   };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: `Initialize Prim's algorithm for ${numNodes} nodes.`,
-      why: "Build adjacency list and prepare min-priority queue starting from seed Node 0.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: {
-      customState: {
-        "Priority Queue": "Empty",
-        "Total Weight": 0,
-        "Nodes Visited": `0 / ${numNodes}`,
-        "MST Edges": "None",
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Initializing Prim's algorithm for ${numNodes} nodes: seeding min-priority queue with starting Node 0 at weight 0.`,
+      primarySnapshot: createSnapshot(0, undefined, "active"),
+      auxiliaryState: {
+        customState: {
+          "Priority Queue": "(w:0, node:0)",
+          "Total Weight": 0,
+          "Nodes Visited": `0 / ${numNodes}`,
+        },
       },
-    },
-    variables: { numNodes, total_weight: 0, nodes_visited: 0 },
-  });
+      variables: { numNodes, totalWeight: 0, startNode: 0 },
+    }),
+  );
 
-  // Priority Queue entries: [weight, u, fromNode]
   const pq: Array<[number, number, number]> = [[0, 0, -1]];
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 10,
-    explanation: {
-      what: "Enqueued initial seed Node 0 with weight 0 into Min-Heap.",
-      why: "Prim's algorithm grows a single MST component outward from Node 0.",
-    },
-    primarySnapshot: createSnapshot(0),
-    auxiliaryState: {
-      customState: {
-        "Priority Queue": formatPq(pq),
-        "Total Weight": 0,
-        "Nodes Visited": `0 / ${numNodes}`,
-        "MST Edges": "None",
-      },
-    },
-    variables: { startNode: 0, pqLength: 1 },
-  });
 
   while (pq.length > 0 && nodesVisited < numNodes) {
     pq.sort((a, b) => a[0] - b[0]);
     const [w, u, parent] = pq.shift()!;
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 15,
-      explanation: {
-        what: `Popped minimum weight candidate (Node ${u}, weight ${w}) from Priority Queue.`,
-        why: "Heap popping always retrieves the lightest edge crossing the current MST cut.",
-      },
-      primarySnapshot: createSnapshot(u),
-      auxiliaryState: {
-        customState: {
-          "Popped Element": `Node ${u} (weight ${w})`,
-          "Priority Queue": formatPq(pq),
-          "Total Weight": totalWeight,
-          "Nodes Visited": `${nodesVisited} / ${numNodes}`,
-          "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
-        },
-      },
-      variables: { u, w, alreadyVisited: visited[u] },
-    });
-
     if (visited[u]) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 17,
-        explanation: {
-          what: `Skipped Node ${u}: Node ${u} is already part of the MST.`,
-          why: "An edge connecting two nodes already in the MST would close a cycle.",
-        },
-        primarySnapshot: createSnapshot(u),
-        auxiliaryState: {
-          customState: {
-            "Skipped Node": u,
-            Reason: "Already visited (Cycle prevention)",
-            "Priority Queue": formatPq(pq),
-            "Total Weight": totalWeight,
-            "Nodes Visited": `${nodesVisited} / ${numNodes}`,
-            "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Popped candidate Node ${u} (weight ${w}) from min-heap, but Node ${u} is already in the MST tree. Skipping to prevent cycle creation.`,
+          primarySnapshot: createSnapshot(u, undefined, "compare"),
+          auxiliaryState: {
+            customState: {
+              "Priority Queue": formatPq(pq),
+              "Total Weight": totalWeight,
+              "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+            },
           },
-        },
-        variables: { u, skipped: true },
-      });
+          variables: { u, weight: w, skipped: true },
+        }),
+      );
       continue;
     }
 
@@ -227,56 +377,49 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
       mstEdgesSet.add(getEdgeKey(parent, u));
     }
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 18,
-      explanation: {
-        what: `Added Node ${u} to MST (edge weight ${w}). Cumulative weight: ${totalWeight}.`,
-        why: `Node ${u} absorbed into MST tree. Nodes in MST: ${nodesVisited}/${numNodes}.`,
-      },
-      primarySnapshot: createSnapshot(u),
-      auxiliaryState: {
-        customState: {
-          "Added Node": u,
-          "Edge Weight": w,
-          "Total Weight": totalWeight,
-          "Nodes Visited": `${nodesVisited} / ${numNodes}`,
-          "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
-          "Priority Queue": formatPq(pq),
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative:
+          parent === -1
+            ? `Absorbed seed Node 0 into MST tree.`
+            : `Absorbed Node ${u} into MST tree via edge with weight ${w}. Cumulative MST weight is now ${totalWeight}.`,
+        primarySnapshot: createSnapshot(u, undefined, "swap"),
+        auxiliaryState: {
+          customState: {
+            "Priority Queue": formatPq(pq),
+            "Total Weight": totalWeight,
+            "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+          },
         },
-      },
-      variables: { u, weight: w, total_weight: totalWeight, nodes_visited: nodesVisited },
-    });
+        variables: { u, weight: w, totalWeight, nodesVisited },
+      }),
+    );
 
-    // Inspect outgoing edges
     for (const edge of edges) {
       let v = -1;
       if (edge.from === u) v = edge.to;
       else if (edge.to === u) v = edge.from;
 
-      if (v !== -1) {
-        if (!visited[v]) {
-          pq.push([edge.weight, v, u]);
-          steps.push({
+      if (v !== -1 && !visited[v]) {
+        pq.push([edge.weight, v, u]);
+        steps.push(
+          createTutorialStep({
             stepIndex: stepIndex++,
-            codeLine: 24,
-            explanation: {
-              what: `Enqueued edge Node ${u} -> Node ${v} (weight ${edge.weight}) to Priority Queue.`,
-              why: `Node ${v} is an unvisited neighbor. Edge added to frontier candidates.`,
-            },
-            primarySnapshot: createSnapshot(u, v),
+            phase: "walkthrough",
+            narrative: `Inspecting edge Node ${u} - Node ${v} (weight ${edge.weight}): pushed candidate cross-cut edge to min-priority queue.`,
+            primarySnapshot: createSnapshot(u, v, "active"),
             auxiliaryState: {
               customState: {
-                "Frontier Edge": `${u} -> ${v} (w: ${edge.weight})`,
                 "Priority Queue": formatPq(pq),
                 "Total Weight": totalWeight,
                 "Nodes Visited": `${nodesVisited} / ${numNodes}`,
-                "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
               },
             },
             variables: { u, v, weight: edge.weight },
-          });
-        }
+          }),
+        );
       }
     }
   }
@@ -284,58 +427,56 @@ export const generatePrimMstSteps = (input: PrimMstInput): AlgorithmStep[] => {
   const isConnected = nodesVisited === numNodes;
   const result = isConnected ? totalWeight : -1;
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 26,
-    explanation: {
-      what: `Prim's MST Complete. Total MST Weight = ${result}.`,
-      why: isConnected
-        ? `All ${numNodes} nodes connected into a single MST with minimum total weight ${totalWeight}.`
-        : `Graph is disconnected. Visited only ${nodesVisited}/${numNodes} nodes. Return -1.`,
-    },
-    primarySnapshot: createSnapshot(),
-    auxiliaryState: {
-      customState: {
-        "MST Result": result,
-        "Total Weight": totalWeight,
-        "Nodes Visited": `${nodesVisited} / ${numNodes}`,
-        "MST Edges": Array.from(mstEdgesSet).join(", ") || "None",
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: isConnected
+        ? `Prim's MST algorithm complete. Successfully connected all ${numNodes} vertices into a single MST with total minimum weight ${totalWeight}.`
+        : `Prim's MST algorithm complete. Graph is disconnected: reached only ${nodesVisited}/${numNodes} vertices. Returning -1.`,
+      primarySnapshot: createSnapshot(),
+      auxiliaryState: {
+        customState: {
+          "MST Result": result,
+          "Total Weight": totalWeight,
+          "Nodes Visited": `${nodesVisited} / ${numNodes}`,
+        },
       },
-    },
-    variables: { result, isConnected, totalWeight },
-  });
+      variables: { completed: true, totalWeight: result, isConnected },
+    }),
+  );
 
   return steps;
 };
 
 const PRIM_MST_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Imports heapq for min-priority queue operations.",
+    1: "Imports heapq module for min-priority queue operations.",
     2: "Blank line after module import.",
-    3: "Defines prim_mst(num_nodes, edges) -> int.",
-    4: "Initializes adjacency list adj mapping each node to list of (weight, neighbor) pairs.",
-    5: "Iterates over undirected graph edges to populate adjacency list.",
-    6: "Appends directed edge from u to (w, v).",
-    7: "Appends reverse directed edge from v to (w, u) for undirected graph.",
-    8: "Blank line separating adjacency build from state initialization.",
-    9: "Initializes visited array of size num_nodes to False.",
-    10: "Initializes min-priority queue with starting node 0 at distance 0: [(0, 0)].",
-    11: "Initializes total_weight accumulator to 0.",
-    12: "Initializes nodes_visited counter to 0.",
-    13: "Blank line separating state init from main loop.",
-    14: "Drives main loop while priority queue is non-empty and unvisited nodes remain.",
-    15: "Pops lightest candidate edge (w, u) from min-priority queue.",
-    16: "Checks if popped node u has already been included in the MST.",
-    17: "Continues loop to discard stale duplicate priority queue entry.",
-    18: "Marks node u as visited and added to the MST.",
-    19: "Adds edge weight w to cumulative total_weight.",
-    20: "Increments nodes_visited count by 1.",
-    21: "Blank line separating node visit logic from neighbor expansion.",
-    22: "Iterates over all outgoing edges from newly added node u.",
-    23: "Checks if adjacent neighbor node is unvisited.",
-    24: "Pushes candidate edge (weight, neighbor) onto min-priority queue.",
-    25: "Blank line separating loop body from return statement.",
-    26: "Returns total_weight if all nodes connected in MST, otherwise returns -1.",
+    3: "Defines prim_mst(num_nodes, edges) function.",
+    4: "Initializes adjacency list representation for graph.",
+    5: "Populates adjacency list with edge endpoints and weights.",
+    6: "Adds edge (w, v) for node u.",
+    7: "Adds edge (w, u) for node v to represent undirected graph.",
+    8: "Blank line before initialization.",
+    9: "Tracks visited vertices to prevent cycle creation.",
+    10: "Initializes min-heap with seed node 0 at weight 0.",
+    11: "Accumulator for total minimum spanning tree weight.",
+    12: "Counter for number of absorbed tree vertices.",
+    13: "Blank line before loop execution.",
+    14: "Loop until priority queue empty or all nodes absorbed.",
+    15: "Extracts minimum weight cross-cut edge from min-heap.",
+    16: "Checks if candidate node u has already been absorbed.",
+    17: "Skips stale priority queue entry.",
+    18: "Marks candidate node u as absorbed into MST.",
+    19: "Adds edge weight to cumulative total weight.",
+    20: "Increments visited node count.",
+    21: "Blank line before neighbor push.",
+    22: "Iterates over incident edges of node u.",
+    23: "Filters unvisited neighbor vertices.",
+    24: "Pushes cross-cut candidate edge into min-heap.",
+    25: "Blank line before final result return.",
+    26: "Returns total MST weight if connected, otherwise -1.",
   },
 };
 
@@ -345,7 +486,7 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   topicIds: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
-    "<p><strong>Prim's algorithm</strong> constructs a Minimum Spanning Tree (MST) for a connected, undirected weighted graph <code>G = (V, E)</code> by growing a single tree component outward from an initial seed vertex.</p><p>At each step, a min-priority queue extracts the cheapest edge <code>(u, v, w)</code> connecting a node inside the current tree component <code>S</code> to an unvisited node <code>v ∉ S</code>. It operates in <code>O(E log V)</code> time with a binary min-heap, prioritizing frontier edges crossing the cut boundary.</p>",
+    "<p>Given a connected, undirected weighted graph <code>G = (V, E)</code>, compute a Minimum Spanning Tree (MST) that connects all vertices with minimum total edge weight.</p><h3>Problem Statement</h3><p>Find a subset of edges <code>T ⊆ E</code> connecting all vertices in <code>V</code> without cycles such that the sum of edge weights in <code>T</code> is minimized. If the graph is disconnected, indicate that no single MST spans all vertices.</p><h3>Input Parameters</h3><ul><li><code>numNodes</code>: Total number of vertices in the graph.</li><li><code>edges</code>: Array of undirected edges with <code>(from, to, weight)</code> properties.</li></ul><h3>Output</h3><p>Returns the total minimum weight sum of the MST edges, or -1 if the graph is disconnected.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 10^5",
@@ -355,9 +496,10 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "6 nodes, 9 weighted edges",
-      outputDisplay: "13",
-      title: "6-Node Graph",
+      scenario: "standard",
+      inputDisplay: "numNodes = 6, 9 weighted edges",
+      outputDisplay: "Total MST Weight: 13",
+      title: "Standard 6-Node Graph",
       input: DEFAULT_PRIM_MST_INPUT,
       output: "13",
       explanation:
@@ -365,9 +507,10 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
     },
     {
       kind: "complex",
-      inputDisplay: "4 nodes connected in diamond",
-      outputDisplay: "6",
-      title: "Diamond Graph",
+      scenario: "adversarial",
+      inputDisplay: "numNodes = 4, 5 dense edges in diamond",
+      outputDisplay: "Total MST Weight: 6",
+      title: "Adversarial Diamond Graph",
       input: {
         numNodes: 4,
         edges: [
@@ -383,9 +526,10 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "3 nodes with node 2 isolated",
-      outputDisplay: "-1",
-      title: "Disconnected Graph",
+      scenario: "boundary",
+      inputDisplay: "numNodes = 3, Node 2 isolated",
+      outputDisplay: "Disconnected (-1)",
+      title: "Boundary Disconnected Graph",
       input: {
         numNodes: 3,
         edges: [{ from: 0, to: 1, weight: 4 }],
@@ -456,13 +600,14 @@ export const primMst: AlgorithmDefinition<PrimMstInput> = {
   trivia: PRIM_MST_TRIVIA,
   sources: [
     {
-      type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 15",
+      chapter: 15,
       label: "Competitive Programmer's Handbook, Ch 15",
     },
   ],
   defaultInput: DEFAULT_PRIM_MST_INPUT,
   generateSteps: generatePrimMstSteps,
 };
+
+export default primMst;

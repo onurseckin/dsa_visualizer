@@ -41,6 +41,8 @@ interface ActiveBrowserRun {
   phase: "initializing" | "running";
   settled: boolean;
   timeout: ReturnType<typeof setTimeout>;
+  // Shared memory interrupt buffer from the worker; writing 2 raises KeyboardInterrupt.
+  interruptBuffer?: Uint8Array;
 }
 
 export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = {}): PythonRunner {
@@ -94,10 +96,19 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
         if (record.phase !== "initializing") return;
         clearTimeout(record.timeout);
         record.phase = "running";
+        // Store the interrupt buffer so the timeout handler can signal SIGINT.
+        if (message.interruptBuffer instanceof Uint8Array) {
+          record.interruptBuffer = message.interruptBuffer;
+        }
         const wallTimeMs =
           record.request.spec.limits?.wallTimeMs ?? DEFAULT_PYTHON_EXECUTION_LIMITS.wallTimeMs;
         record.timeout = setTimeout(() => {
           if (active !== record) return;
+          // Prefer clean KeyboardInterrupt via the SAB if available; fall back to
+          // terminating the worker (which also works but resets the Pyodide state).
+          if (record.interruptBuffer) {
+            record.interruptBuffer[0] = 2; // SIGINT
+          }
           interruptActive(
             `Browser Python execution exceeded the ${wallTimeMs} ms timeout.`,
             "timeout",
@@ -254,7 +265,12 @@ function isCurrentEnvelope(
   return message.runId === record.request.runId && message.token === record.token;
 }
 
-function isWorkerReady(value: Record<string, unknown>): boolean {
+function isWorkerReady(value: Record<string, unknown>): value is {
+  readonly type: "ready";
+  readonly runId: string;
+  readonly token: string;
+  readonly interruptBuffer?: Uint8Array;
+} {
   return value.type === "ready";
 }
 

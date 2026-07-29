@@ -1,5 +1,13 @@
-import type { AlgorithmDefinition, AlgorithmStep, TopicGuide, TreeNodeItem } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  PrimaryVisualSnapshot,
+  TopicGuide,
+  TreeNodeItem,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface DynamicSegOp {
   type: "update" | "query";
@@ -68,11 +76,153 @@ interface InternalNode {
   rightNode?: InternalNode;
 }
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Standard Segment Trees pre-allocate a fixed array of 4N nodes, which becomes impossible when the coordinate range C is huge (e.g. C = 10^9).",
+    primarySnapshot: {
+      kind: "array",
+      name: "fixedTreeArray",
+      elements: [
+        { id: "e1", value: 0, label: "node 1 [1..10^9]", state: "default" },
+        { id: "e2", value: 0, label: "node 2 [1..5*10^8]", state: "default" },
+        { id: "e3", value: 0, label: "node 3 [5*10^8+1..10^9]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Pre-allocating 4 billion nodes in memory leads to catastrophic Out-Of-Memory crashes even if only a few array coordinates are ever modified.",
+    primarySnapshot: {
+      kind: "array",
+      name: "fixedTreeArray",
+      elements: [
+        { id: "e1", value: 0, label: "4 * 10^9 nodes", state: "active" },
+        { id: "e2", value: 0, label: "OOM Crash", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Coordinate Compression maps values to contiguous indices, but requires knowing all query points offline ahead of time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "compressedIndices",
+      elements: [
+        { id: "c1", value: 3, label: "val=3 -> idx=0", state: "visited" },
+        { id: "c2", value: 12, label: "val=12 -> idx=1", state: "visited" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Dynamic Segment Tree solves this by instantiating nodes lazily on demand only when point updates actually touch specific coordinates.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [{ id: "n1", val: 0, state: "default" }],
+    },
+  },
+  {
+    narrative:
+      "At initialization, only a single root node covering the entire coordinate domain [1..C] is allocated.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [{ id: "n1", val: 0, state: "active" }],
+    },
+  },
+  {
+    narrative:
+      "When updating a target index K, child pointers (left and right) are instantiated dynamically if they do not yet exist.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 0, leftId: "n2", state: "visited" },
+        { id: "n2", val: 0, state: "swap" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Unvisited subtrees remain unallocated (None), taking zero memory cells and preserving a compact sparse tree structure.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 5, leftId: "n2", state: "default" },
+        { id: "n2", val: 5, leftId: "n3", state: "default" },
+        { id: "n3", val: 5, state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Each point update creates at most log2(C) new nodes along its single root-to-leaf branch, executing in O(log C) time.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 13, leftId: "n2", rightId: "n4", state: "visited" },
+        { id: "n2", val: 5, leftId: "n3", state: "visited" },
+        { id: "n3", val: 5, state: "visited" },
+        { id: "n4", val: 8, rightId: "n5", state: "swap" },
+        { id: "n5", val: 8, state: "swap" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Range queries walk the dynamic tree and prune missing subtrees instantly, returning default identity 0 in O(log C) time without allocating new nodes.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 13, leftId: "n2", rightId: "n4", state: "compare" },
+        { id: "n2", val: 5, leftId: "n3", state: "active" },
+        { id: "n3", val: 5, state: "visited" },
+        { id: "n4", val: 8, rightId: "n5", state: "default" },
+        { id: "n5", val: 8, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Across Q operations on domain C = 10^9, total memory is capped at O(Q log C) nodes instead of O(C).",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 13, leftId: "n2", rightId: "n4", state: "sorted" },
+        { id: "n2", val: 5, leftId: "n3", state: "sorted" },
+        { id: "n3", val: 5, state: "sorted" },
+        { id: "n4", val: 8, rightId: "n5", state: "sorted" },
+        { id: "n5", val: 8, state: "sorted" },
+      ],
+    },
+  },
+];
+
 export const generateDynamicSegmentTreeSteps = (
   input: DynamicSegmentTreeInput,
 ): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
+
+  for (const intro of createIntroSnapshots()) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: intro.narrative,
+        primarySnapshot: intro.primarySnapshot,
+      }),
+    );
+  }
 
   const safeInput = {
     rangeMin: input?.rangeMin ?? DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT.rangeMin,
@@ -92,7 +242,10 @@ export const generateDynamicSegmentTreeSteps = (
     val: 0,
   };
 
-  const collectTreeNodes = (activeId?: string): TreeNodeItem[] => {
+  const collectTreeNodes = (
+    activeId?: string,
+    activeState: ElementState = "active",
+  ): TreeNodeItem[] => {
     const list: TreeNodeItem[] = [];
     const traverse = (node: InternalNode) => {
       list.push({
@@ -100,7 +253,7 @@ export const generateDynamicSegmentTreeSteps = (
         val: node.val,
         leftId: node.leftNode?.id,
         rightId: node.rightNode?.id,
-        state: node.id === activeId ? "active" : "default",
+        state: node.id === activeId ? activeState : "default",
       });
       if (node.leftNode) traverse(node.leftNode);
       if (node.rightNode) traverse(node.rightNode);
@@ -109,102 +262,46 @@ export const generateDynamicSegmentTreeSteps = (
     return list;
   };
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
+  const addWalkthroughStep = (
+    narrative: string,
     activeId?: string,
-    customState?: Record<string, string | number>,
+    activeState: ElementState = "active",
   ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "tree",
-        nodes: collectTreeNodes(activeId),
-        rootId: root.id,
-      },
-      auxiliaryState: {
-        customState: customState ?? {
-          rangeMin: String(rangeL),
-          rangeMax: String(rangeR),
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative,
+        primarySnapshot: {
+          kind: "tree",
+          name: "dynamicSegmentTree",
+          nodes: collectTreeNodes(activeId, activeState),
+          rootId: root.id,
         },
-      },
-      variables,
-    });
+      }),
+    );
   };
 
-  addStep(
-    11,
-    "Initialize Dynamic Segment Tree root node",
-    `Created root node covering range [${rangeL}..${rangeR}]. Child nodes will be lazily allocated on demand when point updates arrive.`,
-    { rangeL, rangeR },
+  addWalkthroughStep(
+    `Initializing Dynamic Segment Tree root node covering coordinate range [${rangeL}..${rangeR}].`,
     root.id,
+    "active",
   );
 
   const updateNode = (node: InternalNode, idx: number, val: number) => {
-    addStep(
-      13,
-      `Visit node [${node.l}..${node.r}] for update at index ${idx}`,
-      `Traversing node [${node.l}..${node.r}] during update operation for index ${idx}.`,
-      { l: node.l, r: node.r, idx, val },
-      node.id,
-    );
-
-    addStep(
-      14,
-      `Check if node [${node.l}..${node.r}] is a leaf node`,
-      `Comparing interval bounds: node.l (${node.l}) == node.r (${node.r}).`,
-      { l: node.l, r: node.r, isLeaf: node.l === node.r },
-      node.id,
-    );
-
     if (node.l === node.r) {
       node.val += val;
-      addStep(
-        15,
-        `Update leaf node [${node.l}..${node.r}] value to ${node.val}`,
-        `Base case reached at leaf index ${idx}. Added value increment ${val} (new sum = ${node.val}).`,
-        { idx, val, nodeVal: node.val },
+      addWalkthroughStep(
+        `Reached leaf node covering index ${idx}. Added value increment +${val} (new leaf sum = ${node.val}).`,
         node.id,
-      );
-      addStep(
-        16,
-        `Return from leaf node [${node.l}..${node.r}] update`,
-        `Finished leaf update. Returning up the call stack.`,
-        { idx, nodeVal: node.val },
-        node.id,
+        "swap",
       );
       return;
     }
 
     const mid = Math.floor((node.l + node.r) / 2);
-    addStep(
-      17,
-      `Calculate range midpoint mid = ${mid}`,
-      `Dividing interval [${node.l}..${node.r}] into left [${node.l}..${mid}] and right [${mid + 1}..${node.r}].`,
-      { l: node.l, r: node.r, mid },
-      node.id,
-    );
-
-    addStep(
-      18,
-      `Check if target index ${idx} <= midpoint ${mid}`,
-      `Index ${idx} is ${idx <= mid ? "<=" : ">"} mid (${mid}). Route update to ${idx <= mid ? "left" : "right"} child.`,
-      { idx, mid, routeLeft: idx <= mid },
-      node.id,
-    );
 
     if (idx <= mid) {
-      addStep(
-        19,
-        `Check if left child of [${node.l}..${node.r}] exists`,
-        `Left child node [${node.l}..${mid}] is currently ${node.leftNode ? "allocated" : "unallocated (None)"}.`,
-        { l: node.l, mid, leftExists: Boolean(node.leftNode) },
-        node.id,
-      );
       if (!node.leftNode) {
         node.leftNode = {
           id: `node-[${node.l}..${mid}]`,
@@ -212,30 +309,14 @@ export const generateDynamicSegmentTreeSteps = (
           r: mid,
           val: 0,
         };
-        addStep(
-          20,
-          `Dynamically create left child node [${node.l}..${mid}]`,
-          `No left child existed. Allocated new node covering range [${node.l}..${mid}] lazily on demand.`,
-          { l: node.l, r: mid },
+        addWalkthroughStep(
+          `Lazily allocated new left child node covering range [${node.l}..${mid}] on demand.`,
           node.leftNode.id,
+          "compare",
         );
       }
-      addStep(
-        21,
-        `Recurse update into left child [${node.leftNode.l}..${node.leftNode.r}]`,
-        `Descending recursively into left child for index ${idx}.`,
-        { idx, leftL: node.leftNode.l, leftR: node.leftNode.r },
-        node.leftNode.id,
-      );
       updateNode(node.leftNode, idx, val);
     } else {
-      addStep(
-        23,
-        `Check if right child of [${node.l}..${node.r}] exists`,
-        `Right child node [${mid + 1}..${node.r}] is currently ${node.rightNode ? "allocated" : "unallocated (None)"}.`,
-        { midPlus1: mid + 1, r: node.r, rightExists: Boolean(node.rightNode) },
-        node.id,
-      );
       if (!node.rightNode) {
         node.rightNode = {
           id: `node-[${mid + 1}..${node.r}]`,
@@ -243,224 +324,121 @@ export const generateDynamicSegmentTreeSteps = (
           r: node.r,
           val: 0,
         };
-        addStep(
-          24,
-          `Dynamically create right child node [${mid + 1}..${node.r}]`,
-          `No right child existed. Allocated new node covering range [${mid + 1}..${node.r}] lazily on demand.`,
-          { l: mid + 1, r: node.r },
+        addWalkthroughStep(
+          `Lazily allocated new right child node covering range [${mid + 1}..${node.r}] on demand.`,
           node.rightNode.id,
+          "compare",
         );
       }
-      addStep(
-        25,
-        `Recurse update into right child [${node.rightNode.l}..${node.rightNode.r}]`,
-        `Descending recursively into right child for index ${idx}.`,
-        { idx, rightL: node.rightNode.l, rightR: node.rightNode.r },
-        node.rightNode.id,
-      );
       updateNode(node.rightNode, idx, val);
     }
 
     node.val = (node.leftNode?.val ?? 0) + (node.rightNode?.val ?? 0);
-    addStep(
-      26,
-      `Update parent node [${node.l}..${node.r}] value to ${node.val}`,
-      `Recomputed aggregate sum: left child (${node.leftNode?.val ?? 0}) + right child (${node.rightNode?.val ?? 0}) = ${node.val}.`,
-      { l: node.l, r: node.r, nodeVal: node.val },
+    addWalkthroughStep(
+      `Updated node [${node.l}..${node.r}] cached sum to ${node.val} after child update.`,
       node.id,
+      "active",
     );
   };
 
   const queryNode = (node: InternalNode | undefined, ql: number, qr: number): number => {
-    addStep(
-      29,
-      `Check query bounds for node ${node ? `[${node.l}..${node.r}]` : "null"} against [${ql}..${qr}]`,
-      `Checking if node is null or if interval [${node?.l ?? "?"}..${node?.r ?? "?"}] is disjoint from query range [${ql}..${qr}].`,
-      { ql, qr, nodeL: node?.l ?? -1, nodeR: node?.r ?? -1 },
-      node?.id,
-    );
-
     if (!node || qr < node.l || ql > node.r) {
-      addStep(
-        30,
-        `Return identity 0 for ${!node ? "unallocated node" : `disjoint range [${node.l}..${node.r}]`}`,
-        `No overlap with query interval [${ql}..${qr}]. Returning default 0.`,
-        { ql, qr, result: 0 },
-        node?.id,
-      );
       return 0;
     }
 
-    addStep(
-      31,
-      `Check total containment of node [${node.l}..${node.r}] inside [${ql}..${qr}]`,
-      `Checking condition: ql (${ql}) <= node.l (${node.l}) and node.r (${node.r}) <= qr (${qr}).`,
-      { l: node.l, r: node.r, ql, qr },
-      node.id,
-    );
-
     if (ql <= node.l && node.r <= qr) {
-      addStep(
-        32,
-        `Node [${node.l}..${node.r}] fully inside query range. Returning ${node.val}`,
-        `Complete interval match. Returning precomputed node value ${node.val} directly.`,
-        { l: node.l, r: node.r, val: node.val },
+      addWalkthroughStep(
+        `Node [${node.l}..${node.r}] is fully inside query range [${ql}..${qr}]. Returning cached value ${node.val}.`,
         node.id,
+        "sorted",
       );
       return node.val;
     }
 
-    const leftRes = queryNode(node.leftNode, ql, qr);
-    const rightRes = queryNode(node.rightNode, ql, qr);
-    const sumRes = leftRes + rightRes;
-
-    addStep(
-      33,
-      `Combine child results for node [${node.l}..${node.r}]: ${leftRes} + ${rightRes} = ${sumRes}`,
-      `Partial range coverage. Summed left query (${leftRes}) + right query (${rightRes}) = ${sumRes}.`,
-      { l: node.l, r: node.r, leftRes, rightRes, sumRes },
+    addWalkthroughStep(
+      `Node [${node.l}..${node.r}] partially overlaps query range [${ql}..${qr}]. Recursing down populated subtrees.`,
       node.id,
+      "active",
     );
 
-    return sumRes;
+    const leftRes = queryNode(node.leftNode, ql, qr);
+    const rightRes = queryNode(node.rightNode, ql, qr);
+    const total = leftRes + rightRes;
+
+    addWalkthroughStep(
+      `Combined query responses at node [${node.l}..${node.r}]: left (${leftRes}) + right (${rightRes}) = ${total}.`,
+      node.id,
+      "swap",
+    );
+
+    return total;
   };
 
-  for (let opIdx = 0; opIdx < ops.length; opIdx++) {
-    const op = ops[opIdx];
-    if (op.type === "update") {
-      const idx = op.index ?? rangeL;
-      const val = op.value ?? 0;
-      addStep(
-        13,
-        `Operation ${opIdx + 1}: Point update at index ${idx} with value ${val}`,
-        `Starting recursive point update traversal for index ${idx}.`,
-        { opIndex: opIdx + 1, idx, val },
-      );
-      updateNode(root, idx, val);
-    } else if (op.type === "query") {
-      const ql = op.left ?? rangeL;
-      const qr = op.right ?? rangeR;
-      addStep(
-        28,
-        `Operation ${opIdx + 1}: Range query over interval [${ql}..${qr}]`,
-        `Starting range query traversal over dynamic segment tree.`,
-        { opIndex: opIdx + 1, ql, qr },
-      );
-      const res = queryNode(root, ql, qr);
-      addStep(
-        33,
-        `Operation ${opIdx + 1}: Query [${ql}..${qr}] result = ${res}`,
-        `Completed dynamic segment tree range query over [${ql}..${qr}] with total sum ${res}.`,
-        { ql, qr, result: res },
+  for (const op of ops) {
+    if (op.type === "update" && op.index !== undefined && op.value !== undefined) {
+      addWalkthroughStep(
+        `Executing dynamic point update at index ${op.index} with value +${op.value}.`,
         root.id,
-        { queryResult: String(res) },
+        "compare",
+      );
+
+      updateNode(root, op.index, op.value);
+
+      addWalkthroughStep(
+        `Completed point update at index ${op.index}. The updated root sum is now ${root.val}.`,
+        root.id,
+        "visited",
+      );
+    } else if (op.type === "query" && op.left !== undefined && op.right !== undefined) {
+      addWalkthroughStep(
+        `Executing range sum query for interval [${op.left}..${op.right}].`,
+        root.id,
+        "compare",
+      );
+
+      const res = queryNode(root, op.left, op.right);
+
+      addWalkthroughStep(
+        `Completed range sum query for [${op.left}..${op.right}], obtaining sum ${res}.`,
+        root.id,
+        "visited",
       );
     }
   }
 
+  const finalNodes = collectTreeNodes().map((n) => ({ ...n, state: "sorted" as const }));
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `All operations completed on the Dynamic Segment Tree. Total nodes allocated: ${finalNodes.length}.`,
+      primarySnapshot: {
+        kind: "tree",
+        name: "dynamicSegmentTree",
+        nodes: finalNodes,
+        rootId: root.id,
+      },
+    }),
+  );
+
   return steps;
 };
 
-export const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
+const DYNAMIC_SEGMENT_TREE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p>A <strong>Dynamic Segment Tree</strong> (also known as a <strong>Sparse Segment Tree</strong>) constructs tree nodes <strong>lazily on demand</strong> as point updates occur, rather than allocating a full tree up front. This enables range queries and updates over massive coordinate domains (e.g. <code>[1...10⁹]</code>) using memory proportional strictly to the number of update operations: <code>O(Q log C)</code> total space.</p>",
+    "<p>A <strong>Dynamic Segment Tree</strong> supports <code>O(log C)</code> point updates and range queries over huge coordinate ranges (up to <code>10⁹</code>) by allocating tree nodes lazily on demand. This approach optimizes memory usage to <code>O(Q log C)</code> by creating only the nodes required to represent the sparse set of updated indices.</p>",
   sections: [
     {
-      heading: "1. Lazy Pointer Allocation Architecture",
-      body: "<p>Standard segment trees allocate <code>4N</code> nodes upfront, which fails when coordinate ranges reach <code>10⁹</code>.</p><ul><li>Starts with a single root covering full domain <code>[1...C]</code>.</li><li>When descending toward target index <code>i</code>, if a child pointer is <code>null</code>, a new node covering half interval <code>[l...mid]</code> or <code>[mid+1...r]</code> is instantiated dynamically on the fly.</li></ul>",
-    },
-    {
-      heading: "2. Logarithmic Space Bound: O(Q log C)",
-      body: "<p>Each point update creates at most <code>&lceil;log₂ C&rceil;</code> nodes along its root-to-leaf path:</p><p><code>Total Memory = O(Q log₂ C)</code></p><p>For <code>Q = 10⁵</code> operations on domain <code>C = 10⁹</code>, <code>log₂(10⁹) &approx; 30</code> levels, allocating only <code>&approx; 3 &times; 10⁶</code> nodes instead of <code>4 &times; 10⁹</code>.</p>",
-    },
-    {
-      heading: "3. Implicit Zero Queries",
-      body: "<p>Range queries traverse existing nodes in the dynamic tree. If a child pointer is <code>null</code> (unallocated), its contribution is implicitly 0. Query operations never instantiate missing nodes, preserving space efficiency during read-only passes.</p>",
-    },
-    {
-      heading: "4. Trade-off Matrix: Dynamic Segment Tree vs Coordinate Compression",
-      body: "<p>Comparing dynamic pointer allocation against coordinate compression:</p><ul><li><strong>Processing Mode</strong>: Dynamic Segment Tree is Pure Online versus Coordinate Compression's Offline Only requirement.</li><li><strong>Domain Range</strong>: Up to <code>10⁹</code> (32-bit int) versus mapped indices <code>[1...N]</code>.</li><li><strong>Query Complexity</strong>: <code>O(log C)</code> versus <code>O(log N)</code>.</li><li><strong>Space Complexity</strong>: <code>O(Q log C)</code> versus <code>O(N)</code>.</li></ul>",
-    },
-    {
-      heading: "5. Implementation Details & Pointer Safety",
-      body: "<ul><li><strong>Pointer Traversal</strong>: Uses explicit <code>node.left</code> and <code>node.right</code> object pointers instead of fixed array indices <code>2v</code> and <code>2v+1</code>.</li><li><strong>Midpoint Overflow Protection</strong>: Compute midpoint as <code>mid = floor((node.l + node.r) / 2)</code> carefully when coordinates extend into large integer ranges.</li></ul>",
-    },
-  ],
-  keyTerms: [
-    {
-      term: "Sparse Segment Tree",
-      definition:
-        "A segment tree structure where missing subtrees are treated as default zero values without allocating memory.",
-    },
-    {
-      term: "Lazy Pointer Allocation",
-      definition:
-        "Creating child pointers (left and right) dynamically on demand only when visited by an update operation.",
-    },
-    {
-      term: "Online Algorithm",
-      definition:
-        "An algorithm that processes input requests sequentially as they arrive without requiring pre-sorted inputs.",
-    },
-    {
-      term: "Coordinate Domain",
-      definition:
-        "The total numerical interval [rangeMin...rangeMax] over which operations take place.",
+      heading: "Lazy Node Allocation",
+      body: "<p>Instead of pre-allocating an entire <code>4C</code> array, child pointers start as <code>None</code> and are instantiated only when accessed by an update.</p>",
     },
   ],
 };
 
-export const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
-  skipLines: [8, 12, 27],
-  distractors: [
-    "node.left = Node(node.l, node.r)",
-    "if node.left and node.right: return",
-    "node.val = node.left.val * node.right.val",
-  ],
-  hints: [
-    {
-      line: 20,
-      hint: "Allocate left child node covering range [node.l..mid]",
-    },
-    {
-      line: 30,
-      hint: "Return 0 if node is None or out of query bounds",
-    },
-  ],
+const DYNAMIC_SEGMENT_TREE_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Defines Node class representing a dynamic segment tree node.",
-    2: "Node constructor taking interval bounds l and r.",
-    3: "Stores lower interval boundary l.",
-    4: "Stores upper interval boundary r.",
-    5: "Initializes node value aggregate to 0.",
-    6: "Initializes left child pointer to None.",
-    7: "Initializes right child pointer to None.",
-    8: "Blank line separating Node definition.",
-    9: "Defines DynamicSegmentTree wrapper class.",
-    10: "Constructor initializing root node over range [l, r].",
-    11: "Instantiates root node covering full domain interval [l, r].",
-    12: "Blank line separating constructor.",
-    13: "Defines point update method recursing down dynamic tree.",
-    14: "Checks if leaf node is reached (node.l == node.r).",
-    15: "Adds value increment to leaf node value.",
-    16: "Returns from leaf update.",
-    17: "Calculates midpoint of interval: mid = (node.l + node.r) // 2.",
-    18: "Checks if target index falls in left half (idx <= mid).",
-    19: "Checks if left child is unallocated (not node.left).",
-    20: "Lazily instantiates new left child Node covering range [node.l..mid].",
-    21: "Recurses into left child to complete point update.",
-    22: "Else branch when target index falls in right half (idx > mid).",
-    23: "Checks if right child is unallocated (not node.right).",
-    24: "Lazily instantiates new right child Node covering range [mid + 1..node.r].",
-    25: "Recurses into right child to complete point update.",
-    26: "Recomputes parent node value by combining left and right child values.",
-    27: "Blank line separating update method.",
-    28: "Defines range query method returning sum over interval [ql..qr].",
-    29: "Checks for empty node or disjoint query interval bounds.",
-    30: "Returns default identity value 0 for non-overlapping or missing subtrees.",
-    31: "Checks if node interval is completely inside query interval [ql..qr].",
-    32: "Returns cached node value directly for complete range match.",
-    33: "Recursively queries left and right subtrees and returns their sum.",
+    26: "Defines DynamicSegmentTree class.",
+    36: "Lazily instantiates left child node if None.",
   },
 };
 
@@ -470,11 +448,12 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "<p>A <strong>Dynamic Segment Tree</strong> supports <code>O(log C)</code> point updates and range queries over huge coordinate ranges (up to <code>10⁹</code>) by allocating tree nodes lazily on demand. This approach optimizes memory usage to <code>O(Q log C)</code> by creating only the nodes required to represent the sparse set of updated indices.</p>",
+    "<p>A <strong>Dynamic Segment Tree</strong> supports <code>O(log C)</code> point updates and range queries over huge coordinate ranges (up to <code>10⁹</code>) by allocating tree nodes lazily on demand. This approach optimizes memory usage to <code>O(Q log C)</code> by creating only the nodes required to represent the sparse set of updated indices.</p><h3>Input Parameters</h3><ul><li><code>rangeMin</code>: Minimum coordinate bound.</li><li><code>rangeMax</code>: Maximum coordinate bound.</li><li><code>operations</code>: Array of point updates and range queries.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Answers to range queries and sparse tree node state.</li></ul>",
   constraints: ["1 <= rangeMax <= 10^9", "1 <= Q <= 10^5", "-10^9 <= value <= 10^9"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       title: "Basic Example",
       inputDisplay: "range = [1..16], ops = [update(3, 5), update(12, 8), query(1, 10)]",
       outputDisplay: "Query [1..10]: 5",
@@ -493,6 +472,7 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       title: "Complex Edge Case",
       inputDisplay: "range = [1..1000000], ops = [update(500000, 100), query(1, 1000000)]",
       outputDisplay: "Query [1..1000000]: 100",
@@ -509,6 +489,7 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
     },
     {
       kind: "negative",
+      scenario: "boundary",
       title: "Failing / Boundary Case",
       inputDisplay: "range = [1..1], ops = [update(1, 42), query(1, 1)]",
       outputDisplay: "Query [1..1]: 42",
@@ -550,3 +531,5 @@ export const dynamicSegmentTree: AlgorithmDefinition<DynamicSegmentTreeInput> = 
   defaultInput: DEFAULT_DYNAMIC_SEGMENT_TREE_INPUT,
   generateSteps: generateDynamicSegmentTreeSteps,
 };
+
+export default dynamicSegmentTree;

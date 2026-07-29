@@ -56,7 +56,6 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: 'text = "ababaaba", pattern = "aba"',
       outputDisplay: "[0, 2, 5]",
@@ -68,7 +67,6 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'text = "aaaaa", pattern = "aa"',
       outputDisplay: "[0, 1, 2, 3]",
@@ -79,7 +77,6 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
         "Overlapping pattern occurrences in uniform text, reusing Z-box right boundaries.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'text = "abcdef", pattern = "xyz"',

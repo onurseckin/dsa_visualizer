@@ -136,7 +136,6 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay:
         'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
@@ -148,7 +147,6 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
         "Top-left 2x2 land forms Island 1. Cell (2,2) forms Island 2. Bottom-right cells (3,3) and (3,4) form Island 3. Total = 3.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'grid = [["1","0","1"],["0","1","0"],["1","0","1"]]',
@@ -166,7 +164,6 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
         "Diagonal land cells touch only at corners. Under 4-directional connectivity, none of them share edges, forming 5 distinct isolated islands.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'grid = [["0","0"],["0","0"]]',

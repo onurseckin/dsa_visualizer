@@ -1,275 +1,300 @@
-import type { AlgorithmDefinition, AlgorithmStep, VectorItem, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface EuclidGcdInput {
-  a: number;
-  b: number;
+  nums: number[];
 }
 
-export const PYTHON_EUCLID_GCD_CODE = `def gcd(a: int, b: int) -> int:
-    while b != 0:
-        remainder = a % b
-        a = b
-        b = remainder
-    return a`;
+export const PYTHON_EUCLID_GCD_CODE = `class Solution:
+    def __init__(self):
+        pass
+
+    def findGCD(self, nums: list[int]) -> int:
+        a, b = min(nums), max(nums)
+        while b != 0:
+            a, b = b, a % b
+        return a`;
 
 export const DEFAULT_EUCLID_GCD_INPUT: EuclidGcdInput = {
-  a: 987,
-  b: 610,
+  nums: [2, 5, 6, 9, 10],
+};
+
+const createIntroSnapshots = (): AlgorithmStep[] => {
+  const introData = [
+    {
+      narrative:
+        "The Greatest Common Divisor gcd(a, b) of two integers is the largest positive integer that divides both a and b without leaving a remainder.",
+      rows: [["48", "18", "-", "-", "-", "Initial Pair"]],
+    },
+    {
+      narrative:
+        "Testing all numbers sequentially from min(a, b) down to 1 takes linear time O(min(a, b)), which is far too slow for 64-bit integers.",
+      rows: [["48", "18", "-", "-", "-", "Try 18, 17, 16..."]],
+    },
+    {
+      narrative:
+        "Geometrically, finding gcd(a, b) is equivalent to tiling a rectangle of width a and height b using the largest possible square tiles of size g x g without overlap.",
+      rows: [["48", "18", "18 x 18", "2 tiles", "12", "Rectangle 48x18"]],
+    },
+    {
+      narrative:
+        "Euclid's key mathematical identity proves that any common divisor of a and b also divides their difference a - b, allowing large pairs to be reduced.",
+      rows: [["30", "18", "18 x 18", "1 tile", "12", "Subtraction a - b"]],
+    },
+    {
+      narrative:
+        "Replacing repeated subtraction with the modulo operation remainder = a mod b accelerates reduction by jumping directly to the smallest equivalent pair.",
+      rows: [["48", "18", "18 x 18", "q = 2", "12", "r = 48 mod 18 = 12"]],
+    },
+    {
+      narrative:
+        "Each step fits q square tiles of size b x b into the rectangle, leaving a smaller remainder rectangle of size r x b to tile in the next iteration.",
+      rows: [["18", "12", "12 x 12", "q = 1", "6", "Remainder 12x18"]],
+    },
+    {
+      narrative:
+        "By the Halving Theorem, every two modulo reductions cut the larger dimension by at least half, guaranteeing logarithmic convergence.",
+      rows: [["12", "6", "6 x 6", "q = 2", "0", "Halving Bound"]],
+    },
+    {
+      narrative:
+        "When the remainder reaches 0, the rectangle tiles perfectly with tiles of size b x b, so variable b contains the exact greatest common divisor.",
+      rows: [["6", "0", "6 x 6", "-", "0", "GCD = 6 (Tile Exact)"]],
+    },
+    {
+      narrative:
+        "Lamé's Theorem proves that consecutive Fibonacci numbers represent the worst-case input for Euclid's algorithm, taking maximum quotient steps.",
+      rows: [["987", "610", "610 x 610", "q = 1", "377", "Fibonacci Pair"]],
+    },
+    {
+      narrative:
+        "The Euclidean algorithm executes in O(log min(a, b)) time and O(1) auxiliary space, making it the fundamental building block of number theory.",
+      rows: [["O(log min)", "O(1) Space", "Square Tiling", "Optimal", "0", "Logarithmic Bound"]],
+    },
+  ];
+
+  return introData.map((data, idx) =>
+    createTutorialStep({
+      stepIndex: idx,
+      phase: "intro",
+      narrative: data.narrative,
+      primarySnapshot: {
+        kind: "matrix",
+        name: "euclid_tiling_matrix",
+        rows: data.rows.length,
+        cols: 6,
+        cells: data.rows.flatMap((row, rIdx) =>
+          row.map((val, cIdx) => ({
+            row: rIdx,
+            col: cIdx,
+            value: val,
+            label: `r${rIdx}c${cIdx}`,
+            state: cIdx === 4 ? ("active" as const) : ("default" as const),
+          })),
+        ),
+        rowHeaders: ["State"],
+        colHeaders: [
+          "Width (a)",
+          "Height (b)",
+          "Tile Size",
+          "Tile Count (q)",
+          "Remainder (a mod b)",
+          "Geometric Status",
+        ],
+      },
+    }),
+  );
 };
 
 export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] => {
-  const steps: AlgorithmStep[] = [];
-  let stepIndex = 0;
+  const introSteps = createIntroSnapshots();
+  const steps: AlgorithmStep[] = [...introSteps];
+  let stepIndex = introSteps.length;
 
-  let currentA = Math.abs(
-    Math.floor(typeof input?.a === "number" ? input.a : DEFAULT_EUCLID_GCD_INPUT.a),
-  );
-  let currentB = Math.abs(
-    Math.floor(typeof input?.b === "number" ? input.b : DEFAULT_EUCLID_GCD_INPUT.b),
-  );
+  const rawInput = input as unknown;
+  const sourceNums = Array.isArray(rawInput) ? rawInput : input?.nums;
+  const nums =
+    Array.isArray(sourceNums) && sourceNums.length > 0
+      ? sourceNums.map((value) => Math.abs(Math.floor(value)))
+      : DEFAULT_EUCLID_GCD_INPUT.nums;
+  let currentA = Math.min(...nums);
+  let currentB = Math.max(...nums);
   const initialA = currentA;
   const initialB = currentB;
 
-  const history: string[] = [];
+  const history: { a: number; b: number; q: number; r: number; status: string }[] = [];
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    aVal: number,
-    bVal: number,
-    remVal?: number,
-    qVal?: number,
-  ) => {
-    const vectors: VectorItem[] = [
-      {
-        id: "val-a",
-        label: `a = ${aVal}`,
-        x: aVal,
-        y: 0,
-        state: "active",
-      },
-      {
-        id: "val-b",
-        label: `b = ${bVal}`,
-        x: bVal,
-        y: 1,
-        state: "compared",
-      },
-    ];
+  const createMatrixSnapshot = (activeRowIdx: number | null, isFinished: boolean = false) => {
+    const displayRows =
+      history.length === 0 ? [{ a: currentA, b: currentB, q: 0, r: 0, status: "Init" }] : history;
+    const cells: MatrixCellItem[] = [];
 
-    if (remVal !== undefined) {
-      vectors.push({
-        id: "val-rem",
-        label: `rem = ${remVal}`,
-        x: remVal,
-        y: 2,
-        state: "result",
+    displayRows.forEach((row, r) => {
+      const rowVals = [
+        row.a,
+        row.b,
+        row.b > 0 ? `${row.b} x ${row.b}` : "-",
+        row.q > 0 ? `${row.q}` : "-",
+        row.r,
+        row.status,
+      ];
+
+      rowVals.forEach((val, c) => {
+        let state: MatrixCellItem["state"] = "default";
+        if (isFinished && r === displayRows.length - 1) {
+          state = "sorted";
+        } else if (r === activeRowIdx) {
+          state = c === 4 ? "active" : c === 3 ? "compare" : "visited";
+        } else if (r < (activeRowIdx ?? 0)) {
+          state = "visited";
+        }
+
+        cells.push({
+          row: r,
+          col: c,
+          value: val,
+          label: `r${r}c${c}`,
+          state,
+        });
       });
-    }
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "vector",
-        vectors,
-        planeTitle: `Euclidean Reduction Pair Vector: gcd(${aVal}, ${bVal})`,
-        dimensions: "2d",
-      },
-      auxiliaryState: {
-        visited: [...history],
-        hashMap: {
-          "Initial Inputs": `a = ${initialA}, b = ${initialB}`,
-          "Current State": `gcd(${aVal}, ${bVal})`,
-          ...(remVal !== undefined && qVal !== undefined
-            ? { Equation: `${aVal} = ${qVal} * ${bVal} + ${remVal}` }
-            : {}),
-        },
-        customState: {
-          a: aVal,
-          b: bVal,
-          ...(remVal !== undefined ? { remainder: remVal } : {}),
-          ...(qVal !== undefined ? { quotient: qVal } : {}),
-        },
-      },
-      variables: {
-        a: aVal,
-        b: bVal,
-        ...(remVal !== undefined ? { remainder: remVal } : {}),
-      },
     });
+
+    return {
+      kind: "matrix" as const,
+      name: "euclid_tiling_matrix",
+      rows: displayRows.length,
+      cols: 6,
+      cells,
+      rowHeaders: displayRows.map((_, idx) => `Step ${idx + 1}`),
+      colHeaders: [
+        "Width (a)",
+        "Height (b)",
+        "Tile Size",
+        "Tile Count (q)",
+        "Remainder (a mod b)",
+        "Geometric Status",
+      ],
+    };
   };
 
-  // Line 1: Function entry
-  addStep(
-    1,
-    `Start with gcd(${currentA}, ${currentB})`,
-    `We want the largest number that divides both ${currentA} and ${currentB}. Rather than testing divisors, we will keep shrinking the pair using remainders until the answer falls out on its own.`,
-    currentA,
-    currentB,
+  history.push({
+    a: currentA,
+    b: currentB,
+    q: currentB > 0 ? Math.floor(currentA / currentB) : 0,
+    r: currentB > 0 ? currentA % currentB : 0,
+    status: `Initial ${currentA}x${currentB} rectangle`,
+  });
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `We initialize geometric rectangle reduction for width a = ${currentA} and height b = ${currentB}.`,
+      primarySnapshot: createMatrixSnapshot(0),
+    }),
   );
 
-  history.push(`gcd(${currentA}, ${currentB})`);
-
-  while (currentB !== 0) {
-    // Line 2: Loop condition check
-    addStep(
-      2,
-      `Check b: still ${currentB}, not zero`,
-      `As long as b is non-zero the pair can be reduced further, so we take another remainder and keep going.`,
-      currentA,
-      currentB,
+  if (currentB === 0) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Height b is already 0, so rectangle width a = ${currentA} is the greatest common divisor gcd(${initialA}, ${initialB}) = ${currentA}.`,
+        primarySnapshot: createMatrixSnapshot(0, true),
+      }),
     );
-
-    const remainder = currentA % currentB;
-    const quotient = Math.floor(currentA / currentB);
-
-    // Line 3: Modulo operation
-    addStep(
-      3,
-      `Compute ${currentA} mod ${currentB} = ${remainder}`,
-      `Since ${currentA} = ${quotient} × ${currentB} + ${remainder}, anything that divides both ${currentA} and ${currentB} must also divide ${remainder}. So gcd(${currentA}, ${currentB}) is the same as gcd(${currentB}, ${remainder}) — the identical answer on a smaller pair.`,
-      currentA,
-      currentB,
-      remainder,
-      quotient,
-    );
-
-    // Line 4: Update a
-    const prevA = currentA;
-    currentA = currentB;
-    addStep(
-      4,
-      `Slide the divisor into a`,
-      `We shift the pair down: the old divisor ${currentB} becomes the new a, replacing ${prevA}. We are now solving the same problem one size smaller.`,
-      currentA,
-      currentB,
-      remainder,
-      quotient,
-    );
-
-    // Line 5: Update b
-    const prevB = currentB;
-    currentB = remainder;
-    history.push(`gcd(${currentA}, ${currentB})`);
-
-    addStep(
-      5,
-      `Set b to the remainder ${remainder}`,
-      `The remainder ${remainder} takes over as b (it was ${prevB}), leaving us at gcd(${currentA}, ${currentB}). Notice how quickly the numbers shrink — they roughly halve every couple of steps.`,
-      currentA,
-      currentB,
-    );
+    return steps;
   }
 
-  // Line 2: Loop condition check (false)
-  addStep(
-    2,
-    "Loop ends: b reached 0",
-    "With b at 0 there is no remainder left to chase, so the loop stops. Whatever now sits in a divides everything that came before it.",
-    currentA,
-    currentB,
-  );
+  let stepCount = 0;
+  while (currentB !== 0) {
+    const q = Math.floor(currentA / currentB);
+    const remainder = currentA % currentB;
 
-  // Line 6: Return result
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: `Return GCD = ${currentA}`,
-      why: `The last non-zero remainder, ${currentA}, divides both original numbers ${initialA} and ${initialB}, and nothing larger can — so it is their greatest common divisor.`,
-    },
-    primarySnapshot: {
-      kind: "vector",
-      vectors: [
-        {
-          id: "val-gcd",
-          label: `GCD = ${currentA}`,
-          x: currentA,
-          y: 0,
-          state: "result",
-        },
-      ],
-      planeTitle: `Final Greatest Common Divisor = ${currentA}`,
-      dimensions: "2d",
-    },
-    auxiliaryState: {
-      visited: [...history],
-      hashMap: {
-        "Initial Inputs": `a = ${initialA}, b = ${initialB}`,
-        "Final GCD": `${currentA}`,
-      },
-      customState: {
-        gcd: currentA,
-        stepsCount: steps.length,
-      },
-    },
-    variables: {
-      gcd: currentA,
-    },
+    if (stepCount > 0) {
+      history.push({
+        a: currentA,
+        b: currentB,
+        q,
+        r: remainder,
+        status: `Tile with ${q} square(s) of size ${currentB}x${currentB}`,
+      });
+    } else {
+      history[0].q = q;
+      history[0].r = remainder;
+      history[0].status = `Tile with ${q} square(s) of size ${currentB}x${currentB}`;
+    }
+
+    const currentStepIdx = history.length - 1;
+
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `We tile the ${currentA}x${currentB} rectangle with ${q} square tile(s) of size ${currentB}x${currentB}, leaving remainder dimension ${currentA} mod ${currentB} = ${remainder}.`,
+        primarySnapshot: createMatrixSnapshot(currentStepIdx),
+      }),
+    );
+
+    currentA = currentB;
+    currentB = remainder;
+    stepCount++;
+  }
+
+  history.push({
+    a: currentA,
+    b: 0,
+    q: 0,
+    r: 0,
+    status: `Remainder 0! Tiles perfectly with ${currentA}x${currentA} square`,
   });
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `The remainder is 0, meaning the rectangle tiles perfectly with squares of size ${currentA}x${currentA}. The final Greatest Common Divisor is gcd(${initialA}, ${initialB}) = ${currentA}.`,
+      primarySnapshot: createMatrixSnapshot(history.length - 1, true),
+    }),
+  );
 
   return steps;
 };
 
 const EUCLID_GCD_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p>The Euclidean algorithm finds the greatest common divisor <code>gcd(a, b)</code> of two non-negative integers <code>a, b &ge; 0</code> by repeatedly replacing the pair with a smaller pair that maintains the exact same common divisors: <code>gcd(a, b) = gcd(b, a mod b)</code>. It is the foundational arithmetic engine powering modular multiplicative inverses, fraction reduction, RSA encryption, and linear Diophantine equations.</p>",
+    "<p>The Euclidean algorithm computes the greatest common divisor gcd(a, b) of two integers by repeatedly replacing pair (a, b) with (b, a mod b) until b becomes zero.</p>",
   sections: [
     {
-      heading: "The Identity That Drives Everything",
-      body: "<p>Express <code>a</code> using division with remainder: <code>a = q &middot; b + r</code>, where <code>0 &le; r &lt; b</code> and <code>q = &lfloor;a / b&rfloor;</code>. If integer <code>d</code> divides both <code>a</code> and <code>b</code>, then <code>d | (a - qb)</code>, which means <code>d | r</code>. Conversely, if <code>d | b</code> and <code>d | r</code>, then <code>d | (qb + r) = a</code>. Thus, the set of common divisors of <code>(a, b)</code> is identical to <code>(b, r)</code>, proving:</p><p><code>gcd(a, b) = gcd(b, a mod b)</code></p>",
+      heading: "Geometric Tiling Model",
+      body: "<p>Finding gcd(a, b) corresponds to tiling a rectangle of size a x b using the largest possible square tiles of size g x g without overlapping.</p>",
     },
     {
-      heading: "Logarithmic Rate of Reduction",
-      body: "<p>Because <code>r &lt; b</code>, the second element strictly decreases each iteration, guaranteeing finite termination. Furthermore, after any two consecutive reductions, the larger number is at least halved:</p><p><code>a mod b &lt; a / 2</code></p><p>This forces logarithmic bounds on the total iterations <code>k &le; 2 log_2(min(a, b))</code>.</p>",
-    },
-    {
-      heading: "Worst-Case Complexity & Lamé's Theorem",
-      body: "<p>By Lamé's Theorem (1844), the worst-case inputs for the Euclidean algorithm are consecutive Fibonacci numbers <code>F_{n+1}</code> and <code>F_n</code>. For instance, running <code>gcd(987, 610)</code> yields quotients <code>q_i = 1</code> at every step, requiring <code>n</code> steps. The upper bound on iterations for inputs <code>&le; N</code> is <code>k &le; log_&phi;(&radic;5 N)</code>, where <code>&phi; = (1 + &radic;5) / 2 &approx; 1.618</code>.</p>",
-    },
-    {
-      heading: "Bézout's Identity & Extended Euclidean",
-      body: "<p>The reduction sequence leaves a trail of quotients that can be back-substituted to express the GCD as a linear combination of original inputs <code>a</code> and <code>b</code>:</p><p><code>a x + b y = gcd(a, b)</code></p><p>This extended form finds modular inverses <code>a&sup1; mod m</code> when <code>gcd(a, m) = 1</code>, where <code>a x &equiv; 1 (mod m)</code>.</p>",
-    },
-    {
-      heading: "Pitfalls and Edge Cases",
-      body: "<p>Negative inputs should be normalized using absolute values <code>|a|, |b|</code> before sieving remainders. The base case <code>gcd(a, 0) = a</code> holds because every integer divides 0, and <code>gcd(0, 0) = 0</code> by convention. When computing Least Common Multiple (LCM), always divide first to prevent integer overflow:</p><p><code>lcm(a, b) = (a / gcd(a, b)) &middot; b</code></p>",
+      heading: "Mathematical Foundation",
+      body: "<p>Since any common divisor d of a and b must also divide a - q*b = a mod b, we have gcd(a, b) = gcd(b, a mod b).</p>",
     },
   ],
   keyTerms: [
     {
-      term: "Greatest Common Divisor (GCD)",
+      term: "Greatest Common Divisor",
       definition:
-        "The largest positive integer d that divides both a and b without remainder, written gcd(a, b) = d.",
+        "The largest positive integer that divides both integers without leaving a remainder.",
     },
     {
-      term: "Modulo Operation",
-      definition: "The remainder r = a mod b = a - b ⌊a / b⌋, satisfying 0 <= r < b.",
-    },
-    {
-      term: "Coprime Integers",
-      definition: "Two integers a, b with gcd(a, b) = 1, meaning they share no prime factors.",
-    },
-    {
-      term: "Bézout's Identity",
-      definition: "The theorem stating there exist integers x, y such that a x + b y = gcd(a, b).",
+      term: "Geometric Tiling",
+      definition: "Covering an a x b rectangle with identical g x g squares without overlap.",
     },
   ],
 };
 
 const EUCLID_GCD_TRIVIA: TriviaMeta = {
-  lineExplanations: {
-    1: "Defines the gcd function signature taking non-negative integers $a$ and $b$ and returning their greatest common divisor.",
-    2: "Loops while divisor $b \\neq 0$, iteratively replacing pair $(a, b)$ with $(b, a \\bmod b)$.",
-    3: "Calculates remainder $remainder = a \\bmod b$, reducing state via identity $\\gcd(a, b) = \\gcd(b, a \\bmod b)$.",
-    4: "Updates $a$ to hold the current divisor $b$.",
-    5: "Updates $b$ to hold the new remainder.",
-    6: "Returns $a$ when $b = 0$, which holds the last non-zero remainder and thus $\\gcd(a, b)$.",
-  },
+  lineExplanations: {},
 };
 
 export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
@@ -278,37 +303,42 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   topicIds: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
-    "<p>Computes the Greatest Common Divisor <code>gcd(a, b)</code> of two non-negative integers using the classical Euclidean algorithm based on the reduction identity:</p><p><code>gcd(a, b) = gcd(b, a mod b)</code></p><h3>Mathematical State Vector</h3><p>The state is tracked as a 2D reduction vector <code>v = (a, b)^T</code> updated via matrix transformation:</p><p><code>(a_{k+1}, b_{k+1}) = (b_k, a_k mod b_k)</code></p><h3>Input Parameters</h3><ul><li><code>a</code> (<code>a &ge; 0</code>): First non-negative integer.</li><li><code>b</code> (<code>b &ge; 0</code>): Second non-negative integer.</li></ul><h3>Output</h3><ul><li><code>int</code>: The greatest common divisor <code>gcd(a, b)</code>.</li></ul>",
-  constraints: ["0 <= a, b <= 10^9"],
+    "<p>Given an integer array <code>nums</code>, return the greatest common divisor of its smallest and largest values using Euclid's algorithm.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul><li><code>nums</code>: Array of positive integers.</li></ul>" +
+    "<h3>Output</h3>" +
+    "<ul><li><code>int</code>: The greatest common divisor of <code>min(nums)</code> and <code>max(nums)</code>.</li></ul>",
+  constraints: ["2 <= nums.length <= 1000", "1 <= nums[i] <= 1000"],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "a = 48, b = 18",
-      outputDisplay: "6",
-      title: "Basic Example",
-      input: { a: 48, b: 18 },
-      output: "6",
-      explanation:
-        "48 = 2*18 + 12 -> gcd(18, 12). 18 = 1*12 + 6 -> gcd(12, 6). 12 = 2*6 + 0 -> GCD is 6.",
-    },
-    {
-      kind: "complex",
-      inputDisplay: "a = 252, b = 105",
-      outputDisplay: "21",
-      title: "Complex Edge Case",
-      input: { a: 252, b: 105 },
-      output: "21",
-      explanation:
-        "Multiple modular reductions (252 % 105 = 42, 105 % 42 = 21, 42 % 21 = 0) yield GCD 21.",
+      scenario: "standard",
+      inputDisplay: "nums = [2, 5, 6, 9, 10]",
+      outputDisplay: "2",
+      title: "Smallest and Largest Values",
+      input: { nums: [2, 5, 6, 9, 10] },
+      output: "2",
+      explanation: "The smallest and largest values are 2 and 10, whose GCD is 2.",
     },
     {
       kind: "negative",
-      inputDisplay: "a = 17, b = 0",
-      outputDisplay: "17",
-      title: "Failing / Boundary Case",
-      input: { a: 17, b: 0 },
-      output: "17",
-      explanation: "Boundary input b=0 terminates instantly with GCD(a, 0) = a.",
+      scenario: "boundary",
+      inputDisplay: "nums = [7, 5, 6, 8, 3]",
+      outputDisplay: "1",
+      title: "Coprime Extremes",
+      input: { nums: [7, 5, 6, 8, 3] },
+      output: "1",
+      explanation: "The smallest and largest values are 3 and 8, which are coprime.",
+    },
+    {
+      kind: "complex",
+      scenario: "adversarial",
+      inputDisplay: "nums = [3, 3]",
+      outputDisplay: "3",
+      title: "Equal Values",
+      input: { nums: [3, 3] },
+      output: "3",
+      explanation: "Both the minimum and maximum are 3, so their GCD is 3.",
     },
   ],
   code: PYTHON_EUCLID_GCD_CODE,
@@ -319,24 +349,37 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   },
   spaceComplexity: "O(1)",
   complexityAnalysis: {
-    time: "The number of reduction steps is bounded by $2 \\log_2(\\min(a, b))$. Worst-case inputs are consecutive Fibonacci numbers $F_{n+1}, F_n$, yielding $O(\\log(\\min(a, b)))$ runtime.",
-    space: "Requires $\\mathcal{O}(1)$ space as only three variables $(a, b, r)$ are maintained.",
+    time: "The number of reduction steps is bounded by 2 log_2(min(a, b)). Worst-case inputs are consecutive Fibonacci numbers.",
+    space: "Requires O(1) space as only scalar state is maintained.",
   },
   topicGuide: EUCLID_GCD_TOPIC_GUIDE,
   trivia: EUCLID_GCD_TRIVIA,
   sources: [
     {
-      kind: "standard",
-      label: "Standard Algorithm",
+      kind: "leetcode",
+      type: "leetcode",
+      id: 1979,
+      leetcodeId: 1979,
+      url: "https://leetcode.com/problems/find-greatest-common-divisor-of-array/",
+      label: "LeetCode #1979",
+      title: "Find Greatest Common Divisor of Array",
     },
     {
       kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 21",
+      type: "book",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 21,
-      section: "21.2 Euclid's algorithm",
+      chapterTitle: "Number Theory",
+      section: "21.2 Greatest common divisor",
+      url: "https://cses.fi/book/book.pdf",
     },
   ],
+  leetcode: {
+    id: 1979,
+    url: "https://leetcode.com/problems/find-greatest-common-divisor-of-array/",
+  },
   defaultInput: DEFAULT_EUCLID_GCD_INPUT,
   generateSteps: generateEuclidGcdSteps,
 };
+
+export default euclidGcd;

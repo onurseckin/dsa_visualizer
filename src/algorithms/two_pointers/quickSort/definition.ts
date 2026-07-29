@@ -94,7 +94,6 @@ export const quickSort: AlgorithmDefinition<number[]> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [6, 2, 9, 3, 7, 1, 5]",
       outputDisplay: "[1, 2, 3, 5, 6, 7, 9]",
@@ -106,7 +105,6 @@ export const quickSort: AlgorithmDefinition<number[]> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [12, 4, 7, 12, 1, 9, 4, 3, 15]",
       outputDisplay: "[1, 3, 4, 4, 7, 9, 12, 12, 15]",
@@ -116,7 +114,6 @@ export const quickSort: AlgorithmDefinition<number[]> = {
       explanation: "Handles duplicate values and larger unsorted ranges with Lomuto partitioning.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [1, 2, 3, 4, 5]",

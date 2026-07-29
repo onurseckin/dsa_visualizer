@@ -1,4 +1,10 @@
-import type { AlgorithmDefinition, AlgorithmStep, PrimaryVisualSnapshot } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  MatrixCellItem,
+  PrimaryVisualSnapshot,
+  TopicGuide,
+} from "../../types/dsa";
 import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface MinPlusMatrixMultiplicationInput {
@@ -6,8 +12,30 @@ export interface MinPlusMatrixMultiplicationInput {
   B: number[][];
 }
 
-export const PYTHON_MIN_PLUS_MATRIX_MULTIPLICATION_CODE = `def min_plus(n: int, adj: list[list[int]], k: int) -> list[list[int]]:
-    return []`;
+export const PYTHON_MIN_PLUS_MATRIX_MULTIPLICATION_CODE = `class Solution:
+    def __init__(self):
+        pass
+
+    def findTheCity(self, n: int, edges: list[list[int]], distanceThreshold: int) -> int:
+        INF = float('inf')
+        dist = [[INF] * n for _ in range(n)]
+        for i in range(n):
+            dist[i][i] = 0
+        for u, v, w in edges:
+            dist[u][v] = dist[v][u] = w
+        for k in range(n):
+            for i in range(n):
+                for j in range(n):
+                    if dist[i][k] + dist[k][j] < dist[i][j]:
+                        dist[i][j] = dist[i][k] + dist[k][j]
+        res_city = -1
+        min_reachable = n + 1
+        for i in range(n):
+            cnt = sum(1 for j in range(n) if i != j and dist[i][j] <= distanceThreshold)
+            if cnt <= min_reachable:
+                min_reachable = cnt
+                res_city = i
+        return res_city`;
 
 export const DEFAULT_MIN_PLUS_MATRIX_MULTIPLICATION_INPUT: MinPlusMatrixMultiplicationInput = {
   A: [
@@ -20,80 +48,261 @@ export const DEFAULT_MIN_PLUS_MATRIX_MULTIPLICATION_INPUT: MinPlusMatrixMultipli
   ],
 };
 
-export const generateMinPlusMatrixMultiplicationSteps = (
-  _input?: MinPlusMatrixMultiplicationInput,
-): AlgorithmStep[] => {
-  const steps: AlgorithmStep[] = [];
-  let stepIndex = 0;
+const createMatrixSnapshot = (
+  C: (number | string)[][],
+  name: string,
+  activeCell?: { r: number; c: number },
+  isDone = false,
+  isCellFinalized = false,
+): PrimaryVisualSnapshot => {
+  const rows = C.length;
+  const cols = C[0].length;
+  const cells: MatrixCellItem[] = [];
 
-  const addIntro = (narrative: string, primarySnapshot: PrimaryVisualSnapshot) => {
-    steps.push(
-      createTutorialStep({ stepIndex: stepIndex++, phase: "intro", narrative, primarySnapshot }),
-    );
-  };
-  const addWalkthrough = (narrative: string, primarySnapshot: PrimaryVisualSnapshot) => {
-    steps.push(
-      createTutorialStep({
-        stepIndex: stepIndex++,
-        phase: "walkthrough",
-        narrative,
-        primarySnapshot,
-      }),
-    );
-  };
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let state: MatrixCellItem["state"] = "default";
+      if (isDone) {
+        state = "sorted";
+      } else if (activeCell && activeCell.r === r && activeCell.c === c) {
+        state = isCellFinalized ? "sorted" : "active";
+      } else if (C[r][c] !== "inf" && C[r][c] !== "INF" && C[r][c] !== "?") {
+        state = "compared";
+      }
 
-  const introSnapshot: PrimaryVisualSnapshot = {
-    kind: "array",
-    name: "A",
-    mode: "box",
-    elements: [{ id: "intro", value: 0, label: "Intro", state: "default" }],
-  };
-
-  for (let i = 0; i < 8; i++) {
-    addIntro(
-      `Intro frame ${i} for Min-Plus Matrix Multiplication, establishing the mental model and naive bottleneck before concrete inputs.`,
-      introSnapshot,
-    );
+      cells.push({
+        row: r,
+        col: c,
+        value: C[r][c],
+        label: `C[${r}][${c}]`,
+        state,
+      });
+    }
   }
 
-  const makeSnapshot = (): PrimaryVisualSnapshot => ({
-    kind: "array",
-    name: "result",
-    mode: "box",
-    elements: [
-      {
-        id: `current`,
-        value: 0,
-        label: `C`,
-        state: "active",
-      },
-    ],
-  });
+  return {
+    kind: "matrix",
+    name,
+    rows,
+    cols,
+    cells,
+    rowHeaders: Array.from({ length: rows }, (_, i) => `r${i}`),
+    colHeaders: Array.from({ length: cols }, (_, i) => `c${i}`),
+  };
+};
 
-  addWalkthrough(
-    `Multiplying two matrices using the min-plus semiring (tropical semiring).`,
-    makeSnapshot(),
+const createIntroSnapshots = (): AlgorithmStep[] => {
+  const sampleC1 = [
+    ["?", "?"],
+    ["?", "?"],
+  ];
+
+  const sampleC2 = [
+    [0, "?"],
+    ["?", "?"],
+  ];
+
+  const sampleC3 = [
+    [0, 2],
+    ["?", "?"],
+  ];
+
+  const sampleC4 = [
+    [0, 2],
+    [1, 0],
+  ];
+
+  const introData = [
+    {
+      narrative:
+        "Min-Plus Matrix Multiplication (the Tropical Semiring product) modifies standard matrix multiplication by replacing scalar addition with minimum and multiplication with addition.",
+      C: sampleC1,
+      cell: undefined,
+    },
+    {
+      narrative:
+        "In standard matrix algebra, entry C[i][j] = sum_k (A[i][k] * B[k][j]). In Min-Plus matrix algebra, entry C[i][j] = min_k (A[i][k] + B[k][j]).",
+      C: sampleC1,
+      cell: { r: 0, c: 0 },
+    },
+    {
+      narrative:
+        "When matrices represent edge distance weights, A[i][k] + B[k][j] calculates the exact total weight of a 2-step path from vertex i to vertex j via intermediate vertex k.",
+      C: sampleC2,
+      cell: { r: 0, c: 0 },
+    },
+    {
+      narrative:
+        "Taking the minimum over all intermediate vertices k finds the optimal shortest 2-step path cost between vertex i and vertex j.",
+      C: sampleC3,
+      cell: { r: 0, c: 1 },
+    },
+    {
+      narrative:
+        "Evaluating all-pairs shortest paths in Floyd-Warshall is mathematically equivalent to computing repeated Min-Plus matrix power D^(N-1) = D x D x ... x D.",
+      C: sampleC4,
+      cell: { r: 1, c: 0 },
+    },
+    {
+      narrative:
+        "Standard nested three-loop iteration requires N^3 additions and comparisons, giving a baseline time complexity of O(N^3).",
+      C: sampleC4,
+      cell: { r: 1, c: 1 },
+    },
+    {
+      narrative:
+        "Because the Tropical Semiring lacks additive inverses (it forms a semiring rather than a ring), fast matrix algorithms like Strassen cannot be directly applied.",
+      C: sampleC4,
+      cell: { r: 0, c: 0 },
+    },
+    {
+      narrative:
+        "Min-Plus matrix algebra is vital in graph distance computation, dynamic programming optimization, Viterbi parsing, and tropical geometry.",
+      C: sampleC4,
+      cell: { r: 1, c: 1 },
+    },
+  ];
+
+  return introData.map((data, idx) =>
+    createTutorialStep({
+      stepIndex: idx,
+      phase: "intro",
+      narrative: data.narrative,
+      primarySnapshot: createMatrixSnapshot(
+        data.C,
+        "min_plus_concept_matrix",
+        data.cell,
+        idx === introData.length - 1,
+      ),
+    }),
   );
-  addWalkthrough(
-    `Finished min-plus multiplication, replacing multiplication with addition and addition with minimum.`,
-    makeSnapshot(),
+};
+
+export const generateMinPlusMatrixMultiplicationSteps = (
+  input?: MinPlusMatrixMultiplicationInput,
+): AlgorithmStep[] => {
+  const A =
+    input && Array.isArray(input.A) && input.A.length > 0
+      ? input.A
+      : DEFAULT_MIN_PLUS_MATRIX_MULTIPLICATION_INPUT.A;
+  const B =
+    input && Array.isArray(input.B) && input.B.length > 0
+      ? input.B
+      : DEFAULT_MIN_PLUS_MATRIX_MULTIPLICATION_INPUT.B;
+
+  const n = A.length;
+  const m = B[0].length;
+  const kLen = B.length;
+
+  const introSteps = createIntroSnapshots();
+  const steps: AlgorithmStep[] = [...introSteps];
+  let stepIndex = introSteps.length;
+
+  const C: (number | string)[][] = Array.from({ length: n }, () => Array(m).fill("?"));
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Initializing ${n}x${m} output distance matrix C for Min-Plus matrix product C[i][j] = min_k (A[i][k] + B[k][j]).`,
+      primarySnapshot: createMatrixSnapshot(C, "min_plus_product_matrix"),
+    }),
+  );
+
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < m; j++) {
+      let minVal = Infinity;
+      let bestK = -1;
+
+      for (let k = 0; k < kLen; k++) {
+        const val = A[i][k] + B[k][j];
+        if (val < minVal) {
+          minVal = val;
+          bestK = k;
+        }
+
+        C[i][j] = val;
+
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIndex++,
+            phase: "walkthrough",
+            narrative: `Evaluating cell C[${i}][${j}] via intermediate k = ${k}: A[${i}][${k}] (${A[i][k]}) + B[${k}][${j}] (${B[k][j]}) = ${val}. Current minimum distance: ${minVal}.`,
+            primarySnapshot: createMatrixSnapshot(C, "min_plus_product_matrix", { r: i, c: j }),
+          }),
+        );
+      }
+
+      C[i][j] = minVal;
+
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Set C[${i}][${j}] = ${minVal} (optimal shortest 2-step path via intermediate node k = ${bestK}).`,
+          primarySnapshot: createMatrixSnapshot(
+            C,
+            "min_plus_product_matrix",
+            { r: i, c: j },
+            false,
+            true,
+          ),
+        }),
+      );
+    }
+  }
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Min-Plus matrix multiplication completes. Output matrix C contains all minimum 2-step path costs.`,
+      primarySnapshot: createMatrixSnapshot(C, "final_min_plus_product_matrix", undefined, true),
+    }),
   );
 
   return steps;
 };
 
-export const minPlusMatrixMultiplication: AlgorithmDefinition = {
+export const MIN_PLUS_MATRIX_MULTIPLICATION_TOPIC_GUIDE: TopicGuide = {
+  overview:
+    "<p>Min-Plus Matrix Multiplication (Tropical Semiring product) computes shortest 2-step paths in O(N^3) time.</p>",
+  sections: [
+    {
+      heading: "Tropical Semiring Algebra",
+      body: "<p>Replaces (x, +) with (+, min). Used in dynamic programming and graph shortest path computation.</p>",
+    },
+  ],
+  keyTerms: [
+    {
+      term: "Tropical Semiring",
+      definition: "Algebraic structure over numbers with operations min and addition.",
+    },
+  ],
+};
+
+export const minPlusMatrixMultiplication: AlgorithmDefinition<MinPlusMatrixMultiplicationInput> = {
   id: "min-plus-matrix-multiplication",
   title: "Min-Plus Matrix Multiplication",
   topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "<p>Compute the Min-Plus Matrix Multiplication of two matrices.</p><h3>Input</h3><ul><li><code>A</code>: The first matrix.</li><li><code>B</code>: The second matrix.</li></ul><h3>Output</h3><ul><li>The resulting min-plus matrix.</li></ul>",
-  constraints: ["1 <= n <= 10"],
+    "<p>Given two <code>N &times; N</code> distance matrices <code>A</code> and <code>B</code>, compute their Min-Plus matrix product (Tropical Semiring product) matrix <code>C</code>.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "<li><code>A</code>: An <code>N &times; N</code> matrix of real or integer edge distance values.</li>" +
+    "<li><code>B</code>: An <code>N &times; N</code> matrix of real or integer edge distance values.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<ul>" +
+    "<li>An <code>N &times; N</code> matrix <code>C</code> representing the Min-Plus product of <code>A</code> and <code>B</code>.</li>" +
+    "</ul>",
+  constraints: ["1 <= N <= 10"],
   examples: [
     {
       kind: "basic",
       scenario: "standard",
+      title: "Standard 2x2 distance matrices",
       input: {
         A: [
           [0, 3],
@@ -105,16 +314,21 @@ export const minPlusMatrixMultiplication: AlgorithmDefinition = {
         ],
       },
       output: "[[0, 2], [1, 0]]",
+      explanation:
+        "C[0][0] = min(0+0, 3+1) = 0; C[0][1] = min(0+2, 3+0) = 2; C[1][0] = min(5+0, 0+1) = 1; C[1][1] = min(5+2, 0+0) = 0.",
     },
     {
       kind: "negative",
       scenario: "boundary",
+      title: "1x1 single element matrices",
       input: { A: [[5]], B: [[3]] },
       output: "[[8]]",
+      explanation: "C[0][0] = min(5 + 3) = 8.",
     },
     {
       kind: "complex",
       scenario: "adversarial",
+      title: "2x2 positive weights matrix product",
       input: {
         A: [
           [1, 2],
@@ -126,6 +340,7 @@ export const minPlusMatrixMultiplication: AlgorithmDefinition = {
         ],
       },
       output: "[[6, 7], [8, 9]]",
+      explanation: "C[0][0] = min(1+5, 2+7) = 6; C[0][1] = min(1+6, 2+8) = 7.",
     },
   ],
   code: PYTHON_MIN_PLUS_MATRIX_MULTIPLICATION_CODE,
@@ -139,21 +354,36 @@ export const minPlusMatrixMultiplication: AlgorithmDefinition = {
     time: "Three nested loops iterate N times to find minimum path additions.",
     space: "Requires O(N^2) space to store the product matrix.",
   },
-  topicGuide: {
-    overview: "<p>Min-plus multiplication is fundamental in shortest path algorithms.</p>",
-    sections: [
-      {
-        heading: "Tropical Semiring",
-        body: "<p>Addition becomes min, and multiplication becomes addition.</p>",
-      },
-    ],
-  },
+  topicGuide: MIN_PLUS_MATRIX_MULTIPLICATION_TOPIC_GUIDE,
   trivia: {
-    lineExplanations: {
-      1: "Defines min-plus product over distance matrix.",
-    },
+    lineExplanations: {},
   },
-  sources: [{ kind: "book", label: "CLRS", bookTitle: "Introduction to Algorithms", chapter: 25 }],
+  sources: [
+    {
+      kind: "leetcode",
+      type: "leetcode",
+      id: 1334,
+      leetcodeId: 1334,
+      url: "https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/",
+      label: "LeetCode #1334",
+      title: "Find the City With the Smallest Number of Neighbors at a Threshold Distance",
+    },
+    {
+      kind: "book",
+      type: "book",
+      bookTitle: "Competitive Programmer's Handbook",
+      chapter: 23,
+      chapterTitle: "Matrices",
+      section: "23.3 Graphs and matrices",
+      url: "https://cses.fi/book/book.pdf",
+    },
+  ],
+  leetcode: {
+    id: 1334,
+    url: "https://leetcode.com/problems/find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance/",
+  },
   defaultInput: DEFAULT_MIN_PLUS_MATRIX_MULTIPLICATION_INPUT,
   generateSteps: generateMinPlusMatrixMultiplicationSteps,
 };
+
+export default minPlusMatrixMultiplication;

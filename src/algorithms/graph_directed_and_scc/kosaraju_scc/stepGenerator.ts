@@ -1,6 +1,191 @@
-import type { AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  GraphEdgeItem,
+  GraphNodeItem,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
 import type { KosarajuSccInput } from "./types";
 import { DEFAULT_KOSARAJU_INPUT } from "./types";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "A Strongly Connected Component (SCC) is a maximal subgraph of a directed graph where every pair of vertices (u, v) is mutually reachable from each other.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "active" },
+        { id: "1", label: "1", state: "active" },
+        { id: "2", label: "2", state: "active" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "0", isTraversed: true },
+        { from: "1", to: "3" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Condensing each SCC into a single supernode simplifies any directed graph into a Directed Acyclic Graph (DAG) of component dependencies.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "SCC-1", label: "SCC 1 {0,1,2}", state: "visited" },
+        { id: "SCC-2", label: "SCC 2 {3}", state: "default" },
+      ],
+      edges: [{ from: "SCC-1", to: "SCC-2" }],
+    },
+  },
+  {
+    narrative:
+      "The graph transpose G^T is constructed by reversing the direction of every edge in G, preserving internal SCCs while inverting component reachability.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "visited" },
+        { id: "1", label: "1", state: "visited" },
+        { id: "2", label: "2", state: "visited" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "1", to: "0", isTraversed: true },
+        { from: "2", to: "1", isTraversed: true },
+        { from: "0", to: "2", isTraversed: true },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Kosaraju's algorithm uses a two-pass DFS strategy: Pass 1 computes post-order finish times on G; Pass 2 explores G^T in decreasing finish order to extract SCCs.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (Finish 3)", state: "sorted" },
+        { id: "1", label: "1 (Finish 2)", state: "sorted" },
+        { id: "2", label: "2 (Finish 1)", state: "sorted" },
+        { id: "3", label: "3 (Finish 4)", state: "active" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "0" },
+        { from: "1", to: "3" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "In Pass 1, a DFS traversal on original graph G pushes each vertex onto a finish stack as its recursive exploration completes.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "visited" },
+        { id: "1", label: "1", state: "visited" },
+        { id: "2", label: "2 (Stack Top)", state: "active" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "0" },
+        { from: "1", to: "3" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The vertex on top of the finish stack is guaranteed to be a sink component in transposed graph G^T, making it ideal for Pass 2 root selection.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "default" },
+        { id: "1", label: "1", state: "default" },
+        { id: "2", label: "2", state: "default" },
+        { id: "3", label: "3 (Top)", state: "active" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "0" },
+        { from: "1", to: "3" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "In Pass 2, reversing edge directions traps DFS traversals within a single component, preventing traversal leaks into other SCCs.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (SCC 1)", state: "swap" },
+        { id: "1", label: "1 (SCC 1)", state: "swap" },
+        { id: "2", label: "2 (SCC 1)", state: "swap" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "1", to: "0", isPath: true },
+        { from: "2", to: "1", isPath: true },
+        { from: "0", to: "2", isPath: true },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Popping each unvisited vertex from the finish stack launches a new Transpose DFS pass, peeling off one maximal SCC at a time.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (SCC 1)", state: "sorted" },
+        { id: "1", label: "1 (SCC 1)", state: "sorted" },
+        { id: "2", label: "2 (SCC 1)", state: "sorted" },
+        { id: "3", label: "3 (SCC 2)", state: "active" },
+      ],
+      edges: [
+        { from: "1", to: "0", isPath: true },
+        { from: "2", to: "1", isPath: true },
+        { from: "0", to: "2", isPath: true },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Two linear DFS passes plus one graph transposition partition all vertices into their strongly connected components in optimal O(V + E) time.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (SCC 1)", state: "sorted" },
+        { id: "1", label: "1 (SCC 1)", state: "sorted" },
+        { id: "2", label: "2 (SCC 1)", state: "sorted" },
+        { id: "3", label: "3 (SCC 2)", state: "sorted" },
+      ],
+      edges: [
+        { from: "1", to: "0", isPath: true },
+        { from: "2", to: "1", isPath: true },
+        { from: "0", to: "2", isPath: true },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+];
 
 export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -9,6 +194,20 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   const safeNodes = Array.isArray(input?.nodes) ? input.nodes : DEFAULT_KOSARAJU_INPUT.nodes;
   const safeEdges = Array.isArray(input?.edges) ? input.edges : DEFAULT_KOSARAJU_INPUT.edges;
 
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const currentNodes: GraphNodeItem[] = safeNodes.map((n) => ({
     ...n,
     state: "default",
@@ -38,68 +237,23 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   const pass2Visited = new Set<string>();
   const sccs: string[][] = [];
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    activeNodeId?: string,
-    phaseText: string = "Pass 1",
-    variables: Record<string, string | number | boolean> = {},
-  ) => {
-    const nodesCopy = currentNodes.map((n) => {
-      let state = n.state;
-      if (activeNodeId && n.id === activeNodeId) {
-        state = "active";
-      }
-      return {
-        ...n,
-        state,
-      };
-    });
-
-    const sccSummary =
-      sccs.length > 0
-        ? sccs.map((comp, idx) => `SCC ${idx + 1}: {${comp.join(", ")}}`).join(" | ")
-        : "None";
-
-    steps.push({
+  steps.push(
+    createTutorialStep({
       stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
+      phase: "walkthrough",
+      narrative: `Initializing Kosaraju's algorithm for ${currentNodes.length} vertices and ${currentEdges.length} directed edges. Pass 1 will run DFS to compute finish times.`,
       primarySnapshot: {
         kind: "graph",
-        nodes: nodesCopy,
+        directed: true,
+        nodes: currentNodes.map((n) => ({ ...n, state: "active" })),
         edges: currentEdges.map((e) => ({ ...e })),
       },
       auxiliaryState: {
-        stack: [...finishStack],
-        visited: Array.from(phaseText.includes("Pass 2") ? pass2Visited : pass1Visited),
-        customState: {
-          Phase: phaseText,
-          "Finish Stack (Top -> Bottom)": [...finishStack].reverse().join(", ") || "Empty",
-          "SCC Count": String(sccs.length),
-          "Discovered SCCs": sccSummary,
-        },
+        stack: [],
+        visited: [],
       },
-      variables,
-    });
-  };
-
-  addStep(
-    1,
-    "Set up the two-pass plan",
-    "We find strongly connected components with two DFS sweeps: first we record the order vertices finish on the original graph, then we sweep the reversed graph in that order to peel off one component at a time.",
-    undefined,
-    "Initialization",
-    { nodeCount: currentNodes.length, edgeCount: currentEdges.length },
-  );
-
-  addStep(
-    8,
-    "Begin Pass 1 DFS on G",
-    "We run DFS on the original graph and push each vertex onto a stack the moment it finishes. Vertices that finish late end up on top — exactly the order Pass 2 will want to start from.",
-    undefined,
-    "Pass 1 (DFS Finish Stack)",
+      variables: { nodeCount: currentNodes.length, edgeCount: currentEdges.length },
+    }),
   );
 
   const dfs1 = (u: string) => {
@@ -109,13 +263,23 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
       nodeObj.state = "active";
     }
 
-    addStep(
-      11,
-      `Visit node '${u}'`,
-      `We mark '${u}' as visited and explore its unvisited out-neighbors first — in Pass 1 a vertex only finishes once everything reachable from it is done.`,
-      u,
-      "Pass 1 (DFS Finish Stack)",
-      { current: u },
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Pass 1 DFS: visiting node '${u}' and exploring its unvisited outgoing neighbors.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: currentNodes.map((n) => ({ ...n })),
+          edges: currentEdges.map((e) => ({ ...e })),
+        },
+        auxiliaryState: {
+          stack: [...finishStack],
+          visited: Array.from(pass1Visited),
+        },
+        variables: { pass: 1, current: u },
+      }),
     );
 
     const neighbors = adj.get(u)!;
@@ -124,13 +288,23 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
       if (edge) edge.isTraversed = true;
 
       if (!pass1Visited.has(v)) {
-        addStep(
-          14,
-          `Follow edge '${u}' -> '${v}'`,
-          `Neighbor '${v}' hasn't been visited yet, so we dive into it now — '${u}' has to wait for all of its descendants before it can join the finish stack.`,
-          v,
-          "Pass 1 (DFS Finish Stack)",
-          { from: u, to: v },
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIndex++,
+            phase: "walkthrough",
+            narrative: `Pass 1 DFS: following directed edge '${u}' -> '${v}' to recurse deeper.`,
+            primarySnapshot: {
+              kind: "graph",
+              directed: true,
+              nodes: currentNodes.map((n) => ({ ...n })),
+              edges: currentEdges.map((e) => ({ ...e })),
+            },
+            auxiliaryState: {
+              stack: [...finishStack],
+              visited: Array.from(pass1Visited),
+            },
+            variables: { pass: 1, from: u, to: v },
+          }),
         );
         dfs1(v);
       }
@@ -138,16 +312,26 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
 
     finishStack.push(u);
     if (nodeObj) {
-      nodeObj.state = "in-stack";
+      nodeObj.state = "compare";
     }
 
-    addStep(
-      15,
-      `Finish '${u}' and push it`,
-      `Everything reachable from '${u}' has been explored, so '${u}' is done and goes on the finish stack. The later a vertex finishes, the higher it sits.`,
-      u,
-      "Pass 1 (DFS Finish Stack)",
-      { current: u, stackSize: finishStack.length },
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Pass 1 DFS: finished exploring node '${u}'; pushed '${u}' onto finish stack (stack size ${finishStack.length}).`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: currentNodes.map((n) => ({ ...n })),
+          edges: currentEdges.map((e) => ({ ...e })),
+        },
+        auxiliaryState: {
+          stack: [...finishStack],
+          visited: Array.from(pass1Visited),
+        },
+        variables: { pass: 1, finishedNode: u, stackSize: finishStack.length },
+      }),
     );
   };
 
@@ -157,37 +341,50 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
   }
 
-  addStep(
-    19,
-    "Complete Pass 1",
-    `The finish order came out as [${[...finishStack].reverse().join(", ")}], top first. The vertex on top finished last, which means its component can reach everything below it — a fact Pass 2 will exploit.`,
-    undefined,
-    "Pass 1 (Complete)",
-    { stackSize: finishStack.length },
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Completed Pass 1 DFS. Computed finish stack (top first): [${[...finishStack].reverse().join(", ")}].`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: currentNodes.map((n) => ({ ...n, state: "visited" })),
+        edges: currentEdges.map((e) => ({ ...e })),
+      },
+      auxiliaryState: {
+        stack: [...finishStack],
+        visited: Array.from(pass1Visited),
+      },
+      variables: { pass1Complete: true, finishOrder: [...finishStack].reverse().join(", ") },
+    }),
   );
 
+  // Transpose graph
   currentEdges = currentEdges.map((e) => ({
     from: e.to,
     to: e.from,
-    isTraversed: false,
+    isTraversed: true,
     isPath: false,
   }));
 
-  addStep(
-    6,
-    "Reverse every edge to build G^T",
-    "We flip all the edges. Each SCC survives intact — a cycle reversed is still a cycle — but reachability between components inverts, and that is what will keep the next DFS trapped inside a single component.",
-    undefined,
-    "Graph Transpose (Reversed Edges)",
-    { transposed: true },
-  );
-
-  addStep(
-    30,
-    "Begin Pass 2 on G^T",
-    "Now we pop vertices in reverse finish order and DFS on the reversed graph. Starting from the latest finisher, each DFS can only reach vertices in its own component — the reversed edges block every escape route.",
-    undefined,
-    "Pass 2 (Extract SCCs)",
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: "Transposing graph: reversed the direction of all edges to form G^T for Pass 2.",
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: currentNodes.map((n) => ({ ...n, state: "default" })),
+        edges: currentEdges.map((e) => ({ ...e })),
+      },
+      auxiliaryState: {
+        stack: [...finishStack],
+        visited: [],
+      },
+      variables: { graphTransposed: true },
+    }),
   );
 
   const dfs2 = (u: string, component: string[]) => {
@@ -195,17 +392,26 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     component.push(u);
     const nodeObj = currentNodes.find((n) => n.id === u);
     if (nodeObj) {
-      nodeObj.state = "compare";
-      nodeObj.group = sccs.length + 1;
+      nodeObj.state = "active";
     }
 
-    addStep(
-      25,
-      `Add '${u}' to SCC #${sccs.length + 1}`,
-      `We reached '${u}' along reversed edges, which means '${u}' can reach this component's root in the original graph — and the finish order guarantees the reverse direction too, so they belong together.`,
-      u,
-      "Pass 2 (Extract SCCs)",
-      { current: u, componentSize: component.length },
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Pass 2 DFS: added node '${u}' to SCC #${sccs.length + 1}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: currentNodes.map((n) => ({ ...n })),
+          edges: currentEdges.map((e) => ({ ...e })),
+        },
+        auxiliaryState: {
+          stack: [...finishStack],
+          visited: Array.from(pass2Visited),
+        },
+        variables: { pass: 2, sccIndex: sccs.length + 1, current: u },
+      }),
     );
 
     const revNeighbors = revAdj.get(u)!;
@@ -222,13 +428,28 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   while (finishStack.length > 0) {
     const u = finishStack.pop()!;
 
-    addStep(
-      31,
-      `Pop '${u}' from the stack`,
-      `We take '${u}' off the top of the finish stack. If it hasn't been claimed by a component yet, it anchors a brand-new SCC; if it has, we simply move on.`,
-      u,
-      "Pass 2 (Extract SCCs)",
-      { popped: u },
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: pass2Visited.has(u)
+          ? `Popped node '${u}' from finish stack: already assigned to an SCC. Skipping.`
+          : `Popped node '${u}' from finish stack: launching Pass 2 DFS on G^T to extract new SCC #${sccs.length + 1}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: currentNodes.map((n) => ({
+            ...n,
+            state: n.id === u ? "swap" : n.state,
+          })),
+          edges: currentEdges.map((e) => ({ ...e })),
+        },
+        auxiliaryState: {
+          stack: [...finishStack],
+          visited: Array.from(pass2Visited),
+        },
+        variables: { poppedNode: u, alreadyAssigned: pass2Visited.has(u) },
+      }),
     );
 
     if (!pass2Visited.has(u)) {
@@ -241,35 +462,52 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
         const nodeObj = currentNodes.find((n) => n.id === nodeId);
         if (nodeObj) {
           nodeObj.state = "sorted";
-          nodeObj.val = sccs.length;
-          nodeObj.group = sccs.length;
         }
       });
       currentEdges.forEach((e) => {
         if (compSet.has(e.from) && compSet.has(e.to)) {
-          e.group = sccs.length;
           e.isPath = true;
         }
       });
 
-      addStep(
-        35,
-        `Complete SCC #${sccs.length}`,
-        `The DFS ran out of reversed edges, so this component is sealed: {${component.join(", ")}}. Every vertex inside it can reach every other one in both directions.`,
-        undefined,
-        "Pass 2 (Extract SCCs)",
-        { sccIndex: sccs.length, members: component.join(", ") },
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Completed SCC #${sccs.length}: extracted strongly connected component {${component.join(", ")}}.`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: currentNodes.map((n) => ({ ...n })),
+            edges: currentEdges.map((e) => ({ ...e })),
+          },
+          auxiliaryState: {
+            stack: [...finishStack],
+            visited: Array.from(pass2Visited),
+          },
+          variables: { sccCompleted: sccs.length, members: component.join(", ") },
+        }),
       );
     }
   }
 
-  addStep(
-    36,
-    `Finish with ${sccs.length} component(s)`,
-    `Every vertex now belongs to exactly one strongly connected component. Two linear DFS sweeps plus one edge reversal did all the work, which is why the whole algorithm runs in O(V + E).`,
-    undefined,
-    "Complete",
-    { sccCount: sccs.length },
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Kosaraju's algorithm complete. Partitioned graph into ${sccs.length} strongly connected component(s).`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: currentNodes.map((n) => ({ ...n, state: "sorted" })),
+        edges: currentEdges.map((e) => ({ ...e, isPath: true })),
+      },
+      auxiliaryState: {
+        stack: [],
+        visited: Array.from(pass2Visited),
+      },
+      variables: { completed: true, sccCount: sccs.length },
+    }),
   );
 
   return steps;

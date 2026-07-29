@@ -1,20 +1,19 @@
-export const PYTHON_SIEVE_CODE = `def sieve_of_eratosthenes(limit: int) -> list[int]:
-    if limit < 2:
-        return []
-    
-    is_prime = [True] * (limit + 1)
-    is_prime[0] = is_prime[1] = False
-    
-    p = 2
-    while p * p <= limit:
-        if is_prime[p]:
-            for i in range(p * p, limit + 1, p):
-                is_prime[i] = False
-        p += 1
+export const PYTHON_SIEVE_CODE = `class Solution:
+    def __init__(self):
+        pass
+
+    def countPrimes(self, n: int) -> int:
+        if n <= 2:
+            return 0
         
-    primes = []
-    for i in range(2, limit + 1):
-        if is_prime[i]:
-            primes.append(i)
+        is_prime = [True] * n
+        is_prime[0] = is_prime[1] = False
+        
+        p = 2
+        while p * p < n:
+            if is_prime[p]:
+                for i in range(p * p, n, p):
+                    is_prime[i] = False
+            p += 1
             
-    return primes`;
+        return sum(is_prime)`;

@@ -5,33 +5,151 @@ import type {
   TopicGuide,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface BinomialCoefficientsInput {
   n: number;
   k: number;
 }
 
-export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `def binomial_coefficient(n: int, k: int) -> int:
-    dp = [[0] * (k + 1) for _ in range(n + 1)]
-    for i in range(n + 1):
-        for j in range(min(i, k) + 1):
-            if j == 0 or j == i:
-                dp[i][j] = 1
-            else:
-                dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j]
-    return dp[n][k]
-`;
+export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `class Solution:
+    def __init__(self):
+        pass
+
+    def generate(self, numRows: int) -> list[list[int]]:
+        res = []
+        for i in range(numRows):
+            row = [1] * (i + 1)
+            for j in range(1, i):
+                row[j] = res[i - 1][j - 1] + res[i - 1][j]
+            res.append(row)
+        return res`;
 
 export const DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT: BinomialCoefficientsInput = {
-  n: 6,
+  n: 5,
   k: 3,
+};
+
+const createIntroSnapshots = (): AlgorithmStep[] => {
+  const introMatrices = [
+    [[1, 0, 0, 0]],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+      [1, 3, 3, 1],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+      [1, 3, 3, 1],
+      [1, 4, 6, 4],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+      [1, 3, 3, 1],
+      [1, 4, 6, 4],
+      [1, 5, 10, 10],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+      [1, 3, 3, 1],
+      [1, 4, 6, 4],
+      [1, 5, 10, 10],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+      [1, 3, 3, 1],
+      [1, 4, 6, 4],
+      [1, 5, 10, 10],
+    ],
+    [
+      [1, 0, 0, 0],
+      [1, 1, 0, 0],
+      [1, 2, 1, 0],
+      [1, 3, 3, 1],
+      [1, 4, 6, 4],
+      [1, 5, 10, 10],
+    ],
+  ];
+
+  const introNarratives = [
+    "The binomial coefficient C(n, k) counts the number of ways to choose an unordered subset of k elements from a set of n distinct elements.",
+    "For example, selecting 2 items out of 4 distinct items yields 6 unique combinations, representing all non-overlapping subset choices.",
+    "Directly evaluating C(n, k) = n! / (k! x (n-k)!) causes severe integer overflow because factorials grow rapidly even for modest values like n = 21.",
+    "Pascal's identity computes combinations recursively without factorials via C(n, k) = C(n-1, k-1) + C(n-1, k).",
+    "Focus on one element x: either include x (choose k-1 items from the remaining n-1) or exclude x (choose k items from n-1), adding both possibilities.",
+    "Choosing 0 items yields C(i, 0) = 1 (the single empty set), and choosing all i items yields C(i, i) = 1 (the single full set), forming grid boundaries.",
+    "We populate an (n+1) x (k+1) table row by row from top to bottom, computing each interior cell from two known cells in the row above.",
+    "Choosing k items to include is mathematically equivalent to choosing n-k items to exclude, guaranteeing symmetry C(n, k) = C(n, n-k).",
+    "Filling the DP grid takes O(n * k) time and O(n * k) space, which can be optimized to O(k) space using a single 1D array.",
+  ];
+
+  return introNarratives.map((narrative, idx) => {
+    const mat = introMatrices[idx];
+    const cells: MatrixCellItem[] = mat.flatMap((row, rIdx) =>
+      row.map((val, cIdx) => {
+        let state: MatrixCellItem["state"] = "default";
+        if (idx === 6 && rIdx === 4 && (cIdx === 1 || cIdx === 2)) {
+          state = "compared";
+        } else if (idx === 6 && rIdx === 5 && cIdx === 2) {
+          state = "active";
+        } else if (idx === 7 && rIdx === 5 && (cIdx === 1 || cIdx === 4)) {
+          state = "active";
+        } else if (idx === 8) {
+          state = "sorted";
+        } else if (rIdx === mat.length - 1) {
+          state = "active";
+        }
+        return {
+          row: rIdx,
+          col: cIdx,
+          value: val,
+          label: `r${rIdx}c${cIdx}`,
+          state,
+        };
+      }),
+    );
+
+    return createTutorialStep({
+      stepIndex: idx,
+      phase: "intro",
+      narrative,
+      primarySnapshot: {
+        kind: "matrix",
+        name: "pascal_concept",
+        rows: mat.length,
+        cols: 4,
+        cells,
+        rowHeaders: mat.map((_, r) => `n=${r}`),
+        colHeaders: ["k=0", "k=1", "k=2", "k=3"],
+      },
+    });
+  });
 };
 
 export const generateBinomialCoefficientsPascalSteps = (
   input?: BinomialCoefficientsInput,
 ): AlgorithmStep[] => {
-  const steps: AlgorithmStep[] = [];
-  let stepIndex = 0;
+  const introSteps = createIntroSnapshots();
+  const steps: AlgorithmStep[] = [...introSteps];
+  let stepIndex = introSteps.length;
 
   const safeInput = input ?? DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT;
   const safeN = Number.isFinite(safeInput?.n)
@@ -51,12 +169,15 @@ export const generateBinomialCoefficientsPascalSteps = (
     activeCol: number | null,
     parent1: [number, number] | null = null,
     parent2: [number, number] | null = null,
+    isDone: boolean = false,
   ) => {
     const cells: MatrixCellItem[] = [];
     for (let r = 0; r <= nVal; r++) {
       for (let c = 0; c <= kVal; c++) {
         let state: MatrixCellItem["state"] = "default";
-        if (r === activeRow && c === activeCol) {
+        if (isDone && r === nVal && c === kVal) {
+          state = "sorted";
+        } else if (r === activeRow && c === activeCol) {
           state = "active";
         } else if (
           (parent1 && parent1[0] === r && parent1[1] === c) ||
@@ -71,199 +192,109 @@ export const generateBinomialCoefficientsPascalSteps = (
           row: r,
           col: c,
           value: dp[r][c],
-          label: `C(${r},${c})`,
+          label: `r${r}c${c}`,
           state,
         });
       }
     }
 
-    const rowHeaders = Array.from({ length: nVal + 1 }, (_, i) => `n=${i}`);
-    const colHeaders = Array.from({ length: kVal + 1 }, (_, j) => `k=${j}`);
-
     return {
       kind: "matrix" as const,
+      name: "pascal_matrix",
       rows: nVal + 1,
       cols: kVal + 1,
       cells,
-      rowHeaders,
-      colHeaders,
-      title: "Pascal's Triangle Matrix",
+      rowHeaders: Array.from({ length: nVal + 1 }, (_, i) => `n=${i}`),
+      colHeaders: Array.from({ length: kVal + 1 }, (_, j) => `k=${j}`),
     };
   };
 
-  // Step 0: Entry / Matrix Initialization
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Initializing Pascal's Triangle DP matrix of size (${nVal + 1}) × (${kVal + 1}) for target C(${nVal}, ${kVal}).`,
-      why: "Constructing the table bottom-up evaluates combinations through additions rather than risky factorial divisions.",
-    },
-    primarySnapshot: createMatrixSnapshot(null, null),
-    auxiliaryState: {
-      hashMap: {
-        "Target Combination": `C(${nVal}, ${kVal})`,
-        "Matrix Dimensions": `${nVal + 1} x ${kVal + 1}`,
-      },
-      customState: {
-        n: nVal,
-        k: kVal,
-      },
-    },
-    variables: {
-      n: nVal,
-      k: kVal,
-    },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `We initialize an (${nVal + 1}) x (${kVal + 1}) Pascal table to compute C(${nVal}, ${kVal}).`,
+      primarySnapshot: createMatrixSnapshot(null, null),
+    }),
+  );
 
-  // DP table filling loop
   for (let i = 0; i <= nVal; i++) {
     const maxJ = Math.min(i, kVal);
     for (let j = 0; j <= maxJ; j++) {
       if (j === 0 || j === i) {
         dp[i][j] = 1;
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 6,
-          explanation: {
-            what: `Setting base case C[${i}][${j}] = 1 (${j === 0 ? "j = 0" : "j = i"}).`,
-            why:
-              j === 0
-                ? "Choosing 0 items from any set can be done in exactly 1 way (the empty set)."
-                : "Choosing all i items from an i-element set can be done in exactly 1 way (the entire set).",
-          },
-          primarySnapshot: createMatrixSnapshot(i, j),
-          auxiliaryState: {
-            hashMap: {
-              "Cell Value": `C[${i}][${j}] = 1`,
-              Reason:
-                j === 0 ? "j == 0 (Empty subset selection)" : "j == i (Full subset selection)",
-            },
-            customState: {
-              i,
-              j,
-              val: 1,
-            },
-          },
-          variables: {
-            i,
-            j,
-            val: 1,
-          },
-        });
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIndex++,
+            phase: "walkthrough",
+            narrative: `We set base case C(${i}, ${j}) = 1 (${j === 0 ? "choosing 0 items" : "choosing all items"}).`,
+            primarySnapshot: createMatrixSnapshot(i, j),
+          }),
+        );
       } else {
         const val1 = dp[i - 1][j - 1];
         const val2 = dp[i - 1][j];
         dp[i][j] = val1 + val2;
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 8,
-          explanation: {
-            what: `Computing C[${i}][${j}] = C[${i - 1}][${j - 1}] + C[${i - 1}][${j}] = ${val1} + ${val2} = ${dp[i][j]}.`,
-            why: "Combining subset counts where the i-th item is included (C[i-1][j-1]) versus excluded (C[i-1][j]).",
-          },
-          primarySnapshot: createMatrixSnapshot(i, j, [i - 1, j - 1], [i - 1, j]),
-          auxiliaryState: {
-            hashMap: {
-              "Parent C[i-1][j-1]": `${val1}`,
-              "Parent C[i-1][j]": `${val2}`,
-              "Calculated C[i][j]": `${dp[i][j]}`,
-            },
-            customState: {
-              i,
-              j,
-              val: dp[i][j],
-            },
-          },
-          variables: {
-            i,
-            j,
-            val: dp[i][j],
-          },
-        });
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIndex++,
+            phase: "walkthrough",
+            narrative: `We calculate C(${i}, ${j}) = C(${i - 1}, ${j - 1}) + C(${i - 1}, ${j}) = ${val1} + ${val2} = ${dp[i][j]}.`,
+            primarySnapshot: createMatrixSnapshot(i, j, [i - 1, j - 1], [i - 1, j]),
+          }),
+        );
       }
     }
   }
 
-  // Final Step
   const ans = dp[nVal][kVal];
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 9,
-    explanation: {
-      what: `Completed Pascal's Triangle table: C(${nVal}, ${kVal}) = ${ans}.`,
-      why: "The target entry C(${nVal}, ${kVal}) contains the final count of unordered combinations.",
-    },
-    primarySnapshot: createMatrixSnapshot(nVal, kVal),
-    auxiliaryState: {
-      hashMap: {
-        "Final Result C(n, k)": `${ans}`,
-      },
-      customState: {
-        result: ans,
-      },
-    },
-    variables: {
-      result: ans,
-    },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Pascal table fill is complete: binomial coefficient C(${nVal}, ${kVal}) = ${ans}.`,
+      primarySnapshot: createMatrixSnapshot(nVal, kVal, null, null, true),
+    }),
+  );
 
   return steps;
 };
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p>Binomial coefficients <code>C(n, k) = n! / (k! &times; (n - k)!)</code> count the number of unordered <code>k</code>-element subsets chosen from an <code>n</code>-element set. Pascal's Triangle computes these values dynamically using the recurrence <code>C(n, k) = C(n-1, k-1) + C(n-1, k)</code>. This dynamic programming formulation avoids factorial overflow in fixed-precision integer arithmetic and provides a clean 2D grid matrix structure.</p>",
+    "<p>Binomial coefficients C(n, k) count the number of ways to select k items from n items. Pascal's Triangle computes these coefficients recursively using additions only, avoiding integer overflow from large factorials.</p>",
   sections: [
     {
-      heading: "Pascal's Recurrence & Combinatorial Proof",
-      body: "<p>To pick <code>k</code> items from <code>n</code>, select an arbitrary element <code>x</code>: either include <code>x</code> (requiring <code>k-1</code> items from the remaining <code>n-1</code>), or exclude <code>x</code> (requiring <code>k</code> items from the remaining <code>n-1</code>). Adding these disjoint choices proves the identity:</p><p><code>C(n, k) = C(n-1, k-1) + C(n-1, k)</code></p><p>Base cases are <code>C(i, 0) = 1</code> (empty set selection) and <code>C(i, i) = 1</code> (full set selection).</p>",
+      heading: "Pascal's Identity Recurrence",
+      body: "<p>Pascal's identity states that C(n, k) = C(n-1, k-1) + C(n-1, k). Intuitively, when selecting k items from n items, consider one specific element: either it is included (choosing k-1 from the remaining n-1) or excluded (choosing k from the remaining n-1).</p>",
     },
     {
-      heading: "Numeric Stability & Avoiding Overflow",
-      body: "<p>Directly computing <code>n! / (k! &times; (n - k)!)</code> causes integer overflow for modest values (e.g. <code>21!</code> exceeds 64-bit integer limits). Iteratively building the DP table using addition guarantees exact integer results without overflow risk.</p>",
-    },
-    {
-      heading: "Symmetric Property & Space Compression",
-      body: "<p>Combinatorial symmetry yields <code>C(n, k) = C(n, n - k)</code>. Memory can be compressed from <code>O(n &times; k)</code> to <code>O(k)</code> space by maintaining a single 1D row array updated backwards from right to left.</p>",
-    },
-    {
-      heading: "Boundary Conditions",
-      body: "<ul><li><strong>k = 0 or k = n:</strong> Always yields <code>1</code>.</li><li><strong>k &gt; n:</strong> Returns <code>0</code> since choosing more elements than available is impossible.</li><li><strong>n = 0:</strong> Yields <code>C(0, 0) = 1</code>.</li></ul>",
+      heading: "Dynamic Programming Table Fill",
+      body: "<p>By constructing an (n+1) x (k+1) table and initializing base cases C(i, 0) = 1 and C(i, i) = 1, each interior cell can be computed in O(1) time by adding two cells from the row above.</p>",
     },
   ],
   keyTerms: [
     {
-      term: "Pascal's Triangle",
+      term: "Binomial Coefficient",
       definition:
-        "A triangular matrix of binomial coefficients where each entry is the sum of the two cells directly above it.",
+        "The number of unordered k-element subsets chosen from an n-element set, written C(n, k) or (n choose k).",
     },
     {
-      term: "Combination C(n, k)",
-      definition: "The number of unordered k-element subsets chosen from an n-element set.",
+      term: "Pascal's Identity",
+      definition:
+        "The recurrence C(n, k) = C(n-1, k-1) + C(n-1, k) that relates a combination to smaller subproblems.",
     },
     {
-      term: "Symmetric Property",
+      term: "Combinatorial Symmetry",
       definition:
-        "The identity C(n, k) = C(n, n-k), reflecting the equivalence of choosing k elements to include or n-k elements to exclude.",
+        "The property C(n, k) = C(n, n-k), reflecting that choosing k items to include is equivalent to choosing n-k items to exclude.",
     },
   ],
 };
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA: TriviaMeta = {
-  lineExplanations: {
-    1: "Defines binomial_coefficient(n, k) -> int using Pascal's triangle DP table.",
-    2: "Initializes 2D DP matrix C of size (n + 1) × (k + 1) filled with 0s.",
-    3: "Outer loop iterates through row index i from 0 to n.",
-    4: "Inner loop iterates through column index j from 0 to min(i, k).",
-    5: "Checks base cases: j == 0 (choose 0 elements) or j == i (choose all i elements).",
-    6: "Sets base case value dp[i][j] = 1.",
-    7: "Else branch for interior cells of Pascal's triangle.",
-    8: "Pascal's identity: dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j].",
-    9: "Returns dp[n][k] containing the binomial coefficient C(n, k).",
-  },
+  lineExplanations: {},
 };
 
 export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficientsInput> = {
@@ -272,35 +303,43 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   topicIds: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
-    "<p>Given non-negative integers <code>n</code> and <code>k</code>, compute the <strong>binomial coefficient</strong> <code>C(n, k)</code> representing the number of ways to choose <code>k</code> items from <code>n</code> distinct items without regard to order, built via <strong>Pascal's Triangle</strong> recurrence:</p><p><code>C(n, k) = C(n-1, k-1) + C(n-1, k)</code></p><h3>State Matrix Representation</h3><p>The DP table is stored as a 2D matrix <code>C &in; &mathbb;Z<sup>(n+1) &times; (k+1)</sup></code> where cell <code>C[i][j]</code> holds <code>C(i, j)</code>.</p><h3>Input Parameters</h3><ul><li><code>n</code>: Total number of items in the set.</li><li><code>k</code>: Number of items to select.</li></ul><h3>Output</h3><ul><li><code>int</code>: Binomial coefficient <code>C(n, k)</code>.</li></ul>",
+    "<p>Compute the binomial coefficient <code>C(n, k)</code>, representing the number of ways to choose <code>k</code> items from <code>n</code> items without regard to order.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul><li><code>n</code> (<code>n &ge; 0</code>): Total number of items.</li>" +
+    "<li><code>k</code> (<code>0 &le; k &le; n</code>): Number of items to select.</li></ul>" +
+    "<h3>Output</h3>" +
+    "<ul><li><code>int</code>: Binomial coefficient <code>C(n, k)</code>.</li></ul>",
   constraints: ["0 <= k <= n <= 30"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       title: "Standard Combination C(5, 3)",
       inputDisplay: "n = 5, k = 3",
       outputDisplay: "C(5, 3) = 10",
       input: { n: 5, k: 3 },
       output: "10",
-      explanation: "5! / (3! * 2!) = 120 / 12 = 10.",
-    },
-    {
-      kind: "complex",
-      title: "Symmetric Property C(6, 2)",
-      inputDisplay: "n = 6, k = 2",
-      outputDisplay: "C(6, 2) = 15",
-      input: { n: 6, k: 2 },
-      output: "15",
-      explanation: "C(6, 2) = C(6, 4) = 15.",
+      explanation: "5! / (3! * 2!) = 10.",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       title: "Boundary Case C(4, 0)",
       inputDisplay: "n = 4, k = 0",
       outputDisplay: "C(4, 0) = 1",
       input: { n: 4, k: 0 },
       output: "1",
       explanation: "There is exactly 1 way to choose 0 items from 4.",
+    },
+    {
+      kind: "complex",
+      scenario: "adversarial",
+      title: "Symmetric Property C(6, 2)",
+      inputDisplay: "n = 6, k = 2",
+      outputDisplay: "C(6, 2) = 15",
+      input: { n: 6, k: 2 },
+      output: "15",
+      explanation: "C(6, 2) = C(6, 4) = 15.",
     },
   ],
   code: PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE,
@@ -311,20 +350,36 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
   },
   spaceComplexity: "O(N * K)",
   complexityAnalysis: {
-    time: "Fills an (N+1) x (K+1) DP grid, executing in O(N x K) operations.",
-    space: "Requires O(N x K) memory to store the 2D grid matrix.",
+    time: "Fills an (N+1) x (K+1) DP grid in O(N x K) steps.",
+    space: "Requires O(N x K) space.",
   },
   topicGuide: BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE,
   trivia: BINOMIAL_COEFFICIENTS_PASCAL_TRIVIA,
   sources: [
     {
+      kind: "leetcode",
+      type: "leetcode",
+      id: 118,
+      leetcodeId: 118,
+      url: "https://leetcode.com/problems/pascals-triangle/",
+      label: "LeetCode #118",
+      title: "Pascal's Triangle",
+    },
+    {
       kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 22",
+      type: "book",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 22,
-      section: "22.1 Binomial coefficients",
+      chapterTitle: "Combinatorics",
+      url: "https://cses.fi/book/book.pdf",
     },
   ],
+  leetcode: {
+    id: 118,
+    url: "https://leetcode.com/problems/pascals-triangle/",
+  },
   defaultInput: DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT,
   generateSteps: generateBinomialCoefficientsPascalSteps,
 };
+
+export default binomialCoefficientsPascal;

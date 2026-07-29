@@ -100,7 +100,6 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [4, 2, 12, 11, 5, 8, 3, 9], k = 3",
       outputDisplay: "[2, 2, 5, 5, 3, 3]",
@@ -112,7 +111,6 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [9, 7, 5, 3, 1, 2, 4, 6, 8], k = 4",
       outputDisplay: "[3, 1, 1, 1, 1, 2]",
@@ -123,7 +121,6 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
         "Strictly decreasing then increasing sequence; monotonic deque evicts expired and dominated indices across 6 windows.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [10, 20, 30, 40], k = 4",

@@ -3,8 +3,10 @@ import type {
   AlgorithmStep,
   GraphEdgeItem,
   GraphNodeItem,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface SuccessorPathsInput {
   succ: number[];
@@ -38,50 +40,216 @@ export const SUCCESSOR_PATHS_CODE = `def successor_paths(succ, start_node, k_ste
         
     return cycle_start, cycle_length, curr`;
 
-export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
-  skipLines: [5],
-  distractors: [
-    "hare = succ[hare]",
-    "tortoise = start_node + 1",
-    "while tortoise == hare:",
-    "for b in range(k_steps): curr = succ[curr]",
-  ],
-  hints: [
-    {
-      line: 2,
-      hint: "Tortoise advances 1 step while Hare advances 2 steps per iteration.",
-    },
-    {
-      line: 8,
-      hint: "To find the cycle start, reset tortoise to start_node and advance both 1 step at a time.",
-    },
-    {
-      line: 14,
-      hint: "Once at cycle start, advance hare 1 step at a time to count cycle length.",
-    },
-    {
-      line: 21,
-      hint: "Advances k_steps from start_node following successor pointers.",
-    },
-  ],
-  lineExplanations: {
-    1: "Defines cycle detection and successor path queries on functional graphs.",
-    2: "Pointers start with hare moving twice as fast as tortoise.",
-    4: "Advances pointers until tortoise and hare meet inside the cycle.",
-    8: "Resets tortoise to start_node; both advance at equal speed until meeting at cycle entry.",
-    14: "Counts vertices around the cycle until returning to the entry node.",
-    21: "Executes k_steps successor queries from the starting vertex.",
-  },
-};
-
 export const DEFAULT_SUCCESSOR_INPUT: SuccessorPathsInput = {
-  succ: [1, 2, 3, 4, 2, 5, 4], // Node 0->1->2->3->4->2 (cycle 2-3-4 of length 3)
+  succ: [1, 2, 3, 4, 2, 5, 4],
   startNode: 0,
   stepsQuery: 5,
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "A Functional Graph is a directed graph where every vertex has an out-degree of exactly 1, defined by a successor function succ[i].",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "active" },
+        { id: "1", label: "1", state: "default" },
+        { id: "2", label: "2", state: "default" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The structural property of functional graphs guarantees that every connected component consists of directed tree branches pointing into a central directed cycle.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (Tail)", state: "visited" },
+        { id: "1", label: "1 (Cycle)", state: "swap" },
+        { id: "2", label: "2 (Cycle)", state: "swap" },
+        { id: "3", label: "3 (Cycle)", state: "swap" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2", isPath: true },
+        { from: "2", to: "3", isPath: true },
+        { from: "3", to: "1", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Naive step-by-step traversal to query the k-th successor takes O(k) time, which becomes prohibitively slow when k is large (e.g. k >= 10^9).",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "active" },
+        { id: "1", label: "1 (Step 1)", state: "compare" },
+        { id: "2", label: "2 (Step 2)", state: "compare" },
+        { id: "3", label: "3 (Step 3)", state: "compare" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "3", isTraversed: true },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Floyd's Tortoise and Hare algorithm uses two pointers: Tortoise moves 1 step per turn while Hare moves 2 steps per turn.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "default" },
+        { id: "1", label: "1 (Tortoise)", state: "active" },
+        { id: "2", label: "2 (Hare)", state: "pivot" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Because the Hare advances at double speed, it is mathematically guaranteed to catch up to the Tortoise inside the directed cycle.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "default" },
+        { id: "1", label: "1", state: "default" },
+        { id: "2", label: "2", state: "default" },
+        { id: "3", label: "3 (Intersect)", state: "swap" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Resetting Tortoise to the start node while leaving Hare at the intersection, then advancing both 1 step at a time, identifies the exact cycle entry node.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (Tortoise)", state: "active" },
+        { id: "1", label: "1 (Entry)", state: "sorted" },
+        { id: "2", label: "2", state: "default" },
+        { id: "3", label: "3 (Hare)", state: "pivot" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Advancing a single pointer around the cycle until returning to the entry node counts the exact number of vertices in the cycle.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "default" },
+        { id: "1", label: "1 (Len 3)", state: "sorted" },
+        { id: "2", label: "2 (Len 3)", state: "sorted" },
+        { id: "3", label: "3 (Len 3)", state: "sorted" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2", isPath: true },
+        { from: "2", to: "3", isPath: true },
+        { from: "3", to: "1", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Binary Lifting precomputes 2^b-th successors in O(V log k) time, allowing any k-step query to be answered in O(log k) binary jump lookups.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "active" },
+        { id: "1", label: "1 (2^0)", state: "compare" },
+        { id: "2", label: "2 (2^1)", state: "compare" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "3" },
+        { from: "3", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Floyd's cycle detection runs in optimal O(V) time and O(1) space, providing complete structural insight into any functional graph.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "sorted" },
+        { id: "1", label: "Cycle Entry: 1", state: "sorted" },
+        { id: "2", label: "Len: 3", state: "sorted" },
+        { id: "3", label: "k-Succ: 3", state: "sorted" },
+      ],
+      edges: [
+        { from: "0", to: "1", isPath: true },
+        { from: "1", to: "2", isPath: true },
+        { from: "2", to: "3", isPath: true },
+        { from: "3", to: "1", isPath: true },
+      ],
+    },
+  },
+];
+
 export function generateSuccessorPathsSteps(input: SuccessorPathsInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  let stepIdx = 0;
+
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const safeInput = input && typeof input === "object" ? input : DEFAULT_SUCCESSOR_INPUT;
   const succ =
     Array.isArray(safeInput.succ) && safeInput.succ.length > 0
@@ -112,63 +280,57 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
     to: String(target),
   }));
 
-  let stepIdx = 0;
-
-  // Step 0: Algorithm Init
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 1,
-    explanation: {
-      what: `Functional Graph initialized with ${n} nodes (0 to ${n - 1}). Each node has out-degree 1 defined by succ array.`,
-      why: `Goal: Detect directed cycle starting from node ${startNode}, measure cycle length, and query the ${stepsQuery}-th successor.`,
-    },
-    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
-    auxiliaryState: {
-      customState: {
-        "Start Node": startNode,
-        "Steps Query (k)": stepsQuery,
-        "Succ Array": `[${succ.join(", ")}]`,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Initialized Functional Graph with ${n} vertices. Each vertex has out-degree 1 defined by the succ array.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => ({ ...gn, state: "active" })),
+        edges: [...edges],
       },
-    },
-    variables: { totalNodes: n, startNode, stepsQuery },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { totalNodes: n, startNode, stepsQuery },
+    }),
+  );
 
-  // Phase 1: Tortoise & Hare Cycle Intersection Search
   let tortoise = succ[startNode] ?? 0;
   let hare = succ[succ[startNode] ?? 0] ?? 0;
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 2,
-    explanation: {
-      what: `Phase 1: Initialized Tortoise at node ${tortoise} (succ[${startNode}]) and Hare at node ${hare} (succ[succ[${startNode}]]).`,
-      why: "Hare advances twice as fast as Tortoise to catch up inside the directed cycle.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => {
-        const isT = gn.id === String(tortoise);
-        const isH = gn.id === String(hare);
-        let state: GraphNodeItem["state"] = "default";
-        if (isT && isH) state = "swap";
-        else if (isT) state = "active";
-        else if (isH) state = "pivot";
-        return { ...gn, state };
-      }),
-      edges: edges.map((e) => ({
-        ...e,
-        isPath: e.from === String(startNode) || e.from === String(tortoise),
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        Phase: "1: Cycle Detection (Fast/Slow Pointers)",
-        Tortoise: tortoise,
-        Hare: hare,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Phase 1: Initialized Tortoise pointer at node ${tortoise} and Hare pointer at node ${hare}.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => {
+          const isT = gn.id === String(tortoise);
+          const isH = gn.id === String(hare);
+          let state: GraphNodeItem["state"] = "default";
+          if (isT && isH) state = "swap";
+          else if (isT) state = "active";
+          else if (isH) state = "pivot";
+          return { ...gn, state };
+        }),
+        edges: edges.map((e) => ({
+          ...e,
+          isPath: e.from === String(startNode) || e.from === String(tortoise),
+        })),
       },
-    },
-    variables: { tortoise, hare, startNode },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { tortoise, hare, startNode },
+    }),
+  );
 
   let passCount = 0;
   while (tortoise !== hare && passCount < 50) {
@@ -176,18 +338,46 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
     tortoise = succ[tortoise];
     hare = succ[succ[hare]];
 
-    steps.push({
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Phase 1 Step ${passCount}: Tortoise moved 1 step to node ${tortoise}, Hare moved 2 steps to node ${hare}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((gn) => {
+            const isT = gn.id === String(tortoise);
+            const isH = gn.id === String(hare);
+            let state: GraphNodeItem["state"] = "default";
+            if (isT && isH) state = "swap";
+            else if (isT) state = "active";
+            else if (isH) state = "pivot";
+            return { ...gn, state };
+          }),
+          edges: edges.map((e) => ({
+            ...e,
+            isPath: e.from === String(tortoise) || e.from === String(hare),
+          })),
+        },
+        auxiliaryState: {
+          stack: [],
+          visited: [],
+        },
+        variables: { tortoise, hare, passCount },
+      }),
+    );
+  }
+
+  tortoise = startNode;
+  steps.push(
+    createTutorialStep({
       stepIndex: stepIdx++,
-      codeLine: 4,
-      explanation: {
-        what: `Phase 1 Step ${passCount}: Tortoise moved 1 step to node ${tortoise}, Hare moved 2 steps to node ${hare}.`,
-        why:
-          tortoise === hare
-            ? `Tortoise and Hare intersected at node ${tortoise} inside the cycle!`
-            : "Pointers advance around the graph until intersecting inside the cycle.",
-      },
+      phase: "walkthrough",
+      narrative: `Phase 2: Reset Tortoise to startNode (${startNode}). Hare remains at intersection node ${hare}. Advancing both 1 step per turn.`,
       primarySnapshot: {
         kind: "graph",
+        directed: true,
         nodes: nodes.map((gn) => {
           const isT = gn.id === String(tortoise);
           const isH = gn.id === String(hare);
@@ -197,54 +387,15 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
           else if (isH) state = "pivot";
           return { ...gn, state };
         }),
-        edges: edges.map((e) => ({
-          ...e,
-          isPath: e.from === String(tortoise) || e.from === String(hare),
-        })),
+        edges: [...edges],
       },
       auxiliaryState: {
-        customState: {
-          Phase: "1: Cycle Detection (Fast/Slow Pointers)",
-          Tortoise: tortoise,
-          Hare: hare,
-          Iterations: passCount,
-        },
+        stack: [],
+        visited: [],
       },
-      variables: { tortoise, hare, passCount },
-    });
-  }
-
-  // Phase 2: Find cycle start node
-  tortoise = startNode;
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 8,
-    explanation: {
-      what: `Phase 2: Reset Tortoise to startNode (${startNode}). Hare remains at intersection node ${hare}.`,
-      why: "Both pointers will now advance 1 step at a time. The point where they meet is the exact cycle entry node.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => {
-        const isT = gn.id === String(tortoise);
-        const isH = gn.id === String(hare);
-        let state: GraphNodeItem["state"] = "default";
-        if (isT && isH) state = "swap";
-        else if (isT) state = "active";
-        else if (isH) state = "pivot";
-        return { ...gn, state };
-      }),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: {
-        Phase: "2: Cycle Entry Search",
-        Tortoise: tortoise,
-        Hare: hare,
-      },
-    },
-    variables: { tortoise, hare },
-  });
+      variables: { tortoise, hare },
+    }),
+  );
 
   let phase2Steps = 0;
   while (tortoise !== hare && phase2Steps < 50) {
@@ -252,99 +403,86 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
     tortoise = succ[tortoise];
     hare = succ[hare];
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 9,
-      explanation: {
-        what: `Phase 2 Step ${phase2Steps}: Tortoise moved 1 step to node ${tortoise}, Hare moved 1 step to node ${hare}.`,
-        why:
-          tortoise === hare
-            ? `Both pointers met at node ${tortoise}, identifying the cycle entry node!`
-            : "Advancing equal-speed pointers towards cycle entry node.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((gn) => {
-          const isT = gn.id === String(tortoise);
-          const isH = gn.id === String(hare);
-          let state: GraphNodeItem["state"] = "default";
-          if (isT && isH) state = "swap";
-          else if (isT) state = "active";
-          else if (isH) state = "pivot";
-          return { ...gn, state };
-        }),
-        edges: edges.map((e) => ({
-          ...e,
-          isPath: e.from === String(tortoise) || e.from === String(hare),
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          Phase: "2: Cycle Entry Search",
-          Tortoise: tortoise,
-          Hare: hare,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Phase 2 Step ${phase2Steps}: Tortoise moved 1 step to node ${tortoise}, Hare moved 1 step to node ${hare}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((gn) => {
+            const isT = gn.id === String(tortoise);
+            const isH = gn.id === String(hare);
+            let state: GraphNodeItem["state"] = "default";
+            if (isT && isH) state = "swap";
+            else if (isT) state = "active";
+            else if (isH) state = "pivot";
+            return { ...gn, state };
+          }),
+          edges: edges.map((e) => ({
+            ...e,
+            isPath: e.from === String(tortoise) || e.from === String(hare),
+          })),
         },
-      },
-      variables: { tortoise, hare },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: [],
+        },
+        variables: { tortoise, hare },
+      }),
+    );
   }
 
   const cycleStart = tortoise;
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 12,
-    explanation: {
-      what: `Cycle start identified at node ${cycleStart}.`,
-      why: "The meeting point of equal-speed pointers marks entry to the functional cycle.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => ({
-        ...gn,
-        state: gn.id === String(cycleStart) ? "sorted" : "default",
-      })),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: {
-        Phase: "2 Complete",
-        "Cycle Start": cycleStart,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Identified cycle start entry at node ${cycleStart}. Both pointers met at the cycle entry node!`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => ({
+          ...gn,
+          state: gn.id === String(cycleStart) ? "sorted" : "default",
+        })),
+        edges: [...edges],
       },
-    },
-    variables: { cycleStart },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { cycleStart },
+    }),
+  );
 
-  // Phase 3: Cycle length computation
   let length = 1;
   hare = succ[cycleStart];
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 15,
-    explanation: {
-      what: `Phase 3: Set Hare to succ[cycle_start] (${hare}), length initialized to 1.`,
-      why: "Hare will traverse around the cycle until returning to cycleStart to count total vertices in cycle.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => {
-        if (gn.id === String(cycleStart)) return { ...gn, state: "sorted" };
-        if (gn.id === String(hare)) return { ...gn, state: "pivot" };
-        return { ...gn, state: "default" };
-      }),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: {
-        Phase: "3: Cycle Length Measurement",
-        "Cycle Start": cycleStart,
-        Hare: hare,
-        "Current Length": length,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Phase 3: Set Hare to succ[cycle_start] (${hare}) and initialized cycle length to 1.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => {
+          if (gn.id === String(cycleStart)) return { ...gn, state: "compare" };
+          if (gn.id === String(hare)) return { ...gn, state: "pivot" };
+          return { ...gn, state: "default" };
+        }),
+        edges: [...edges],
       },
-    },
-    variables: { cycleStart, hare, length },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { cycleStart, hare, length },
+    }),
+  );
 
   const cycleNodesSet = new Set<number>([cycleStart]);
   while (hare !== cycleStart && length < 50) {
@@ -352,162 +490,148 @@ export function generateSuccessorPathsSteps(input: SuccessorPathsInput): Algorit
     hare = succ[hare];
     length++;
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 16,
-      explanation: {
-        what: `Phase 3 Step: Hare advanced to node ${hare}, cycle length = ${length}.`,
-        why:
-          hare === cycleStart
-            ? `Hare returned to cycleStart (${cycleStart}), loop completed!`
-            : "Continuing around cycle vertices.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((gn) => {
-          const idNum = Number(gn.id);
-          if (gn.id === String(cycleStart)) return { ...gn, state: "sorted" };
-          if (gn.id === String(hare)) return { ...gn, state: "pivot" };
-          if (cycleNodesSet.has(idNum)) return { ...gn, state: "visited" };
-          return { ...gn, state: "default" };
-        }),
-        edges: edges.map((e) => ({
-          ...e,
-          isPath: cycleNodesSet.has(Number(e.from)),
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          Phase: "3: Cycle Length Measurement",
-          "Cycle Start": cycleStart,
-          Hare: hare,
-          "Current Length": length,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Phase 3 Step: Hare advanced to node ${hare}, updating measured cycle length to ${length}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((gn) => {
+            const idNum = Number(gn.id);
+            if (gn.id === String(cycleStart)) return { ...gn, state: "sorted" };
+            if (gn.id === String(hare)) return { ...gn, state: "pivot" };
+            if (cycleNodesSet.has(idNum)) return { ...gn, state: "visited" };
+            return { ...gn, state: "default" };
+          }),
+          edges: edges.map((e) => ({
+            ...e,
+            isPath: cycleNodesSet.has(Number(e.from)),
+          })),
         },
-      },
-      variables: { cycleStart, hare, length },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: Array.from(cycleNodesSet).map(String),
+        },
+        variables: { cycleStart, hare, length },
+      }),
+    );
   }
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 19,
-    explanation: {
-      what: `Cycle length total = ${length}.`,
-      why: "All nodes in the cycle traversed back to cycleStart.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => ({
-        ...gn,
-        state: cycleNodesSet.has(Number(gn.id)) ? "visited" : "default",
-      })),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: {
-        "Cycle Start": cycleStart,
-        "Cycle Length": length,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Measured cycle length total = ${length}. Hare returned to cycleStart node ${cycleStart}.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => ({
+          ...gn,
+          state: cycleNodesSet.has(Number(gn.id)) ? "visited" : "default",
+        })),
+        edges: [...edges],
       },
-    },
-    variables: { cycleStart, cycleLength: length },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: Array.from(cycleNodesSet).map(String),
+      },
+      variables: { cycleStart, cycleLength: length },
+    }),
+  );
 
-  // Phase 4: Successor query execution (k_steps)
   let curr: number = startNode;
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 21,
-    explanation: {
-      what: `Phase 4: Set curr = startNode (${startNode}) to trace ${stepsQuery} successor steps.`,
-      why: "Starting traversal along successor pointers from start node.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => ({
-        ...gn,
-        state: gn.id === String(curr) ? "active" : "default",
-      })),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: {
-        Phase: "4: k-step Successor Traversal",
-        "Start Node": startNode,
-        "Current Node": curr,
-        "Steps Remaining": stepsQuery,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Phase 4: Set curr = startNode (${startNode}) to execute ${stepsQuery}-step successor query traversal.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => ({
+          ...gn,
+          state: gn.id === String(curr) ? "active" : "default",
+        })),
+        edges: [...edges],
       },
-    },
-    variables: { startNode, stepsQuery, curr },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { startNode, stepsQuery, curr },
+    }),
+  );
 
   const totalQuerySteps = stepsQuery ?? 5;
   for (let s = 1; s <= totalQuerySteps; s++) {
     const prev = curr;
     curr = succ[curr] ?? 0;
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 23,
-      explanation: {
-        what: `Phase 4 Step ${s}/${totalQuerySteps}: Advanced from node ${prev} to node ${curr} (succ[${prev}]).`,
-        why:
-          s === totalQuerySteps
-            ? `Reached ${totalQuerySteps}-th successor node ${curr}!`
-            : `Continuing successor path traversal (${totalQuerySteps - s} steps remaining).`,
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((gn) => ({
-          ...gn,
-          state: gn.id === String(curr) ? "active" : "default",
-        })),
-        edges: edges.map((e) => ({
-          ...e,
-          isPath: e.from === String(prev) && e.to === String(curr),
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          Phase: "4: k-step Successor Traversal",
-          "Start Node": startNode,
-          "Current Node": curr,
-          "Step Number": `${s} / ${stepsQuery}`,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Phase 4 Step ${s}/${totalQuerySteps}: Advanced from node ${prev} to node ${curr} (succ[${prev}]).`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((gn) => ({
+            ...gn,
+            state: gn.id === String(curr) ? "active" : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            isPath: e.from === String(prev) && e.to === String(curr),
+          })),
         },
-      },
-      variables: { startNode, stepsQuery, currentStep: s, curr },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: [],
+        },
+        variables: { startNode, stepsQuery, currentStep: s, curr },
+      }),
+    );
   }
 
-  // Final Step: Return
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 25,
-    explanation: {
-      what: `Completed Successor Paths analysis: Cycle Start = ${cycleStart}, Cycle Length = ${length}, ${stepsQuery}-th Successor = ${curr}.`,
-      why: "Floyd's Cycle Detection and successor path traversal finished successfully.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((gn) => {
-        if (gn.id === String(cycleStart)) return { ...gn, state: "sorted" };
-        if (gn.id === String(curr)) return { ...gn, state: "active" };
-        if (cycleNodesSet.has(Number(gn.id))) return { ...gn, state: "visited" };
-        return { ...gn, state: "default" };
-      }),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: {
-        "Cycle Start": cycleStart,
-        "Cycle Length": length,
-        [`${stepsQuery}-th Successor`]: curr,
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Completed Successor Paths analysis: Cycle Start = ${cycleStart}, Cycle Length = ${length}, ${stepsQuery}-th Successor = ${curr}.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((gn) => {
+          if (gn.id === String(cycleStart)) return { ...gn, state: "sorted" };
+          if (gn.id === String(curr)) return { ...gn, state: "active" };
+          if (cycleNodesSet.has(Number(gn.id))) return { ...gn, state: "visited" };
+          return { ...gn, state: "default" };
+        }),
+        edges: [...edges],
       },
-    },
-    variables: { cycleStart, cycleLength: length, kSucc: curr },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: Array.from(cycleNodesSet).map(String),
+      },
+      variables: { completed: true, cycleStart, cycleLength: length, kSucc: curr },
+    }),
+  );
 
   return steps;
 }
+
+export const SUCCESSOR_PATHS_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Defines cycle detection and successor path queries on functional graphs.",
+    2: "Pointers start with hare moving twice as fast as tortoise.",
+    4: "Advances pointers until tortoise and hare meet inside cycle.",
+    8: "Resets tortoise to start_node; both advance at equal speed.",
+    14: "Counts vertices around cycle until returning to entry node.",
+    21: "Executes k_steps successor queries from starting vertex.",
+  },
+};
 
 export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   id: "successor-paths",
@@ -515,7 +639,7 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "<p>Analyzes functional graphs where every node has out-degree 1. Given a functional graph defined by a successor array <code>succ[i]</code>, detect directed cycles and compute arbitrary k-step successor queries efficiently. Because out-degree is 1, following successors from any starting vertex leads into a directed cycle. Floyd's Tortoise and Hare algorithm detects cycle entry and length in <code>O(V)</code> time and <code>O(1)</code> space. Binary lifting constructs a jump table <code>succ_table[b][x] = 2<sup>b</sup></code>-th successor of x in <code>O(V log k)</code> preprocessing time, enabling any k-step query to be answered in <code>O(log k)</code> time.</p>",
+    "<p>Given a functional graph where every node has out-degree 1 defined by successor array <code>succ[i]</code>, detect directed cycles and answer arbitrary k-step successor queries efficiently.</p><h3>Problem Statement</h3><p>Compute the cycle entry vertex, cycle length, and the k-th successor node using Floyd's Tortoise and Hare algorithm and binary lifting concepts.</p><h3>Input Parameters</h3><ul><li><code>succ</code>: Array of integers where <code>succ[i]</code> is the unique target vertex of node i.</li><li><code>startNode</code>: Starting vertex ID for cycle detection and path queries.</li><li><code>stepsQuery</code>: Integer k representing the number of successor steps to jump.</li></ul><h3>Output</h3><p>Returns the cycle start vertex, cycle length, and the k-th successor vertex ID.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= succ[i] < V for all 0 <= i < V",
@@ -524,18 +648,20 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "succ = [1, 2, 3, 4, 2, 5, 4], start = 0, k = 5",
       outputDisplay: "Cycle Start: 2, Cycle Length: 3, 5-th Succ: 2",
-      title: "Functional Graph with Tail and 3-Cycle",
+      title: "Standard Functional Graph with Tail and 3-Cycle",
       input: DEFAULT_SUCCESSOR_INPUT,
       output: "Cycle Start: 2, Cycle Length: 3, 5th Succ: 2",
       explanation: "Path from 0 goes 0 -> 1 -> 2 -> 3 -> 4 -> 2 (cycle 2-3-4).",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "succ = [1, 2, 3, 0], start = 0, k = 10",
       outputDisplay: "Cycle Start: 0, Cycle Length: 4, 10-th Succ: 2",
-      title: "Pure 4-Node Cycle",
+      title: "Adversarial Pure 4-Node Cycle Graph",
       input: {
         succ: [1, 2, 3, 0],
         startNode: 0,
@@ -546,9 +672,10 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "succ = [0, 0, 1], start = 2, k = 3",
       outputDisplay: "Cycle Start: 0, Cycle Length: 1, 3-rd Succ: 0",
-      title: "Self-Loop Terminal Node",
+      title: "Boundary Self-Loop Terminal Node Graph",
       input: {
         succ: [0, 0, 1],
         startNode: 2,
@@ -591,7 +718,7 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
       },
       {
         heading: "Complexity Analysis",
-        body: "<p><strong>Time Complexity:</strong> <code>O(V + log k)</code><br/><strong>Space Complexity:</strong> <code>O(V log k)</code></p><ul><li><strong>Cycle Detection:</strong> Floyd's Tortoise and Hare runs in <code>O(V)</code> time and <code>O(1)</code> space.</li><li><strong>Binary Lifting Query:</strong> Precomputes <code>V &times; log k</code> table, answering queries in <code>O(log k)</code> time.</li></ul>",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + log k)</code><br/><strong>Space Complexity:</strong> <code>O(V log k)</code><br/>Floyd's Tortoise and Hare runs in <code>O(V)</code> time and <code>O(1)</code> space. Precomputes <code>V &times; log k</code> table, answering queries in <code>O(log k)</code> time.</p>",
       },
     ],
     keyTerms: [
@@ -630,3 +757,5 @@ export const successorPaths: AlgorithmDefinition<SuccessorPathsInput> = {
   defaultInput: DEFAULT_SUCCESSOR_INPUT,
   generateSteps: generateSuccessorPathsSteps,
 };
+
+export default successorPaths;

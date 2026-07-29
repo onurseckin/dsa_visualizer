@@ -1,5 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  PrimaryVisualSnapshot,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface MoQuery {
   left: number;
@@ -50,9 +57,172 @@ export const DEFAULT_MO_ALGORITHM_INPUT: MoAlgorithmInput = {
   ],
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Offline range query problems give a batch of Q queries [L, R] over an array where answers can be computed in any convenient order.",
+    primarySnapshot: {
+      kind: "array",
+      name: "inputArray",
+      elements: [
+        { id: "e0", value: 1, state: "default" },
+        { id: "e1", value: 3, state: "default" },
+        { id: "e2", value: 4, state: "default" },
+        { id: "e3", value: 2, state: "default" },
+        { id: "e4", value: 6, state: "default" },
+        { id: "e5", value: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Processing queries in naive input order causes two window pointers (currL and currR) to move back and forth randomly across the entire array in O(N) time per query.",
+    primarySnapshot: {
+      kind: "array",
+      name: "inputArray",
+      elements: [
+        { id: "e0", value: 1, label: "currL", state: "active" },
+        { id: "e1", value: 3, state: "active" },
+        { id: "e2", value: 4, state: "active" },
+        { id: "e3", value: 2, state: "active" },
+        { id: "e4", value: 6, label: "currR", state: "active" },
+        { id: "e5", value: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Mo's Algorithm optimizes offline query execution by reordering queries to strictly minimize total pointer travel distance.",
+    primarySnapshot: {
+      kind: "array",
+      name: "queryOrder",
+      elements: [
+        { id: "q1", value: 0, label: "Q1 [0..4]", state: "visited" },
+        { id: "q2", value: 1, label: "Q3 [1..3]", state: "active" },
+        { id: "q3", value: 2, label: "Q2 [2..6]", state: "compare" },
+        { id: "q4", value: 3, label: "Q4 [0..7]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The array of size N is logically partitioned into blocks of size B = floor(sqrt(N)).",
+    primarySnapshot: {
+      kind: "array",
+      name: "blocks",
+      elements: [
+        { id: "b0", value: 1, label: "block 0", state: "active" },
+        { id: "b1", value: 3, label: "block 0", state: "active" },
+        { id: "b2", value: 4, label: "block 1", state: "visited" },
+        { id: "b3", value: 2, label: "block 1", state: "visited" },
+        { id: "b4", value: 6, label: "block 2", state: "default" },
+        { id: "b5", value: 5, label: "block 2", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Queries [L, R] are sorted primarily by left-block index L / B, and secondarily by right boundary R.",
+    primarySnapshot: {
+      kind: "array",
+      name: "queryOrder",
+      elements: [
+        { id: "q1", value: 0, label: "L/B = 0", state: "visited" },
+        { id: "q2", value: 1, label: "L/B = 0", state: "visited" },
+        { id: "q3", value: 2, label: "L/B = 1", state: "active" },
+        { id: "q4", value: 3, label: "L/B = 2", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Odd-even block sorting toggles R ordering (ascending for even blocks, descending for odd blocks) so currR snakes smoothly back and forth.",
+    primarySnapshot: {
+      kind: "array",
+      name: "queryOrder",
+      elements: [
+        { id: "q1", value: 0, label: "R asc (block 0)", state: "visited" },
+        { id: "q2", value: 1, label: "R desc (block 1)", state: "swap" },
+        { id: "q3", value: 2, label: "R asc (block 2)", state: "visited" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "For all queries sharing the same left block, currL moves at most O(sqrt N) steps per query.",
+    primarySnapshot: {
+      kind: "array",
+      name: "inputArray",
+      elements: [
+        { id: "e0", value: 1, label: "step 1", state: "compare" },
+        { id: "e1", value: 3, label: "currL", state: "active" },
+        { id: "e2", value: 4, label: "step 2", state: "compare" },
+        { id: "e3", value: 2, state: "default" },
+        { id: "e4", value: 6, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Meanwhile, currR moves monotonically in one direction across the array, taking O(N) total steps per block.",
+    primarySnapshot: {
+      kind: "array",
+      name: "inputArray",
+      elements: [
+        { id: "e0", value: 1, state: "default" },
+        { id: "e1", value: 3, state: "default" },
+        { id: "e2", value: 4, label: "currR ->", state: "active" },
+        { id: "e3", value: 2, label: "currR ->", state: "active" },
+        { id: "e4", value: 6, label: "currR ->", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Summing sqrt(N) blocks with O(N) right pointer steps and Q queries with O(sqrt N) left pointer steps yields O((N + Q) sqrt N) overall runtime.",
+    primarySnapshot: {
+      kind: "array",
+      name: "complexitySummary",
+      elements: [
+        { id: "c1", value: 0, label: "L moves: Q * sqrt(N)", state: "visited" },
+        { id: "c2", value: 0, label: "R moves: N * sqrt(N)", state: "visited" },
+        { id: "c3", value: 0, label: "Total: O((N+Q)sqrt(N))", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Window state (e.g. running range sum) updates incrementally in O(1) time as pointers shrink or expand by single array steps.",
+    primarySnapshot: {
+      kind: "array",
+      name: "windowState",
+      elements: [
+        { id: "w1", value: 1, label: "[currL..currR]", state: "active" },
+        { id: "w2", value: 3, label: "[currL..currR]", state: "active" },
+        { id: "w3", value: 4, label: "[currL..currR]", state: "active" },
+        { id: "w4", value: 8, label: "sum = 8", state: "sorted" },
+      ],
+    },
+  },
+];
+
 export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
+
+  for (const intro of createIntroSnapshots()) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: intro.narrative,
+        primarySnapshot: intro.primarySnapshot,
+      }),
+    );
+  }
 
   const safeInput = {
     array: Array.isArray(input?.array) ? input.array : DEFAULT_MO_ALGORITHM_INPUT.array,
@@ -67,6 +237,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
     currR: number,
     targetL?: number,
     targetR?: number,
+    overrideState?: ArrayElement["state"],
   ): ArrayElement[] => {
     return arr.map((val, idx) => {
       let state: ArrayElement["state"] = "default";
@@ -75,7 +246,7 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
       if (idx === currR) ptrs.push("currR");
 
       if (currR >= currL && idx >= currL && idx <= currR) {
-        state = "active";
+        state = overrideState ?? "active";
       }
       if (targetL !== undefined && targetR !== undefined && idx >= targetL && idx <= targetR) {
         if (state === "default") state = "compare";
@@ -84,65 +255,44 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
       return {
         id: "el-" + String(idx),
         value: val,
+        label: `[${idx}]`,
         state,
         pointers: ptrs.length > 0 ? ptrs : undefined,
       };
     });
   };
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
+  const addWalkthroughStep = (
+    narrative: string,
     currL: number,
     currR: number,
     targetL?: number,
     targetR?: number,
-    customState?: Record<string, string | number>,
+    overrideState?: ArrayElement["state"],
   ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: makeElements(currL, currR, targetL, targetR),
-      },
-      auxiliaryState: {
-        customState: customState ?? {
-          arrayLength: String(n),
-          currL: String(currL),
-          currR: String(currR),
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative,
+        primarySnapshot: {
+          kind: "array",
+          name: "moArray",
+          elements: makeElements(currL, currR, targetL, targetR, overrideState),
         },
-      },
-      variables,
-    });
+      }),
+    );
   };
 
-  addStep(
-    3,
-    "Initialize Mo's Algorithm",
-    `Offline processing ${queriesInput.length} queries on array of length N = ${n}. Block size S = floor(sqrt(${n})) = ${Math.max(1, Math.floor(Math.sqrt(n)))}.`,
-    { n, numQueries: queriesInput.length },
+  addWalkthroughStep(
+    `Initializing Mo's Algorithm for array of size ${n} and ${queriesInput.length} queries. Block size B = floor(sqrt(${n})) = ${Math.max(1, Math.floor(Math.sqrt(n)))}.`,
     0,
     -1,
   );
 
   if (n === 0 || queriesInput.length === 0) {
-    addStep(
-      6,
-      "Input is empty",
-      "No queries to process or array is empty.",
-      { n, numQueries: queriesInput.length },
-      0,
-      -1,
-    );
-    addStep(
-      7,
-      "Return empty list",
-      "Returning [] because input array or query list is empty.",
-      { answers: "[]" },
+    addWalkthroughStep(
+      "Input array or query list is empty, so no offline query steps can be performed.",
       0,
       -1,
     );
@@ -163,15 +313,13 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
     return b1 % 2 === 0 ? a.R - b.R : b.R - a.R;
   });
 
-  addStep(
-    10,
-    `Sort ${indexedQueries.length} queries by (L // ${blockSize}, R zig-zag)`,
-    `Reordered queries into Mo's order. Grouping by left-block index and zig-zagging right-pointer minimizes total two-pointer traversal distance.`,
-    {
-      sortedQueries: indexedQueries.map((q) => `[${q.L},${q.R}]`).join(" "),
-    },
+  const queryOrderDesc = indexedQueries.map((q) => `Q${q.id}[${q.L}..${q.R}]`).join(", ");
+  addWalkthroughStep(
+    `Sorted ${indexedQueries.length} queries into Mo's order (grouped by L // ${blockSize} with zig-zag R): ${queryOrderDesc}.`,
     0,
     -1,
+    0,
+    n - 1,
   );
 
   const ans: number[] = Array(queriesInput.length).fill(0);
@@ -183,204 +331,102 @@ export const generateMoAlgorithmSteps = (input: MoAlgorithmInput): AlgorithmStep
     const q = indexedQueries[qIdx];
     const { L, R, id } = q;
 
-    addStep(
-      14,
-      `Processing Query ${qIdx + 1}/${indexedQueries.length}: original Q${id} [${L}..${R}]`,
-      `Adjusting active window [${currL}..${currR}] to target query interval [${L}..${R}].`,
-      { qIdx: qIdx + 1, originalId: id, targetL: L, targetR: R, currSum },
+    addWalkthroughStep(
+      `Processing query ${qIdx + 1}/${indexedQueries.length} (original Q${id} [${L}..${R}]): adjusting current window [${currL}..${currR}] to target range.`,
       currL,
       currR,
       L,
       R,
     );
 
-    // Expand Left
     while (currL > L) {
       currL--;
       currSum += arr[currL];
-      addStep(
-        17,
-        `Expand left pointer to ${currL}: add arr[${currL}] = ${arr[currL]}`,
-        `Extending window leftward by including element arr[${currL}]. Running sum is now ${currSum}.`,
-        { currL, addedVal: arr[currL], currSum },
+      addWalkthroughStep(
+        `Expanded window left to index ${currL} (added arr[${currL}] = ${arr[currL]}, running sum = ${currSum}).`,
         currL,
         currR,
         L,
         R,
       );
     }
-
-    // Expand Right
     while (currR < R) {
       currR++;
       currSum += arr[currR];
-      addStep(
-        20,
-        `Expand right pointer to ${currR}: add arr[${currR}] = ${arr[currR]}`,
-        `Extending window rightward by including element arr[${currR}]. Running sum is now ${currSum}.`,
-        { currR, addedVal: arr[currR], currSum },
+      addWalkthroughStep(
+        `Expanded window right to index ${currR} (added arr[${currR}] = ${arr[currR]}, running sum = ${currSum}).`,
         currL,
         currR,
         L,
         R,
       );
     }
-
-    // Contract Left
     while (currL < L) {
-      const removedVal = arr[currL];
-      currSum -= removedVal;
+      currSum -= arr[currL];
+      addWalkthroughStep(
+        `Contracted window left from index ${currL} (removed arr[${currL}] = ${arr[currL]}, running sum = ${currSum}).`,
+        currL + 1,
+        currR,
+        L,
+        R,
+      );
       currL++;
-      addStep(
-        23,
-        `Contract left pointer to ${currL}: remove arr[${currL - 1}] = ${removedVal}`,
-        `Shrinking window from left by excluding element arr[${currL - 1}]. Running sum is now ${currSum}.`,
-        { currL, removedVal, currSum },
-        currL,
-        currR,
-        L,
-        R,
-      );
     }
-
-    // Contract Right
     while (currR > R) {
-      const removedVal = arr[currR];
-      currSum -= removedVal;
-      currR--;
-      addStep(
-        26,
-        `Contract right pointer to ${currR}: remove arr[${currR + 1}] = ${removedVal}`,
-        `Shrinking window from right by excluding element arr[${currR + 1}]. Running sum is now ${currSum}.`,
-        { currR, removedVal, currSum },
+      currSum -= arr[currR];
+      addWalkthroughStep(
+        `Contracted window right from index ${currR} (removed arr[${currR}] = ${arr[currR]}, running sum = ${currSum}).`,
         currL,
-        currR,
+        currR - 1,
         L,
         R,
       );
+      currR--;
     }
 
     ans[id] = currSum;
-
-    addStep(
-      27,
-      `Query Q${id} [${L}..${R}] sum = ${currSum}`,
-      `Window [${currL}..${currR}] matches target range [${L}..${R}]. Store answer ${currSum} for original query index Q${id}.`,
-      { queryId: id, L, R, querySum: currSum },
+    addWalkthroughStep(
+      `Pointers arrived at target interval [${currL}..${currR}]. Recorded answer for original Q${id} [${L}..${R}] = ${currSum}.`,
       currL,
       currR,
-      L,
-      R,
+      undefined,
+      undefined,
+      "visited",
     );
   }
 
-  addStep(
-    28,
-    "Mo's Algorithm completed",
-    `Finished answering all ${queriesInput.length} range queries in O((N + Q) sqrt(N)) total time.`,
-    { answers: JSON.stringify(ans) },
-    currL,
-    currR,
+  const finalElements = makeElements(0, n - 1).map((el) => ({ ...el, state: "sorted" as const }));
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `All ${queriesInput.length} queries completed successfully in Mo's order. Final answers: [${ans.map((v, i) => `Q${i}=${v}`).join(", ")}].`,
+      primarySnapshot: {
+        kind: "array",
+        name: "moArray",
+        elements: finalElements,
+      },
+    }),
   );
 
   return steps;
 };
 
-export const MO_ALGORITHM_TOPIC_GUIDE: TopicGuide = {
+const MO_ALGORITHM_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p><strong>Mo's Algorithm</strong> (also known as the Sqrt Query Reordering Technique) processes range queries <strong>offline</strong> by sorting them to minimize total pointer shifts across the array. When single-element additions and removals run in <code>O(1)</code> time, Mo's Algorithm processes <code>Q</code> range queries over an array of size <code>N</code> in <code>O((N + Q) &radic;N)</code> overall time using block size <code>S = &lfloor;&radic;N&rfloor;</code>. It converts a naive <code>O(Q &middot; N)</code> search into a highly efficient <code>O((N + Q) &radic;N)</code> offline algorithm without requiring complex tree structures.</p>",
+    "<p><strong>Mo's Algorithm</strong> reorders offline range queries using <code>&radic;N</code> block partitioning to minimize pointer movements, answering <code>Q</code> queries in <code>O((N + Q) &radic;N)</code> total time.</p>",
   sections: [
     {
-      heading: "1. Offline Querying & Sqrt Block Sorting",
-      body: "<p>Mo's Algorithm requires all queries to be known upfront (offline). The array is divided into virtual blocks of size <code>S = &lfloor;&radic;N&rfloor;</code>. Queries <code>(L, R)</code> are sorted using a custom comparator:</p><ul><li>Primary Key: Left block index <code>&lfloor;L / S&rfloor;</code>.</li><li>Secondary Key: Right endpoint <code>R</code>.</li><li><strong>Zig-Zag Parity Optimization</strong>: Sort <code>R</code> ascending for even blocks and descending for odd blocks to avoid unnecessary pointer backtrack sweeps.</li></ul>",
-    },
-    {
-      heading: "2. Two-Pointer Window Expansion & Contraction",
-      body: "<p>We maintain two pointers, <code>currL</code> and <code>currR</code>, defining active window <code>[currL...currR]</code> and running sum <code>currSum</code>. Transitioning to a new query <code>[L, R]</code> requires 4 while-loops:</p><ul><li><code>currL &gt; L</code>: Decrement <code>currL</code>, add element.</li><li><code>currR &lt; R</code>: Increment <code>currR</code>, add element.</li><li><code>currL &lt; L</code>: Remove element, increment <code>currL</code>.</li><li><code>currR &gt; R</code>: Remove element, decrement <code>currR</code>.</li></ul><p>Each step updates the window aggregate state in <code>O(1)</code> time.</p>",
-    },
-    {
-      heading: "3. Mathematical Complexity Proof: O((N + Q) sqrt(N))",
-      body: "<p>Why does block sorting achieve <code>O((N + Q) &radic;N)</code> total runtime?</p><ul><li><strong>Left Pointer (currL)</strong>: Moves at most <code>O(&radic;N)</code> per query within a block. Across <code>Q</code> queries, total left moves = <code>O(Q &radic;N)</code>.</li><li><strong>Right Pointer (currR)</strong>: Moves monotonically across array length <code>N</code> per left-block. Across all <code>&approx; &radic;N</code> blocks, total right moves = <code>O(N &radic;N)</code>.</li><li>Total Time: <code>O(Q log Q + (N + Q) &radic;N)</code>.</li></ul>",
-    },
-    {
-      heading: "4. Trade-off Matrix: Mo's Algorithm vs Segment Tree",
-      body: "<p>Comparing offline query reordering against dynamic tree structures:</p><ul><li><strong>Query Type</strong>: Mo's is Offline Only versus Segment Tree's Online &amp; Offline capabilities.</li><li><strong>Query Complexity</strong>: Mo's achieves <code>O((N + Q) &radic;N)</code> total versus <code>O(Q log N)</code> for Segment Tree.</li><li><strong>State Flexibility</strong>: Mo's supports complex frequency tables and mode queries easily.</li><li><strong>Updates</strong>: Mo's targets static arrays (or 3D Mo's for updates) vs Segment Tree's <code>O(log N)</code> online updates.</li></ul>",
-    },
-    {
-      heading: "5. Interview Pitfalls & 3D Mo's Extension",
-      body: "<ul><li><strong>Offline Constraint</strong>: Mo's Algorithm cannot be used if queries depend on prior online answers.</li><li><strong>3D Mo's Algorithm</strong>: For queries mixed with point updates, add a time dimension <code>t</code>. Block size <code>S = N^(2/3)</code> yields <code>O(N^(5/3))</code> complexity.</li></ul>",
-    },
-  ],
-  keyTerms: [
-    {
-      term: "Offline Querying",
-      definition:
-        "Collecting all query requests upfront to sort them strategically prior to execution.",
-    },
-    {
-      term: "Mo's Order",
-      definition:
-        "Sorting queries primarily by left block floor(L / sqrt(N)) and secondarily by right endpoint R.",
-    },
-    {
-      term: "Zig-Zag Parity Optimization",
-      definition:
-        "Alternating right-pointer sorting order between ascending and descending on adjacent blocks to eliminate backtrack jumps.",
-    },
-    {
-      term: "Two-Pointer Sliding Window",
-      definition:
-        "Maintaining active range [currL...currR] that expands or contracts incrementally to target query boundaries.",
+      heading: "Offline Reordering",
+      body: "<p>By grouping queries into blocks of size <code>sqrt(N)</code>, left pointer moves are bounded by <code>O(sqrt N)</code> per query while right pointer moves are monotonic within each block.</p>",
     },
   ],
 };
 
-export const MO_ALGORITHM_TRIVIA: TriviaMeta = {
-  skipLines: [2, 11],
-  distractors: [
-    "indexed_queries.sort(key=lambda q: (q[0], q[1]))",
-    "curr_sum += arr[curr_r]; curr_r -= 1",
-    "ans[q_id] = curr_r - curr_l + 1",
-  ],
-  hints: [
-    {
-      line: 10,
-      hint: "Sort queries primarily by L // block_size and secondarily by R",
-    },
-    {
-      line: 15,
-      hint: "Move curr_l left (decrement) and add element to sum",
-    },
-  ],
+const MO_ALGORITHM_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Imports the math module for square root calculations.",
-    2: "Blank line separating import statements.",
-    3: "Defines mo_algorithm function taking array and offline query list.",
-    4: "Computes array length n.",
-    5: "Computes number of queries q.",
-    6: "Checks for empty input array or empty query list.",
-    7: "Returns empty list for zero input.",
-    8: "Calculates block size as max(1, floor(sqrt(n))).",
-    9: "Attaches original index i to each query (l, r, i).",
-    10: "Sorts queries by left block (l // block_size) and zig-zag right endpoint.",
-    11: "Blank line separating query setup.",
-    12: "Initializes output answer array of size q.",
-    13: "Initializes two pointers curr_l=0, curr_r=-1 and running sum curr_sum=0.",
-    14: "Loops over reordered queries (l, r, idx).",
-    15: "While loop expanding window leftward (curr_l > l).",
-    16: "Decrements left pointer curr_l.",
-    17: "Adds newly included array element arr[curr_l] to running sum.",
-    18: "While loop expanding window rightward (curr_r < r).",
-    19: "Increments right pointer curr_r.",
-    20: "Adds newly included array element arr[curr_r] to running sum.",
-    21: "While loop contracting window from left (curr_l < l).",
-    22: "Subtracts excluded array element arr[curr_l] from running sum.",
-    23: "Increments left pointer curr_l.",
-    24: "While loop contracting window from right (curr_r > r).",
-    25: "Subtracts excluded array element arr[curr_r] from running sum.",
-    26: "Decrements right pointer curr_r.",
-    27: "Stores computed range sum into answer array at original query index idx.",
-    28: "Returns complete list of query answers.",
+    16: "Defines mo_algorithm function.",
+    23: "Sorts queries by left block index and zig-zag right index.",
   },
 };
 
@@ -390,11 +436,12 @@ export const moAlgorithm: AlgorithmDefinition<MoAlgorithmInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "<p><strong>Mo's Algorithm</strong> reorders offline range queries using <code>&radic;N</code> block partitioning to minimize pointer movements, answering <code>Q</code> queries in <code>O((N + Q) &radic;N)</code> total time.</p>",
+    "<p><strong>Mo's Algorithm</strong> reorders offline range queries using <code>&radic;N</code> block partitioning to minimize pointer movements, answering <code>Q</code> queries in <code>O((N + Q) &radic;N)</code> total time.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial numerical sequence.</li><li><code>queries</code>: Array of range queries <code>[left, right]</code>.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Answer for each offline range query.</li></ul>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       title: "Basic Example",
       inputDisplay: "arr = [1, 3, 4, 2, 6, 5, 8, 7], queries = [[0,4], [2,6], [1,3], [0,7]]",
       outputDisplay: "Q1[0,4]: 16, Q2[2,6]: 25, Q3[1,3]: 9, Q4[0,7]: 36",
@@ -413,6 +460,7 @@ export const moAlgorithm: AlgorithmDefinition<MoAlgorithmInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       title: "Complex Edge Case",
       inputDisplay: "arr = [5, 1, 2, 7, 3, 9, 4, 8, 6, 0], queries = [[0,9], [1,8], [2,7], [3,6]]",
       outputDisplay: "Q1[0,9]: 45, Q2[1,8]: 40, Q3[2,7]: 33, Q4[3,6]: 21",
@@ -430,6 +478,7 @@ export const moAlgorithm: AlgorithmDefinition<MoAlgorithmInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       title: "Failing / Boundary Case",
       inputDisplay: "arr = [100], queries = [[0,0]]",
       outputDisplay: "Q1[0,0]: 100",
@@ -458,11 +507,13 @@ export const moAlgorithm: AlgorithmDefinition<MoAlgorithmInput> = {
     {
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: 9,
-      section: "9.2 Sqrt decomposition / Mo's algorithm",
+      chapter: 27,
+      section: "27.2 Mo's algorithm",
       label: "Competitive Programmer's Handbook, Ch 9",
     },
   ],
   defaultInput: DEFAULT_MO_ALGORITHM_INPUT,
   generateSteps: generateMoAlgorithmSteps,
 };
+
+export default moAlgorithm;

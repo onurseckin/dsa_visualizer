@@ -10,6 +10,7 @@ import { createHybridPythonRunner, selectPythonRuntime } from "../../../playgrou
 import { executionErrorResult, type PythonRunner } from "../../../playground/types";
 import type { DisplayValue } from "../../../types/dsa";
 import { Button } from "../../atoms/Button";
+import { Kbd } from "../../atoms/Kbd";
 import { CodeBlockViewer } from "../../molecules/CodeBlockViewer";
 import { ExecutionOutput } from "./ExecutionOutput";
 import { PythonEditor } from "./PythonEditor";
@@ -236,6 +237,18 @@ export function CodeWorkspace({
     tabRefs.current[nextTab]?.focus();
   };
 
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(referenceCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback if clipboard API is restricted
+    }
+  };
+
   return (
     <section
       className="code-workspace"
@@ -270,7 +283,15 @@ export function CodeWorkspace({
             </Button>
           ))}
         </div>
-        <div className="code-workspace__run-actions">
+        <div className="code-workspace__run-actions flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            aria-label="Copy reference code"
+            onClick={handleCopyCode}
+          >
+            {copied ? "Copied!" : "Copy Code"}
+          </Button>
           {running ? (
             <Button
               size="sm"
@@ -282,7 +303,7 @@ export function CodeWorkspace({
             </Button>
           ) : (
             <Button size="sm" variant="primary" aria-label="Run Python" onClick={runCode}>
-              Run
+              Run <Kbd>⌘↵</Kbd>
             </Button>
           )}
         </div>
@@ -326,7 +347,6 @@ export function CodeWorkspace({
               <Button size="sm" variant="ghost" onClick={resetDraft}>
                 Reset draft
               </Button>
-              <span className="code-workspace__shortcut">Ctrl/Cmd + Enter to run</span>
             </div>
             <div className="code-workspace__editor-well">
               <PythonEditor

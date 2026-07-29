@@ -1,4 +1,6 @@
 import { python } from "@codemirror/lang-python";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags } from "@lezer/highlight";
 import { EditorState } from "@codemirror/state";
 import {
   drawSelection,
@@ -10,6 +12,49 @@ import {
 import { useEffect, useRef } from "react";
 
 import type { PythonEditorControlProps } from "./PythonEditor";
+
+/**
+ * Maps Lezer highlight tags to the exact colors used by pythonHighlighter.tsx
+ * so the playground and reference views share one visual language.
+ */
+const pythonHighlightStyle = HighlightStyle.define([
+  // Keywords: purple semibold
+  { tag: tags.keyword, color: "#c084fc", fontWeight: "600" },
+  // Control-flow keywords use the same purple
+  { tag: tags.controlKeyword, color: "#c084fc", fontWeight: "600" },
+  // def / class operator-like tokens
+  { tag: tags.definitionKeyword, color: "#c084fc", fontWeight: "600" },
+  // Function definitions (name after def)
+  { tag: tags.definition(tags.function(tags.variableName)), color: "#facc15", fontWeight: "600" },
+  // Class name definitions
+  { tag: tags.definition(tags.typeName), color: "#facc15", fontWeight: "600" },
+  // String literals: green
+  { tag: tags.string, color: "#86efac" },
+  { tag: tags.special(tags.string), color: "#86efac" },
+  // Number literals: orange
+  { tag: tags.number, color: "#fb923c" },
+  // Boolean / None literals
+  { tag: tags.bool, color: "#fb923c" },
+  { tag: tags.null, color: "#fb923c" },
+  // Built-in names: sky blue
+  { tag: tags.standard(tags.name), color: "#38bdf8" },
+  { tag: tags.standard(tags.variableName), color: "#38bdf8" },
+  // Operators and punctuation: slate
+  { tag: tags.operator, color: "#94a3b8" },
+  { tag: tags.punctuation, color: "#94a3b8" },
+  { tag: tags.bracket, color: "#94a3b8" },
+  // Comments: muted italic
+  { tag: tags.comment, color: "var(--text-muted)", fontStyle: "italic" },
+  // Line comment (#)
+  { tag: tags.lineComment, color: "var(--text-muted)", fontStyle: "italic" },
+  // Property names
+  { tag: tags.propertyName, color: "#38bdf8" },
+  // Decorator
+  { tag: tags.meta, color: "#94a3b8" },
+  // Default identifiers
+  { tag: tags.variableName, color: "#e4e4e7" },
+  { tag: tags.name, color: "#e4e4e7" },
+]);
 
 export default function CodeMirrorPythonEditor({
   label,
@@ -38,6 +83,7 @@ export default function CodeMirrorPythonEditor({
           drawSelection(),
           highlightActiveLine(),
           python(),
+          syntaxHighlighting(pythonHighlightStyle),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({
             "aria-label": label,
@@ -61,13 +107,17 @@ export default function CodeMirrorPythonEditor({
           EditorView.theme({
             "&": {
               backgroundColor: "var(--bg-inset)",
-              color: "var(--text-primary)",
+              color: "#e4e4e7",
               fontFamily: "var(--font-code)",
+              // Match the reference viewer's text-sm (0.875rem / 14px)
+              fontSize: "var(--text-sm)",
               height: "100%",
             },
             ".cm-content": {
               caretColor: "var(--accent)",
               minHeight: "var(--code-workspace-editor-min-h)",
+              // Align line height with the reference viewer (leading-relaxed = 1.625)
+              lineHeight: "1.625",
             },
             ".cm-cursor": {
               borderLeftColor: "var(--accent)",
@@ -79,6 +129,8 @@ export default function CodeMirrorPythonEditor({
               backgroundColor: "var(--bg-chrome)",
               borderRight: "1px solid var(--border-default)",
               color: "var(--text-faint)",
+              // Gutter font size matches editor content
+              fontSize: "var(--text-sm)",
             },
             "&.cm-focused": {
               outline: "none",

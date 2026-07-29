@@ -1,5 +1,6 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, PrimaryVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface GeneratingSubsetsInput {
   elements: number[];
@@ -7,6 +8,256 @@ export interface GeneratingSubsetsInput {
 
 export const DEFAULT_GENERATING_SUBSETS_INPUT: GeneratingSubsetsInput = {
   elements: [1, 2, 3],
+};
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Power Set problem asks to generate all 2^N possible subsets of an array of N unique elements, including the empty set and the full array.",
+    primarySnapshot: {
+      kind: "array",
+      name: "elements",
+      mode: "box",
+      elements: [
+        { id: "e1", value: 1, label: "[0]", state: "default" },
+        { id: "e2", value: 2, label: "[1]", state: "default" },
+        { id: "e3", value: 3, label: "[2]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "At each element in the array, we make a binary inclusion-exclusion decision: either Exclude the element or Include it in the current subset.",
+    primarySnapshot: {
+      kind: "array",
+      name: "binary_choices",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "Branch 0: EXCLUDE", state: "compare" },
+        { id: "c2", value: "Branch 1: INCLUDE", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "This decision structure forms a complete binary tree of depth N, yielding 2^N leaf nodes where each leaf represents a unique subset.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "Binary Decision Tree",
+      items: [
+        {
+          id: "subset-display",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "current_subset",
+            mode: "box",
+            elements: [
+              { id: "s1", value: 1, label: "included", state: "sorted" },
+              { id: "s2", value: "?", label: "decision at index 1", state: "active" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Branch 1: We explore the Exclusion path by advancing the index pointer to i + 1 without pushing element nums[i] into the sequence.",
+    primarySnapshot: {
+      kind: "array",
+      name: "exclude_branch",
+      mode: "box",
+      elements: [
+        { id: "ex1", value: 1, label: "nums[0]", state: "active" },
+        { id: "ex2", value: "Skip -> recurse(i+1)", label: "Exclude", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Branch 2: We explore the Inclusion path by pushing element nums[i] into current_subset and then recursing to index i + 1.",
+    primarySnapshot: {
+      kind: "array",
+      name: "include_branch",
+      mode: "box",
+      elements: [
+        { id: "inc1", value: 1, label: "nums[0]", state: "active" },
+        { id: "inc2", value: "Push -> recurse(i+1)", label: "Include", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Base Case: When index == N, all element choices are finalized; we copy current_subset and record it into the power set output list.",
+    primarySnapshot: {
+      kind: "array",
+      name: "subset_recorded",
+      mode: "box",
+      elements: [
+        { id: "rec1", value: 1, label: "[0]", state: "sorted" },
+        { id: "rec2", value: 3, label: "[1]", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "After returning from the inclusion branch, we pop element nums[i] from current_subset to restore state before unwinding to the parent frame.",
+    primarySnapshot: {
+      kind: "array",
+      name: "backtrack_pop",
+      mode: "box",
+      elements: [
+        { id: "pop1", value: 1, label: "keep", state: "sorted" },
+        { id: "pop2", value: "pop 3", label: "un-choose", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Power set generation completes having produced all 2^N subsets in O(2^N) time and O(N) auxiliary space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "summary",
+      mode: "box",
+      elements: [
+        { id: "sum1", value: "2^3 = 8 Subsets Total", state: "sorted" },
+        { id: "sum2", value: "O(2^N) Time, O(N) Space", state: "default" },
+      ],
+    },
+  },
+];
+
+export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): AlgorithmStep[] => {
+  const safeInput = input ?? DEFAULT_GENERATING_SUBSETS_INPUT;
+  const rawElements = Array.isArray(safeInput.elements)
+    ? safeInput.elements
+    : DEFAULT_GENERATING_SUBSETS_INPUT.elements;
+  const nums = rawElements.length > 0 ? rawElements.slice(0, 6) : [1, 2, 3];
+  const n = nums.length;
+
+  const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
+
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input?.elements) &&
+      input.elements.length === DEFAULT_GENERATING_SUBSETS_INPUT.elements.length &&
+      input.elements.every((val, idx) => val === DEFAULT_GENERATING_SUBSETS_INPUT.elements[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const allSubsets: number[][] = [];
+  const currSubset: number[] = [];
+
+  const makeSnapshot = (activeIdx: number, isLeaf = false): PrimaryVisualSnapshot => ({
+    kind: "composite",
+    layout: "vertical",
+    heading: `Subset Building: [${currSubset.join(", ")}]`,
+    items: [
+      {
+        id: "nums-array",
+        role: "auxiliary",
+        snapshot: {
+          kind: "array",
+          name: "nums",
+          mode: "box",
+          elements: nums.map((val, idx) => ({
+            id: `num-${idx}`,
+            value: val,
+            label: `[${idx}]`,
+            state:
+              activeIdx === idx
+                ? "active"
+                : currSubset.includes(val)
+                  ? "sorted"
+                  : idx < activeIdx
+                    ? "visited"
+                    : "default",
+            pointers: activeIdx === idx ? [`i = ${idx}`] : undefined,
+          })),
+        },
+      },
+      {
+        id: "subset-array",
+        role: "primary",
+        snapshot: {
+          kind: "array",
+          name: "currSubset",
+          mode: "box",
+          elements:
+            currSubset.length > 0
+              ? currSubset.map((v, idx) => ({
+                  id: `sub-${idx}`,
+                  value: v,
+                  label: `[${idx}]`,
+                  state: isLeaf ? "sorted" : "active",
+                }))
+              : [{ id: "empty", value: "ø (empty)", state: "default" }],
+        },
+      },
+    ],
+  });
+
+  addStep(
+    `Initializing Power Set generation for elements [${nums.join(", ")}]. Total expected subsets count is 2^${n} = ${Math.pow(2, n)}.`,
+    makeSnapshot(0),
+  );
+
+  const backtrack = (idx: number) => {
+    if (idx === n) {
+      allSubsets.push([...currSubset]);
+      addStep(
+        `Recorded complete subset #${allSubsets.length}: [${currSubset.join(", ")}].`,
+        makeSnapshot(idx, true),
+      );
+      return;
+    }
+
+    addStep(
+      `Evaluating index ${idx} (element ${nums[idx]}): EXCLUDE branch. Recursing to index ${idx + 1} without adding ${nums[idx]}.`,
+      makeSnapshot(idx),
+    );
+    backtrack(idx + 1);
+
+    currSubset.push(nums[idx]);
+    addStep(
+      `Evaluating index ${idx} (element ${nums[idx]}): INCLUDE branch. Pushed ${nums[idx]} into current subset [${currSubset.join(", ")}] and recursing to index ${idx + 1}.`,
+      makeSnapshot(idx),
+    );
+    backtrack(idx + 1);
+
+    const popped = currSubset.pop();
+    addStep(
+      `Backtracked from inclusion branch at index ${idx}: popped element ${popped} to restore state.`,
+      makeSnapshot(idx),
+    );
+  };
+
+  backtrack(0);
+
+  addStep(
+    `Completed Power Set Backtracking: generated all ${allSubsets.length} unique subsets of [${nums.join(", ")}].`,
+    makeSnapshot(n, true),
+  );
+
+  return steps;
 };
 
 const SUBSETS_TRIVIA: TriviaMeta = {
@@ -32,221 +283,13 @@ const SUBSETS_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateGeneratingSubsetsSteps = (input: GeneratingSubsetsInput): AlgorithmStep[] => {
-  const safeInput = input ?? DEFAULT_GENERATING_SUBSETS_INPUT;
-  const rawElements = Array.isArray(safeInput.elements)
-    ? safeInput.elements
-    : DEFAULT_GENERATING_SUBSETS_INPUT.elements;
-  const nums = rawElements.length > 0 ? rawElements.slice(0, 6) : [1, 2, 3];
-  const n = nums.length;
-
-  const steps: AlgorithmStep[] = [];
-  let stepIdx = 0;
-
-  const allSubsets: number[][] = [];
-  const currSubset: number[] = [];
-
-  const buildArraySnapshot = (activeIdx: number, includedIndices: Set<number>) => {
-    const elements: ArrayElement[] = nums.map((val, idx) => {
-      const isActive = idx === activeIdx;
-      const isIncluded = includedIndices.has(idx);
-      const pointers: string[] = [];
-      if (isActive) pointers.push("i");
-      if (isIncluded) pointers.push("in");
-
-      return {
-        id: `elem-${idx}`,
-        value: val,
-        state: isActive ? "active" : isIncluded ? "sorted" : "default",
-        pointers: pointers.length > 0 ? pointers : undefined,
-      };
-    });
-
-    return { kind: "array" as const, elements };
-  };
-
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 2,
-    explanation: {
-      what: `Initialize power set generator for ${n} element${n === 1 ? "" : "s"}: [${nums.join(", ")}].`,
-      why: `Generating all 2^N = 2^${n} = ${Math.pow(2, n)} subsets via recursive inclusion-exclusion decision branching.`,
-    },
-    primarySnapshot: buildArraySnapshot(-1, new Set()),
-    auxiliaryState: {
-      customState: {
-        "Subsets Found": 0,
-        "Total Expected": Math.pow(2, n),
-      },
-    },
-    variables: {
-      n,
-      currentSubset: "[]",
-    },
-  });
-
-  const backtrack = (idx: number, included: Set<number>) => {
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 5,
-      explanation: {
-        what: `Evaluate recursion base case: index (${idx}) == len(nums) (${n}).`,
-        why:
-          idx === n
-            ? `Reached boundary end of array; current subset [${currSubset.join(", ")}] is complete.`
-            : `Evaluating element nums[${idx}] = ${nums[idx]} for inclusion or exclusion.`,
-      },
-      primarySnapshot: buildArraySnapshot(idx, included),
-      auxiliaryState: {
-        customState: {
-          "Current Index": idx,
-          "Current Subset": `[${currSubset.join(", ")}]`,
-        },
-        visited: allSubsets.map((s) => `[${s.join(",")}]`),
-      },
-      variables: {
-        idx,
-        n,
-      },
-    });
-
-    if (idx === n) {
-      allSubsets.push([...currSubset]);
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 6,
-        explanation: {
-          what: `Recorded subset #${allSubsets.length}: [${currSubset.join(", ")}].`,
-          why: "A complete subset decision path has been reached and appended to output collection.",
-        },
-        primarySnapshot: buildArraySnapshot(idx, included),
-        auxiliaryState: {
-          customState: {
-            "Latest Subset": `[${currSubset.join(", ")}]`,
-            "Total Subsets Generated": allSubsets.length,
-          },
-          visited: allSubsets.map((s) => `[${s.join(",")}]`),
-        },
-        variables: {
-          idx,
-          subsetCount: allSubsets.length,
-          latestSubset: `[${currSubset.join(", ")}]`,
-        },
-      });
-      return;
-    }
-
-    // Decision: Exclude nums[idx]
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 10,
-      explanation: {
-        what: `Decision at index ${idx} (element ${nums[idx]}): EXCLUDE.`,
-        why: `Exploring decision branch omitting ${nums[idx]} from current subset.`,
-      },
-      primarySnapshot: buildArraySnapshot(idx, included),
-      auxiliaryState: {
-        customState: {
-          "Current Subset": `[${currSubset.join(", ")}]`,
-          Action: `Exclude ${nums[idx]}`,
-        },
-        visited: allSubsets.map((s) => `[${s.join(",")}]`),
-      },
-      variables: {
-        idx,
-        currElement: nums[idx],
-        decision: "exclude",
-      },
-    });
-
-    backtrack(idx + 1, included);
-
-    // Decision: Include nums[idx]
-    currSubset.push(nums[idx]);
-    const nextIncluded = new Set(included);
-    nextIncluded.add(idx);
-
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 13,
-      explanation: {
-        what: `Decision at index ${idx} (element ${nums[idx]}): INCLUDE.`,
-        why: `Adding ${nums[idx]} to current subset; exploring decision branch with subset [${currSubset.join(", ")}].`,
-      },
-      primarySnapshot: buildArraySnapshot(idx, nextIncluded),
-      auxiliaryState: {
-        customState: {
-          "Current Subset": `[${currSubset.join(", ")}]`,
-          Action: `Include ${nums[idx]}`,
-        },
-        visited: allSubsets.map((s) => `[${s.join(",")}]`),
-      },
-      variables: {
-        idx,
-        currElement: nums[idx],
-        decision: "include",
-      },
-    });
-
-    backtrack(idx + 1, nextIncluded);
-
-    // Un-choose
-    currSubset.pop();
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 15,
-      explanation: {
-        what: `Backtrack: un-choose element ${nums[idx]} at index ${idx}.`,
-        why: `Popped ${nums[idx]} to restore current subset state to [${currSubset.join(", ")}] for parent recursive frame.`,
-      },
-      primarySnapshot: buildArraySnapshot(idx, included),
-      auxiliaryState: {
-        customState: {
-          "Current Subset": `[${currSubset.join(", ")}]`,
-          Action: `Un-choose ${nums[idx]}`,
-        },
-        visited: allSubsets.map((s) => `[${s.join(",")}]`),
-      },
-      variables: {
-        idx,
-        poppedElement: nums[idx],
-      },
-    });
-  };
-
-  backtrack(0, new Set());
-
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 18,
-    explanation: {
-      what: `Power set generation complete! Generated all ${allSubsets.length} subsets.`,
-      why: "Exhaustive binary decision tree traversal over all 2^N states successfully completed.",
-    },
-    primarySnapshot: buildArraySnapshot(-1, new Set()),
-    auxiliaryState: {
-      customState: {
-        Status: "Complete!",
-        "Total Subsets": allSubsets.length,
-      },
-      visited: allSubsets.map((s) => `[${s.join(",")}]`),
-    },
-    variables: {
-      completed: true,
-      totalSubsets: allSubsets.length,
-    },
-  });
-
-  return steps;
-};
-
 export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   id: "generating-subsets",
   title: "Generating Subsets (Power Set)",
   topicIds: ["backtracking"],
   difficulty: "Easy",
   description:
-    "<p>Generate all <code>2^N</code> possible subsets (the power set) of an array of unique elements using recursive binary decision branching.</p><h3>Problem Statement</h3><p>Given an integer array <code>elements</code> of <code>N</code> unique integers, return all possible subsets (the power set) of the array in any order.</p><p>The power set of a set contains all subsets including the empty set and the set itself. The solution set must not contain duplicate subsets. Using depth-first search with recursive backtracking, each element presents a binary choice: either include it in the current subset or exclude it.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>elements</code> (array of <code>N</code> unique integers).</li><li><strong>Output:</strong> A list containing all <code>2^N</code> unique subsets.</li></ul>",
+    "<p>Given an integer array <code>elements</code> of unique integers, return all possible subsets (the power set) of the array in any order.</p><p><strong>Input:</strong> An array of unique integers <code>elements</code>.</p><p><strong>Output:</strong> A list of arrays representing all <code>2^N</code> unique subsets, including the empty set.</p>",
   constraints: [
     "1 <= elements.length <= 10",
     "-10 <= elements[i] <= 10",
@@ -255,30 +298,33 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "elements = [1, 2, 3]",
       outputDisplay: "8 subsets",
-      title: "3 Elements Power Set",
+      title: "Standard 3-Element Power Set",
       input: DEFAULT_GENERATING_SUBSETS_INPUT,
       output: "[[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]]",
       explanation: "3 unique elements produce 2^3 = 8 distinct subsets.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "elements = [1, 2, 3, 4]",
       outputDisplay: "16 subsets",
-      title: "4 Elements Power Set",
+      title: "Adversarial 4-Element Power Set",
       input: { elements: [1, 2, 3, 4] },
       output: "16 distinct subsets",
       explanation: "4 unique elements produce 2^4 = 16 distinct subsets.",
     },
     {
       kind: "negative",
-      inputDisplay: "elements = []",
-      outputDisplay: "[[]]",
-      title: "Empty Input Array",
-      input: { elements: [] },
-      output: "[[]]",
-      explanation: "An empty set has exactly 1 subset: the empty set itself.",
+      scenario: "boundary",
+      inputDisplay: "elements = [1]",
+      outputDisplay: "[[1]]",
+      title: "Single Element Boundary",
+      input: { elements: [1] },
+      output: "[[1]]",
+      explanation: "Single element array has 2^1 = 2 subsets: [] and [1].",
     },
   ],
   code: `def subsets(nums: list[int]) -> list[list[int]]:
@@ -289,9 +335,7 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
             result.append(current_subset.copy())
             return
 
-
         backtrack(index + 1, current_subset)
-
 
         current_subset.append(nums[index])
         backtrack(index + 1, current_subset)
@@ -347,11 +391,6 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
         definition:
           "Using integer bit flags to represent subset membership, mapping integers 0..2^N-1 to subsets.",
       },
-      {
-        term: "Combinatorial Explosion",
-        definition:
-          "The exponential growth rate of decision trees (2^N) requiring domain pruning for large N.",
-      },
     ],
   },
   trivia: SUBSETS_TRIVIA,
@@ -361,7 +400,7 @@ export const generatingSubsets: AlgorithmDefinition<GeneratingSubsetsInput> = {
       type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 5",
+      chapter: 5,
       label: "Competitive Programmer's Handbook, Ch 5",
     },
   ],

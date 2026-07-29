@@ -17,6 +17,9 @@ interface ProblemListFilterToolbarProps {
   onDifficultySelect: (difficulty: ProblemListDifficulty) => void;
   selectedSource?: ProblemListSource;
   onSourceSelect?: (source: ProblemListSource) => void;
+  selectedTag?: string;
+  onTagSelect?: (tag: string) => void;
+  availableTags?: string[];
   filteredCount: number;
   stats: { total: number; easy: number; medium: number; hard: number };
 }
@@ -30,20 +33,23 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
   onDifficultySelect,
   selectedSource = "All",
   onSourceSelect,
+  selectedTag = "All",
+  onTagSelect,
+  availableTags = [],
   filteredCount,
   stats,
 }) => {
   const isMlInfraActive = selectedSource === "ml_infra";
 
   return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 flex-wrap">
       <div className="flex-1 min-w-[240px]">
         <Input
           value={searchTerm}
           onChange={(e) => onSearchTermChange(e.target.value)}
           onClear={() => onSearchTermChange("")}
           leadingIcon={<Search className="text-[var(--text-muted)]" size={18} />}
-          placeholder="Search problems by title, topic, description..."
+          placeholder="Search problems by title, topic, tag (e.g. Ch 21)..."
           aria-label="Filter problems"
         />
       </div>
@@ -65,6 +71,28 @@ export const ProblemListFilterToolbar: React.FC<ProblemListFilterToolbarProps> =
           ))}
         </Select>
       </div>
+
+      {availableTags.length > 0 && (
+        <div className="min-w-[180px] flex items-center gap-2">
+          <label
+            style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}
+          >
+            Tag / Chapter:
+          </label>
+          <Select
+            value={selectedTag}
+            onChange={(e) => onTagSelect && onTagSelect(e.target.value)}
+            aria-label="Filter by Tag or Chapter"
+          >
+            <option value="All">All Tags</option>
+            {availableTags.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
 
       <div className="min-w-[160px] flex items-center gap-2">
         <label style={{ fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)" }}>

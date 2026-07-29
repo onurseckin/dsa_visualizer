@@ -27,32 +27,27 @@ visualizations, and retrieval-practice trivia. Read [README.md](README.md) for s
   token-based CSS.
 - Bun is the only package/script runner. Do not add npm, pnpm, or yarn lockfiles.
 - Oxlint and Oxfmt are the lint/format tools.
-- Docker Compose runs Nginx, the Bun/SQLite API, and an internal CPython runner.
-  The Vite plugin exposes the same persistence surface for frontend development.
+- Docker Compose runs the default watch stack: Vite with HMR, the Bun/SQLite API,
+  and an internal CPython runner. `dev:local` uses Vite's persistence adapter.
 
 | Command | Purpose |
 | --- | --- |
 | `bun install` | Install dependencies |
-| `bun run dev` | Start Vite on port 5173 (do not leave it running for a user) |
-| `bun run ddev` | Start the Docker development stack with web HMR and backend source watchers |
-| `bun run ddev:down` | Stop the Docker development stack while preserving persisted data |
-| `bun run ddev:logs` | Follow development-stack service logs |
-| `bun run ddev:ps` | Show development-stack service status |
-| `bun run dup` | Build and start the Docker Compose stack, waiting for healthy services |
-| `bun run ddown` | Stop the Docker Compose stack and preserve persisted data |
-| `bun run drestart` | Rebuild and restart the Docker Compose stack |
-| `bun run dbuild` | Build Docker Compose images without starting services |
-| `bun run dlogs` | Follow Docker Compose logs for all services |
-| `bun run dps` | Show Docker Compose service status |
-| `bun run dclean` | Stop the stack and delete persisted Docker volumes (destructive) |
-| `bun run compose:dev:check` | Validate the Docker development Compose configuration |
+| `bun run start` / `bun run dev` | Build and start the Docker watch stack with live updates |
+| `bun run stop` | Stop the Docker stack, preserving images and `api_data` |
+| `bun run restart` | Restart the Docker watch stack, rebuilding as needed |
+| `bun run logs` / `bun run ps` | Follow logs / show status for the Docker stack |
+| `bun run shell:web` / `shell:api` / `shell:runner` | Open a shell in the named Docker service |
+| `bun run clean` | Stop the Docker stack and delete named volumes (destructive) |
+| `bun run dev:local` / `bun run start:local` | Run host Vite with the Vite persistence adapter; no server-only runner |
+| `bun run compose:check` | Validate the single Docker watch-stack configuration |
 | `bun run typecheck` | TypeScript check |
 | `bun run format:check` | Check formatting |
 | `bun run lint` | Run Oxlint with zero warnings |
-| `bun run build` | Typecheck and create `dist/` |
+| `bun run build` | Typecheck and create the standalone `dist/` quality artifact |
 | `bun run audit:catalog` | Verify exact active counts, Python assets, sources, and retirement |
 | `bun run audit:visualizers` | Report tutorial migration and primitive-authoring health |
-| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog audit, and build |
+| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog audit, and standalone build |
 
 `src/routeTree.gen.ts` is generated. Never edit it by hand. Keep the TanStack Router
 plugin before React in `vite.config.ts` and use `bun run generate-routes` when a route
@@ -151,6 +146,43 @@ Agents authoring new items or updating existing algorithm/learning items MUST st
   are editable, keyed by canonical item ID, and must execute through the shared
   browser/server contract with bounded output and authored cases.
 
+## Executable runner-case authoring
+
+Runner cases are learner-facing execution fixtures, not repository unit,
+component, integration, or end-to-end test files. For every executable DSA item,
+author its cases in `src/playground/specs-data/dsa/<topic>.ts` using the
+canonical `defineDsaExecution` contract.
+
+- Keep the three `cases(...)` slots for a standard path, a boundary case, and a
+  complex/adversarial case. Add at least five focused `extraCases(...)` fixtures
+  when the input domain permits it; the default execution limit is 100 cases per
+  item.
+- Every fixture must exactly match the reference code's callable interface:
+  entrypoint, class method or function signature, argument paths, input shape,
+  return type, mutation behavior, ordering comparison, and expected value.
+  Update the definition's description, examples, default input, and visualizer
+  input normalization in the same change when that interface changes.
+- Derive expected values independently of the optimized reference implementation.
+  Use a deliberately simple mathematical oracle, brute force over a small
+  bounded domain, or a direct invariant. Never calculate expected outputs by
+  calling the solution being graded.
+- Cover distinct failure modes rather than repeating examples: minimum and
+  maximum valid inputs, zero/one/empty boundaries when allowed, duplicates and
+  order changes, identity values, prime/composite or valid/invalid partitions,
+  no-solution and multiple-solution outcomes, repeated factors, overflow- or
+  performance-adjacent values that remain within runner limits, and cases that
+  expose common off-by-one, equality, initialization, or early-return errors.
+- Exhausting the full constraint space is usually infeasible. Exhaustively
+  enumerate only a small representative domain with an independent oracle, then
+  add deterministic adversarial cases that exercise large-input behavior. Do
+  not claim a finite fixture set proves correctness.
+- Keep fixtures deterministic, JSON-serializable, bounded by the execution
+  contract, and visibly named for the behavior they protect. Use `deep-equal`
+  unless an order-insensitive or floating-point contract genuinely requires a
+  different supported comparison.
+- When expanding a chapter, review every runnable item in that chapter together
+  so all of its contracts have comparable boundary and adversarial coverage.
+
 ## Planning and verification
 
 Do not write, generate, or require unit, component, integration, or end-to-end tests
@@ -166,6 +198,6 @@ work. For independent bounded work, delegate only when requested or when the act
 task explicitly calls for parallelism.
 
 Suggested roles are a coordinator for integration and scope, focused implementers
-for disjoint files, and a reviewer for production behavior and contracts. Choose a model and reasoning
+for disjoint files, and a reviewer for runtime behavior and contracts. Choose a model and reasoning
 effort for the task at hand rather than pinning a repository-wide model configuration.
 Project trust is configured by the user's Codex configuration, not this repository.

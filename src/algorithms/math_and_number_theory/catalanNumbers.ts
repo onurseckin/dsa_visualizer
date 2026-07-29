@@ -1,293 +1,289 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  ArrayElement,
-  ArrayVisualSnapshot,
-  ElementState,
-  TopicGuide,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface CatalanNumbersInput {
   n: number;
 }
 
-export const PYTHON_CATALAN_NUMBERS_CODE = `def catalan_number(n: int) -> int:
-    C = [0] * (n + 1)
-    C[0] = 1
-    for i in range(1, n + 1):
-        for j in range(i):
-            C[i] += C[j] * C[i - 1 - j]
-    return C[n]`;
+export const PYTHON_CATALAN_NUMBERS_CODE = `class Solution:
+    def __init__(self):
+        pass
+
+    def numTrees(self, n: int) -> int:
+        dp = [0] * (n + 1)
+        dp[0] = dp[1] = 1
+        for i in range(2, n + 1):
+            for j in range(1, i + 1):
+                dp[i] += dp[j - 1] * dp[i - j]
+        return dp[n]`;
 
 export const DEFAULT_CATALAN_NUMBERS_INPUT: CatalanNumbersInput = {
-  n: 6,
+  n: 4,
+};
+
+const createIntroSnapshots = (): AlgorithmStep[] => {
+  const introData = [
+    {
+      title: "Catalan Numbers Definition",
+      narrative:
+        "Catalan numbers C_n form a sequence enumerating balanced parentheses sequences, Dyck grid paths, binary search trees, and convex polygon triangulations.",
+      elements: [
+        { id: "c-0", value: 1, label: "C[0]", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "C[1]", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "C[2]", state: "sorted" as const },
+        { id: "c-3", value: 5, label: "C[3]", state: "sorted" as const },
+        { id: "c-4", value: 14, label: "C[4]", state: "sorted" as const },
+      ],
+    },
+    {
+      title: "Balanced Parentheses Topologies",
+      narrative:
+        "For example, C_3 = 5 counts the 5 distinct valid pairings of 3 pairs of parentheses: ((())), (()()), (())(), ()(()), and ()()().",
+      elements: [
+        { id: "c-0", value: 1, label: "Empty", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "1 Pair", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "2 Pairs", state: "sorted" as const },
+        { id: "c-3", value: 5, label: "3 Pairs", state: "active" as const },
+        { id: "c-4", value: 14, label: "4 Pairs", state: "default" as const },
+      ],
+    },
+    {
+      title: "Binary Tree Topologies",
+      narrative:
+        "The sequence also counts structural binary tree shapes: C_3 = 5 distinct binary search tree topologies can be constructed with 3 nodes.",
+      elements: [
+        { id: "c-0", value: 1, label: "0 Nodes", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "1 Node", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "2 Nodes", state: "sorted" as const },
+        { id: "c-3", value: 5, label: "3 Nodes", state: "active" as const },
+        { id: "c-4", value: 14, label: "4 Nodes", state: "default" as const },
+      ],
+    },
+    {
+      title: "Factorial Formula Overflow Risk",
+      narrative:
+        "The closed-form formula C_n = (1 / (n + 1)) * C(2n, n) requires computing 2n factorials, which suffer from early 64-bit integer overflow.",
+      elements: [
+        { id: "c-0", value: 1, label: "C[0]", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "C[1]", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "C[2]", state: "sorted" as const },
+        { id: "c-3", value: 5, label: "C[3]", state: "compare" as const },
+        { id: "c-4", value: 14, label: "C[4]", state: "compare" as const },
+      ],
+    },
+    {
+      title: "Root Partitioning Principle",
+      narrative:
+        "To build a structure of size i, we fix a root element and partition the remaining i-1 units into a left sub-structure of size j and a right sub-structure of size i-1-j.",
+      elements: [
+        { id: "c-0", value: 1, label: "Left C[0]", state: "compare" as const },
+        { id: "c-1", value: 1, label: "Left C[1]", state: "compare" as const },
+        { id: "c-2", value: 2, label: "Right C[2]", state: "compare" as const },
+        { id: "c-3", value: 5, label: "Target C[3]", state: "active" as const },
+      ],
+    },
+    {
+      title: "Convolution Recurrence Relation",
+      narrative:
+        "The Catalan sequence satisfies the DP convolution recurrence C_i = sum(C_j * C_{i-1-j}) for j running from 0 to i-1.",
+      elements: [
+        { id: "c-0", value: 1, label: "C[0]", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "C[1]", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "C[2]", state: "sorted" as const },
+        { id: "c-3", value: 5, label: "C[3]", state: "active" as const },
+      ],
+    },
+    {
+      title: "Base Case Initialization",
+      narrative:
+        "Setting base case C[0] = 1 represents the single empty valid structure, anchoring all future product sums.",
+      elements: [
+        { id: "c-0", value: 1, label: "Base C[0]", state: "sorted" as const },
+        { id: "c-1", value: 0, label: "C[1]", state: "default" as const },
+        { id: "c-2", value: 0, label: "C[2]", state: "default" as const },
+        { id: "c-3", value: 0, label: "C[3]", state: "default" as const },
+      ],
+    },
+    {
+      title: "Dynamic Programming Table Fill",
+      narrative:
+        "We populate the DP array iteratively from i = 1 up to n, caching sub-problem results to evaluate each C[i] in O(i) additions.",
+      elements: [
+        { id: "c-0", value: 1, label: "C[0]", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "C[1]", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "C[2]", state: "active" as const },
+        { id: "c-3", value: 0, label: "C[3]", state: "default" as const },
+      ],
+    },
+    {
+      title: "Quadratic Time & Linear Space",
+      narrative:
+        "Evaluating all n entries takes O(n^2) total operations and O(n) space, avoiding factorial overflow while computing exact counts.",
+      elements: [
+        { id: "c-0", value: 1, label: "C[0]", state: "sorted" as const },
+        { id: "c-1", value: 1, label: "C[1]", state: "sorted" as const },
+        { id: "c-2", value: 2, label: "C[2]", state: "sorted" as const },
+        { id: "c-3", value: 5, label: "C[3]", state: "sorted" as const },
+        { id: "c-4", value: 14, label: "C[4]", state: "sorted" as const },
+      ],
+    },
+  ];
+
+  return introData.map((data, idx) =>
+    createTutorialStep({
+      stepIndex: idx,
+      phase: "intro",
+      narrative: data.narrative,
+      primarySnapshot: {
+        kind: "array",
+        name: "catalan_dp",
+        mode: "box",
+        elements: data.elements,
+      },
+    }),
+  );
 };
 
 export const generateCatalanNumbersSteps = (input?: CatalanNumbersInput): AlgorithmStep[] => {
-  const steps: AlgorithmStep[] = [];
-  let stepIndex = 0;
+  const introSteps = createIntroSnapshots();
+  const steps: AlgorithmStep[] = [...introSteps];
+  let stepIndex = introSteps.length;
 
   const safeInput = input ?? DEFAULT_CATALAN_NUMBERS_INPUT;
-  const rawN = Number.isFinite(safeInput?.n)
+  const safeN = Number.isFinite(safeInput?.n)
     ? Math.floor(safeInput.n)
     : DEFAULT_CATALAN_NUMBERS_INPUT.n;
-  const nVal = Math.min(10, Math.max(0, rawN));
+
+  const nVal = Math.min(8, Math.max(0, safeN));
+
   const C: number[] = new Array(nVal + 1).fill(0);
+  C[0] = 1;
 
   const createArraySnapshot = (
     activeIdx: number | null,
-    jIdx: number | null = null,
-    compIdx: number | null = null,
-    computedUpTo: number = -1,
-  ): ArrayVisualSnapshot => {
+    j1: number | null = null,
+    j2: number | null = null,
+    isDone: boolean = false,
+  ) => {
     const elements: ArrayElement[] = C.map((val, idx) => {
-      let state: ElementState = "default";
-      const pointers: string[] = [];
-
-      if (idx <= computedUpTo) {
+      let state: ArrayElement["state"] = "default";
+      if (isDone && idx === nVal) {
+        state = "sorted";
+      } else if (idx === activeIdx) {
+        state = "active";
+      } else if (idx === j1 || idx === j2) {
+        state = "compare";
+      } else if (idx < (activeIdx ?? (isDone ? nVal + 1 : 0)) && val > 0) {
         state = "sorted";
       }
-
-      if (idx === jIdx) {
-        state = "compare";
-        pointers.push("j");
-      }
-      if (idx === compIdx) {
-        state = "compare";
-        pointers.push("i-1-j");
-      }
-      if (idx === activeIdx) {
-        state = "active";
-        pointers.push("i");
-      }
-
       return {
-        id: `C-${idx}`,
+        id: `c-${idx}`,
         value: val,
         label: `C[${idx}]`,
         state,
-        pointers: pointers.length > 0 ? pointers : undefined,
       };
     });
 
     return {
-      kind: "array",
+      kind: "array" as const,
+      name: "catalan_dp",
+      mode: "box" as const,
       elements,
     };
   };
 
-  // Step 0: Function entry
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Calling catalan_number(n = ${nVal}).`,
-      why: "Catalan numbers count combinatorial structures such as balanced parentheses, Dyck paths, and binary trees.",
-    },
-    primarySnapshot: createArraySnapshot(null),
-    auxiliaryState: {
-      hashMap: {
-        "Target Catalan Number": `C_${nVal}`,
-        "Array Size": `${nVal + 1}`,
-      },
-      customState: {
-        n: nVal,
-      },
-    },
-    variables: {
-      n: nVal,
-    },
-  });
-
-  // Step 1: Array allocation
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Initializing DP array C of size ${nVal + 1} with zeros.`,
-      why: "Array C will cache subproblem solutions C[0] through C[${nVal}] for convolution lookup.",
-    },
-    primarySnapshot: createArraySnapshot(null),
-    auxiliaryState: {
-      hashMap: {
-        "Array Size": `${nVal + 1}`,
-      },
-      customState: {
-        n: nVal,
-      },
-    },
-    variables: {
-      n: nVal,
-    },
-  });
-
-  // Step 2: Base Case
-  C[0] = 1;
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: "Setting base case C[0] = 1.",
-      why: "By convention, there is exactly 1 valid empty combinatorial structure.",
-    },
-    primarySnapshot: createArraySnapshot(null, null, null, 0),
-    auxiliaryState: {
-      hashMap: {
-        "Base Case": "C[0] = 1",
-      },
-      customState: {
-        "C[0]": 1,
-      },
-    },
-    variables: {
-      "C[0]": 1,
-    },
-  });
-
-  // DP computation
-  for (let i = 1; i <= nVal; i++) {
-    steps.push({
+  steps.push(
+    createTutorialStep({
       stepIndex: stepIndex++,
-      codeLine: 4,
-      explanation: {
-        what: `Outer loop i = ${i}: Computing Catalan number C[${i}]. Initializing sum C[${i}] = 0.`,
-        why: "Summing cross-products C[j] * C[i - 1 - j] across all valid sub-structure partition sizes.",
-      },
-      primarySnapshot: createArraySnapshot(i, null, null, i - 1),
-      auxiliaryState: {
-        hashMap: {
-          CurrentIndex: `i = ${i}`,
-          Formula: `C[${i}] = sum(C[j] * C[${i - 1}-j])`,
-        },
-        customState: {
-          i,
-          runningSum: 0,
-        },
-      },
-      variables: {
-        i,
-        runningSum: 0,
-      },
-    });
+      phase: "walkthrough",
+      narrative: `We initialize Catalan DP array of size ${nVal + 1} with base case C[0] = 1.`,
+      primarySnapshot: createArraySnapshot(0),
+    }),
+  );
+
+  for (let i = 1; i <= nVal; i++) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Computing C[${i}] using convolution sum over previous Catalan values.`,
+        primarySnapshot: createArraySnapshot(i),
+      }),
+    );
 
     for (let j = 0; j < i; j++) {
-      const comp = i - 1 - j;
-      const product = C[j] * C[comp];
-      const prevVal = C[i];
-      C[i] += product;
+      const leftPart = C[j];
+      const rightPart = C[i - 1 - j];
+      const prod = leftPart * rightPart;
+      C[i] += prod;
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 6,
-        explanation: {
-          what: `Partition j = ${j}: product C[${j}] * C[${comp}] = ${C[j]} * ${C[comp]} = ${product}. Accumulating into C[${i}]: ${prevVal} + ${product} = ${C[i]}.`,
-          why: `Pairing a left sub-structure of size j=${j} (C[${j}]=${C[j]}) with a right sub-structure of size ${comp} (C[${comp}]=${C[comp]}).`,
-        },
-        primarySnapshot: createArraySnapshot(i, j, comp, i - 1),
-        auxiliaryState: {
-          hashMap: {
-            "Left Sub-structure C[j]": `C[${j}] = ${C[j]}`,
-            "Right Sub-structure C[i-1-j]": `C[${comp}] = ${C[comp]}`,
-            Product: `${product}`,
-            "Updated C[i]": `${C[i]}`,
-          },
-          customState: {
-            i,
-            j,
-            comp,
-            product,
-            val: C[i],
-          },
-        },
-        variables: {
-          i,
-          j,
-          comp,
-          product,
-          currentSum: C[i],
-        },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Adding product term C[${j}] * C[${i - 1 - j}] = ${leftPart} * ${rightPart} = ${prod} to C[${i}], updating total to ${C[i]}.`,
+          primarySnapshot: createArraySnapshot(i, j, i - 1 - j),
+        }),
+      );
     }
+
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Completed calculation for C[${i}] = ${C[i]}.`,
+        primarySnapshot: createArraySnapshot(i),
+      }),
+    );
   }
 
-  // Final Step
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: `Completed Catalan number evaluation! Returning C[${nVal}] = ${C[nVal]}.`,
-      why: `The n-th Catalan number C_${nVal} has been computed using dynamic programming convolution.`,
-    },
-    primarySnapshot: createArraySnapshot(null, null, null, nVal),
-    auxiliaryState: {
-      hashMap: {
-        "Final Catalan C_n": `${C[nVal]}`,
-        "Sequence C[0..n]": C.join(", "),
-      },
-      customState: {
-        result: C[nVal],
-      },
-    },
-    variables: {
-      result: C[nVal],
-    },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Catalan evaluation complete: the ${nVal}-th Catalan number C_${nVal} is ${C[nVal]}.`,
+      primarySnapshot: createArraySnapshot(nVal, null, null, true),
+    }),
+  );
 
   return steps;
 };
 
 export const CATALAN_NUMBERS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p><strong>Catalan numbers</strong> <code>C<sub>n</sub></code> form one of the most celebrated integer sequences in combinatorics, enumerating over 66 distinct categories of geometric and structural objects. The <code>n</code>-th Catalan number has explicit closed form <code>C<sub>n</sub> = (1 / (n + 1)) &times; C(2n, n)</code> and obeys the convolution recurrence <code>C<sub>n</sub> = &sum; C<sub>j</sub> &times; C<sub>n-1-j</sub></code> with base case <code>C<sub>0</sub> = 1</code>.</p>",
+    "<p>Catalan numbers form a sequence of natural numbers that appear in many counting problems in combinatorics, such as counting balanced parentheses strings, Dyck grid paths, binary search trees with n nodes, and polygon triangulations.</p>",
   sections: [
     {
-      heading: "Combinatorial Applications",
-      body: "<p>Catalan numbers count diverse combinatorial structures:</p><ul><li><strong>Valid Parentheses:</strong> Well-formed bracket sequences with <code>n</code> pairs.</li><li><strong>Full Binary Trees:</strong> Distinct full binary trees with <code>n</code> internal nodes (and <code>n+1</code> leaves).</li><li><strong>Dyck Paths:</strong> Monotonic grid paths from <code>(0,0)</code> to <code>(n,n)</code> staying below the main diagonal.</li><li><strong>Polygon Triangulations:</strong> Non-crossing triangulations of a convex polygon with <code>n+2</code> vertices.</li><li><strong>Non-crossing Handshakes:</strong> Valid pairings among <code>2n</code> points on a circle.</li></ul>",
+      heading: "Convolution Recurrence Relation",
+      body: "<p>The n-th Catalan number obeys the recurrence C_n = sum(C_j * C_{n-1-j}) for j from 0 to n-1, anchored by base case C_0 = 1. Subproblem sizes j and n-1-j correspond to partitioning elements around a root or split point.</p>",
     },
     {
-      heading: "Convolution Recurrence Derivation",
-      body: "<p>The identity <code>C<sub>i</sub> = &sum; C<sub>j</sub> &times; C<sub>i-1-j</sub></code> models structural partitioning: to build an object of size <code>i</code>, fix a root or boundary element and divide the remaining <code>i-1</code> units into a left sub-structure of size <code>j</code> (having <code>C<sub>j</sub></code> arrangements) and a right sub-structure of size <code>i-1-j</code> (having <code>C<sub>i-1-j</sub></code> arrangements).</p>",
-    },
-    {
-      heading: "Complexity & Integer Overflow",
-      body: "<p>Evaluating <code>C<sub>n</sub></code> via 2D DP loops runs in <code>O(n<sup>2</sup>)</code> time and <code>O(n)</code> space. Asymptotically, Catalan numbers grow as <code>C<sub>n</sub> &approx; 4<sup>n</sup> / (n<sup>3/2</sup> &radic;&pi;)</code>. In 64-bit integer arithmetic, <code>C<sub>n</sub></code> overflows beyond <code>n = 35</code>.</p>",
-    },
-    {
-      heading: "Boundary Conditions",
-      body: "<p>The base case <code>C<sub>0</sub> = 1</code> accounts for the unique empty structure. Single prime queries can evaluate <code>C<sub>n</sub> = (1 / (n+1)) &times; C(2n, n) mod p</code> in <code>O(n)</code> time using inverse factorials.</p>",
+      heading: "Dynamic Programming Execution",
+      body: "<p>Instead of direct factorial evaluation C_n = (1 / (n + 1)) * C(2n, n) which risks rapid integer overflow, dynamic programming computes terms iteratively in O(n^2) time and O(n) space.</p>",
     },
   ],
   keyTerms: [
     {
+      term: "Catalan Number",
+      definition:
+        "A combinatorial sequence entry C_n counting valid structural topologies of size n.",
+    },
+    {
       term: "Dyck Path",
       definition:
-        "A staircase grid path from (0,0) to (n,n) taking right and up steps that never crosses above the main diagonal.",
+        "A grid path from (0,0) to (2n, 0) using up and down steps that never falls below the x-axis.",
     },
     {
-      term: "Catalan Recurrence",
+      term: "Convolution Recurrence",
       definition:
-        "The quadratic convolution identity C_n = sum(C_j * C_{n-1-j}) used to compute Catalan numbers via dynamic programming.",
-    },
-    {
-      term: "Full Binary Tree",
-      definition:
-        "A binary tree where every node has either zero or two children; the count of full binary trees with n+1 leaves is C_n.",
+        "The quadratic recurrence sum_{j=0}^{n-1} C_j * C_{n-1-j} that builds larger structures from pairs of sub-structures.",
     },
   ],
 };
 
 export const CATALAN_NUMBERS_TRIVIA: TriviaMeta = {
-  lineExplanations: {
-    1: "Defines catalan_number(n: int) -> int: entry point for Catalan number DP computation.",
-    2: "Initializes DP state array C of size n + 1 filled with zeros.",
-    3: "Sets base case C[0] = 1 for the unique empty combinatorial structure.",
-    4: "Outer loop iterates target subproblem index i from 1 to n.",
-    5: "Inner loop iterates partition index j from 0 to i - 1.",
-    6: "Accumulates product of left substructure size j (C[j]) and right substructure size i-1-j (C[i-1-j]).",
-    7: "Returns C[n], the n-th Catalan number.",
-  },
+  lineExplanations: {},
 };
 
 export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
@@ -296,59 +292,83 @@ export const catalanNumbers: AlgorithmDefinition<CatalanNumbersInput> = {
   topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "<p>Calculates the <code>n</code>-th <strong>Catalan number</strong> <code>C<sub>n</sub></code> using dynamic programming convolution recurrence in <code>O(n<sup>2</sup>)</code> time:</p><p><code>C<sub>n</sub> = &sum; C<sub>j</sub> &times; C<sub>n-1-j</sub></code> (for <code>j</code> from <code>0</code> to <code>n-1</code>)</p><h3>State Representation</h3><p>The DP state is stored as a 1D array <code>C[0 ... n]</code> where entry <code>C[k]</code> holds the <code>k</code>-th Catalan number.</p><h3>Input Parameters</h3><ul><li><code>n</code>: Index of the Catalan number to compute.</li></ul><h3>Output</h3><ul><li><code>int</code>: The <code>n</code>-th Catalan number <code>C<sub>n</sub></code>.</li></ul>",
-  constraints: ["0 <= n <= 25"],
+    "<p>Compute the <code>n</code>-th Catalan number <code>C_n</code>, which counts the number of distinct balanced parentheses strings of length <code>2n</code> or binary search trees with <code>n</code> nodes.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul><li><code>n</code> (<code>n &ge; 0</code>): Index of the Catalan number to compute.</li></ul>" +
+    "<h3>Output</h3>" +
+    "<ul><li><code>int</code>: Value of the <code>n</code>-th Catalan number <code>C_n</code>.</li></ul>",
+  constraints: ["0 <= n <= 19"],
   examples: [
     {
       kind: "basic",
-      title: "n = 5 Parentheses Pairs",
-      inputDisplay: "n = 5",
-      outputDisplay: "C_5 = 42",
-      input: { n: 5 },
-      output: "42",
-      explanation: "There are 42 valid bracket expressions containing 5 pairs of parentheses.",
-    },
-    {
-      kind: "complex",
-      title: "n = 6 Binary Trees",
-      inputDisplay: "n = 6",
-      outputDisplay: "C_6 = 132",
-      input: { n: 6 },
-      output: "132",
-      explanation: "There are 132 distinct unlabeled binary trees with 6 nodes.",
+      scenario: "standard",
+      title: "Standard Catalan C_4",
+      inputDisplay: "n = 4",
+      outputDisplay: "14",
+      input: { n: 4 },
+      output: "14",
+      explanation: "C_4 = 14 counts binary search trees with 4 nodes.",
     },
     {
       kind: "negative",
-      title: "n = 0 Base Case",
+      scenario: "boundary",
+      title: "Boundary Catalan C_0",
       inputDisplay: "n = 0",
-      outputDisplay: "C_0 = 1",
+      outputDisplay: "1",
       input: { n: 0 },
       output: "1",
-      explanation: "By definition, C_0 = 1 (1 way for 0 items/empty set).",
+      explanation: "C_0 = 1 represents the single empty structure.",
+    },
+    {
+      kind: "complex",
+      scenario: "adversarial",
+      title: "Larger Catalan C_5",
+      inputDisplay: "n = 5",
+      outputDisplay: "42",
+      input: { n: 5 },
+      output: "42",
+      explanation: "C_5 = 42 valid balanced parentheses expressions.",
     },
   ],
   code: PYTHON_CATALAN_NUMBERS_CODE,
   timeComplexity: {
-    best: "O(N^2)",
-    average: "O(N^2)",
-    worst: "O(N^2)",
+    best: "O(n^2)",
+    average: "O(n^2)",
+    worst: "O(n^2)",
   },
-  spaceComplexity: "O(N)",
+  spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "Nested loops compute convolution sum of products for each i from 1 to N, taking O(N^2) time.",
-    space: "Requires O(N) memory to store the DP array C[0..N].",
+    time: "Fills a 1D DP table of size n+1 where element i takes i operations, giving O(n^2) time.",
+    space: "Requires O(n) space for DP storage.",
   },
   topicGuide: CATALAN_NUMBERS_TOPIC_GUIDE,
   trivia: CATALAN_NUMBERS_TRIVIA,
   sources: [
     {
+      kind: "leetcode",
+      type: "leetcode",
+      id: 96,
+      leetcodeId: 96,
+      url: "https://leetcode.com/problems/unique-binary-search-trees/",
+      label: "LeetCode #96",
+      title: "Unique Binary Search Trees",
+    },
+    {
       kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 22",
+      type: "book",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 22,
+      chapterTitle: "Combinatorics",
       section: "22.2 Catalan numbers",
+      url: "https://cses.fi/book/book.pdf",
     },
   ],
+  leetcode: {
+    id: 96,
+    url: "https://leetcode.com/problems/unique-binary-search-trees/",
+  },
   defaultInput: DEFAULT_CATALAN_NUMBERS_INPUT,
   generateSteps: generateCatalanNumbersSteps,
 };
+
+export default catalanNumbers;

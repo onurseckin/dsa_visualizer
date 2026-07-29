@@ -29,7 +29,7 @@ class Trie:
             node = node.children[char]
         return node.is_end_of_word
 
-    def starts_with(self, prefix: str) -> bool:
+    def startsWith(self, prefix: str) -> bool:
         node = self.root
         for char in prefix:
             if char not in node.children:

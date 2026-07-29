@@ -3,8 +3,10 @@ import type {
   AlgorithmStep,
   GraphEdgeItem,
   GraphNodeItem,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface EdmondsKarpMaxFlowInput {
   sourceId?: string;
@@ -53,45 +55,6 @@ def edmonds_karp(capacity, source, sink):
         
     return max_flow`;
 
-export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2],
-  distractors: [
-    "queue.pop()",
-    "flow[p][curr] -= bottleneck",
-    "max_flow = max(max_flow, bottleneck)",
-    "if capacity[curr][nxt] > 0:",
-  ],
-  hints: [
-    {
-      line: 10,
-      hint: "Edmonds-Karp uses BFS (FIFO queue) to find augmenting paths with the fewest edges.",
-    },
-    {
-      line: 16,
-      hint: "Residual capacity is defined as capacity[u][v] - flow[u][v].",
-    },
-    {
-      line: 23,
-      hint: "Find bottleneck flow as the minimum residual capacity along the augmenting path.",
-    },
-    {
-      line: 33,
-      hint: "Add bottleneck flow to forward edges and subtract from reverse residual edges.",
-    },
-  ],
-  lineExplanations: {
-    1: "Imports deque for BFS augmenting path search.",
-    3: "Defines Edmonds-Karp Max Flow algorithm taking capacity matrix, source, and sink.",
-    5: "Initializes flow matrix flow[u][v] = 0.",
-    10: "Runs BFS to discover shortest augmenting path from source to sink in residual network.",
-    16: "Filters for edges with strictly positive residual capacity capacity[u][v] - flow[u][v] > 0.",
-    20: "Terminates when sink is unreachable from source in residual graph (parent[sink] == -1).",
-    27: "Calculates bottleneck flow constraint as minimum residual capacity along path.",
-    33: "Augments forward flow flow[u][v] += push and updates reverse residual edge flow[v][u] -= push.",
-    37: "Accumulates bottleneck flow into max_flow.",
-  },
-};
-
 export const DEFAULT_EDMONDS_KARP_INPUT: EdmondsKarpMaxFlowInput = {
   sourceId: "S",
   sinkId: "T",
@@ -110,8 +73,197 @@ export const DEFAULT_EDMONDS_KARP_INPUT: EdmondsKarpMaxFlowInput = {
   ],
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Maximum Flow problem seeks to push the maximum possible throughput from source vertex S to sink vertex T through a directed capacity-constrained network.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S (Source)", state: "active" },
+        { id: "A", label: "A", state: "default" },
+        { id: "B", label: "B", state: "default" },
+        { id: "T", label: "T (Sink)", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10 },
+        { from: "S", to: "B", weight: 10 },
+        { from: "A", to: "T", weight: 8 },
+        { from: "B", to: "T", weight: 10 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Edmonds-Karp specializes Ford-Fulkerson by using Breadth-First Search (BFS) to find shortest augmenting paths in terms of edge count, guaranteeing O(V * E^2) polynomial time.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A (BFS 1)", state: "active" },
+        { id: "B", label: "B (BFS 1)", state: "active" },
+        { id: "T", label: "T (BFS 2)", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10, isTraversed: true },
+        { from: "S", to: "B", weight: 10, isTraversed: true },
+        { from: "A", to: "T", weight: 8 },
+        { from: "B", to: "T", weight: 10 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Residual Graph G_f maintains remaining forward capacity c(u,v) - f(u,v) and reverse backflow capacity f(u,v) to enable flow redirection.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A", state: "visited" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 2, isPath: true },
+        { from: "A", to: "T", weight: 0, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "BFS expands frontier vertices level-by-level in G_f to locate the shortest path to sink T with positive residual capacity.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "Frontier A", state: "active" },
+        { id: "B", label: "Frontier B", state: "active" },
+        { id: "T", label: "Target T", state: "compare" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10, isTraversed: true },
+        { from: "S", to: "B", weight: 10, isTraversed: true },
+        { from: "A", to: "T", weight: 8 },
+        { from: "B", to: "T", weight: 10 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Once an augmenting path is found by BFS, backtracking parent pointers identifies the exact path sequence S -> ... -> T.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "Path A", state: "swap" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10, isPath: true },
+        { from: "A", to: "T", weight: 8, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Bottleneck Capacity calculation determines delta = min residual capacity along the augmenting path, which limits the flow addition.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A (Bottleneck:8)", state: "swap" },
+        { id: "T", label: "T", state: "visited" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 10, isPath: true },
+        { from: "A", to: "T", weight: 8, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Flow Augmentation adds delta to forward edge flow and updates reverse residual edge capacity to allow future flow cancellation.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "S", state: "visited" },
+        { id: "A", label: "A (+8 Flow)", state: "sorted" },
+        { id: "T", label: "T (+8 Flow)", state: "sorted" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 2, isPath: true },
+        { from: "A", to: "T", weight: 0, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Max-Flow Min-Cut Theorem: When BFS can no longer reach sink T in residual graph G_f, the total pushed flow equals the capacity of the minimum S-T cut.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "Cut S", state: "visited" },
+        { id: "A", label: "Cut S", state: "visited" },
+        { id: "B", label: "Cut T", state: "compare" },
+        { id: "T", label: "Cut T", state: "compare" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 0, isPath: true },
+        { from: "A", to: "T", weight: 0, isPath: true },
+        { from: "B", to: "T", weight: 0, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Edmonds-Karp guarantees termination in O(V * E^2) time using O(V + E) memory space.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "S", label: "Max Flow: 19", state: "sorted" },
+        { id: "A", label: "A", state: "sorted" },
+        { id: "B", label: "B", state: "sorted" },
+        { id: "T", label: "T", state: "sorted" },
+      ],
+      edges: [
+        { from: "S", to: "A", weight: 0, isPath: true },
+        { from: "S", to: "B", weight: 0, isPath: true },
+        { from: "A", to: "T", weight: 0, isPath: true },
+        { from: "B", to: "T", weight: 0, isPath: true },
+      ],
+    },
+  },
+];
+
 export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  let stepIdx = 0;
+
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const safeInput = input && typeof input === "object" ? input : DEFAULT_EDMONDS_KARP_INPUT;
   const inputNodes =
     Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
@@ -144,21 +296,27 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
     capacity[e.from][e.to] = (capacity[e.from][e.to] || 0) + cap;
   }
 
-  let stepIdx = 0;
-
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 5,
-    explanation: {
-      what: `Initialized Edmonds-Karp Max Flow algorithm (Source: "${source}", Sink: "${sink}").`,
-      why: "Edmonds-Karp uses BFS to repeatedly find the shortest augmenting path in the residual network.",
-    },
-    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
-    auxiliaryState: {
-      customState: { "Max Flow": 0, Source: source, Sink: sink },
-    },
-    variables: { totalNodes: nodes.length, totalEdges: edges.length },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Initialized Edmonds-Karp Max Flow algorithm (Source '${source}', Sink '${sink}'). Initialized 0 flow on all edges.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: n.id === source ? "active" : n.id === sink ? "visited" : "default",
+        })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { totalNodes: nodes.length, totalEdges: edges.length, maxFlow: 0 },
+    }),
+  );
 
   let maxFlow = 0;
   let iteration = 0;
@@ -166,36 +324,35 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
   while (iteration < 20) {
     iteration++;
 
-    // BFS for augmenting path
     const parent: Record<string, string | null> = {};
     for (const u of nodeIds) parent[u] = null;
 
     const queue: string[] = [source];
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 10,
-      explanation: {
-        what: `Iteration ${iteration}: Running BFS from source "${source}" to find shortest augmenting path.`,
-        why: "BFS explores layer-by-layer in residual graph where capacity[u][v] - flow[u][v] > 0.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          state: n.id === source ? "active" : n.id === sink ? "pivot" : "default",
-        })),
-        edges: edges.map((e) => ({
-          ...e,
-          weight: capacity[e.from][e.to],
-        })),
-      },
-      auxiliaryState: {
-        queue: [...queue],
-        customState: { "Current Max Flow": maxFlow },
-      },
-      variables: { iteration, currentMaxFlow: maxFlow },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Iteration ${iteration}: Running BFS from source '${source}' to locate shortest residual augmenting path to sink '${sink}'.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            state: n.id === source ? "compare" : n.id === sink ? "visited" : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            weight: capacity[e.from][e.to] - flow[e.from][e.to],
+          })),
+        },
+        auxiliaryState: {
+          stack: [...queue],
+          visited: [],
+        },
+        variables: { iteration, currentMaxFlow: maxFlow },
+      }),
+    );
 
     const visitedInBfs = new Set<string>([source]);
 
@@ -203,41 +360,40 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
       const curr = queue.shift()!;
       if (curr === sink) break;
 
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 12,
-        explanation: {
-          what: `BFS visiting node "${curr}". Inspecting outgoing edges for positive residual capacity.`,
-          why: "Exploring adjacent vertices in residual graph where capacity[u][v] - flow[u][v] > 0.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({
-            ...n,
-            state:
-              n.id === curr
-                ? "active"
-                : queue.includes(n.id)
-                  ? "queued"
-                  : visitedInBfs.has(n.id)
-                    ? "visited"
-                    : n.id === sink
-                      ? "pivot"
-                      : "default",
-          })),
-          edges: edges.map((e) => ({
-            ...e,
-            isTraversed: e.from === curr,
-            weight: capacity[e.from][e.to],
-          })),
-        },
-        auxiliaryState: {
-          queue: [...queue],
-          visited: Array.from(visitedInBfs),
-          customState: { "Current Max Flow": maxFlow },
-        },
-        variables: { currentNode: curr, queueLength: queue.length },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIdx++,
+          phase: "walkthrough",
+          narrative: `BFS dequeued vertex '${curr}': inspecting outgoing residual edges with positive capacity.`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: nodes.map((n) => ({
+              ...n,
+              state:
+                n.id === curr
+                  ? "active"
+                  : queue.includes(n.id)
+                    ? "compare"
+                    : visitedInBfs.has(n.id)
+                      ? "visited"
+                      : n.id === sink
+                        ? "swap"
+                        : "default",
+            })),
+            edges: edges.map((e) => ({
+              ...e,
+              isTraversed: e.from === curr,
+              weight: capacity[e.from][e.to] - flow[e.from][e.to],
+            })),
+          },
+          auxiliaryState: {
+            stack: [...queue],
+            visited: Array.from(visitedInBfs),
+          },
+          variables: { currentNode: curr, queueLength: queue.length },
+        }),
+      );
 
       for (const nxt of nodeIds) {
         if (parent[nxt] === null && nxt !== source && capacity[curr][nxt] - flow[curr][nxt] > 0) {
@@ -249,51 +405,30 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
     }
 
     if (parent[sink] === null) {
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 20,
-        explanation: {
-          what: `No more augmenting paths from "${source}" to "${sink}" in residual graph.`,
-          why: "Edmonds-Karp algorithm terminates (Max Flow Min Cut theorem achieved).",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
-          edges: edges.map((e) => ({
-            ...e,
-            isTraversed: flow[e.from][e.to] > 0,
-          })),
-        },
-        auxiliaryState: {
-          customState: { "FINAL MAX FLOW": maxFlow },
-        },
-        variables: { maxFlow },
-      });
-
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 39,
-        explanation: {
-          what: `Edmonds-Karp complete. Maximum flow = ${maxFlow}.`,
-          why: "Returned total throughput reaching sink.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
-          edges: edges.map((e) => ({
-            ...e,
-            isTraversed: flow[e.from][e.to] > 0,
-          })),
-        },
-        auxiliaryState: {
-          customState: { "FINAL MAX FLOW": maxFlow },
-        },
-        variables: { maxFlow },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIdx++,
+          phase: "walkthrough",
+          narrative: `No remaining augmenting path exists from source '${source}' to sink '${sink}' in the residual graph. Maximum Flow is finalized at ${maxFlow}.`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
+            edges: edges.map((e) => ({
+              ...e,
+              isTraversed: flow[e.from][e.to] > 0,
+            })),
+          },
+          auxiliaryState: {
+            stack: [],
+            visited: Array.from(visitedInBfs),
+          },
+          variables: { completed: true, maxFlow },
+        }),
+      );
       break;
     }
 
-    // Compute bottleneck capacity
     let bottleneck = Number.POSITIVE_INFINITY;
     let curr = sink;
     const pathNodes: string[] = [];
@@ -307,37 +442,34 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
     pathNodes.push(source);
     pathNodes.reverse();
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 27,
-      explanation: {
-        what: `Found augmenting path: ${pathNodes.join(" -> ")} with Bottleneck Capacity = ${bottleneck}.`,
-        why: "Bottleneck is the minimum residual edge capacity along the path.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          state: pathNodes.includes(n.id) ? "swap" : "default",
-        })),
-        edges: edges.map((e) => {
-          let isOnPath = false;
-          for (let i = 0; i < pathNodes.length - 1; i++) {
-            if (e.from === pathNodes[i] && e.to === pathNodes[i + 1]) isOnPath = true;
-          }
-          return { ...e, isPath: isOnPath };
-        }),
-      },
-      auxiliaryState: {
-        customState: {
-          "Augmenting Path": pathNodes.join(" -> "),
-          Bottleneck: bottleneck,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Found shortest augmenting path [${pathNodes.join(" -> ")}] with bottleneck capacity ${bottleneck}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            state: pathNodes.includes(n.id) ? "swap" : "default",
+          })),
+          edges: edges.map((e) => {
+            let isOnPath = false;
+            for (let i = 0; i < pathNodes.length - 1; i++) {
+              if (e.from === pathNodes[i] && e.to === pathNodes[i + 1]) isOnPath = true;
+            }
+            return { ...e, isPath: isOnPath };
+          }),
         },
-      },
-      variables: { bottleneck, path: pathNodes.join(" -> ") },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: Array.from(visitedInBfs),
+        },
+        variables: { bottleneck, path: pathNodes.join(" -> ") },
+      }),
+    );
 
-    // Augment flow
     curr = sink;
     while (curr !== source) {
       const p = parent[curr]!;
@@ -348,39 +480,45 @@ export function generateEdmondsKarpSteps(input: EdmondsKarpMaxFlowInput): Algori
 
     maxFlow += bottleneck;
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 33,
-      explanation: {
-        what: `Augmented flow by +${bottleneck}. New Max Flow = ${maxFlow}.`,
-        why: "Flow updated along path edges and reverse residual edges adjusted.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({ ...n, state: "visited" })),
-        edges: edges.map((e) => ({
-          ...e,
-          isTraversed: flow[e.from][e.to] > 0,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          "Current Max Flow": maxFlow,
-          Flows: Object.entries(flow)
-            .flatMap(([u, row]) =>
-              Object.entries(row)
-                .filter(([_, val]) => val > 0)
-                .map(([v, val]) => `${u}->${v}:${val}/${capacity[u][v]}`),
-            )
-            .join(", "),
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Augmented flow by +${bottleneck} along path [${pathNodes.join(" -> ")}]. Total Max Flow is now ${maxFlow}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({ ...n, state: "visited" })),
+          edges: edges.map((e) => ({
+            ...e,
+            isTraversed: flow[e.from][e.to] > 0,
+          })),
         },
-      },
-      variables: { maxFlow, addedFlow: bottleneck },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: Array.from(visitedInBfs),
+        },
+        variables: { maxFlow, addedFlow: bottleneck },
+      }),
+    );
   }
 
   return steps;
 }
+
+export const EDMONDS_KARP_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Imports deque for BFS augmenting path search.",
+    3: "Defines Edmonds-Karp Max Flow algorithm.",
+    5: "Initializes flow matrix flow[u][v] = 0.",
+    10: "Runs BFS to discover shortest augmenting path.",
+    16: "Filters for edges with positive residual capacity.",
+    20: "Terminates when sink is unreachable.",
+    27: "Calculates bottleneck flow constraint.",
+    33: "Augments forward flow and updates reverse residual edge.",
+    37: "Accumulates bottleneck flow into max_flow.",
+  },
+};
 
 export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = {
   id: "edmonds-karp-max-flow",
@@ -388,23 +526,25 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   topicIds: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
-    "<p>Edmonds-Karp computes the Maximum Flow in a flow network in <code>O(V &middot; E<sup>2</sup>)</code> time by implementing Ford-Fulkerson using Breadth-First Search (BFS) to find shortest augmenting paths in the residual graph.</p><p>Given a flow network represented by nodes and directed edges with non-negative capacity bounds, Edmonds-Karp repeatedly locates the shortest augmenting path (measured by the number of edges) from the source vertex to the sink vertex in the residual network.</p><h3>Input Parameters</h3><ul><li><code>sourceId</code> (string): The identifier of the flow source vertex S.</li><li><code>sinkId</code> (string): The identifier of the flow sink vertex T.</li><li><code>nodes</code> (list): Vertices comprising the network.</li><li><code>edges</code> (list): Directed edges with positive capacity weights.</li></ul><h3>Output</h3><p>Returns the maximum total flow pushed from source to sink.</p>",
+    "<p>Given a directed flow network <code>G = (V, E)</code> with non-negative capacity bounds, a source vertex <code>S</code>, and a sink vertex <code>T</code>, compute the maximum total flow that can be pushed from <code>S</code> to <code>T</code>.</p><h3>Problem Statement</h3><p>Compute maximum network flow using Edmonds-Karp, which finds shortest augmenting paths in terms of edge count using BFS in <code>O(V &middot; E<sup>2</sup>)</code> time.</p><h3>Input Parameters</h3><ul><li><code>sourceId</code>: Identifier of the flow source vertex S.</li><li><code>sinkId</code>: Identifier of the flow sink vertex T.</li><li><code>nodes</code>: List of vertices.</li><li><code>edges</code>: List of directed edges with capacity weights.</li></ul><h3>Output</h3><p>Returns the maximum total flow value pushed from source to sink.</p>",
   constraints: ["2 <= V <= 200", "1 <= E <= 1000", "Capacities must be non-negative numbers"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "nodes = [S, A, B, T], capacities specified",
       outputDisplay: "Max Flow = 19",
-      title: "4-Node Flow Network",
+      title: "Standard 4-Node Flow Network",
       input: DEFAULT_EDMONDS_KARP_INPUT,
       output: "Max Flow = 19",
       explanation: "Flow paths S->A->T (8), S->A->B->T (2), S->B->T (9) yield max flow 19.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "nodes = [S, A, B, C, D, T], 6-node network",
       outputDisplay: "Max Flow = 23",
-      title: "Complex 6-Node Flow Network",
+      title: "Adversarial 6-Node Flow Network",
       input: {
         sourceId: "S",
         sinkId: "T",
@@ -434,9 +574,10 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "nodes = [S, A, B, T], disconnected sink",
       outputDisplay: "Max Flow = 0",
-      title: "Disconnected Sink (Zero Max Flow)",
+      title: "Boundary Disconnected Sink",
       input: {
         sourceId: "S",
         sinkId: "T",
@@ -488,7 +629,7 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
       },
       {
         heading: "Complexity Analysis",
-        body: "<p><strong>Time Complexity:</strong> <code>O(V &middot; E<sup>2</sup>)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>BFS Pass:</strong> Each BFS takes <code>O(E)</code> time.</li><li><strong>Augmentations:</strong> Number of augmenting paths is bounded by <code>O(V &middot; E)</code>. Total runtime is <code>O(V &middot; E<sup>2</sup>)</code>.</li></ul>",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V &middot; E<sup>2</sup>)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>Each BFS takes <code>O(E)</code> time. Number of augmenting paths is bounded by <code>O(V &middot; E)</code>, yielding <code>O(V &middot; E<sup>2</sup>)</code> total runtime.</p>",
       },
     ],
     keyTerms: [
@@ -532,3 +673,5 @@ export const edmondsKarpMaxFlow: AlgorithmDefinition<EdmondsKarpMaxFlowInput> = 
   defaultInput: DEFAULT_EDMONDS_KARP_INPUT,
   generateSteps: generateEdmondsKarpSteps,
 };
+
+export default edmondsKarpMaxFlow;
