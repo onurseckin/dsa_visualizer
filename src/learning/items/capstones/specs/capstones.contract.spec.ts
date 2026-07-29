@@ -7,6 +7,8 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { ML_PLATFORM_CAPSTONES } from "../index";
+import { batchMlPlatformCapstone } from "../batchMlPlatformCapstone";
+import { realtimeMlPlatformCapstone } from "../realtimeMlPlatformCapstone";
 
 const harnessPath = resolve(process.cwd(), "apps/python-runner/execution_harness.py");
 const expectedIds = [
@@ -42,6 +44,34 @@ describe("ML platform capstone contract", () => {
         new Set(steps.map((step) => JSON.stringify(step.primarySnapshot))).size,
       ).toBeGreaterThan(1);
     }
+  });
+
+  it("uses distinct batch and real-time design rubrics", () => {
+    expect(batchMlPlatformCapstone.rubric).not.toBe(realtimeMlPlatformCapstone.rubric);
+    expect(batchMlPlatformCapstone.rubric.criteria.map(({ id }) => id)).toEqual([
+      "decision",
+      "snapshot",
+      "training-backfill",
+      "publication",
+      "delayed-evaluation",
+      "governance-cost",
+    ]);
+    expect(realtimeMlPlatformCapstone.rubric.criteria.map(({ id }) => id)).toEqual([
+      "decision-slo",
+      "feature-consistency",
+      "capacity-overload",
+      "canary-compatibility",
+      "rollback-fallback",
+      "delayed-evaluation",
+    ]);
+    expect(
+      batchMlPlatformCapstone.rubric.criteria.filter(({ critical }) => critical).map(({ id }) => id),
+    ).toEqual(["snapshot", "publication"]);
+    expect(
+      realtimeMlPlatformCapstone.rubric.criteria
+        .filter(({ critical }) => critical)
+        .map(({ id }) => id),
+    ).toEqual(["feature-consistency", "canary-compatibility", "rollback-fallback"]);
   });
 
   it.each(ML_PLATFORM_CAPSTONES)("executes $id canonical Python cases", (item) => {

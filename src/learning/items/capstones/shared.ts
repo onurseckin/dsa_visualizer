@@ -23,47 +23,100 @@ export const incidentResponseSource = verifiedSource({
   url: "https://airc.nist.gov/airmf-resources/airmf/5-sec-core/",
 });
 
-export const platformRubric: RubricDefinition = {
+export const batchPlatformRubric: RubricDefinition = {
   criteria: [
     {
-      id: "framing",
-      label: "Decision and success contract",
-      description: "Connects the prediction to an action, owner, metric, and guardrail.",
-      points: 3,
-      critical: true,
-    },
-    {
-      id: "data",
-      label: "Data and feature evidence",
-      description: "Defines snapshots, labels, split policy, lineage, and consistency checks.",
-      points: 3,
-      critical: true,
-    },
-    {
-      id: "execution",
-      label: "Execution and capacity",
-      description: "Sizes compute and explains retries, idempotence, backpressure, and recovery.",
-      points: 3,
-    },
-    {
-      id: "release",
-      label: "Package and release safety",
+      id: "decision",
+      label: "Decision and batch success contract",
       description:
-        "Defines immutable artifacts, validation, promotion, canary, rollback, and fallback.",
+        "Connects each scheduled prediction to an action, owner, freshness target, metric, and guardrail.",
+      points: 3,
+    },
+    {
+      id: "snapshot",
+      label: "Point-in-time data snapshot",
+      description:
+        "Defines immutable inputs, labels, split policy, event-time cutoffs, lineage, and consistency checks.",
       points: 3,
       critical: true,
     },
     {
-      id: "operations",
-      label: "Evaluation and operations",
+      id: "training-backfill",
+      label: "Training and backfill execution",
       description:
-        "Separates service, data, model, slice, and outcome signals with response actions.",
+        "Sizes scheduled compute and explains retry, idempotence, checkpoint, replay, and backfill behavior.",
       points: 3,
     },
     {
-      id: "governance",
-      label: "Governance and cost",
-      description: "Assigns access, retention, audit, security, privacy, and cost ownership.",
+      id: "publication",
+      label: "Artifact and prediction publication",
+      description:
+        "Defines immutable artifacts, validation, atomic prediction publication, promotion, rollback, and fallback.",
+      points: 3,
+      critical: true,
+    },
+    {
+      id: "delayed-evaluation",
+      label: "Delayed outcome evaluation",
+      description:
+        "Joins predictions to delayed labels and separates pipeline, data, model, slice, and outcome signals.",
+      points: 3,
+    },
+    {
+      id: "governance-cost",
+      label: "Batch governance and cost",
+      description:
+        "Assigns access, retention, audit, security, privacy, storage, and scheduled-compute cost ownership.",
+      points: 3,
+    },
+  ],
+};
+
+export const realtimePlatformRubric: RubricDefinition = {
+  criteria: [
+    {
+      id: "decision-slo",
+      label: "Decision and online SLO",
+      description:
+        "Connects each request-time prediction to an action, owner, latency and availability targets, metric, and guardrail.",
+      points: 3,
+    },
+    {
+      id: "feature-consistency",
+      label: "Online feature consistency",
+      description:
+        "Defines event-time semantics, freshness, offline-online parity, lineage, validation, and safe missing-feature behavior.",
+      points: 3,
+      critical: true,
+    },
+    {
+      id: "capacity-overload",
+      label: "Capacity and overload control",
+      description:
+        "Sizes concurrency and explains admission control, backpressure, autoscaling, retry budgets, and recovery.",
+      points: 3,
+    },
+    {
+      id: "canary-compatibility",
+      label: "Canary and compatibility safety",
+      description:
+        "Defines immutable artifacts, schema and runtime compatibility, traffic canaries, promotion evidence, and abort criteria.",
+      points: 3,
+      critical: true,
+    },
+    {
+      id: "rollback-fallback",
+      label: "Rollback and prediction fallback",
+      description:
+        "Defines fast rollback, last-known-good routing, degraded-mode decisions, and verification before traffic restoration.",
+      points: 3,
+      critical: true,
+    },
+    {
+      id: "delayed-evaluation",
+      label: "Delayed outcome evaluation",
+      description:
+        "Joins online decisions to delayed outcomes and separates service, data, model, slice, and business signals.",
       points: 3,
     },
   ],

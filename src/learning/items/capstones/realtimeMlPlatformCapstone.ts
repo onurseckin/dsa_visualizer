@@ -5,7 +5,7 @@ import {
   capstoneStarter,
   lifecycleGraphSteps,
   platformChecklist,
-  platformRubric,
+  realtimePlatformRubric,
   platformTimeline,
   realtimePlatformSource,
 } from "./shared";
@@ -129,7 +129,7 @@ export const realtimeMlPlatformCapstone = defineCapstoneItem({
       "Queueing and dependency latency count against the same end-to-end SLO.",
     ],
   },
-  rubric: platformRubric,
+  rubric: realtimePlatformRubric,
   playground: {
     code,
     starterCode: capstoneStarter("plan_realtime_capacity", outputContract),
