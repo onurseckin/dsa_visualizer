@@ -152,6 +152,11 @@ describe("learning item model", () => {
           chapter: 2,
           url: "relative.pdf",
         },
+        {
+          kind: "standard",
+          label: "Actual reference",
+          url: "https://example.com/actual-reference",
+        },
       ],
     } satisfies AlgorithmDefinition<null>;
 
@@ -163,9 +168,22 @@ describe("learning item model", () => {
         kind: "book",
         bookTitle: "Competitive Programmer's Handbook",
         chapter: 2,
-        url: "https://cses.fi/book/book.pdf",
+        provenance: "unverified",
       }),
+      {
+        kind: "standard",
+        label: "Actual reference",
+        provenance: "verified",
+        url: "https://example.com/actual-reference",
+      },
     ]);
+    expect(sources[0]).not.toHaveProperty("url");
+    expect(sources[1]).toEqual({
+      kind: "standard",
+      label: "Actual reference",
+      provenance: "verified",
+      url: "https://example.com/actual-reference",
+    });
     expect(item.sources).toEqual(sources);
     expect(isTriviaEligibleLearningItem(item)).toBe(true);
   });

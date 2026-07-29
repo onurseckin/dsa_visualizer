@@ -21,10 +21,10 @@ export type LearningItemKind =
   | "scenario"
   | "capstone";
 
-export interface LearningSource {
+interface LearningSourceMetadata {
+  readonly type?: SourceKind;
   readonly kind: SourceKind;
   readonly label: string;
-  readonly url: string;
   readonly id?: number;
   readonly leetcodeId?: number;
   readonly title?: string;
@@ -35,6 +35,16 @@ export interface LearningSource {
   readonly shortTitle?: string;
   readonly page?: number;
 }
+
+export type LearningSource =
+  | (LearningSourceMetadata & {
+      readonly provenance: "verified";
+      readonly url: string;
+    })
+  | (LearningSourceMetadata & {
+      readonly provenance: "unverified";
+      readonly url?: never;
+    });
 
 export interface LearningItemBase {
   readonly id: string;

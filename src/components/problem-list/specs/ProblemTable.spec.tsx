@@ -3,6 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { ProblemTable } from "../../../ui";
 import { AlgorithmDefinition } from "../../../types/dsa";
 import { adaptAlgorithmDefinition } from "../../../learning/algorithmAdapters";
+import type {
+  CapstoneLearningItem,
+  ScenarioLearningItem,
+  TraceLearningItem,
+} from "../../../learning/types";
 
 const sampleAlgorithm: AlgorithmDefinition = {
   id: "bubble-sort",
@@ -35,6 +40,68 @@ const sampleAlgorithmSparse: AlgorithmDefinition = {
 
 const sampleItem = adaptAlgorithmDefinition(sampleAlgorithm);
 const sampleItemSparse = adaptAlgorithmDefinition(sampleAlgorithmSparse);
+const rubricFixtureBase = {
+  topicIds: sampleItem.topicIds,
+  difficultyProfile: sampleItem.difficultyProfile,
+  difficultyLabel: sampleItem.difficultyLabel,
+  difficulty: sampleItem.difficulty,
+  description: "Evaluate a realistic systems decision.",
+  sources: sampleItem.sources,
+  prompt: {
+    context: "A service is approaching its latency budget.",
+    question: "What should the team change and why?",
+  },
+  rubric: {
+    criteria: [
+      {
+        id: "tradeoff",
+        label: "Tradeoff",
+        description: "Explains the selected tradeoff.",
+        points: 1,
+      },
+    ],
+  },
+} as const;
+const scenarioItem: ScenarioLearningItem = {
+  ...rubricFixtureBase,
+  id: "latency-scenario",
+  kind: "scenario",
+  title: "Latency Scenario",
+  assessment: {
+    kind: "scenario",
+    renderer: "scenario-assessment",
+    triviaEligible: false,
+  },
+};
+const capstoneItem: CapstoneLearningItem = {
+  ...rubricFixtureBase,
+  id: "serving-capstone",
+  kind: "capstone",
+  title: "Serving Capstone",
+  assessment: {
+    kind: "capstone",
+    renderer: "capstone-assessment",
+    triviaEligible: false,
+  },
+};
+const traceItem: TraceLearningItem = {
+  id: "cache-trace",
+  kind: "trace",
+  title: "Cache Trace",
+  topicIds: sampleItem.topicIds,
+  difficultyProfile: sampleItem.difficultyProfile,
+  difficultyLabel: sampleItem.difficultyLabel,
+  difficulty: sampleItem.difficulty,
+  description: "Trace cache behavior.",
+  sources: sampleItem.sources,
+  code: "def trace_cache():\n    pass",
+  generateSteps: () => [],
+  assessment: {
+    kind: "trace",
+    renderer: "trace-assessment",
+    triviaEligible: false,
+  },
+};
 
 describe("ProblemTable render spec", () => {
   it("renders table headers and problem row details", () => {
@@ -60,7 +127,7 @@ describe("ProblemTable render spec", () => {
     expect(onToggleSort).toHaveBeenCalledWith("title");
   });
 
-  it("renders fallback complexity strings when omitted", () => {
+  it("renders complexity as not applicable instead of inventing fallback values", () => {
     render(
       <ProblemTable
         filteredAlgorithms={[sampleItemSparse]}
@@ -71,8 +138,52 @@ describe("ProblemTable render spec", () => {
     );
 
     expect(screen.getByText("Custom Alg")).toBeInTheDocument();
-    expect(screen.getByText("O(N)")).toBeInTheDocument(); // fallback time complexity
-    expect(screen.getByText("O(1)")).toBeInTheDocument(); // fallback space complexity
+    expect(screen.getAllByLabelText("Not applicable")).toHaveLength(2);
+    expect(screen.getAllByText("N/A")).toHaveLength(2);
+    expect(screen.queryByText("O(N)")).not.toBeInTheDocument();
+    expect(screen.queryByText("O(1)")).not.toBeInTheDocument();
+  });
+
+  it("renders rubric items with N/A complexity and assessment actions", () => {
+    const onSelectAlgorithm = vi.fn();
+
+    render(
+      <ProblemTable
+        filteredAlgorithms={[scenarioItem, capstoneItem]}
+        sortBy="title"
+        onToggleSort={vi.fn()}
+        onSelectAlgorithm={onSelectAlgorithm}
+      />,
+    );
+
+    expect(screen.getAllByLabelText("Not applicable")).toHaveLength(4);
+    expect(screen.getAllByText("N/A")).toHaveLength(4);
+    expect(screen.queryByRole("button", { name: "Visualize" })).not.toBeInTheDocument();
+    const assessButtons = screen.getAllByRole("button", { name: "Assess" });
+    expect(assessButtons).toHaveLength(2);
+    expect(assessButtons[0]?.querySelector(".lucide-clipboard-check")).toBeInTheDocument();
+
+    fireEvent.click(assessButtons[1]!);
+    expect(onSelectAlgorithm).toHaveBeenLastCalledWith("serving-capstone");
+    expect(
+      screen.getByRole("row", { name: "Open assessment for Latency Scenario" }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders code-bearing nonalgorithm items with an open action", () => {
+    render(
+      <ProblemTable
+        filteredAlgorithms={[traceItem]}
+        sortBy="title"
+        onToggleSort={vi.fn()}
+        onSelectAlgorithm={vi.fn()}
+      />,
+    );
+
+    const openButton = screen.getByRole("button", { name: "Open" });
+    expect(openButton.querySelector(".lucide-arrow-right")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Visualize" })).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText("Not applicable")).toHaveLength(2);
   });
 
   it("displays empty message when filteredAlgorithms is empty", () => {

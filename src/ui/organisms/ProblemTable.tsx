@@ -1,7 +1,7 @@
 import React from "react";
-import { ArrowUpDown, Code2, Play } from "lucide-react";
+import { ArrowRight, ArrowUpDown, ClipboardCheck, Code2, Play } from "lucide-react";
 import type { LearningItem } from "../../learning/types";
-import { isAlgorithmLearningItem } from "../../learning/types";
+import { isAlgorithmLearningItem, isRubricLearningItem } from "../../learning/types";
 
 import { getLearningItemTopicLabels } from "../../app/topics";
 import { ProblemListSortField } from "../../components/problem-list/problemListUtils";
@@ -86,6 +86,18 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
               displayAlgorithms.map((alg, index) => {
                 const topicLabels = getLearningItemTopicLabels(alg);
                 const implementation = isAlgorithmLearningItem(alg) ? alg.algorithm : undefined;
+                const timeComplexity = implementation?.timeComplexity.average.trim() || undefined;
+                const spaceComplexity = implementation?.spaceComplexity.trim() || undefined;
+                const actionLabel = implementation
+                  ? "Visualize"
+                  : isRubricLearningItem(alg)
+                    ? "Assess"
+                    : "Open";
+                const rowLabel = implementation
+                  ? `Open visualization for ${alg.title}`
+                  : isRubricLearningItem(alg)
+                    ? `Open assessment for ${alg.title}`
+                    : `Open learning item for ${alg.title}`;
                 const rowNum = (currentPage - 1) * itemsPerPage + index + 1;
 
                 return (
@@ -93,7 +105,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                     key={alg.id}
                     role="row"
                     tabIndex={0}
-                    aria-label={`Open visualization for ${alg.title}`}
+                    aria-label={rowLabel}
                     onClick={() => onSelectAlgorithm(alg.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -134,10 +146,18 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                       )}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">
-                      {implementation?.timeComplexity.average || "O(N)"}
+                      {timeComplexity ?? (
+                        <span aria-label="Not applicable" title="Not applicable">
+                          N/A
+                        </span>
+                      )}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">
-                      {implementation?.spaceComplexity || "O(1)"}
+                      {spaceComplexity ?? (
+                        <span aria-label="Not applicable" title="Not applicable">
+                          N/A
+                        </span>
+                      )}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)] text-center">
                       <button
@@ -147,8 +167,14 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                           onSelectAlgorithm(alg.id);
                         }}
                       >
-                        <Play size={14} fill="currentColor" />
-                        Visualize
+                        {implementation ? (
+                          <Play aria-hidden="true" size={14} fill="currentColor" />
+                        ) : isRubricLearningItem(alg) ? (
+                          <ClipboardCheck aria-hidden="true" size={14} />
+                        ) : (
+                          <ArrowRight aria-hidden="true" size={14} />
+                        )}
+                        {actionLabel}
                       </button>
                     </td>
                   </tr>

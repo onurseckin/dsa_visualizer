@@ -36,7 +36,7 @@ if (TRANSITIONAL_LEARNING_REGISTRY_STATE.enabled) {
 export const buildLearningItemRegistry = (
   items: readonly LearningItem[],
 ): Readonly<Record<string, LearningItem>> => {
-  const registry: Record<string, LearningItem> = {};
+  const registry = Object.create(null) as Record<string, LearningItem>;
   for (const item of items) {
     if (Object.hasOwn(registry, item.id)) {
       throw new Error(`Duplicate canonical learning item id: ${item.id}`);
@@ -53,7 +53,7 @@ export const CODE_LEARNING_ITEMS: readonly CodeLearningItem[] = Object.freeze(
 );
 
 export function getLearningItem(id: string): LearningItem | undefined {
-  return LEARNING_ITEM_REGISTRY[id];
+  return Object.hasOwn(LEARNING_ITEM_REGISTRY, id) ? LEARNING_ITEM_REGISTRY[id] : undefined;
 }
 
 export function getAllLearningItems(): LearningItem[] {

@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { SourceBadge, BookBadge, StandardBadge } from "../atoms/SourceBadge";
+import { SourceBadge, SourceBadgeList, BookBadge, StandardBadge } from "../atoms/SourceBadge";
 import type { BookSource, LeetCodeSource, StandardSource } from "../atoms/SourceBadge";
+import type { LearningSource } from "../../learning/types";
 
 describe("BookBadge", () => {
   it("renders null when book prop or required fields are missing", () => {
@@ -105,5 +106,26 @@ describe("SourceBadge", () => {
     render(<SourceBadge source={source} />);
 
     expect(screen.getByText("Standard")).toBeInTheDocument();
+  });
+
+  it("shows explicitly unverified learning provenance without fabricating a link", () => {
+    const source = {
+      kind: "leetcode",
+      label: "LeetCode #1",
+      id: 1,
+      provenance: "unverified",
+    } satisfies LearningSource;
+
+    render(<SourceBadge source={source} />);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("LeetCode #1 — source URL unverified")).toBeInTheDocument();
+  });
+
+  it("does not invent a standard source when no source was provided", () => {
+    const { container } = render(<SourceBadgeList />);
+
+    expect(container.querySelector('[aria-label="Standard CS Algorithm"]')).toBeNull();
+    expect(container.textContent).toBe("");
   });
 });
