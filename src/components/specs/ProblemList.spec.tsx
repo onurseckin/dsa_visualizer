@@ -140,11 +140,11 @@ describe("ProblemList Component Spec", () => {
     expect(screen.getAllByRole("row")[1]?.textContent ?? "").toBe(cleanFirstRowTitle);
   });
 
-  it("renders ML Infra problems when topic='ml_tensor_algebra'", () => {
-    render(<ProblemList onSelectAlgorithm={vi.fn()} topic="ml_tensor_algebra" />);
+  it("renders the target ML infrastructure items for a selected topic", () => {
+    render(<ProblemList onSelectAlgorithm={vi.fn()} topic="ml_python_scientific_computing" />);
 
-    expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
-    expect(screen.getByText("2D Array Matrix Traversal")).toBeInTheDocument();
+    expect(screen.getByText("Reproducible Python Environment")).toBeInTheDocument();
+    expect(screen.getByText("Determinism Triage")).toBeInTheDocument();
   });
 
   it("renders ML Infra problems when selectedSource='ml_infra'", () => {
@@ -153,13 +153,13 @@ describe("ProblemList Component Spec", () => {
     const sourceSelect = screen.getByRole("combobox", { name: /Filter by Source/i });
     fireEvent.change(sourceSelect, { target: { value: "ml_infra" } });
 
-    expect(screen.getByText("4D Tensor Stride & Memory Offset")).toBeInTheDocument();
-    expect(screen.getByText("1D Conv GPU SRAM Scratchpad Simulator")).toBeInTheDocument();
+    expect(screen.getByText("Reproducible Python Environment")).toBeInTheDocument();
+    expect(screen.getByText("Paged KV-cache allocation")).toBeInTheDocument();
   });
 
   it("verifies ML Infra topic algorithms are present in the list and filterable", () => {
-    render(<ProblemList onSelectAlgorithm={vi.fn()} topic="ml_tensor_algebra" />);
+    render(<ProblemList onSelectAlgorithm={vi.fn()} topic="ml_numerical_tensors" />);
 
-    expect(screen.getByText("PyTorch-Style Tensor Contiguity Verifier")).toBeInTheDocument();
+    expect(screen.getByText("Tensor Layout Explorer")).toBeInTheDocument();
   });
 });

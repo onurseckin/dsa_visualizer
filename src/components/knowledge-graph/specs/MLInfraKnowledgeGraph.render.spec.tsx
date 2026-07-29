@@ -115,7 +115,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
         name: /Python, Environments & Scientific Computing Drawer/i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Curated Problems (0)")).toBeInTheDocument();
+    expect(screen.getByText("Curated Problems (3)")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Close Topic Drawer" }));
     expect(
