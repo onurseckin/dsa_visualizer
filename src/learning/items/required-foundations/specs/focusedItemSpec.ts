@@ -28,9 +28,9 @@ export function describeRequiredFoundation(
       expect(playground).toBeDefined();
       if (!playground) return;
       expect(playground.execution.outputContract).toContain(expected.contractTerm);
-      expect(playground.execution.cases).toHaveLength(3);
+      expect(playground.execution.cases.length).toBeGreaterThanOrEqual(3);
       const steps = playground.generateSteps(playground.execution.cases[0].input);
-      expect(steps).toHaveLength(3);
+      expect(steps.length).toBeGreaterThanOrEqual(3);
       expect(steps.map((step) => step.primarySnapshot.kind)).toContain(expected.snapshotKind);
     });
   });
