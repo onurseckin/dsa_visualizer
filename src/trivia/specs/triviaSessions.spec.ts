@@ -132,5 +132,28 @@ describe("triviaSessions storage & lifecycle", () => {
 
       expect(readTriviaSessions()).toEqual([]);
     });
+
+    it("ignores a session when nested config, progress, review, or active-round data is malformed", () => {
+      const session = createSession("Session 1");
+      const raw = JSON.parse(window.localStorage.getItem(TRIVIA_SESSIONS_KEY) ?? "[]") as Record<
+        string,
+        unknown
+      >[];
+      const malformed = structuredClone(raw[0]);
+      malformed.config = { ...session.config, deck: ["two-sum", 42] };
+      raw.push(malformed);
+      const badReview = structuredClone(raw[0]);
+      badReview.progress = {
+        ...session.progress,
+        reviews: { "two-sum": { "2": { confidence: 9 } } },
+      };
+      raw.push(badReview);
+      const badRound = structuredClone(raw[0]);
+      badRound.activeRound = { algorithmId: "two-sum", level: "one" };
+      raw.push(badRound);
+      window.localStorage.setItem(TRIVIA_SESSIONS_KEY, JSON.stringify(raw));
+
+      expect(readTriviaSessions()).toEqual([expect.objectContaining({ id: session.id })]);
+    });
   });
 });

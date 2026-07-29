@@ -3,8 +3,10 @@ import type {
   TriviaConfig,
   TriviaMeta,
   TriviaMode,
+  TriviaLineRole,
   TriviaProgress,
   TriviaRound,
+  TriviaSemanticLine,
   TriviaTile,
 } from "../../types/trivia";
 import { clampInt, normalizeConfig } from "./triviaEngineConfig";
@@ -132,7 +134,14 @@ export const pickRound = ({
         )
       : [];
   const blanks = [...primary, ...filler].sort((a, b) => a - b);
-  const semanticRound = buildSemanticRound(algorithmId, lines, blanks, selectedMeta);
+  const semanticRound = buildSemanticRound(
+    algorithmId,
+    lines,
+    blanks,
+    selectedMeta,
+    progress,
+    normalized.mode,
+  );
 
   return {
     algorithmId,
@@ -152,6 +161,8 @@ function buildSemanticRound(
   lines: readonly PuzzleLine[],
   blanks: readonly number[],
   meta: TriviaMeta | undefined,
+  progress: TriviaProgress,
+  mode: TriviaMode,
 ): Pick<TriviaRound, "variant" | "retrievalPrompt" | "acceptedAnswers" | "misconceptionCodes"> {
   const authored = new Map((meta?.semanticLines ?? []).map((line) => [line.line, line]));
   const focusLine = [...blanks].sort((left, right) => {
@@ -163,19 +174,15 @@ function buildSemanticRound(
   })[0];
   if (focusLine === undefined) return {};
   const focus = authored.get(focusLine);
-  const derivedRole = classifyPuzzleLine(
-    lines.find((line) => line.number === focusLine)?.content ?? "",
-  ).role;
-  const kind =
-    focus?.predictionPrompt || derivedRole === "boundary" || derivedRole === "result"
-      ? "prediction"
-      : "invariant";
-  const prompt =
-    kind === "prediction"
-      ? (focus?.predictionPrompt ??
-        `Predict how the result changes when the boundary around line ${focusLine} changes.`)
-      : (focus?.invariantPrompt ??
-        `State the invariant that must still hold after line ${focusLine}.`);
+  const derivedRole =
+    focus?.role ??
+    classifyPuzzleLine(lines.find((line) => line.number === focusLine)?.content ?? "").role;
+  const contexts = retrievalContextsFor(focusLine, derivedRole, focus);
+  const priorVariant = progress.reviews?.[algorithmId]?.[String(focusLine)]?.variant;
+  const context =
+    contexts.find(
+      (candidate) => `${algorithmId}-line-${focusLine}-${candidate.id}` !== priorVariant,
+    ) ?? contexts[0];
   const acceptedAnswers = Object.fromEntries(
     blanks.flatMap((line) => {
       const answers = authored.get(line)?.acceptedAnswers;
@@ -190,11 +197,47 @@ function buildSemanticRound(
   );
 
   return {
-    variant: `${algorithmId}-line-${focusLine}-${kind}`,
-    retrievalPrompt: { kind, prompt },
+    ...(mode === "type"
+      ? {
+          variant: `${algorithmId}-line-${focusLine}-${context.id}`,
+          retrievalPrompt: { kind: context.kind, prompt: context.prompt },
+        }
+      : {}),
     ...(Object.keys(acceptedAnswers).length > 0 ? { acceptedAnswers } : {}),
     ...(Object.keys(misconceptionCodes).length > 0 ? { misconceptionCodes } : {}),
   };
+}
+
+function retrievalContextsFor(
+  line: number,
+  role: TriviaLineRole,
+  semantic: TriviaSemanticLine | undefined,
+): readonly {
+  id: "boundary" | "invariant" | "input";
+  kind: "invariant" | "prediction";
+  prompt: string;
+}[] {
+  if (semantic?.retrievalContexts && semantic.retrievalContexts.length > 0) {
+    return semantic.retrievalContexts;
+  }
+  const boundaryPrompt =
+    semantic?.predictionPrompt ?? `Predict what happens at the boundary governed by line ${line}.`;
+  const invariantPrompt =
+    semantic?.invariantPrompt ?? `State the invariant preserved after line ${line}.`;
+  const inputPrompt = `Predict the result for a minimal input that activates line ${line}.`;
+  // Begin with the most natural frame, then provide two genuinely different
+  // retrieval contexts for delayed review.
+  return role === "boundary" || role === "result"
+    ? [
+        { id: "boundary", kind: "prediction", prompt: boundaryPrompt },
+        { id: "invariant", kind: "invariant", prompt: invariantPrompt },
+        { id: "input", kind: "prediction", prompt: inputPrompt },
+      ]
+    : [
+        { id: "invariant", kind: "invariant", prompt: invariantPrompt },
+        { id: "input", kind: "prediction", prompt: inputPrompt },
+        { id: "boundary", kind: "prediction", prompt: boundaryPrompt },
+      ];
 }
 
 /**

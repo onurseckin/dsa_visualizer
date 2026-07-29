@@ -146,6 +146,33 @@ describe("learning item registry contract", () => {
     expect(getTriviaLearningItems().map((item) => item.id)).toEqual(eligibleIds);
   });
 
+  it("covers a concept-bearing line from every active DSA topic with authored retrieval metadata", () => {
+    const activeTopics = new Set(DSA_LEARNING_ITEMS.flatMap((item) => item.topicIds));
+    const semanticItems = getTriviaLearningItems().filter(
+      (item) => (item.trivia?.semanticLines?.length ?? 0) > 0,
+    );
+    const coveredTopics = new Set(semanticItems.flatMap((item) => item.topicIds));
+
+    expect(coveredTopics).toEqual(activeTopics);
+    expect(
+      semanticItems.some((item) =>
+        item.trivia?.semanticLines?.some((line) => (line.acceptedAnswers?.length ?? 0) > 0),
+      ),
+    ).toBe(true);
+    expect(
+      semanticItems.some((item) =>
+        item.trivia?.semanticLines?.some((line) => line.misconceptionCode !== undefined),
+      ),
+    ).toBe(true);
+    for (const item of semanticItems) {
+      for (const semantic of item.trivia?.semanticLines ?? []) {
+        const source = item.code.split("\n")[semantic.line - 1]?.trim();
+        expect(source?.length).toBeGreaterThan(0);
+        expect(semantic.role).not.toBe("boilerplate");
+      }
+    }
+  });
+
   it("enrolls only the ratified 88 DSA and 69 ML infrastructure items", () => {
     expect(ALGORITHMS).toHaveLength(88);
     expect(DSA_LEARNING_ITEMS).toHaveLength(88);
@@ -188,7 +215,7 @@ describe("learning item registry contract", () => {
       expect(item.starterCode).not.toBe(item.code);
       expect(item.generateSteps).toBe(definition.generateSteps);
       expect(item.defaultInput).toBe(definition.defaultInput);
-      expect(item.trivia).toBe(definition.trivia);
+      expect(item.trivia).toMatchObject(definition.trivia ?? {});
       expect(adaptAlgorithmDefinition(definition).algorithm).toBe(definition);
     }
   });

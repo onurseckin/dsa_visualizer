@@ -134,6 +134,14 @@ export interface TriviaSemanticLine {
   acceptedAnswers?: string[];
   invariantPrompt?: string;
   predictionPrompt?: string;
+  /** Explicit alternatives make spaced retrieval test the idea in a new frame. */
+  retrievalContexts?: readonly TriviaRetrievalContext[];
+}
+
+export interface TriviaRetrievalContext {
+  id: "boundary" | "invariant" | "input";
+  kind: TriviaRetrievalPrompt["kind"];
+  prompt: string;
 }
 
 /* Author-supplied trivia metadata on an algorithm. Everything is optional: a
@@ -148,7 +156,7 @@ export interface TriviaMeta {
   /** Comprehensive line-by-line educational explanations keyed by 1-based line number. */
   lineExplanations?: Record<number, string>;
   /** Optional semantic sharpening for retrieval, grading, and misconception diagnosis. */
-  semanticLines?: TriviaSemanticLine[];
+  semanticLines?: readonly TriviaSemanticLine[];
 }
 
 /* Round 3 session IA (TASKS.md 9.1): `status` never told a caller *which

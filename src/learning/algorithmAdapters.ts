@@ -8,6 +8,7 @@ import {
 } from "../types/dsa";
 import { algorithmAssessment } from "./assessment";
 import { deriveDifficultyLabel, legacyDifficultyProfile } from "./difficulty";
+import { ACTIVE_TRIVIA_SEMANTIC_METADATA } from "./triviaSemantics";
 import type { AlgorithmLearningItem, LearningSource } from "./types";
 import { isValidLearningSourceUrl } from "./types";
 
@@ -134,7 +135,12 @@ export function adaptAlgorithmDefinition(algorithm: AlgorithmDefinition): Algori
       return algorithm.defaultInput;
     },
     get trivia() {
-      return algorithm.trivia;
+      const semanticLines = ACTIVE_TRIVIA_SEMANTIC_METADATA[algorithm.id];
+      if (!semanticLines || semanticLines.length === 0) return algorithm.trivia;
+      return {
+        ...(algorithm.trivia ?? {}),
+        semanticLines,
+      };
     },
   });
 }

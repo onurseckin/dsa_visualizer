@@ -61,7 +61,7 @@ describe("mastery-oriented trivia", () => {
     expect(gradeRound(round, { 2: "return len(values) == 0" }).allCorrect).toBe(false);
   });
 
-  it("prefers an authored semantic line and carries its changed variant and follow-up", () => {
+  it("prefers an authored semantic line and carries its authored boundary variant and follow-up", () => {
     const lines = parsePuzzleLines("import math\nvalue = seed\nif value < 0:\n    value = 0", {
       semanticLines: [
         {
@@ -101,7 +101,7 @@ describe("mastery-oriented trivia", () => {
 
     expect(round).toMatchObject({
       blanks: [3],
-      variant: "semantic-example-line-3-prediction",
+      variant: "semantic-example-line-3-boundary",
       retrievalPrompt: {
         kind: "prediction",
         prompt: "What output changes when value is exactly zero?",
@@ -109,6 +109,42 @@ describe("mastery-oriented trivia", () => {
       acceptedAnswers: { 3: ["if 0 > value:"] },
       misconceptionCodes: { 3: "misses-negative-boundary" },
     });
+  });
+
+  it("rotates a due retrieval review away from its original context", () => {
+    const lines = parsePuzzleLines("value = seed\nif value < 0:\n    value = 0");
+    const sources = new Map<string, readonly PuzzleLine[]>([["semantic-example", lines]]);
+    const reviewProgress: TriviaProgress = {
+      ...createProgress(config),
+      reviews: {
+        "semantic-example": {
+          "2": {
+            intervalIndex: 0,
+            dueAt: 100,
+            lastReviewedAt: 0,
+            variant: "semantic-example-line-2-boundary",
+            confidence: 4,
+            correct: true,
+            masteryScore: 1,
+            mastered: false,
+            misconceptionCodes: [],
+            response: "The negative-value boundary is enforced.",
+          },
+        },
+      },
+    };
+
+    const round = pickRound({
+      config,
+      progress: reviewProgress,
+      sources,
+      rng: () => 0,
+      now: 100,
+    });
+
+    expect(round?.blanks).toEqual([2]);
+    expect(round?.variant).toBe("semantic-example-line-2-invariant");
+    expect(round?.retrievalPrompt?.prompt).toMatch(/invariant/i);
   });
 
   it("schedules successful retrieval at 1, 7, and 24 days before mastery", () => {
