@@ -131,6 +131,50 @@ describe("CodeWorkspace", () => {
     expect(screen.getByRole("tab", { name: "Reference" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByTestId("code-viewer")).toHaveTextContent("return sum");
     expect(screen.queryByRole("textbox", { name: "Python playground editor" })).toBeNull();
+
+    const referenceTab = screen.getByRole("tab", { name: "Reference" });
+    expect(referenceTab).toHaveAttribute("id", "code-workspace-binary-search-reference-tab");
+    expect(referenceTab).toHaveAttribute(
+      "aria-controls",
+      "code-workspace-binary-search-reference-panel",
+    );
+    expect(referenceTab).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "code-workspace-binary-search-reference-tab",
+    );
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "id",
+      "code-workspace-binary-search-reference-panel",
+    );
+    expect(screen.getByRole("tab", { name: "Playground" })).toHaveAttribute("tabindex", "-1");
+    expect(screen.getByRole("tab", { name: "Output" })).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("provides roving tab focus with ArrowLeft/Right and Home/End", () => {
+    render(<CodeWorkspace {...baseProps} draftStorage={createDrafts()} />);
+    const reference = screen.getByRole("tab", { name: "Reference" });
+
+    reference.focus();
+    fireEvent.keyDown(reference, { key: "ArrowRight" });
+    const playground = screen.getByRole("tab", { name: "Playground" });
+    expect(playground).toHaveFocus();
+    expect(playground).toHaveAttribute("aria-selected", "true");
+    expect(playground).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("tabpanel")).toHaveAttribute(
+      "aria-labelledby",
+      "code-workspace-binary-search-playground-tab",
+    );
+
+    fireEvent.keyDown(playground, { key: "End" });
+    const output = screen.getByRole("tab", { name: "Output" });
+    expect(output).toHaveFocus();
+    expect(output).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.keyDown(output, { key: "Home" });
+    expect(reference).toHaveFocus();
+    fireEvent.keyDown(reference, { key: "ArrowLeft" });
+    expect(output).toHaveFocus();
   });
 
   it("opens an editable scaffold and supports Blank, Copy reference, and Reset", () => {

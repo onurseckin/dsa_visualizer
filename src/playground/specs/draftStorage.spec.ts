@@ -50,28 +50,38 @@ describe("playground draft storage", () => {
     expect(localStorage.getItem(key)).toBe("{broken");
   });
 
-  it("debounces local and SQLite writes using the latest code", async () => {
+  it("persists the local snapshot immediately and debounces only SQLite using latest code", async () => {
     const sync = vi.fn().mockResolvedValue(undefined);
     const setItem = vi.spyOn(Storage.prototype, "setItem");
     const drafts = createDraftStorage({ debounceMs: 50, sync });
 
     drafts.scheduleSave("binary-search", "# first");
+    expect(drafts.load("binary-search", "")).toBe("# first");
     drafts.scheduleSave("binary-search", "# latest");
-    expect(setItem).not.toHaveBeenCalled();
+    expect(drafts.load("binary-search", "")).toBe("# latest");
+    expect(setItem).toHaveBeenCalledTimes(2);
     expect(sync).not.toHaveBeenCalled();
 
     await vi.advanceTimersByTimeAsync(49);
-    expect(setItem).not.toHaveBeenCalled();
+    expect(sync).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
 
     const key = draftStorageKey("binary-search");
-    expect(setItem).toHaveBeenCalledTimes(1);
     expect(JSON.parse(localStorage.getItem(key) ?? "{}")).toMatchObject({
       version: DRAFT_STORAGE_VERSION,
       itemId: "binary-search",
       code: "# latest",
     });
     expect(sync).toHaveBeenCalledWith(key, localStorage.getItem(key));
+  });
+
+  it("survives an immediate reload before the SQLite debounce expires", () => {
+    const drafts = createDraftStorage({ debounceMs: 400, sync: vi.fn() });
+    drafts.scheduleSave("binary-search", "# unsynced local edit");
+
+    const reloaded = createDraftStorage({ sync: vi.fn() });
+
+    expect(reloaded.load("binary-search", "# scaffold")).toBe("# unsynced local edit");
   });
 
   it("flushes pending drafts without clearing them", () => {
@@ -129,4 +139,68 @@ describe("playground draft storage", () => {
 
     expect(drafts.load("binary-search", "")).toBe("# keep me");
   });
+
+  it("serializes delayed SQLite saves so an older save cannot finish after a newer save", async () => {
+    const first = deferred();
+    const second = deferred();
+    const sync = vi
+      .fn()
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    const drafts = createDraftStorage({ debounceMs: 1, sync });
+
+    drafts.scheduleSave("binary-search", "# first");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sync).toHaveBeenCalledTimes(1);
+
+    drafts.scheduleSave("binary-search", "# newest");
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sync).toHaveBeenCalledTimes(1);
+
+    first.resolve();
+    await flushPromises();
+    expect(sync).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(sync.mock.calls[1][1] ?? "{}")).toMatchObject({ code: "# newest" });
+    second.resolve();
+  });
+
+  it("queues Reset behind an in-flight save so stale data cannot resurrect", async () => {
+    const save = deferred();
+    const reset = deferred();
+    const sync = vi
+      .fn()
+      .mockImplementationOnce(() => save.promise)
+      .mockImplementationOnce(() => reset.promise);
+    const drafts = createDraftStorage({ debounceMs: 1, sync });
+
+    drafts.scheduleSave("binary-search", "# stale");
+    await vi.advanceTimersByTimeAsync(1);
+    drafts.reset("binary-search");
+
+    expect(localStorage.getItem(draftStorageKey("binary-search"))).toBeNull();
+    expect(sync).toHaveBeenCalledTimes(1);
+
+    save.resolve();
+    await flushPromises();
+    expect(sync).toHaveBeenCalledTimes(2);
+    expect(sync.mock.calls[1]).toEqual([draftStorageKey("binary-search"), null]);
+    reset.resolve();
+  });
 });
+
+function deferred(): {
+  readonly promise: Promise<void>;
+  readonly resolve: () => void;
+} {
+  let resolve!: () => void;
+  const promise = new Promise<void>((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
+async function flushPromises(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+}
