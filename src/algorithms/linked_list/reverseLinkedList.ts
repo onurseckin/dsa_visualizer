@@ -1,5 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  ElementState,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface ReverseLinkedListInput {
   nodes: number[];
@@ -19,6 +26,132 @@ export const DEFAULT_REVERSE_LINKED_LIST_INPUT: ReverseLinkedListInput = {
   nodes: [1, 2, 3, 4, 5, 6],
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Reverse Linked List inverts the pointer directions of a singly linked list in-place so each node points backward to its predecessor.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "default" },
+        { id: "c2", value: 2, label: "[1]", state: "default" },
+        { id: "c3", value: 3, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Unlike arrays where elements can be accessed by index in O(1) time, linked lists only permit forward traversal via .next pointers, so we cannot step backward from the tail.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "active", pointers: ["head"] },
+        { id: "c2", value: 2, label: "[1]", state: "compare" },
+        { id: "c3", value: 3, label: "[2]", state: "compare" },
+        { id: "c4", value: 4, label: "[3]", state: "compare", pointers: ["tail"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Pointer Loss Warning: overwriting curr.next = prev without saving curr.next first instantly destroys access to all downstream nodes, causing a critical memory leak.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "visited", pointers: ["prev"] },
+        { id: "c2", value: 2, label: "[1]", state: "swap", pointers: ["curr"] },
+        { id: "c3", value: 3, label: "[2]", state: "active", pointers: ["nxt"] },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We maintain three pointers: prev (head of reversed prefix, starting at null), curr (active node being flipped), and nxt (stashed handle to next node).",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "active", pointers: ["curr"] },
+        { id: "c2", value: 2, label: "[1]", state: "default", pointers: ["nxt"] },
+        { id: "c3", value: 3, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Step 1 (Save): stash nxt = curr.next to preserve access to the remaining un-reversed suffix before breaking the forward connection.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "active", pointers: ["curr"] },
+        { id: "c2", value: 2, label: "[1]", state: "compare", pointers: ["nxt"] },
+        { id: "c3", value: 3, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Step 2 (Flip): redirect curr.next backward to point to prev (curr.next = prev), inverting the pointer direction in O(1) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "swap", pointers: ["curr -> prev"] },
+        { id: "c2", value: 2, label: "[1]", state: "active", pointers: ["nxt"] },
+        { id: "c3", value: 3, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Steps 3 & 4 (Advance): step prev forward to curr (prev = curr) and step curr forward to nxt (curr = nxt) to prepare for the next node.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "sorted", pointers: ["prev"] },
+        { id: "c2", value: 2, label: "[1]", state: "active", pointers: ["curr"] },
+        { id: "c3", value: 3, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Completion: when curr becomes null, prev stands on the old tail node, which is the new head of the fully reversed linked list in O(N) time and O(1) space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 4, label: "[0]", state: "sorted", pointers: ["new head"] },
+        { id: "c2", value: 3, label: "[1]", state: "sorted" },
+        { id: "c3", value: 2, label: "[2]", state: "sorted" },
+        { id: "c4", value: 1, label: "[3]", state: "sorted", pointers: ["tail -> null"] },
+      ],
+    },
+  },
+];
+
 export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -28,196 +161,139 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
     : DEFAULT_REVERSE_LINKED_LIST_INPUT.nodes;
   const n = nodes.length;
 
-  const elements: ArrayElement[] = nodes.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
-
   const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    customState?: Record<string, string | number>,
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
   ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: customState ?? {
-          prev: String(variables.prev ?? "None"),
-          curr: String(variables.curr ?? "None"),
-          nxt: String(variables.nxt ?? "None"),
-        },
-      },
-      variables,
-    });
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  addStep(
-    1,
-    "Initialize linked list pointer inversion",
-    `Preparing to reverse link directions in-place for singly linked list sequence [${nodes.join(" -> ")}] in O(N) time.`,
-    { head: n > 0 ? nodes[0] : "None", length: n },
-  );
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.nodes) &&
+      input.nodes.length === DEFAULT_REVERSE_LINKED_LIST_INPUT.nodes.length &&
+      input.nodes.every((val, idx) => val === DEFAULT_REVERSE_LINKED_LIST_INPUT.nodes[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const makeSnapshot = (
+    currIdx?: number,
+    prevIdx?: number,
+    nxtIdx?: number,
+    highlightState: ElementState = "compare",
+    highlightIdx?: number,
+    isComplete?: boolean,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = nodes.map((val, idx) => {
+      const ptrs: string[] = [];
+      if (idx === prevIdx) ptrs.push("prev");
+      if (idx === currIdx) ptrs.push("curr");
+      if (idx === nxtIdx) ptrs.push("nxt");
+
+      let state: ArrayElement["state"] = "default";
+      if (isComplete) {
+        state = "sorted";
+      } else if (idx === highlightIdx && highlightIdx !== undefined) {
+        state = highlightState;
+      } else if (idx === currIdx) {
+        state = "active";
+      } else if (prevIdx !== undefined && idx <= prevIdx) {
+        state = "visited";
+      }
+
+      return {
+        id: `el-${idx}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
+    });
+
+    return {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements,
+    };
+  };
 
   if (n === 0) {
     addStep(
-      2,
-      "Set prev pointer to null (terminator)",
-      "The list is empty, so there are no pointers to invert.",
-      { prev: "None", curr: "None" },
+      "The input linked list is empty (head is null); returning null immediately.",
+      {
+        kind: "array",
+        name: "nodes",
+        mode: "box",
+        elements: [],
+      },
     );
-    addStep(9, "Return null", "Reversing an empty list produces an empty list; returning null.", {
-      newHead: "None",
-    });
     return steps;
   }
 
   addStep(
-    2,
-    "Set prev pointer to null (terminator)",
-    `prev marks the head of the reversed prefix. It begins at null because original head node ${nodes[0]} will become the new tail pointing to null.`,
-    { prev: "None" },
-  );
-
-  elements[0].state = "active";
-  elements[0].pointers = ["curr"];
-
-  addStep(
-    3,
-    "Set curr pointer to list head",
-    `Establishes curr as the active traversal pointer starting at head node ${nodes[0]}.`,
-    { prev: "None", curr: nodes[0] },
+    `Having established the mental model, let's now transition to our selected linked list sequence of ${n} nodes: [${nodes.join(" -> ")}].`,
+    makeSnapshot(0, undefined, undefined, "compare", 0),
   );
 
   let prevIdx = -1;
+  let currIdx = 0;
 
-  for (let i = 0; i < n; i++) {
-    const currentVal = nodes[i];
-    const prevVal = prevIdx >= 0 ? nodes[prevIdx] : "None";
-    const nextVal = i + 1 < n ? nodes[i + 1] : "None";
-
-    // Clear old pointers
-    for (let k = 0; k < n; k++) {
-      const ptrs: string[] = [];
-      if (k === prevIdx) ptrs.push("prev");
-      if (k === i) ptrs.push("curr");
-      if (k === i + 1) ptrs.push("nxt");
-      elements[k].pointers = ptrs.length > 0 ? ptrs : undefined;
-    }
-
-    elements[i].state = "active";
+  while (currIdx < n) {
+    const currentVal = nodes[currIdx];
+    const nxtIdx = currIdx + 1 < n ? currIdx + 1 : undefined;
+    const nxtVal = nxtIdx !== undefined ? nodes[nxtIdx] : "null";
 
     addStep(
-      4,
-      `Evaluate traversal condition: active node exists (${currentVal})`,
-      `curr is valid (node ${currentVal}), indicating un-reversed nodes remain in the forward sequence.`,
-      { i, prev: prevVal, curr: currentVal },
+      `Inspect curr node [${currIdx}] (value ${currentVal}): prepare to process node and invert its next pointer.`,
+      makeSnapshot(currIdx, prevIdx >= 0 ? prevIdx : undefined, nxtIdx, "compare", currIdx),
     );
 
     addStep(
-      5,
-      `Stash next node reference (${nextVal})`,
-      `Preserves pointer reference to downstream node ${nextVal} in nxt before breaking and redirecting curr's link.`,
-      { i, prev: prevVal, curr: currentVal, nxt: nextVal },
-    );
-
-    elements[i].state = "swap";
-    addStep(
-      6,
-      `Invert pointer direction for node ${currentVal}`,
-      `Redirects curr.next backward to point to prev (node ${prevVal}), reversing link direction in O(1) time.`,
-      { i, "curr.next": prevVal, prev: prevVal, curr: currentVal },
-    );
-
-    prevIdx = i;
-    elements[i].state = "visited";
-
-    const prevPtrs: string[] = ["prev"];
-    if (i + 1 < n) {
-      elements[i + 1].pointers = ["curr"];
-    }
-    elements[i].pointers = prevPtrs;
-
-    addStep(
-      7,
-      `Advance prev pointer to node ${currentVal}`,
-      `Updates prev to mark node ${currentVal} as the new head of the reversed prefix so far.`,
-      { i, prev: currentVal, curr: currentVal },
+      `Stash next node: nxt = curr.next (node ${nxtVal}) to preserve forward reference before breaking link.`,
+      makeSnapshot(currIdx, prevIdx >= 0 ? prevIdx : undefined, nxtIdx, "active", nxtIdx),
     );
 
     addStep(
-      8,
-      `Advance curr pointer to stashed node ${nextVal}`,
-      `Moves curr forward to stashed node ${nextVal} to continue reversing remaining links.`,
-      { i, prev: currentVal, curr: nextVal },
+      `Invert link direction: set curr.next = prev (node ${prevIdx >= 0 ? nodes[prevIdx] : "null"}), reversing pointer direction.`,
+      makeSnapshot(currIdx, prevIdx >= 0 ? prevIdx : undefined, nxtIdx, "swap", currIdx),
+    );
+
+    prevIdx = currIdx;
+    currIdx = currIdx + 1;
+
+    addStep(
+      `Advance pointers: step prev to node ${nodes[prevIdx]} and step curr forward to ${currIdx < n ? `node ${nodes[currIdx]}` : "null"}.`,
+      makeSnapshot(currIdx < n ? currIdx : undefined, prevIdx, undefined, "visited", prevIdx),
     );
   }
 
-  // Clear pointers for final step
-  for (let k = 0; k < n; k++) {
-    elements[k].state = "sorted";
-    elements[k].pointers = k === n - 1 ? ["newHead"] : undefined;
-  }
-
+  const reversedValues = [...nodes].reverse();
   addStep(
-    4,
-    "Evaluate traversal condition: curr is null",
-    "curr has reached null — all pointer directions are successfully reversed.",
-    { prev: nodes[n - 1], curr: "None" },
-  );
-
-  addStep(
-    9,
-    `Return new head node (${nodes[n - 1]})`,
-    `prev points to original tail node ${nodes[n - 1]}, which now serves as the head of the reversed linked list.`,
-    { newHead: nodes[n - 1] },
+    `Reverse Linked List complete! Reached end of list (curr is null); prev points to node ${nodes[n - 1]}, which is the new head of reversed list: [${reversedValues.join(" -> ")}].`,
+    makeSnapshot(undefined, undefined, undefined, "sorted", undefined, true),
   );
 
   return steps;
 };
 
 const REVERSE_LINKED_LIST_TRIVIA: TriviaMeta = {
-  skipLines: [4],
-  distractors: ["curr.next = nxt", "prev = nxt", "curr = prev", "return curr"],
-  hints: [
-    {
-      line: 5,
-      hint: "Stash curr.next before overwriting it so you don't lose the rest of the list.",
-    },
-    {
-      line: 6,
-      hint: "Point curr backward at prev to flip the pointer direction.",
-    },
-    {
-      line: 7,
-      hint: "Slide prev forward onto curr to expand the reversed list.",
-    },
-    {
-      line: 8,
-      hint: "Slide curr forward onto nxt to continue processing the remaining nodes.",
-    },
-  ],
+  skipLines: [1, 2, 7, 8],
   lineExplanations: {
-    1: "Defines reverse_linked_list(head): inverts pointer directions of a singly linked list in-place.",
-    2: "Initializes prev = None to serve as the tail terminator of the reversed list.",
-    3: "Initializes curr = head to point at the first node to be reversed.",
-    4: "Loops while curr is not None (untouched nodes remain).",
-    5: "Stashes reference to next node (nxt = curr.next) before pointer reversal.",
-    6: "Flips pointer: sets curr.next = prev to point backward.",
-    7: "Advances prev pointer forward to curr node.",
+    1: "Declares reverse_linked_list function accepting head node pointer.",
+    2: "Initializes prev pointer to None as terminator for reversed list tail.",
+    3: "Initializes curr pointer starting at list head.",
+    4: "Loops while active curr pointer is not None.",
+    5: "Stashes next node reference (nxt = curr.next) to prevent pointer loss.",
+    6: "Inverts link direction by assigning curr.next = prev.",
+    7: "Advances prev pointer forward to curr.",
     8: "Advances curr pointer forward to saved nxt node.",
-    9: "Returns prev as the new head of the reversed list.",
+    9: "Returns prev pointer as the new head of the reversed list.",
   },
 };
 
@@ -270,8 +346,9 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   examples: [
     {
       kind: "basic",
-      title: "Basic Example",
-      input: "head = [1, 2, 3, 4, 5, 6]",
+      scenario: "standard",
+      title: "Standard 6-Node List",
+      input: DEFAULT_REVERSE_LINKED_LIST_INPUT,
       inputDisplay: "head = [1, 2, 3, 4, 5, 6]",
       output: "[6, 5, 4, 3, 2, 1]",
       outputDisplay: "[6, 5, 4, 3, 2, 1]",
@@ -279,8 +356,9 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     },
     {
       kind: "complex",
-      title: "Complex Edge Case",
-      input: "head = [1, 2]",
+      scenario: "adversarial",
+      title: "Adversarial 2-Node List",
+      input: { nodes: [1, 2] },
       inputDisplay: "head = [1, 2]",
       output: "[2, 1]",
       outputDisplay: "[2, 1]",
@@ -288,8 +366,9 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     },
     {
       kind: "negative",
-      title: "Failing / Boundary Case",
-      input: "head = []",
+      scenario: "boundary",
+      title: "Boundary Empty List Case",
+      input: { nodes: [] },
       inputDisplay: "head = []",
       output: "[]",
       outputDisplay: "[]",
@@ -365,3 +444,5 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   defaultInput: DEFAULT_REVERSE_LINKED_LIST_INPUT,
   generateSteps: generateReverseLinkedListSteps,
 };
+
+export default reverseLinkedList;
