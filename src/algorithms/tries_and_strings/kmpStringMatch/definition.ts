@@ -57,13 +57,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns an array of integer indices representing all 0-based starting positions of <code>pattern</code> in <code>text</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
-  <li><code>1 &le; M &le; 10<sup>4</sup></code>.</li>
-  <li>Strings contain ASCII printable characters.</li>
-  <li>Pattern longer than text (<em>M &gt; N</em>) returns an empty array <code>[]</code>.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= text.length <= 10^5",
     "1 <= pattern.length <= 10^4",
@@ -71,6 +65,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: 'text = "ABABDABACDABABCABAB", pattern = "ABABCABAB"',
@@ -83,6 +78,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'text = "AABAACAADAABAABA", pattern = "AABA"',
       outputDisplay: "[0, 9, 12]",
@@ -93,6 +89,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
         "Pattern appears at multiple indices including overlapping positions, efficiently using LPS fallback transitions.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'text = "AAAAABAAAAA", pattern = "AAAAAC"',

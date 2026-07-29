@@ -365,17 +365,11 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns a 2-element array containing 0-based indices <code>[left, right]</code> of a matching subarray, or <code>[-1, -1]</code> if absent.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; arr.length &le; 10<sup>5</sup></code>.</li>
-  <li><code>0 &le; arr[i] &le; 10<sup>4</sup></code>.</li>
-  <li><code>1 &le; target &le; 10<sup>9</sup></code>.</li>
-  <li>Array elements are non-negative.</li>
-  <li>Empty array or no matching contiguous subarray returns <code>[-1, -1]</code>.</li>
-</ul>`,
+`,
   constraints: ["1 <= arr.length <= 10^5", "0 <= arr[i] <= 10^4", "1 <= target <= 10^9"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "arr = [1, 2, 3, 7, 5, 4, 1, 6], target = 12",
@@ -387,6 +381,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 15",
       outputDisplay: "[0, 4]",
@@ -396,6 +391,7 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
       explanation: "Window [1, 2, 3, 4, 5] from index 0 to 4 sums to 15.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "arr = [1, 2, 3], target = 100",

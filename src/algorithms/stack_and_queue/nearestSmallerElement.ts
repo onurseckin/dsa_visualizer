@@ -475,17 +475,11 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
 </ul>
 <h3>Output</h3>
 <p>Returns an array <code>result</code> of length <em>N</em> where <code>result[i]</code> is the nearest smaller element to the left of <code>nums[i]</code>, or <code>-1</code> if no smaller element exists to its left.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li>Strictly increasing array: Each element's nearest smaller element is its immediate left neighbor.</li>
-  <li>Strictly decreasing array: All entries in <code>result</code> are <code>-1</code>.</li>
-  <li>Handles duplicate elements correctly.</li>
-</ul>`,
+`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [6, 4, 5, 2, 10, 8, 7, 12, 1, 9]",
@@ -497,6 +491,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [4, 5, 2, 10, 8]",
       outputDisplay: "[-1, 4, -1, 2, 2]",
@@ -506,6 +501,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
       explanation: "Returns nearest smaller elements [-1, 4, -1, 2, 2].",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [5, 4, 3, 2, 1]",

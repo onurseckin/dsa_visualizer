@@ -50,10 +50,14 @@ export const ProblemSection: React.FC<ProblemSectionProps> = ({
   }
 
   return (
-    <section aria-label="Problem description and details" className="flex flex-col shrink-0">
+    <section
+      aria-label="Problem description and details"
+      className="flex flex-col shrink-0 w-full max-w-full px-4 md:px-6"
+    >
       <div
         ref={problemRef}
         data-height-mode={problemPinned !== null ? "pinned" : "hug"}
+        className="w-full max-w-full"
         style={{
           flexShrink: 0,
           height: problemPinned !== null ? `${problemPinned}px` : undefined,

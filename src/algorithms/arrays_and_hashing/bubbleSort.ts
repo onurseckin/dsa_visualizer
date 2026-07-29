@@ -380,16 +380,11 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
 </ul>
 <h3>Output</h3>
 <p>Returns the array sorted in non-decreasing order.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; nums.length &le; 10<sup>3</sup></code>.</li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li>Single element or already sorted array: Returns array as-is.</li>
-  <li>Duplicate values: Order of equal elements is preserved (stable sort).</li>
-</ul>`,
+`,
   constraints: ["1 <= arr.length <= 10^3", "-10^4 <= arr[i] <= 10^4"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [5, 2, 8, 1, 4]",
@@ -401,6 +396,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [64, 34, 25, 12, 22, 11, 90]",
       outputDisplay: "[11, 12, 22, 25, 34, 64, 90]",
@@ -410,6 +406,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
       explanation: "A larger array demonstrating repeated adjacent swaps until fully sorted.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [1, 2, 3, 4, 5]",

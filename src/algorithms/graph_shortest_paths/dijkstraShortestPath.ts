@@ -291,11 +291,7 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
       id,
       label: `${id} (${dist[id] === Infinity ? "∞" : dist[id]})`,
       state:
-        id === activeId
-          ? (overrideState ?? "active")
-          : visited.has(id)
-            ? "visited"
-            : "default",
+        id === activeId ? (overrideState ?? "active") : visited.has(id) ? "visited" : "default",
     }));
 
   const getGraphEdges = (activeEdge?: { from: string; to: string }): GraphEdgeItem[] =>
@@ -489,13 +485,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns a dictionary mapping each node ID to its minimum path distance from <code>startNode</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; |V| &le; 10<sup>4</sup></code>, <code>0 &le; |E| &le; 10<sup>5</sup></code>.</li>
-  <li><code>0 &le; weight &le; 10<sup>4</sup></code> (non-negative edge weights).</li>
-  <li>Graph can be directed or undirected.</li>
-  <li>Unreachable nodes remain at distance <code>&infin;</code>.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= Vertices V <= 10^4",
     "0 <= Edges E <= 10^5",
@@ -505,6 +495,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: 'graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = "A"',
@@ -516,6 +507,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
         "Dijkstra pops C (dist 2) and B (dist 4) first, then relaxes edges to find optimal distances: D (9) and E (11).",
     },
     {
+      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'graph = {A-B:2, B-C:3, A-C:10, C-D:1}, start = "A"',
@@ -536,6 +528,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
         "Direct edge A->C has weight 10, but multi-hop path A->B->C has total weight 5 (2+3). Dijkstra correctly picks the cheaper path.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'graph = {A-B:5, C:isolated}, start = "A"',

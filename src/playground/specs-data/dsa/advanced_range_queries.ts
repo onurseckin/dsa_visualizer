@@ -424,11 +424,133 @@ export const advancedRangeQueriesExecutions = [
     ),
     audit: {
       signature: "persistent_segment_tree_operations(arr, index, value, left, right) -> dict",
-      defaultInputShape: "{ array: number[]; operations: PersistentSegmentTreeOperation[] }",
-      argumentMapping: ["arr/update/query fields <- authored case object"],
-      mutation: "Creates a new path-copied root; leaves the original version untouched.",
-      returnBehavior:
-        "Returns old/new range sums and totals through the canonical build/update/query functions.",
+      defaultInputShape:
+        "{ array: number[]; index: number; value: number; left: number; right: number }",
+      argumentMapping: [
+        "arr <- $.arr",
+        "index <- $.index",
+        "value <- $.value",
+        "left <- $.left",
+        "right <- $.right",
+      ],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns before/after range sum totals.",
     },
   }),
-] as const;
+  defineDsaExecution({
+    id: "sqrt-heavy-light",
+    entrypoint: "sqrt_heavy_light",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "Nodes and threshold",
+        input: {
+          n: 5,
+          edges: [
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+          ],
+          queries: [[0, 1]],
+        },
+        expected: [1],
+      },
+      { label: "Single node", input: { n: 1, edges: [], queries: [] }, expected: [] },
+      {
+        label: "Star graph",
+        input: {
+          n: 4,
+          edges: [
+            [0, 1],
+            [0, 2],
+            [0, 3],
+          ],
+          queries: [[0, 1]],
+        },
+        expected: [1],
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> list",
+      defaultInputShape: "{ n: number; edges: number[][]; queries: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns SQRT heavy-light query results.",
+    },
+  }),
+  defineDsaExecution({
+    id: "integer-partition-sqrt",
+    entrypoint: "solve",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "N=10", input: 10, expected: 10 },
+      { label: "N=1", input: 1, expected: 1 },
+      { label: "N=5", input: 5, expected: 5 },
+    ),
+    audit: {
+      signature: "solve(n: int) -> int",
+      defaultInputShape: "number",
+      argumentMapping: ["n <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns partition count.",
+    },
+  }),
+  defineDsaExecution({
+    id: "merge-sort-tree",
+    entrypoint: "merge_sort_tree",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "Array [5,2,6,1]", input: { nums: [5, 2, 6, 1] }, expected: [2, 1, 1, 0] },
+      { label: "Single element", input: { nums: [1] }, expected: [0] },
+      { label: "Sorted array", input: { nums: [1, 2, 3] }, expected: [0, 0, 0] },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> list[int]",
+      defaultInputShape: "{ nums: number[] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns counts of smaller numbers after self.",
+    },
+  }),
+  defineDsaExecution({
+    id: "segment-tree-2d",
+    entrypoint: "segment_tree_2d",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "3x3 Matrix",
+        input: {
+          matrix: [
+            [3, 0, 1, 4, 2],
+            [5, 6, 3, 2, 1],
+            [1, 2, 0, 1, 5],
+            [4, 1, 0, 1, 7],
+            [1, 0, 3, 0, 5],
+          ],
+          queries: [[2, 1, 4, 3]],
+        },
+        expected: [8],
+      },
+      { label: "1x1 Matrix", input: { matrix: [[5]], queries: [[0, 0, 0, 0]] }, expected: [5] },
+      {
+        label: "2x2 Matrix",
+        input: {
+          matrix: [
+            [1, 2],
+            [3, 4],
+          ],
+          queries: [[0, 0, 1, 1]],
+        },
+        expected: [10],
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> list[int]",
+      defaultInputShape: "{ matrix: number[][]; queries: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns 2D range sum query results.",
+    },
+  }),
+];

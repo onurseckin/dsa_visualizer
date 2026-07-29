@@ -54,14 +54,11 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns a list of all distinct valid board arrangements of <em>N</em> non-attacking queens.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; N &le; 9</code>.</li>
-  <li>For <em>N = 2</em> and <em>N = 3</em>, no valid solutions exist.</li>
-</ul>`,
+`,
   constraints: ["1 <= N <= 9"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "n = 4",
@@ -73,6 +70,7 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "n = 5",
       outputDisplay: "10 solutions",
@@ -83,6 +81,7 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
         "5x5 chessboard with deeper recursion and multiple diagonal constraint pruning steps.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "n = 3",

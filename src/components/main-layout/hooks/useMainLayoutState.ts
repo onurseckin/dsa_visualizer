@@ -39,19 +39,13 @@ export function useMainLayoutState(algorithmId?: string) {
 
   const handleToggleProblemExpanded = useCallback(() => {
     setLayout(
-      writeWorkspaceLayout(
-        { problemExpanded: !layoutRef.current.problemExpanded },
-        algorithmId,
-      ),
+      writeWorkspaceLayout({ problemExpanded: !layoutRef.current.problemExpanded }, algorithmId),
     );
   }, [algorithmId]);
 
   const handleToggleSolutionExpanded = useCallback(() => {
     setLayout(
-      writeWorkspaceLayout(
-        { solutionExpanded: !layoutRef.current.solutionExpanded },
-        algorithmId,
-      ),
+      writeWorkspaceLayout({ solutionExpanded: !layoutRef.current.solutionExpanded }, algorithmId),
     );
   }, [algorithmId]);
 

@@ -88,6 +88,42 @@ import { quickSort } from "./two_pointers/quickSort";
 import { twoPointers } from "./two_pointers/twoPointers";
 import { twoSumSorted } from "./two_pointers/twoSumSorted";
 
+import { trialDivisionPrimality } from "./math_and_number_theory/trialDivisionPrimality";
+import { divisorFunctions } from "./math_and_number_theory/divisorFunctions";
+import { goldbachConjecture } from "./math_and_number_theory/goldbachConjecture";
+import { zeckendorfTheorem } from "./math_and_number_theory/zeckendorfTheorem";
+import { lagrangeFourSquare } from "./math_and_number_theory/lagrangeFourSquare";
+import { pythagoreanTriples } from "./math_and_number_theory/pythagoreanTriples";
+import { wilsonTheorem } from "./math_and_number_theory/wilsonTheorem";
+import { derangements } from "./math_and_number_theory/derangements";
+import { burnsideLemma } from "./math_and_number_theory/burnsideLemma";
+import { pruferCode } from "./math_and_number_theory/pruferCode";
+import { stirlingNumbersSecond } from "./math_and_number_theory/stirlingNumbersSecond";
+import { tribonacciMatrix } from "./math_and_number_theory/tribonacciMatrix";
+import { pathCountingMatrix } from "./math_and_number_theory/pathCountingMatrix";
+import { minPlusMatrixMultiplication } from "./math_and_number_theory/minPlusMatrixMultiplication";
+import { kirchhoffMatrixTree } from "./math_and_number_theory/kirchhoffMatrixTree";
+import { probabilityDpExpectation } from "./math_and_number_theory/probabilityDpExpectation";
+import { tossStrangeCoins } from "./math_and_number_theory/tossStrangeCoins";
+import { millerRabinPrimality } from "./math_and_number_theory/millerRabinPrimality";
+import { fisherYatesShuffle } from "./math_and_number_theory/fisherYatesShuffle";
+import { gameStateMinimax } from "./game_theory/gameStateMinimax";
+import { stoneGameDp } from "./game_theory/stoneGameDp";
+import { mexSubtractionGame } from "./game_theory/mexSubtractionGame";
+import { bitwiseTrieXor } from "./tries_and_strings/bitwiseTrieXor";
+import { ahoCorasick } from "./tries_and_strings/ahoCorasick";
+import { manacherAlgorithm } from "./tries_and_strings/manacherAlgorithm";
+import { suffixArrayLcp } from "./tries_and_strings/suffixArrayLcp";
+import { sqrtHeavyLight } from "./advanced_range_queries/sqrtHeavyLight";
+import { integerPartitionSqrt } from "./advanced_range_queries/integerPartitionSqrt";
+import { mergeSortTree } from "./advanced_range_queries/mergeSortTree";
+import { segmentTree2d } from "./advanced_range_queries/segmentTree2d";
+import { pickTheorem } from "./geometry_and_sweep_line/pickTheorem";
+import { manhattanDistanceRotation } from "./geometry_and_sweep_line/manhattanDistanceRotation";
+import { pointInPolygon } from "./geometry_and_sweep_line/pointInPolygon";
+import { skylineProblem } from "./geometry_and_sweep_line/skylineProblem";
+import { rectangleAreaUnion } from "./geometry_and_sweep_line/rectangleAreaUnion";
+
 export const ALGORITHMS = [
   prefixSum,
   twoSum,
@@ -177,6 +213,41 @@ export const ALGORITHMS = [
   knightsTourWarnsdorff,
   hamiltonianPathDp,
   generatingSubsets,
+  trialDivisionPrimality,
+  divisorFunctions,
+  goldbachConjecture,
+  zeckendorfTheorem,
+  lagrangeFourSquare,
+  pythagoreanTriples,
+  wilsonTheorem,
+  derangements,
+  burnsideLemma,
+  pruferCode,
+  stirlingNumbersSecond,
+  tribonacciMatrix,
+  pathCountingMatrix,
+  minPlusMatrixMultiplication,
+  kirchhoffMatrixTree,
+  probabilityDpExpectation,
+  tossStrangeCoins,
+  millerRabinPrimality,
+  fisherYatesShuffle,
+  gameStateMinimax,
+  stoneGameDp,
+  mexSubtractionGame,
+  bitwiseTrieXor,
+  ahoCorasick,
+  manacherAlgorithm,
+  suffixArrayLcp,
+  sqrtHeavyLight,
+  integerPartitionSqrt,
+  mergeSortTree,
+  segmentTree2d,
+  pickTheorem,
+  manhattanDistanceRotation,
+  pointInPolygon,
+  skylineProblem,
+  rectangleAreaUnion,
 ] as const satisfies readonly AlgorithmDefinition[];
 
 const buildAlgorithmRegistry = (

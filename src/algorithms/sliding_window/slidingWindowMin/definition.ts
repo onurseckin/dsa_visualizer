@@ -95,17 +95,11 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns an array <code>result</code> containing <code>N - k + 1</code> integers representing the minimum of each sliding window of size <code>k</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li><code>1 &le; k &le; nums.length</code>.</li>
-  <li><code>k = 1</code>: Output array is identical to <code>nums</code>.</li>
-  <li><code>k = N</code>: Output array contains a single element (the global minimum of <code>nums</code>).</li>
-</ul>`,
+`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4", "1 <= k <= nums.length"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [4, 2, 12, 11, 5, 8, 3, 9], k = 3",
@@ -118,6 +112,7 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [9, 7, 5, 3, 1, 2, 4, 6, 8], k = 4",
       outputDisplay: "[3, 1, 1, 1, 1, 2]",
@@ -128,6 +123,7 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
         "Strictly decreasing then increasing sequence; monotonic deque evicts expired and dominated indices across 6 windows.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [10, 20, 30, 40], k = 4",

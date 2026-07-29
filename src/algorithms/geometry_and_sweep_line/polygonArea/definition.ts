@@ -76,7 +76,7 @@ export const polygonArea: AlgorithmDefinition<PolygonAreaInput> = {
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Medium",
   description:
-    "<p>Calculates the exact area of a simple 2D polygon <code>P</code> from its ordered vertices using the Shoelace (Gauss) formula in <code>O(N)</code> time:</p><p><code>A = 0.5 × |∑ (x_i y_{i+1} - x_{i+1} y_i)|</code></p><h3>Graph Snapshot Representation</h3><p>The polygon vertices and perimeter edges are rendered on a 2D graph coordinate grid, with active cross-multiplied edges highlighted.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of ordered 2D polygon vertices.</li></ul><h3>Output</h3><ul><li><code>float</code>: Total surface area of the enclosed polygon.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Case:</strong> <code>N &lt; 3</code> implies <code>area = 0.0</code>.</li><li><strong>Collinear Vertices:</strong> Yield zero enclosed area.</li></ul>",
+    "<p>Calculates the exact area of a simple 2D polygon <code>P</code> from its ordered vertices using the Shoelace (Gauss) formula in <code>O(N)</code> time:</p><p><code>A = 0.5 × |∑ (x_i y_{i+1} - x_{i+1} y_i)|</code></p><h3>Graph Snapshot Representation</h3><p>The polygon vertices and perimeter edges are rendered on a 2D graph coordinate grid, with active cross-multiplied edges highlighted.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of ordered 2D polygon vertices.</li></ul><h3>Output</h3><ul><li><code>float</code>: Total surface area of the enclosed polygon.</li></ul>",
   constraints: [
     "3 <= vertices.length <= 1000",
     "-1000 <= x, y <= 1000",

@@ -1,8 +1,4 @@
-import type {
-  AlgorithmStep,
-  GridCellNode,
-  PrimaryVisualSnapshot,
-} from "../../../types/dsa";
+import type { AlgorithmStep, GridCellNode, PrimaryVisualSnapshot } from "../../../types/dsa";
 import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 
 export interface NQueensInput {

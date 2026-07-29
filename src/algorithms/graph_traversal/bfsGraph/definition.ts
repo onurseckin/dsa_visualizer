@@ -86,12 +86,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns an array of node IDs visited in layer-by-layer traversal order.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; |V| &le; 10<sup>4</sup></code>, <code>0 &le; |E| &le; 10<sup>5</sup></code>.</li>
-  <li>Graphs may contain cycles or disconnected components.</li>
-  <li>If <code>startNodeId</code> is invalid or absent, returns an empty list.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= Number of vertices V <= 10^4",
     "0 <= Number of edges E <= 10^5",
@@ -101,6 +96,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: 'graph = {A: [B, C], B: [D, E], C: [F]}, start = "A"',
@@ -112,6 +108,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
         "Starting at A, BFS visits distance-1 neighbors (B, C), then distance-2 (D, E), and finally distance-3 (F).",
     },
     {
+      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'graph = {A: [B], B: [C, D], C: [A, E]}, start = "A"',
@@ -141,6 +138,7 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
         "The graph contains back-edges and cycles (A-B-C-A, B-D-E-B). The visited set prevents infinite loops, visiting every reachable node once.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'graph = {A: [B], C: [D]}, start = "A"',

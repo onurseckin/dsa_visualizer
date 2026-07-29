@@ -30,9 +30,7 @@ interface MLInfraKnowledgeGraphProps {
   onSelectTopic?: (topicId: string) => void;
 }
 
-export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
-  onSelectTopic,
-}) => {
+export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ onSelectTopic }) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const { ref: canvasRef, box: measuredBox } = useCanvasBox({ width: 1200, height: 1 });
@@ -55,10 +53,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
   const hoveredNode = hoveredNodeId ? ML_INFRA_TREE_PLACEMENT_MAP.get(hoveredNodeId) : undefined;
   const layout = useMemo(() => {
-    return layoutResponsiveGraph(
-      ML_INFRA_TREE_PLACEMENTS,
-      { width: measuredBox.width, height: 0 },
-    );
+    return layoutResponsiveGraph(ML_INFRA_TREE_PLACEMENTS, { width: measuredBox.width, height: 0 });
   }, [measuredBox.width]);
 
   const positionedPlacements = layout.nodes;
@@ -186,175 +181,177 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                 </marker>
               </defs>
 
-            {/* Connectors Group */}
-            <g className="connectors">
-              {positionedPlacements.map((node) =>
-                node.prerequisites.map((prereqId: string) => {
-                  const parent = positionedPlacementMap.get(prereqId);
-                  if (!parent) return null;
+              {/* Connectors Group */}
+              <g className="connectors">
+                {positionedPlacements.map((node) =>
+                  node.prerequisites.map((prereqId: string) => {
+                    const parent = positionedPlacementMap.get(prereqId);
+                    if (!parent) return null;
 
-                  const isHovered = hoveredNodeId === node.id || hoveredNodeId === parent.id;
-                  const isHighlighted = isHovered;
+                    const isHovered = hoveredNodeId === node.id || hoveredNodeId === parent.id;
+                    const isHighlighted = isHovered;
 
-                  const strokeColor = isHighlighted
-                    ? "var(--accent)"
-                    : mlInfraFamilyColor(node.family);
-                  const strokeWidth = isHighlighted ? 2.5 : 1.75;
-                  const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
+                    const strokeColor = isHighlighted
+                      ? "var(--accent)"
+                      : mlInfraFamilyColor(node.family);
+                    const strokeWidth = isHighlighted ? 2.5 : 1.75;
+                    const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
-                  let startX = parent.x;
-                  let startY = parent.y + parent.height / 2;
-                  let endX = node.x;
-                  let endY = node.y - node.height / 2;
+                    let startX = parent.x;
+                    let startY = parent.y + parent.height / 2;
+                    let endX = node.x;
+                    let endY = node.y - node.height / 2;
 
-                  if (parent.y === node.y) {
-                    if (parent.x < node.x) {
-                      startX = parent.x + parent.width / 2;
-                      startY = parent.y;
-                      endX = node.x - node.width / 2;
-                      endY = node.y;
-                    } else {
-                      startX = parent.x - parent.width / 2;
-                      startY = parent.y;
-                      endX = node.x + node.width / 2;
-                      endY = node.y;
+                    if (parent.y === node.y) {
+                      if (parent.x < node.x) {
+                        startX = parent.x + parent.width / 2;
+                        startY = parent.y;
+                        endX = node.x - node.width / 2;
+                        endY = node.y;
+                      } else {
+                        startX = parent.x - parent.width / 2;
+                        startY = parent.y;
+                        endX = node.x + node.width / 2;
+                        endY = node.y;
+                      }
                     }
-                  }
 
-                  const midY = (startY + endY) / 2;
+                    const midY = (startY + endY) / 2;
 
-                  const pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+                    const pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+
+                    return (
+                      <path
+                        key={`${prereqId}->${node.id}`}
+                        d={pathD}
+                        fill="none"
+                        stroke={strokeColor}
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={isHighlighted ? "none" : "5 5"}
+                        markerEnd={
+                          isHighlighted ? "url(#ml-arrow-active)" : `url(#ml-arrow-${node.family})`
+                        }
+                        style={{
+                          opacity: strokeOpacity,
+                          transition: "all var(--transition-normal)",
+                        }}
+                      />
+                    );
+                  }),
+                )}
+              </g>
+
+              {/* Nodes Group */}
+              <g className="nodes">
+                {positionedPlacements.map((node) => {
+                  const isHovered = hoveredNodeId === node.id;
+                  const isFocused = focusedNodeId === node.id;
+                  const activeFocusOrHover = isHovered || isFocused;
+                  const isRelated =
+                    hoveredNodeId !== null &&
+                    (node.prerequisites.includes(hoveredNodeId) ||
+                      (hoveredNode?.prerequisites.includes(node.id) ?? false));
+
+                  const width = node.width;
+                  const height = node.height;
+
+                  const handleKeyDown = (e: React.KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleSelectNode(node);
+                    }
+                  };
+
+                  const problemCount = problemCountByTopicId.get(node.topicId) ?? 0;
 
                   return (
-                    <path
-                      key={`${prereqId}->${node.id}`}
-                      d={pathD}
-                      fill="none"
-                      stroke={strokeColor}
-                      strokeWidth={strokeWidth}
-                      strokeDasharray={isHighlighted ? "none" : "5 5"}
-                      markerEnd={
-                        isHighlighted ? "url(#ml-arrow-active)" : `url(#ml-arrow-${node.family})`
-                      }
-                      style={{
-                        opacity: strokeOpacity,
-                        transition: "all var(--transition-normal)",
+                    <g
+                      key={node.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
+                      transform={`translate(${node.x - width / 2}, ${node.y - node.height / 2})`}
+                      onClick={() => handleSelectNode(node)}
+                      onKeyDown={handleKeyDown}
+                      onMouseEnter={() => setHoveredNodeId(node.id)}
+                      onMouseLeave={() => setHoveredNodeId(null)}
+                      onFocus={() => {
+                        setFocusedNodeId(node.id);
+                        setHoveredNodeId(node.id);
                       }}
-                    />
-                  );
-                }),
-              )}
-            </g>
-
-            {/* Nodes Group */}
-            <g className="nodes">
-              {positionedPlacements.map((node) => {
-                const isHovered = hoveredNodeId === node.id;
-                const isFocused = focusedNodeId === node.id;
-                const activeFocusOrHover = isHovered || isFocused;
-                const isRelated =
-                  hoveredNodeId !== null &&
-                  (node.prerequisites.includes(hoveredNodeId) ||
-                    (hoveredNode?.prerequisites.includes(node.id) ?? false));
-
-                const width = node.width;
-                const height = node.height;
-
-                const handleKeyDown = (e: React.KeyboardEvent) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleSelectNode(node);
-                  }
-                };
-
-                const problemCount = problemCountByTopicId.get(node.topicId) ?? 0;
-
-                return (
-                  <g
-                    key={node.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-                    transform={`translate(${node.x - width / 2}, ${node.y - node.height / 2})`}
-                    onClick={() => handleSelectNode(node)}
-                    onKeyDown={handleKeyDown}
-                    onMouseEnter={() => setHoveredNodeId(node.id)}
-                    onMouseLeave={() => setHoveredNodeId(null)}
-                    onFocus={() => {
-                      setFocusedNodeId(node.id);
-                      setHoveredNodeId(node.id);
-                    }}
-                    onBlur={() => {
-                      setFocusedNodeId(null);
-                      setHoveredNodeId(null);
-                    }}
-                    style={{
-                      cursor: "pointer",
-                      outline: "none",
-                      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                    }}
-                    className={isHovered ? "scale-[1.02]" : ""}
-                  >
-                    <rect
-                      width={width}
-                      height={node.height}
-                      rx="12"
-                      fill={
-                        activeFocusOrHover
-                          ? mlInfraFamilyFillHover(node.family)
-                          : mlInfraFamilyFill(node.family)
-                      }
-                      stroke={
-                        activeFocusOrHover
-                          ? "var(--border-accent)"
-                          : isRelated
-                            ? mlInfraFamilyColor(node.family)
-                            : "var(--border-default)"
-                      }
-                      strokeWidth={activeFocusOrHover ? 2.5 : 1.5}
-                      style={{
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        filter: activeFocusOrHover
-                          ? "drop-shadow(0 12px 24px rgba(0,0,0,0.5))"
-                          : "drop-shadow(0 4px 12px rgba(0,0,0,0.3))",
+                      onBlur={() => {
+                        setFocusedNodeId(null);
+                        setHoveredNodeId(null);
                       }}
-                    />
-
-                    <foreignObject
-                      x="0"
-                      y="0"
-                      width={width}
-                      height={height}
-                      className="overflow-visible pointer-events-none"
+                      style={{
+                        cursor: "pointer",
+                        outline: "none",
+                        transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      }}
+                      className={isHovered ? "scale-[1.02]" : ""}
                     >
-                      <div className="w-full h-full p-3 flex flex-col justify-between items-center text-center box-border select-none overflow-hidden">
-                        <span
-                          className={`font-bold text-[12.5px] leading-snug break-words transition-colors duration-300 ${
-                            isHovered ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
-                          }`}
-                        >
-                          {node.title}
-                        </span>
-                        <span
-                          className={`font-mono text-[10.5px] whitespace-nowrap transition-colors duration-300 mt-auto pt-1.5 shrink-0 ${
-                            isHovered ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]"
-                          }`}
-                        >
-                          {problemCount} {problemCount === 1 ? "Problem" : "Problems"} •{" "}
-                          {node.difficulty}
-                        </span>
-                      </div>
-                    </foreignObject>
-                  </g>
-                );
-              })}
-            </g>
-          </svg>
+                      <rect
+                        width={width}
+                        height={node.height}
+                        rx="12"
+                        fill={
+                          activeFocusOrHover
+                            ? mlInfraFamilyFillHover(node.family)
+                            : mlInfraFamilyFill(node.family)
+                        }
+                        stroke={
+                          activeFocusOrHover
+                            ? "var(--border-accent)"
+                            : isRelated
+                              ? mlInfraFamilyColor(node.family)
+                              : "var(--border-default)"
+                        }
+                        strokeWidth={activeFocusOrHover ? 2.5 : 1.5}
+                        style={{
+                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                          filter: activeFocusOrHover
+                            ? "drop-shadow(0 12px 24px rgba(0,0,0,0.5))"
+                            : "drop-shadow(0 4px 12px rgba(0,0,0,0.3))",
+                        }}
+                      />
+
+                      <foreignObject
+                        x="0"
+                        y="0"
+                        width={width}
+                        height={height}
+                        className="overflow-visible pointer-events-none"
+                      >
+                        <div className="w-full h-full p-3 flex flex-col justify-between items-center text-center box-border select-none overflow-hidden">
+                          <span
+                            className={`font-bold text-[12.5px] leading-snug break-words transition-colors duration-300 ${
+                              isHovered ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
+                            }`}
+                          >
+                            {node.title}
+                          </span>
+                          <span
+                            className={`font-mono text-[10.5px] whitespace-nowrap transition-colors duration-300 mt-auto pt-1.5 shrink-0 ${
+                              isHovered
+                                ? "text-[var(--text-secondary)]"
+                                : "text-[var(--text-muted)]"
+                            }`}
+                          >
+                            {problemCount} {problemCount === 1 ? "Problem" : "Problems"} •{" "}
+                            {node.difficulty}
+                          </span>
+                        </div>
+                      </foreignObject>
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
-}
+  );
+};
 
 export default MLInfraKnowledgeGraph;

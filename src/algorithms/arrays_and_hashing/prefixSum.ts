@@ -812,16 +812,11 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns a prefix sum array of size <code>nums.length + 1</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li>Handles positive, negative, and zero values.</li>
-  <li>Single element array returns <code>[0, nums[0]]</code>.</li>
-</ul>`,
+`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [2, 4, 1, 3, 5, 2, 6, 4]",
@@ -833,6 +828,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [10, -5, 20, -10, 30]",
       outputDisplay: "[0, 10, 5, 25, 15, 45]",
@@ -843,6 +839,7 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
         "Handles negative numbers and zeros, correctly updating prefix sums across signs.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [0]",

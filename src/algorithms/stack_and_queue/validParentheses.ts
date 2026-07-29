@@ -461,16 +461,11 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns boolean <code>true</code> if the string is valid, otherwise <code>false</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; s.length &le; 10<sup>4</sup></code>.</li>
-  <li><code>s</code> consists of parentheses only: <code>()[]{}</code>.</li>
-  <li>Odd length strings can never be valid.</li>
-  <li>Empty or incomplete bracket sequences return <code>false</code>.</li>
-</ul>`,
+`,
   constraints: ["1 <= s.length <= 10^4", "s consists of parentheses only: () {} []"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: 's = "({[()]}())"',
@@ -482,6 +477,7 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: 's = "()[]{}()({[]})"',
       outputDisplay: "true",
@@ -492,6 +488,7 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
         "Multiple sequential and deeply nested bracket pairs correctly pushing and popping from the stack.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 's = "(]"',

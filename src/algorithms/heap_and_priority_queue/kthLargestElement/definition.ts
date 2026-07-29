@@ -38,13 +38,7 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns the integer value corresponding to the <em>k</em>-th largest element in sorted order.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; k &le; nums.length &le; 10<sup>5</sup></code>.</li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li>Single element array (<em>N = 1, k = 1</em>) returns <code>nums[0]</code>.</li>
-  <li>Duplicate elements are counted as distinct occurrences.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= k <= nums.length <= 10^5",
     "-10^4 <= nums[i] <= 10^4",
@@ -52,6 +46,7 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [3, 2, 1, 5, 6, 4], k = 2",
@@ -64,6 +59,7 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4",
       outputDisplay: "4",
@@ -74,6 +70,7 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
         "Handles duplicate elements correctly. Min-heap of size 4 retains [4, 5, 5, 6] with root 4.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [7], k = 1",
