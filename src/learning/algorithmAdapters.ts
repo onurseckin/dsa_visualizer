@@ -11,15 +11,6 @@ import { deriveDifficultyLabel, legacyDifficultyProfile } from "./difficulty";
 import type { AlgorithmLearningItem, LearningSource } from "./types";
 import { isValidLearningSourceUrl } from "./types";
 
-const LEGACY_SOURCE_URL_BY_KIND = Object.freeze({
-  leetcode: "https://leetcode.com/problemset/",
-  book: "https://cses.fi/book/book.pdf",
-  standard: "https://en.wikipedia.org/wiki/Algorithm",
-  hackerrank: "https://www.hackerrank.com/domains/algorithms",
-  ml_infra: "https://pytorch.org/docs/stable/",
-  other: "https://en.wikipedia.org/wiki/Algorithm",
-} as const satisfies Record<SourceKind, string>);
-
 const SOURCE_LABEL_BY_KIND = Object.freeze({
   leetcode: "LeetCode",
   book: "Competitive Programmer's Handbook",
@@ -36,11 +27,11 @@ function sourceLabel(source: ProblemSource, kind: SourceKind): string {
   return SOURCE_LABEL_BY_KIND[kind];
 }
 
-function canonicalSourceUrl(
+function verifiedSourceUrl(
   definition: AlgorithmDefinition,
   source: ProblemSource,
   kind: SourceKind,
-): string {
+): string | undefined {
   if (source.url && isValidLearningSourceUrl(source.url)) return source.url;
   if (
     kind === "leetcode" &&
@@ -49,7 +40,7 @@ function canonicalSourceUrl(
   ) {
     return definition.leetcode.url;
   }
-  return LEGACY_SOURCE_URL_BY_KIND[kind];
+  return undefined;
 }
 
 export function normalizeAlgorithmSources(
@@ -57,12 +48,24 @@ export function normalizeAlgorithmSources(
 ): readonly [LearningSource, ...LearningSource[]] {
   const normalized = getAlgorithmSources(definition).map((source) => {
     const kind = getSourceKind(source);
-    return Object.freeze({
-      ...source,
-      kind,
-      label: sourceLabel(source, kind),
-      url: canonicalSourceUrl(definition, source, kind),
-    });
+    const url = verifiedSourceUrl(definition, source, kind);
+    const { url: legacyUrl, ...metadata } = source;
+    void legacyUrl;
+
+    return url
+      ? Object.freeze({
+          ...metadata,
+          kind,
+          label: sourceLabel(source, kind),
+          provenance: "verified" as const,
+          url,
+        })
+      : Object.freeze({
+          ...metadata,
+          kind,
+          label: sourceLabel(source, kind),
+          provenance: "unverified" as const,
+        });
   });
 
   const deduplicated = normalized.filter(
@@ -71,7 +74,9 @@ export function normalizeAlgorithmSources(
         (candidate) =>
           candidate.kind === source.kind &&
           candidate.label === source.label &&
-          candidate.url === source.url,
+          candidate.provenance === source.provenance &&
+          ("url" in candidate ? candidate.url : undefined) ===
+            ("url" in source ? source.url : undefined),
       ) === index,
   );
 

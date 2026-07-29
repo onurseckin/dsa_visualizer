@@ -167,12 +167,28 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({ source, size = "sm", c
     return null;
   }
 
+  if ("provenance" in source && source.provenance === "unverified") {
+    const label = source.label;
+    const provenanceLabel = `${label} — source URL unverified`;
+    return (
+      <Badge
+        variant="neutral"
+        size={size}
+        className={cx("font-mono text-text-muted border-border-subtle bg-bg-surface", className)}
+        title={provenanceLabel}
+        aria-label={provenanceLabel}
+      >
+        {label}
+      </Badge>
+    );
+  }
+
   const kind = "kind" in source && source.kind ? source.kind : getSourceKind(source);
 
   if (kind === "leetcode") {
     const leetcodeSource = source as LeetCodeSource;
     const id = leetcodeSource.id ?? leetcodeSource.leetcodeId;
-    const url = leetcodeSource.url ?? (id ? `https://leetcode.com/problems/` : undefined);
+    const url = leetcodeSource.url;
     if (id && url) {
       return <LeetCodeBadge leetcode={{ id, url }} size={size} className={className} />;
     }
@@ -222,7 +238,7 @@ export const SourceBadgeList: React.FC<SourceBadgeListProps> = ({
               url: leetcode.url,
             },
           ]
-        : [{ kind: "standard", type: "standard", label: "Standard" }];
+        : [];
 
   return (
     <div className={className}>

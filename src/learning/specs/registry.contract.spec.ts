@@ -35,6 +35,7 @@ describe("learning item registry contract", () => {
     expect(Object.keys(LEARNING_ITEM_REGISTRY)).toEqual(
       expect.arrayContaining(LEARNING_ITEMS.map((item) => item.id)),
     );
+    expect(Object.getPrototypeOf(LEARNING_ITEM_REGISTRY)).toBeNull();
 
     for (const item of LEARNING_ITEMS) {
       expect(item.id).toMatch(CANONICAL_ID);
@@ -42,6 +43,8 @@ describe("learning item registry contract", () => {
       expect(getLearningItem(item.id)).toBe(item);
     }
     expect(getLearningItem("not-enrolled")).toBeUndefined();
+    expect(getLearningItem("__proto__")).toBeUndefined();
+    expect(getLearningItem("constructor")).toBeUndefined();
     expect(getAllLearningItems()).toEqual(LEARNING_ITEMS);
     expect(getAllLearningItems()).not.toBe(LEARNING_ITEMS);
   });
@@ -57,14 +60,53 @@ describe("learning item registry contract", () => {
     }
   });
 
-  it("normalizes every source to an absolute HTTP(S) URL", () => {
+  it("preserves verified HTTP(S) provenance and marks missing provenance explicitly", () => {
+    let verifiedCount = 0;
+    let unverifiedCount = 0;
+
     for (const item of LEARNING_ITEMS) {
       expect(item.sources.length).toBeGreaterThan(0);
       for (const source of item.sources) {
-        expect(isValidLearningSourceUrl(source.url)).toBe(true);
-        expect(new URL(source.url).protocol).toMatch(/^https?:$/);
+        if (source.provenance === "verified") {
+          verifiedCount += 1;
+          expect(isValidLearningSourceUrl(source.url)).toBe(true);
+          expect(new URL(source.url).protocol).toMatch(/^https?:$/);
+        } else {
+          unverifiedCount += 1;
+          expect(source.provenance).toBe("unverified");
+          expect(source).not.toHaveProperty("url");
+        }
       }
     }
+
+    expect(verifiedCount).toBeGreaterThan(0);
+    expect(unverifiedCount).toBeGreaterThan(0);
+  });
+
+  it("does not fabricate provenance for source-only legacy definitions", () => {
+    expect(getLearningItem("bubble-sort")?.sources).toEqual([
+      {
+        kind: "standard",
+        label: "Standard Algorithm",
+        provenance: "unverified",
+      },
+      {
+        kind: "book",
+        label: "Competitive Programmer's Handbook, Ch 3",
+        bookTitle: "Competitive Programmer's Handbook",
+        chapter: 3,
+        section: "3.1 Sorting theory",
+        provenance: "unverified",
+      },
+    ]);
+    expect(getLearningItem("transpose-matrix-square")?.sources).toEqual([
+      {
+        type: "ml_infra",
+        kind: "ml_infra",
+        label: "ML Infra Level 2",
+        provenance: "unverified",
+      },
+    ]);
   });
 
   it("stores valid P/R/H/T profiles and derives their labels", () => {
