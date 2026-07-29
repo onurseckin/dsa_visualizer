@@ -1,4 +1,4 @@
-import { cases, defineDsaExecution, input } from "./helpers";
+import { cases, defineDsaExecution, extraCases, input } from "./helpers";
 
 export const gameTheoryExecutions = [
   defineDsaExecution({
@@ -71,20 +71,29 @@ export const gameTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "stoneGame",
-      arguments: [input()],
+      method: "grundy",
+      arguments: [input("n"), input("moves")],
     },
-    cases: cases(
-      { label: "Piles [5, 3, 4, 5]", input: [5, 3, 4, 5], expected: true },
-      { label: "Piles [3, 7, 2, 3]", input: [3, 7, 2, 3], expected: true },
-      { label: "Piles [1, 2]", input: [1, 2], expected: true },
-    ),
+    cases: [
+      ...cases(
+        { label: "Three moves, four stones", input: { n: 4, moves: [1, 2, 3] }, expected: 0 },
+        { label: "Empty pile", input: { n: 0, moves: [1, 2, 3] }, expected: 0 },
+        { label: "Three moves, seven stones", input: { n: 7, moves: [1, 2, 3] }, expected: 3 },
+      ),
+      ...extraCases(
+        { label: "One reachable move", input: { n: 1, moves: [1, 2, 3] }, expected: 1 },
+        { label: "Five stones", input: { n: 5, moves: [1, 2, 3] }, expected: 1 },
+        { label: "No move reaches one", input: { n: 1, moves: [2, 3] }, expected: 0 },
+        { label: "Custom move set", input: { n: 4, moves: [2, 3] }, expected: 2 },
+        { label: "Single subtraction", input: { n: 8, moves: [1] }, expected: 0 },
+      ),
+    ],
     audit: {
-      signature: "Solution().stoneGame(piles: list[int]) -> bool",
-      defaultInputShape: "number[]",
-      argumentMapping: ["piles <- $"],
+      signature: "Solution().grundy(n: int, moves: list[int]) -> int",
+      defaultInputShape: "{ n: number; moves: number[] }",
+      argumentMapping: ["n <- $.n", "moves <- $.moves"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns True if Alice wins stone game.",
+      returnBehavior: "Returns the Grundy value of a subtraction-game pile.",
     },
   }),
   defineDsaExecution({
