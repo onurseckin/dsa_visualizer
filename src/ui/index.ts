@@ -118,6 +118,8 @@ export {
   topicFamilyLabel,
 } from "./organisms/KnowledgeGraph";
 export { ProblemList } from "./organisms/ProblemList";
+export { CodeWorkspace, defaultStarterCode } from "./organisms/code-workspace/CodeWorkspace";
+export type { CodeWorkspaceProps } from "./organisms/code-workspace/CodeWorkspace";
 
 // Level 4: Templates
 export { MainLayout } from "./templates/MainLayout";
