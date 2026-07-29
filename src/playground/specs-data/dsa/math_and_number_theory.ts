@@ -313,51 +313,110 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "knightProbability",
-      arguments: [input("n"), input("k"), input("row"), input("column")],
+      method: "distribution",
+      arguments: [input("transition"), input("initial"), input("steps")],
     },
-    cases: cases(
-      {
-        label: "One probabilistic step",
-        input: {
-          transition: [
-            [0.5, 0.5],
-            [0.25, 0.75],
-          ],
-          initial: [1, 0],
-          steps: 1,
+    cases: [
+      ...cases(
+        {
+          label: "One probabilistic step",
+          input: {
+            transition: [
+              [0.5, 0.5],
+              [0.25, 0.75],
+            ],
+            initial: [1, 0],
+            steps: 1,
+          },
+          expected: [0.5, 0.5],
         },
-        expected: [0.5, 0.5],
-      },
-      {
-        label: "Zero steps",
-        input: {
-          transition: [
-            [0, 1],
-            [1, 0],
-          ],
-          initial: [0, 1],
-          steps: 0,
+        {
+          label: "Zero steps",
+          input: {
+            transition: [
+              [0, 1],
+              [1, 0],
+            ],
+            initial: [0, 1],
+            steps: 0,
+          },
+          expected: [0, 1],
         },
-        expected: [0, 1],
-      },
-      {
-        label: "Three deterministic swaps",
-        input: {
-          transition: [
-            [0, 1],
-            [1, 0],
-          ],
-          initial: [0.25, 0.75],
-          steps: 3,
+        {
+          label: "Three deterministic swaps",
+          input: {
+            transition: [
+              [0, 1],
+              [1, 0],
+            ],
+            initial: [0.25, 0.75],
+            steps: 3,
+          },
+          expected: [0.75, 0.25],
         },
-        expected: [0.75, 0.25],
-      },
-    ),
+      ),
+      ...extraCases(
+        {
+          label: "Absorbing state",
+          input: {
+            transition: [
+              [1, 0],
+              [0.5, 0.5],
+            ],
+            initial: [0, 1],
+            steps: 4,
+          },
+          expected: [0.9375, 0.0625],
+        },
+        {
+          label: "Three-state cycle",
+          input: {
+            transition: [
+              [0, 1, 0],
+              [0, 0, 1],
+              [1, 0, 0],
+            ],
+            initial: [1, 0, 0],
+            steps: 2,
+          },
+          expected: [0, 0, 1],
+        },
+        {
+          label: "Stationary distribution",
+          input: {
+            transition: [
+              [0.5, 0.5],
+              [0.5, 0.5],
+            ],
+            initial: [0.2, 0.8],
+            steps: 1,
+          },
+          expected: [0.5, 0.5],
+        },
+        {
+          label: "One state",
+          input: { transition: [[1]], initial: [1], steps: 10 },
+          expected: [1],
+        },
+        {
+          label: "Two mixed steps",
+          input: {
+            transition: [
+              [0.8, 0.2],
+              [0.1, 0.9],
+            ],
+            initial: [1, 0],
+            steps: 2,
+          },
+          expected: [0.6600000000000001, 0.3400000000000001],
+        },
+      ),
+    ],
     audit: {
-      signature: "markov_chain(transition_matrix, initial_dist, steps) -> list[float]",
-      defaultInputShape: "{ transitionMatrix: number[][]; initialDistribution: number[] }",
-      argumentMapping: ["matrix <- $.transitionMatrix", "initial <- $.initialDistribution"],
+      signature:
+        "Solution().distribution(transition: list[list[float]], initial: list[float], steps: int) -> list[float]",
+      defaultInputShape: "{ transition: number[][]; initial: number[]; steps: number }",
+      argumentMapping: ["transition <- $.transition", "initial <- $.initial", "steps <- $.steps"],
       mutation: "No input mutation.",
       returnBehavior: "Returns distribution after steps.",
     },
