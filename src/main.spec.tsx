@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, waitFor } from "@testing-library/react";
 
 const initSqliteSync = vi.fn().mockResolvedValue(undefined);
+const syncKeyToSqlite = vi.fn().mockResolvedValue(undefined);
 
-vi.mock("./app/sqliteSync", () => ({ initSqliteSync }));
+vi.mock("./app/sqliteSync", () => ({ initSqliteSync, syncKeyToSqlite }));
 
 describe("application bootstrap", () => {
   afterEach(() => {

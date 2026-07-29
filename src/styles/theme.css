@@ -132,6 +132,9 @@
   --navbar-h: 56px;
   --stage-min-h: 420px;
   --panel-min-h: 200px;
+  --code-workspace-toolbar-h: 48px;
+  --code-workspace-editor-min-h: 180px;
+  --code-workspace-output-min-h: 72px;
 
   /* Radius */
   --radius-sm: 6px;

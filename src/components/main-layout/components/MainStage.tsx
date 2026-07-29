@@ -2,10 +2,11 @@ import React from "react";
 import { AlgorithmDefinition, AlgorithmStep, PanelVisibility } from "../../../types/dsa";
 import { AuxiliaryPanel, hasAuxiliaryContent } from "../../../ui";
 import { TutorialCard, hasTutorialContent } from "../../../ui";
-import { CodeBlockViewer } from "../../../ui";
 import { ComplexityCard } from "../../../ui/organisms/ComplexityCard";
+import { CodeWorkspace } from "../../../ui/organisms/code-workspace/CodeWorkspace";
 import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../../ui";
+import { getPythonExecutionSpec } from "../../../playground/executionSpecs";
 import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
@@ -98,15 +99,15 @@ export const MainStage: React.FC<MainStageProps> = ({
       greedy: !panels.complexity,
       height: layoutState.layout.panelHeights.code,
       content: (
-        <div
-          className="h-full w-full bg-[var(--bg-inset)]"
-          style={{ background: "var(--bg-inset)" }}
-        >
-          <CodeBlockViewer
-            code={algorithm.code}
+        <div className="h-full w-full bg-[var(--bg-inset)]">
+          <CodeWorkspace
+            itemId={algorithm.id}
+            itemTitle={algorithm.title}
+            referenceCode={algorithm.code}
             activeLine={currentStep?.codeLine || 1}
             variables={currentStep?.variables}
             lineExplanations={algorithm.trivia?.lineExplanations}
+            executionSpec={getPythonExecutionSpec(algorithm.id)}
           />
         </div>
       ),
