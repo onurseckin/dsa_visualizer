@@ -27,10 +27,29 @@ export function cloneTriviaProgress(progress: TriviaProgress): TriviaProgress {
     stats[algorithmId] = copy;
   }
 
+  const reviews =
+    progress.reviews === undefined
+      ? undefined
+      : Object.fromEntries(
+          Object.entries(progress.reviews).map(([algorithmId, lines]) => [
+            algorithmId,
+            Object.fromEntries(
+              Object.entries(lines).map(([line, review]) => [
+                line,
+                {
+                  ...review,
+                  misconceptionCodes: [...review.misconceptionCodes],
+                },
+              ]),
+            ),
+          ]),
+        );
+
   return {
     level: progress.level,
     drilled,
     stats,
+    ...(reviews ? { reviews } : {}),
     completed: progress.completed,
     roundsPlayed: progress.roundsPlayed,
   };

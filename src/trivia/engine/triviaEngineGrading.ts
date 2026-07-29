@@ -37,9 +37,24 @@ export const gradeRound = (
   const perBlank: Record<number, boolean> = {};
   round.blanks.forEach((number) => {
     const line = round.lines.find((candidate) => candidate.number === number);
-    perBlank[number] = isAnswerCorrect(answers[number] ?? "", line?.content ?? "");
+    const accepted = [line?.content ?? "", ...(round.acceptedAnswers?.[number] ?? [])];
+    perBlank[number] = accepted.some((expected) =>
+      isAnswerCorrect(answers[number] ?? "", expected),
+    );
   });
-  return { perBlank, allCorrect: round.blanks.every((number) => perBlank[number]) };
+  const misconceptionCodes = [
+    ...new Set(
+      round.blanks.flatMap((number) => {
+        const code = round.misconceptionCodes?.[number];
+        return !perBlank[number] && code ? [code] : [];
+      }),
+    ),
+  ];
+  return {
+    perBlank,
+    allCorrect: round.blanks.every((number) => perBlank[number]),
+    ...(misconceptionCodes.length > 0 ? { misconceptionCodes } : {}),
+  };
 };
 
 /**

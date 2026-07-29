@@ -8,7 +8,8 @@ import type {
   TriviaTile,
 } from "../../types/trivia";
 import { clampInt, normalizeConfig } from "./triviaEngineConfig";
-import { blankableLines } from "./triviaEngineParser";
+import { dueReviewLines } from "./triviaEngineMastery";
+import { blankableLines, classifyPuzzleLine, semanticWeightForRole } from "./triviaEngineParser";
 import { remainingAt, statFor } from "./triviaEngineProgress";
 
 export type Rng = () => number;
@@ -62,6 +63,7 @@ export interface PickRoundOptions {
   /** algorithmId -> author metadata, for distractor tiles. */
   meta?: ReadonlyMap<string, TriviaMeta | undefined>;
   rng?: Rng;
+  now?: number;
 }
 
 /**
@@ -77,6 +79,7 @@ export const pickRound = ({
   sources,
   meta,
   rng = Math.random,
+  now = Date.now(),
 }: PickRoundOptions): TriviaRound | null => {
   const normalized = normalizeConfig(config);
   if (sources.size === 0 || progress.completed) return null;
@@ -88,16 +91,34 @@ export const pickRound = ({
   const eligible = [...sources.entries()].filter(([, lines]) => blankableLines(lines).length > 0);
   if (eligible.length === 0) return null;
 
+  const due = eligible.filter(([id, lines]) => {
+    const blankable = new Set(blankableLines(lines));
+    return dueReviewLines(progress, id, now).some((line) => blankable.has(line));
+  });
   const uncovered = eligible.filter(
     ([id, lines]) => remainingAt(progress, id, lines, level).length > 0,
   );
-  const pool = uncovered.length > 0 ? uncovered : eligible;
+  const pool = due.length > 0 ? due : uncovered.length > 0 ? uncovered : eligible;
   const [algorithmId, lines] = pool[Math.floor(rng() * pool.length) % pool.length];
 
-  const remaining = remainingAt(progress, algorithmId, lines, level);
   const all = blankableLines(lines);
+  const blankable = new Set(all);
+  const dueLines = dueReviewLines(progress, algorithmId, now).filter((line) => blankable.has(line));
+  const remaining =
+    dueLines.length > 0 ? dueLines : remainingAt(progress, algorithmId, lines, level);
   const targetCount = Math.min(level, all.length);
-  const weightOf = (line: number) => statFor(progress, algorithmId, line).misses + 1;
+  const selectedMeta = meta?.get(algorithmId);
+  const semanticLines = new Map(
+    (selectedMeta?.semanticLines ?? []).map((line) => [line.line, line]),
+  );
+  const weightOf = (line: number) => {
+    const puzzleLine = lines.find((candidate) => candidate.number === line);
+    const authoredRole = semanticLines.get(line)?.role;
+    const semanticWeight = authoredRole
+      ? semanticWeightForRole(authoredRole)
+      : classifyPuzzleLine(puzzleLine?.content ?? "").semanticWeight;
+    return semanticWeight * (statFor(progress, algorithmId, line).misses + 1);
+  };
 
   // Fill from undrilled lines first, then top up from the rest of the solution.
   const primary = pickWeighted(remaining, targetCount, weightOf, rng);
@@ -111,6 +132,7 @@ export const pickRound = ({
         )
       : [];
   const blanks = [...primary, ...filler].sort((a, b) => a - b);
+  const semanticRound = buildSemanticRound(algorithmId, lines, blanks, selectedMeta);
 
   return {
     algorithmId,
@@ -121,8 +143,59 @@ export const pickRound = ({
       normalized.mode === "choice"
         ? buildTiles(lines, blanks, meta?.get(algorithmId), normalized.includeDistractors, rng)
         : [],
+    ...semanticRound,
   };
 };
+
+function buildSemanticRound(
+  algorithmId: string,
+  lines: readonly PuzzleLine[],
+  blanks: readonly number[],
+  meta: TriviaMeta | undefined,
+): Pick<TriviaRound, "variant" | "retrievalPrompt" | "acceptedAnswers" | "misconceptionCodes"> {
+  const authored = new Map((meta?.semanticLines ?? []).map((line) => [line.line, line]));
+  const focusLine = [...blanks].sort((left, right) => {
+    const leftLine = lines.find((line) => line.number === left);
+    const rightLine = lines.find((line) => line.number === right);
+    const leftWeight = classifyPuzzleLine(leftLine?.content ?? "").semanticWeight;
+    const rightWeight = classifyPuzzleLine(rightLine?.content ?? "").semanticWeight;
+    return rightWeight - leftWeight || left - right;
+  })[0];
+  if (focusLine === undefined) return {};
+  const focus = authored.get(focusLine);
+  const derivedRole = classifyPuzzleLine(
+    lines.find((line) => line.number === focusLine)?.content ?? "",
+  ).role;
+  const kind =
+    focus?.predictionPrompt || derivedRole === "boundary" || derivedRole === "result"
+      ? "prediction"
+      : "invariant";
+  const prompt =
+    kind === "prediction"
+      ? (focus?.predictionPrompt ??
+        `Predict how the result changes when the boundary around line ${focusLine} changes.`)
+      : (focus?.invariantPrompt ??
+        `State the invariant that must still hold after line ${focusLine}.`);
+  const acceptedAnswers = Object.fromEntries(
+    blanks.flatMap((line) => {
+      const answers = authored.get(line)?.acceptedAnswers;
+      return answers && answers.length > 0 ? [[line, [...answers]]] : [];
+    }),
+  );
+  const misconceptionCodes = Object.fromEntries(
+    blanks.flatMap((line) => {
+      const code = authored.get(line)?.misconceptionCode;
+      return code ? [[line, code]] : [];
+    }),
+  );
+
+  return {
+    variant: `${algorithmId}-line-${focusLine}-${kind}`,
+    retrievalPrompt: { kind, prompt },
+    ...(Object.keys(acceptedAnswers).length > 0 ? { acceptedAnswers } : {}),
+    ...(Object.keys(misconceptionCodes).length > 0 ? { misconceptionCodes } : {}),
+  };
+}
 
 /**
  * Tiles for choice mode: one per blank, plus decoys.

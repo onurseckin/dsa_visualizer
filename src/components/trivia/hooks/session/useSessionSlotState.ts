@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { describeMode, gradeRound } from "../../../../trivia/triviaEngine";
-import type { TriviaGrade, TriviaMode, TriviaRound } from "../../../../types/trivia";
+import type {
+  TriviaConfidence,
+  TriviaGrade,
+  TriviaMode,
+  TriviaRound,
+} from "../../../../types/trivia";
 import { omit, tileTextOf, truthOf } from "./sessionUtils";
 
 interface UseSessionSlotStateProps {
@@ -16,6 +21,8 @@ export function useSessionSlotState({ round, mode, onSubmit }: UseSessionSlotSta
   const [selectedTileId, setSelectedTileId] = useState<string | null>(null);
   const [grade, setGrade] = useState<TriviaGrade | null>(null);
   const [openHints, setOpenHints] = useState<readonly number[]>([]);
+  const [reviewResponse, setReviewResponse] = useState("");
+  const [confidence, setConfidence] = useState<TriviaConfidence | null>(null);
 
   useEffect(() => {
     setPlacements({});
@@ -24,6 +31,8 @@ export function useSessionSlotState({ round, mode, onSubmit }: UseSessionSlotSta
     setSelectedTileId(null);
     setGrade(null);
     setOpenHints([]);
+    setReviewResponse("");
+    setConfidence(null);
   }, [round, mode]);
 
   const graded = grade !== null;
@@ -142,6 +151,8 @@ export function useSessionSlotState({ round, mode, onSubmit }: UseSessionSlotSta
     setRevealed([]);
     setSelectedTileId(null);
     setGrade(null);
+    setReviewResponse("");
+    setConfidence(null);
   };
 
   const firstOpenBlank = round.blanks.find(
@@ -163,6 +174,8 @@ export function useSessionSlotState({ round, mode, onSubmit }: UseSessionSlotSta
     correctCount,
     currentTargetLine,
     modeDescription,
+    reviewResponse,
+    confidence,
     handleSlotActivate,
     placeTile,
     handleSelectTile,
@@ -172,6 +185,8 @@ export function useSessionSlotState({ round, mode, onSubmit }: UseSessionSlotSta
     toggleHint,
     handleCheck,
     handleRetry,
+    setReviewResponse,
+    setConfidence,
     setSelectedTileId,
   };
 }

@@ -3,7 +3,9 @@ import { useNavigate } from "@tanstack/react-router";
 import type {
   PuzzleLine,
   TriviaConfig,
+  TriviaGrade,
   TriviaMeta,
+  TriviaReviewSubmission,
   TriviaRound,
   TriviaScreen,
   TriviaSessionRecord,
@@ -16,6 +18,7 @@ import {
   parsePuzzleLines,
   pickRound,
   recordRound,
+  recordRetrievalReview,
 } from "../../../trivia/triviaEngine";
 import {
   createSession,
@@ -49,10 +52,12 @@ export function useTriviaPage() {
   const progress = activeSession?.progress ?? null;
 
   const [round, setRoundState] = useState<TriviaRound | null>(activeSession?.activeRound ?? null);
+  const [lastGrade, setLastGrade] = useState<TriviaGrade | null>(null);
 
   const updateRound = useCallback(
     (nextRound: TriviaRound | null) => {
       setRoundState(nextRound);
+      setLastGrade(null);
       if (activeSessionId !== null) {
         updateSession(activeSessionId, { activeRound: nextRound });
         setSessions(readTriviaSessions());
@@ -128,11 +133,19 @@ export function useTriviaPage() {
   const handleSubmit = (answers: Record<number, string>) => {
     if (round === null || !config || !progress) return;
     const grade = gradeRound(round, answers);
+    setLastGrade(grade);
     const updatedProgress = recordRound(progress, round, grade, config, sources);
     applySessionPatch({ progress: updatedProgress });
-    if (updatedProgress.completed) {
+    if (updatedProgress.completed && round.retrievalPrompt === undefined) {
       updateRound(null);
     }
+  };
+
+  const handleReview = (submission: TriviaReviewSubmission) => {
+    if (round === null || !progress || !lastGrade) return;
+    applySessionPatch({
+      progress: recordRetrievalReview(progress, round, lastGrade, submission, Date.now()),
+    });
   };
 
   const handleNext = () => {
@@ -216,6 +229,7 @@ export function useTriviaPage() {
     settingsPanel,
     applyConfig,
     handleSubmit,
+    handleReview,
     handleNext,
     handleStartDrilling,
     handleEditSettings,

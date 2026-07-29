@@ -32,6 +32,7 @@ function TriviaPage() {
     settingsPanel,
     applyConfig,
     handleSubmit,
+    handleReview,
     handleNext,
     handleStartDrilling,
     handleEditSettings,
@@ -77,13 +78,6 @@ function TriviaPage() {
             onRenameSession={handleRenameSession}
             onChangeSettings={applyConfig}
           />
-        ) : progress.completed ? (
-          <TriviaCompletionView
-            sourcesSize={sources.size}
-            maxBlanks={config.maxBlanks}
-            onEditSettings={handleEditSettings}
-            onBackToHome={() => handleBackToHome("drill")}
-          />
         ) : round !== null ? (
           <TriviaSession
             round={round}
@@ -92,12 +86,20 @@ function TriviaPage() {
             level={level}
             coverage={coverage}
             onSubmit={handleSubmit}
+            onReview={handleReview}
             onNext={handleNext}
             onEditSettings={handleEditSettings}
             onBackToHome={() => handleBackToHome("drill")}
             onStudyInWorkspace={handleStudyInWorkspace}
             hints={meta.get(round.algorithmId)?.hints}
             lineExplanations={meta.get(round.algorithmId)?.lineExplanations}
+          />
+        ) : progress.completed ? (
+          <TriviaCompletionView
+            sourcesSize={sources.size}
+            maxBlanks={config.maxBlanks}
+            onEditSettings={handleEditSettings}
+            onBackToHome={() => handleBackToHome("drill")}
           />
         ) : (
           <TriviaEmptyLevelView

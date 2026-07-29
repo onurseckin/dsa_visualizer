@@ -6,4 +6,5 @@ export * from "./engine/triviaEngineParser";
 export * from "./engine/triviaEngineProgress";
 export * from "./engine/triviaEngineRound";
 export * from "./engine/triviaEngineGrading";
+export * from "./engine/triviaEngineMastery";
 export type { Rng, PickRoundOptions } from "./engine/triviaEngineRound";
