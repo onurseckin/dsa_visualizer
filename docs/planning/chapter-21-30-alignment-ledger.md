@@ -39,7 +39,9 @@ This ledger is the decision record for the catalog migration initiated on 2026-0
 | 25 | mex-subtraction-game | repaired | The Grundy recurrence and configurable move-set runner contract are aligned with Ch25 §25.3. |
 | 25 | stone-game-dp | repaired | Restored the endpoint-picking interval-DP algorithm already taught by the visualizer. The reference is `Solution().canWin(piles) -> bool`, and its prose, constraints, default, runner contract, and eight fixtures now agree with Ch25 §25.1. |
 | 26 | trie-prefix-tree, kmp-string-match | keep | #208 and #28 are exact practice counterparts. KMP must not cite book §26.1 as pattern matching because that section is terminology. |
-| 26 | string-hashing, z-algorithm, aho-corasick, bitwise-trie-xor | repair | Current code solves unrelated LeetCode tasks/techniques; implement rolling hash and a book-style Z matcher, and mark Aho-Corasick/bitwise XOR as indirect trie enrichment or remove their Chapter 26 source binding. |
+| 26 | string-hashing, z-algorithm | repaired | Both now expose book-style text/pattern matching contracts with verified runners. |
+| 26 | aho-corasick | repaired as enrichment | Replaced the unrelated board-word-search reference with an Aho-Corasick failure-link matcher. It is correctly recorded as a standard trie enrichment rather than falsely attributed to the handbook's trie section. |
+| 26 | bitwise-trie-xor | repair implementation and source binding | The current prefix-set implementation is not a bitwise trie, while the tutorial/title claim one. Implement the named structure and remove its false Chapter 26 source binding. |
 | 27 | sqrt-decomposition, mo-algorithm | repair source binding | The visible labels incorrectly cite Ch9; Mo is §27.3 and integer partitions is §27.2. Correct runner audit metadata. |
 | 28 | segment-tree-lazy | repair fixtures | Source binding is correct; expand runner cases. |
 | 28 | dynamic-segment-tree, persistent-segment-tree | repair source labels | Both are Ch28 but display Ch9 labels. |
