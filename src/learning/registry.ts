@@ -1,6 +1,7 @@
 import { ALGORITHMS } from "../algorithms/registry";
 import { adaptAlgorithmDefinition } from "./algorithmAdapters";
 import { ML_PLATFORM_CAPSTONES } from "./items/capstones";
+import { ELECTIVE_LEARNING_ITEMS } from "./items/electives";
 import { PRODUCTION_OPERATIONS_ITEMS } from "./items/production-operations";
 import { REQUIRED_FOUNDATION_ITEMS } from "./items/required-foundations";
 import { REPRODUCIBLE_DELIVERY_ITEMS } from "./items/reproducible-delivery";
@@ -11,44 +12,22 @@ import {
   type LearningItem,
 } from "./types";
 
-/**
- * One deliberately temporary migration checkpoint. Task 16 removes this
- * adapter-only state when the 88 DSA + 69 ML target registry cuts over.
- */
-export const TRANSITIONAL_LEARNING_REGISTRY_STATE = Object.freeze({
-  enabled: true,
-  legacyExpectedItemCount: 320,
-  requiredFoundationsExpectedItemCount: 18,
-  reproducibleDeliveryExpectedItemCount: 9,
-  productionOperationsExpectedItemCount: 15,
-  capstoneExpectedItemCount: 3,
-  expectedItemCount: 365,
-  removalTask: 16,
-} as const);
-
-export const LEGACY_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze(
+export const DSA_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze(
   ALGORITHMS.map(adaptAlgorithmDefinition),
 );
 
-export const LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
-  ...LEGACY_LEARNING_ITEMS,
+export const ML_INFRA_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
   ...REQUIRED_FOUNDATION_ITEMS,
   ...REPRODUCIBLE_DELIVERY_ITEMS,
   ...PRODUCTION_OPERATIONS_ITEMS,
   ...ML_PLATFORM_CAPSTONES,
+  ...ELECTIVE_LEARNING_ITEMS,
 ]);
 
-export function assertTransitionalLearningItemCount(items: readonly LearningItem[]): void {
-  if (items.length !== TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount) {
-    throw new Error(
-      `Transitional learning registry expected ${TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount} items, received ${items.length}.`,
-    );
-  }
-}
-
-if (TRANSITIONAL_LEARNING_REGISTRY_STATE.enabled) {
-  assertTransitionalLearningItemCount(LEARNING_ITEMS);
-}
+export const LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
+  ...DSA_LEARNING_ITEMS,
+  ...ML_INFRA_LEARNING_ITEMS,
+]);
 
 export const buildLearningItemRegistry = (
   items: readonly LearningItem[],

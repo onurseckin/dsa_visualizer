@@ -7,19 +7,20 @@ import { hasAssessmentRenderer, isAssessmentForLearningItemKind } from "../asses
 import { adaptAlgorithmDefinition } from "../algorithmAdapters";
 import { deriveDifficultyLabel, isDifficultyProfile } from "../difficulty";
 import { ML_PLATFORM_CAPSTONES } from "../items/capstones";
+import { ELECTIVE_LEARNING_ITEMS } from "../items/electives";
 import { PRODUCTION_OPERATIONS_ITEMS } from "../items/production-operations";
+import { REQUIRED_FOUNDATION_ITEMS } from "../items/required-foundations";
 import { REPRODUCIBLE_DELIVERY_ITEMS } from "../items/reproducible-delivery";
 import {
-  assertTransitionalLearningItemCount,
   buildLearningItemRegistry,
   CODE_LEARNING_ITEMS,
+  DSA_LEARNING_ITEMS,
   getAllLearningItems,
   getLearningItem,
   getTriviaLearningItems,
-  LEGACY_LEARNING_ITEMS,
   LEARNING_ITEMS,
   LEARNING_ITEM_REGISTRY,
-  TRANSITIONAL_LEARNING_REGISTRY_STATE,
+  ML_INFRA_LEARNING_ITEMS,
 } from "../registry";
 import {
   hasExecutionSpec,
@@ -87,7 +88,7 @@ describe("learning item registry contract", () => {
     expect(unverifiedCount).toBeGreaterThan(0);
   });
 
-  it("does not fabricate provenance for source-only legacy definitions", () => {
+  it("does not fabricate provenance for source-only DSA definitions", () => {
     expect(getLearningItem("bubble-sort")?.sources).toEqual([
       {
         kind: "standard",
@@ -100,14 +101,6 @@ describe("learning item registry contract", () => {
         bookTitle: "Competitive Programmer's Handbook",
         chapter: 3,
         section: "3.1 Sorting theory",
-        provenance: "unverified",
-      },
-    ]);
-    expect(getLearningItem("transpose-matrix-square")?.sources).toEqual([
-      {
-        type: "ml_infra",
-        kind: "ml_infra",
-        label: "ML Infra Level 2",
         provenance: "unverified",
       },
     ]);
@@ -149,39 +142,25 @@ describe("learning item registry contract", () => {
       true,
     );
     expect(CODE_LEARNING_ITEMS.every(isCodeLearningItem)).toBe(true);
-    expect(LEARNING_ITEMS.filter(isRubricLearningItem)).toHaveLength(16);
+    expect(LEARNING_ITEMS.filter(isRubricLearningItem)).toHaveLength(22);
     expect(getTriviaLearningItems().map((item) => item.id)).toEqual(eligibleIds);
   });
 
-  it("codifies the additive temporary required-curriculum checkpoint", () => {
-    expect(TRANSITIONAL_LEARNING_REGISTRY_STATE).toEqual({
-      enabled: true,
-      legacyExpectedItemCount: 320,
-      requiredFoundationsExpectedItemCount: 18,
-      reproducibleDeliveryExpectedItemCount: 9,
-      productionOperationsExpectedItemCount: 15,
-      capstoneExpectedItemCount: 3,
-      expectedItemCount: 365,
-      removalTask: 16,
-    });
-    expect(ALGORITHMS).toHaveLength(TRANSITIONAL_LEARNING_REGISTRY_STATE.legacyExpectedItemCount);
-    expect(LEGACY_LEARNING_ITEMS).toHaveLength(
-      TRANSITIONAL_LEARNING_REGISTRY_STATE.legacyExpectedItemCount,
-    );
-    expect(LEARNING_ITEMS).toHaveLength(TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount);
-    expect(Object.keys(LEARNING_ITEM_REGISTRY)).toHaveLength(
-      TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount,
-    );
+  it("enrolls only the ratified 88 DSA and 69 ML infrastructure items", () => {
+    expect(ALGORITHMS).toHaveLength(88);
+    expect(DSA_LEARNING_ITEMS).toHaveLength(88);
+    expect(ML_INFRA_LEARNING_ITEMS).toHaveLength(69);
+    expect(LEARNING_ITEMS).toHaveLength(157);
+    expect(Object.keys(LEARNING_ITEM_REGISTRY)).toHaveLength(157);
     for (const item of [
+      ...REQUIRED_FOUNDATION_ITEMS,
       ...REPRODUCIBLE_DELIVERY_ITEMS,
       ...PRODUCTION_OPERATIONS_ITEMS,
       ...ML_PLATFORM_CAPSTONES,
+      ...ELECTIVE_LEARNING_ITEMS,
     ]) {
       expect(LEARNING_ITEM_REGISTRY[item.id]).toBe(item);
     }
-    expect(() => assertTransitionalLearningItemCount(LEARNING_ITEMS.slice(1))).toThrow(
-      /expected 365 items, received 364/,
-    );
   });
 
   it("rejects duplicate canonical learning-item enrollment", () => {
