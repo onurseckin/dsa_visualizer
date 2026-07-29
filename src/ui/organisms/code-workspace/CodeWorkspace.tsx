@@ -3,7 +3,7 @@ import type {
   PythonExecutionStatus,
   PythonRunResult,
 } from "@dsa-visualizer/execution-contracts";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 import { playgroundDraftStorage, type DraftStorage } from "../../../playground/draftStorage";
 import { createHybridPythonRunner, selectPythonRuntime } from "../../../playground/runnerSelector";
@@ -17,6 +17,7 @@ import { PythonEditor } from "./PythonEditor";
 import { TestCaseList } from "./TestCaseList";
 
 type CodeWorkspaceTab = "reference" | "playground" | "output";
+const CODE_WORKSPACE_TABS = ["reference", "playground", "output"] as const;
 
 export interface CodeWorkspaceProps {
   readonly activeLine?: number;
@@ -68,6 +69,11 @@ export function CodeWorkspace({
   const runnerRef = useRef<PythonRunner | undefined>(undefined);
   const runnerFactoryRef = useRef(runnerFactory);
   const draftStorageRef = useRef(draftStorage);
+  const tabRefs = useRef<Record<CodeWorkspaceTab, HTMLButtonElement | null>>({
+    reference: null,
+    playground: null,
+    output: null,
+  });
 
   runnerFactoryRef.current = runnerFactory;
   draftStorageRef.current = draftStorage;
@@ -199,6 +205,39 @@ export function CodeWorkspace({
   };
 
   const runtime = executionSpec ? selectPythonRuntime(executionSpec) : undefined;
+  const activeTabId = codeWorkspaceTabId(itemId, tab);
+  const activePanelId = codeWorkspacePanelId(itemId, tab);
+
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    currentTab: CodeWorkspaceTab,
+  ) => {
+    const currentIndex = CODE_WORKSPACE_TABS.indexOf(currentTab);
+    let nextTab: CodeWorkspaceTab | undefined;
+    switch (event.key) {
+      case "ArrowRight":
+        nextTab = CODE_WORKSPACE_TABS[(currentIndex + 1) % CODE_WORKSPACE_TABS.length];
+        break;
+      case "ArrowLeft":
+        nextTab =
+          CODE_WORKSPACE_TABS[
+            (currentIndex - 1 + CODE_WORKSPACE_TABS.length) % CODE_WORKSPACE_TABS.length
+          ];
+        break;
+      case "Home":
+        nextTab = CODE_WORKSPACE_TABS[0];
+        break;
+      case "End":
+        nextTab = CODE_WORKSPACE_TABS.at(-1);
+        break;
+      default:
+        return;
+    }
+    if (nextTab === undefined) return;
+    event.preventDefault();
+    setTab(nextTab);
+    tabRefs.current[nextTab]?.focus();
+  };
 
   return (
     <section className="code-workspace" aria-label={`${itemTitle} code workspace`}>
@@ -213,15 +252,27 @@ export function CodeWorkspace({
                 : "Scratchpad only"}
           </Badge>
         </div>
-        <div role="tablist" aria-label="Code workspace views" className="code-workspace__tabs">
-          {(["reference", "playground", "output"] as const).map((nextTab) => (
+        <div
+          role="tablist"
+          aria-label="Code workspace views"
+          aria-orientation="horizontal"
+          className="code-workspace__tabs"
+        >
+          {CODE_WORKSPACE_TABS.map((nextTab) => (
             <button
               key={nextTab}
+              ref={(element) => {
+                tabRefs.current[nextTab] = element;
+              }}
+              id={codeWorkspaceTabId(itemId, nextTab)}
               type="button"
               role="tab"
+              aria-controls={codeWorkspacePanelId(itemId, nextTab)}
               aria-selected={tab === nextTab}
+              tabIndex={tab === nextTab ? 0 : -1}
               className="code-workspace__tab"
               onClick={() => setTab(nextTab)}
+              onKeyDown={(event) => handleTabKeyDown(event, nextTab)}
             >
               {capitalize(nextTab)}
             </button>
@@ -245,7 +296,12 @@ export function CodeWorkspace({
         </div>
       </div>
 
-      <div className="code-workspace__body">
+      <div
+        id={activePanelId}
+        role="tabpanel"
+        aria-labelledby={activeTabId}
+        className="code-workspace__body"
+      >
         {tab === "reference" ? (
           <CodeBlockViewer
             code={referenceCode}
@@ -332,4 +388,12 @@ function announcementFor(status: PythonExecutionStatus): string {
 
 function capitalize(value: CodeWorkspaceTab): string {
   return `${value[0].toUpperCase()}${value.slice(1)}`;
+}
+
+function codeWorkspaceTabId(itemId: string, tab: CodeWorkspaceTab): string {
+  return `code-workspace-${itemId}-${tab}-tab`;
+}
+
+function codeWorkspacePanelId(itemId: string, tab: CodeWorkspaceTab): string {
+  return `code-workspace-${itemId}-${tab}-panel`;
 }

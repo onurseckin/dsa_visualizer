@@ -36,8 +36,13 @@ export interface DraftStorageOptions {
 }
 
 interface PendingDraft {
-  code: string;
   timer: ReturnType<typeof setTimeout>;
+  value: string;
+}
+
+interface SyncQueue {
+  readonly values: Array<string | null>;
+  running: boolean;
 }
 
 export function draftStorageKey(itemId: string): string {
@@ -49,6 +54,7 @@ export function createDraftStorage(options: DraftStorageOptions = {}): DraftStor
   const now = options.now ?? Date.now;
   const sync = options.sync ?? syncKeyToSqlite;
   const pending = new Map<string, PendingDraft>();
+  const syncQueues = new Map<string, SyncQueue>();
 
   function selectedStorage(): DraftStorageLike | null {
     if (Object.hasOwn(options, "storage")) return options.storage ?? null;
@@ -60,21 +66,55 @@ export function createDraftStorage(options: DraftStorageOptions = {}): DraftStor
     }
   }
 
-  function write(itemId: string, code: string): void {
-    if (!isCanonicalItemId(itemId) || !isValidCode(code)) return;
-    const key = draftStorageKey(itemId);
-    const value = JSON.stringify({
+  function serializedDraft(itemId: string, code: string): string {
+    return JSON.stringify({
       version: DRAFT_STORAGE_VERSION,
       itemId,
       code,
       updatedAt: now(),
     } satisfies DraftRecord);
+  }
+
+  function persistLocal(itemId: string, value: string): void {
+    const key = draftStorageKey(itemId);
     try {
       selectedStorage()?.setItem(key, value);
     } catch {
       // Browser persistence is best-effort in restricted or full storage.
     }
-    safelySync(sync, key, value);
+  }
+
+  function enqueueSync(itemId: string, value: string | null): void {
+    const key = draftStorageKey(itemId);
+    const queue = syncQueues.get(itemId) ?? { running: false, values: [] };
+    queue.values.push(value);
+    syncQueues.set(itemId, queue);
+    if (!queue.running) runNextSync(itemId, key, queue);
+  }
+
+  function runNextSync(itemId: string, key: string, queue: SyncQueue): void {
+    if (queue.values.length === 0) {
+      queue.running = false;
+      if (syncQueues.get(itemId) === queue) syncQueues.delete(itemId);
+      return;
+    }
+    queue.running = true;
+    const value = queue.values.shift() ?? null;
+    let operation: void | Promise<void>;
+    try {
+      operation = sync(key, value);
+    } catch {
+      runNextSync(itemId, key, queue);
+      return;
+    }
+    if (!isPromiseLike(operation)) {
+      runNextSync(itemId, key, queue);
+      return;
+    }
+    void Promise.resolve(operation).then(
+      () => runNextSync(itemId, key, queue),
+      () => runNextSync(itemId, key, queue),
+    );
   }
 
   function flushOne(itemId: string): void {
@@ -82,7 +122,7 @@ export function createDraftStorage(options: DraftStorageOptions = {}): DraftStor
     if (!record) return;
     clearTimeout(record.timer);
     pending.delete(itemId);
-    write(itemId, record.code);
+    enqueueSync(itemId, record.value);
   }
 
   return {
@@ -104,10 +144,12 @@ export function createDraftStorage(options: DraftStorageOptions = {}): DraftStor
     },
     scheduleSave(itemId, code) {
       if (!isCanonicalItemId(itemId) || !isValidCode(code)) return;
+      const value = serializedDraft(itemId, code);
+      persistLocal(itemId, value);
       const current = pending.get(itemId);
       if (current) clearTimeout(current.timer);
       const timer = setTimeout(() => flushOne(itemId), debounceMs);
-      pending.set(itemId, { code, timer });
+      pending.set(itemId, { timer, value });
     },
     flush(itemId) {
       if (itemId !== undefined) {
@@ -127,7 +169,7 @@ export function createDraftStorage(options: DraftStorageOptions = {}): DraftStor
       } catch {
         // Reset remains best-effort when storage access is restricted.
       }
-      safelySync(sync, key, null);
+      enqueueSync(itemId, null);
     },
     dispose() {
       for (const itemId of [...pending.keys()]) flushOne(itemId);
@@ -166,14 +208,6 @@ function isDraftRecord(value: unknown, itemId: string): value is DraftRecord {
   );
 }
 
-function safelySync(
-  sync: (key: string, value: string | null) => void | Promise<void>,
-  key: string,
-  value: string | null,
-): void {
-  try {
-    void Promise.resolve(sync(key, value)).catch(() => {});
-  } catch {
-    // SQLite synchronization is best-effort while the local stack is offline.
-  }
+function isPromiseLike(value: void | Promise<void>): value is Promise<void> {
+  return typeof value === "object" && value !== null && typeof value.then === "function";
 }
