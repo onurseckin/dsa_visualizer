@@ -1,8 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useProblemListState } from "../hooks/useProblemListState";
-import * as registry from "../../../algorithms/registry";
+import * as registry from "../../../learning/registry";
 import { AlgorithmDefinition } from "../../../types/dsa";
+import { adaptAlgorithmDefinition } from "../../../learning/algorithmAdapters";
 
 afterEach(() => {
   window.localStorage.clear();
@@ -145,7 +146,9 @@ describe("useProblemListState hook", () => {
       },
     ];
 
-    vi.spyOn(registry, "getAllAlgorithms").mockReturnValue(mockAlgs);
+    vi.spyOn(registry, "getAllLearningItems").mockReturnValue(
+      mockAlgs.map(adaptAlgorithmDefinition),
+    );
 
     const { result } = renderHook(() => useProblemListState({}));
 

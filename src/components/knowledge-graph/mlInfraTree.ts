@@ -1,5 +1,5 @@
 /* ML curriculum placement data. Problem metadata belongs exclusively to the
-   algorithm registry; these records only describe how declared topics appear here. */
+   learning registry; these records only describe how declared topics appear here. */
 import { indexPlacements } from "../../curriculum/trees";
 import type { MLInfraCurriculumPlacement } from "./data/mlInfraTypes";
 

@@ -19,7 +19,7 @@ function RootComponent(): React.ReactElement {
 function RootShell(): React.ReactElement {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { panels, togglePanel, lastAlgorithmId, setLastAlgorithmId } = useSettings();
+  const { panels, togglePanel, lastItemId, setLastItemId } = useSettings();
 
   const appView: AppView = pathname.startsWith("/ml-infra")
     ? "ml-infra"
@@ -41,13 +41,13 @@ function RootShell(): React.ReactElement {
     } else if (view === "trivia") {
       navigate({ to: "/trivia" });
     } else {
-      navigate({ to: "/workspace/$algorithmId", params: { algorithmId: lastAlgorithmId } });
+      navigate({ to: "/workspace/$algorithmId", params: { algorithmId: lastItemId } });
     }
   };
 
-  const handleGlobalSelectAlgorithm = (algorithmId: string) => {
-    setLastAlgorithmId(algorithmId);
-    navigate({ to: "/workspace/$algorithmId", params: { algorithmId } });
+  const handleGlobalSelectItem = (itemId: string) => {
+    setLastItemId(itemId);
+    navigate({ to: "/workspace/$algorithmId", params: { algorithmId: itemId } });
   };
 
   return (
@@ -56,8 +56,8 @@ function RootShell(): React.ReactElement {
         appView={appView}
         onSetAppView={handleSetAppView}
         topics={TOPICS}
-        activeAlgorithmId={lastAlgorithmId}
-        onGlobalSelectAlgorithm={handleGlobalSelectAlgorithm}
+        activeAlgorithmId={lastItemId}
+        onGlobalSelectAlgorithm={handleGlobalSelectItem}
         panels={panels}
         onTogglePanel={togglePanel}
       />

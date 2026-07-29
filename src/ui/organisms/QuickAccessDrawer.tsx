@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Search, X } from "lucide-react";
-import type {
-  TopicId,
-  SourceKind,
-  LeetCodeSource,
-  BookSource,
-  StandardSource,
-} from "../../types/dsa";
-import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
-import { getAllAlgorithms } from "../../algorithms/registry";
-import { getAlgorithmTopics, isMlInfraAlgorithm } from "../../app/topics";
+import type { TopicId, SourceKind } from "../../types/dsa";
+import { getAllLearningItems } from "../../learning/registry";
+import { getLearningItemTopics, isMlInfraLearningItem } from "../../app/topics";
 import {
   Badge,
   Button,
@@ -40,12 +33,12 @@ export function QuickAccessDrawer({
   activeAlgorithmId,
   topics = ALL_TOPICS,
 }: QuickAccessDrawerProps): React.ReactElement {
-  const allAlgorithms = useMemo(() => getAllAlgorithms(), []);
-  const algMap = useMemo(() => new Map(allAlgorithms.map((alg) => [alg.id, alg])), [allAlgorithms]);
+  const allItems = useMemo(() => getAllLearningItems(), []);
+  const itemMap = useMemo(() => new Map(allItems.map((item) => [item.id, item])), [allItems]);
 
   const activeTopicIds = useMemo(
-    () => (activeAlgorithmId !== undefined ? algMap.get(activeAlgorithmId)?.topicIds : undefined),
-    [algMap, activeAlgorithmId],
+    () => (activeAlgorithmId !== undefined ? itemMap.get(activeAlgorithmId)?.topicIds : undefined),
+    [itemMap, activeAlgorithmId],
   );
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,25 +59,24 @@ export function QuickAccessDrawer({
   const isFiltering = query.length > 0 || sourceFilter !== "all";
 
   const topicIdSet = useMemo(() => new Set(topics.map((topic) => topic.id)), [topics]);
-  const totalAlgorithms = useMemo(
+  const totalItems = useMemo(
     () =>
-      allAlgorithms.filter((algorithm) =>
-        getAlgorithmTopics(algorithm).some((topicId) => topicIdSet.has(topicId)),
+      allItems.filter((item) =>
+        getLearningItemTopics(item).some((topicId) => topicIdSet.has(topicId)),
       ).length,
-    [allAlgorithms, topicIdSet],
+    [allItems, topicIdSet],
   );
 
   const groups = useMemo(() => {
     return topics
       .map((topic) => {
-        const topicAlgorithms = allAlgorithms.filter((algorithm) =>
-          getAlgorithmTopics(algorithm).includes(topic.id),
+        const topicItems = allItems.filter((item) =>
+          getLearningItemTopics(item).includes(topic.id),
         );
-        const matches = topicAlgorithms.filter((alg) => {
+        const matches = topicItems.filter((item) => {
           if (sourceFilter !== "all") {
-            const sources = getAlgorithmSources(alg);
-            const matchesSource = sources.some((s) => getSourceKind(s) === sourceFilter);
-            const isMl = sourceFilter === "ml_infra" && isMlInfraAlgorithm(alg);
+            const matchesSource = item.sources.some((source) => source.kind === sourceFilter);
+            const isMl = sourceFilter === "ml_infra" && isMlInfraLearningItem(item);
             if (!matchesSource && !isMl) {
               return false;
             }
@@ -93,40 +85,38 @@ export function QuickAccessDrawer({
           if (query.length === 0) return true;
 
           if (
-            alg.title.toLowerCase().includes(query) ||
-            alg.description.toLowerCase().includes(query) ||
+            item.title.toLowerCase().includes(query) ||
+            item.description.toLowerCase().includes(query) ||
             topic.label.toLowerCase().includes(query) ||
-            (alg.difficulty?.toLowerCase().includes(query) ?? false)
+            item.difficulty.toLowerCase().includes(query)
           ) {
             return true;
           }
 
-          const sources = getAlgorithmSources(alg);
-          return sources.some((s) => {
-            const kind = getSourceKind(s);
+          return item.sources.some((source) => {
+            const kind = source.kind;
             if (kind === "leetcode") {
-              const lc = s as LeetCodeSource;
-              const id = (lc.id ?? lc.leetcodeId)?.toString() || "";
+              const id = (source.id ?? source.leetcodeId)?.toString() ?? "";
               return (
-                id.includes(query) || "leetcode".includes(query) || `lc #${id}`.includes(query)
+                id.includes(query) ||
+                source.label.toLowerCase().includes(query) ||
+                "leetcode".includes(query) ||
+                `lc #${id}`.includes(query)
               );
             }
             if (kind === "book") {
-              const bk = s as BookSource;
-              const bookTitle = (bk.bookTitle || "").toLowerCase();
-              const ch = (bk.chapter ?? "").toString().toLowerCase();
-              const label = (bk.label || "").toLowerCase();
+              const bookTitle = (source.bookTitle ?? "").toLowerCase();
+              const chapter = (source.chapter ?? "").toString().toLowerCase();
               return (
                 bookTitle.includes(query) ||
-                ch.includes(query) ||
-                label.includes(query) ||
+                chapter.includes(query) ||
+                source.label.toLowerCase().includes(query) ||
                 "cph".includes(query) ||
-                `chapter ${ch}`.includes(query)
+                `chapter ${chapter}`.includes(query)
               );
             }
             if (kind === "standard") {
-              const std = s as StandardSource;
-              return (std.label || "standard").toLowerCase().includes(query);
+              return source.label.toLowerCase().includes(query);
             }
             if (kind === "ml_infra") {
               return "ml infra".includes(query) || "ml_infra".includes(query);
@@ -134,10 +124,10 @@ export function QuickAccessDrawer({
             return false;
           });
         });
-        return { topic, algorithms: matches, totalCount: topicAlgorithms.length };
+        return { topic, algorithms: matches, totalCount: topicItems.length };
       })
       .filter((group) => !isFiltering || group.algorithms.length > 0);
-  }, [topics, allAlgorithms, isFiltering, query, sourceFilter]);
+  }, [topics, allItems, isFiltering, query, sourceFilter]);
 
   const handleSelect = (algorithmId: string) => {
     onSelectAlgorithm(algorithmId);
@@ -161,7 +151,7 @@ export function QuickAccessDrawer({
           <div className="ui-drawer__body p-6 md:p-8">
             <div className="flex flex-col gap-3">
               <p className="m-0 text-sm text-[var(--text-muted)]">
-                {totalAlgorithms} algorithms across {topics.length} topics
+                {totalItems} algorithms across {topics.length} topics
               </p>
 
               <Input
@@ -255,12 +245,10 @@ export function QuickAccessDrawer({
                               <span className="flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
                                 {alg.title}
                               </span>
-                              <SourceBadgeList sources={getAlgorithmSources(alg)} size="sm" />
-                              {alg.difficulty !== undefined ? (
-                                <Badge size="sm" variant={difficultyBadgeVariant(alg.difficulty)}>
-                                  {alg.difficulty}
-                                </Badge>
-                              ) : null}
+                              <SourceBadgeList sources={alg.sources} size="sm" />
+                              <Badge size="sm" variant={difficultyBadgeVariant(alg.difficulty)}>
+                                {alg.difficulty}
+                              </Badge>
                             </Button>
                           );
                         })}

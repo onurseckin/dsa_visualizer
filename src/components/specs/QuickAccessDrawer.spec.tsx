@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { QuickAccessDrawer } from "../../ui";
-import * as registryModule from "../../algorithms/registry";
+import * as registryModule from "../../learning/registry";
+import { adaptAlgorithmDefinition } from "../../learning/algorithmAdapters";
 
 describe("QuickAccessDrawer Component Spec", () => {
   it("does not render when isOpen is false", () => {
@@ -195,9 +196,9 @@ describe("QuickAccessDrawer Component Spec", () => {
     expect(searchInput).toHaveValue("");
   });
 
-  it("renders algorithm rows without difficulty badge when difficulty is undefined", () => {
-    vi.spyOn(registryModule, "getAllAlgorithms").mockReturnValueOnce([
-      {
+  it("normalizes a legacy item without difficulty to the transitional Medium badge", () => {
+    vi.spyOn(registryModule, "getAllLearningItems").mockReturnValueOnce([
+      adaptAlgorithmDefinition({
         id: "no-diff",
         title: "No Diff Alg",
         topicIds: ["arrays_and_hashing"],
@@ -211,7 +212,7 @@ describe("QuickAccessDrawer Component Spec", () => {
         topicGuide: { overview: "", sections: [], keyTerms: [] },
         defaultInput: {},
         generateSteps: () => [],
-      },
+      }),
     ]);
 
     render(
@@ -224,6 +225,7 @@ describe("QuickAccessDrawer Component Spec", () => {
     );
 
     expect(screen.getByText("No Diff Alg")).toBeInTheDocument();
+    expect(screen.getByText("Medium")).toBeInTheDocument();
   });
 
   it("renders LeetCodeBadge in algorithm row when leetcode property is present", () => {

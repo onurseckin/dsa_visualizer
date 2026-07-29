@@ -4,7 +4,8 @@ import type { PuzzleLine, TriviaSessionRecord } from "../../types/trivia";
 import { Button, SessionCard, SessionStats } from "../../ui";
 import { ConfirmDialog } from "../../ui/molecules/ConfirmDialog";
 import { coverageRatio, parsePuzzleLines } from "../../trivia/triviaEngine";
-import { getAlgorithm } from "../../algorithms/registry";
+import { getLearningItem } from "../../learning/registry";
+import { isTriviaEligibleLearningItem } from "../../learning/types";
 
 export interface TriviaSessionsManagerProps {
   sessions: TriviaSessionRecord[];
@@ -17,9 +18,9 @@ export interface TriviaSessionsManagerProps {
 const statsFor = (session: TriviaSessionRecord): SessionStats => {
   const sources = new Map<string, PuzzleLine[]>();
   session.config.deck.forEach((id) => {
-    const algorithm = getAlgorithm(id);
-    if (algorithm === undefined) return;
-    sources.set(id, parsePuzzleLines(algorithm.code, algorithm.trivia));
+    const item = getLearningItem(id);
+    if (!item || !isTriviaEligibleLearningItem(item)) return;
+    sources.set(id, parsePuzzleLines(item.code, item.trivia));
   });
   const coveragePct = Math.round(coverageRatio(session.progress, sources, session.config) * 100);
   return {

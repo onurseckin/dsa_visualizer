@@ -82,7 +82,7 @@ describe("SettingsContext playback speed persistence", () => {
   });
 });
 
-describe("SettingsContext panel visibility, algorithm persistence, and error boundaries", () => {
+describe("SettingsContext panel visibility, item persistence, and error boundaries", () => {
   it("throws an error when useSettings is called outside of SettingsProvider", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => renderHook(() => useSettings())).toThrow(
@@ -106,14 +106,36 @@ describe("SettingsContext panel visibility, algorithm persistence, and error bou
     expect(window.localStorage.getItem("dsa_visualizer_panel_visualizer")).toBe("true");
   });
 
-  it("persists and restores lastAlgorithmId", () => {
-    window.localStorage.setItem("dsa_visualizer_last_algorithm_id", JSON.stringify("quick-sort"));
+  it("persists and restores a validated lastItemId through the versioned key", () => {
+    window.localStorage.setItem("dsa_visualizer_last_item_id_v2", JSON.stringify("quick-sort"));
     const { result } = renderSettings();
-    expect(result.current.lastAlgorithmId).toBe("quick-sort");
+    expect(result.current.lastItemId).toBe("quick-sort");
 
-    act(() => result.current.setLastAlgorithmId("merge-sort"));
-    expect(result.current.lastAlgorithmId).toBe("merge-sort");
-    expect(window.localStorage.getItem("dsa_visualizer_last_algorithm_id")).toBe('"merge-sort"');
+    act(() => result.current.setLastItemId("merge-sort"));
+    expect(result.current.lastItemId).toBe("merge-sort");
+    expect(window.localStorage.getItem("dsa_visualizer_last_item_id_v2")).toBe('"merge-sort"');
+  });
+
+  it("falls back to bubble-sort for stale item IDs without clearing unrelated keys", () => {
+    window.localStorage.setItem(
+      "dsa_visualizer_last_item_id_v2",
+      JSON.stringify("retired-learning-item"),
+    );
+    window.localStorage.setItem("dsa_visualizer_unrelated", "keep-me");
+
+    const { result } = renderSettings();
+
+    expect(result.current.lastItemId).toBe("bubble-sort");
+    expect(window.localStorage.getItem("dsa_visualizer_unrelated")).toBe("keep-me");
+  });
+
+  it("does not retain the unversioned algorithm-key compatibility layer", () => {
+    window.localStorage.setItem("dsa_visualizer_last_algorithm_id", JSON.stringify("quick-sort"));
+
+    const { result } = renderSettings();
+
+    expect(result.current.lastItemId).toBe("bubble-sort");
+    expect(window.localStorage.getItem("dsa_visualizer_last_algorithm_id")).toBe('"quick-sort"');
   });
 
   it("handles window.localStorage exceptions gracefully", () => {

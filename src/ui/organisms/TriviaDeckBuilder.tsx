@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Layers, Search } from "lucide-react";
 import type { TopicId, DifficultyLevel } from "../../types/dsa";
-import { getAlgorithmSources, getSourceKind } from "../../types/dsa";
-import { TOPICS, getAlgorithmTopics } from "../../app/topics";
-import { getAllAlgorithms } from "../../algorithms/registry";
+import { TOPICS, getLearningItemTopics } from "../../app/topics";
+import { CODE_LEARNING_ITEMS, getTriviaLearningItems } from "../../learning/registry";
 import { Badge, Button, ButtonGroup, Card, Input, Select } from "..";
 import { DeckGroup, DeckGroupCollapsible } from "./DeckGroupCollapsible";
 import { PageHeader } from "../templates/PageHeader";
@@ -17,7 +16,7 @@ interface DeckEntry {
   id: string;
   title: string;
   difficulty?: DifficultyLevel;
-  sources?: ReturnType<typeof getAlgorithmSources>;
+  sources?: (typeof CODE_LEARNING_ITEMS)[number]["sources"];
 }
 
 const TOPIC_LABELS: Record<string, string> = Object.fromEntries(
@@ -30,20 +29,20 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
   const [difficultyFilter, setDifficultyFilter] = useState<string>("ALL");
   const [sourceFilter, setSourceFilter] = useState<string>("ALL");
 
-  const algorithms = useMemo(() => getAllAlgorithms(), []);
+  const learningItems = useMemo(() => getTriviaLearningItems(), []);
   const selected = useMemo(() => new Set(deck), [deck]);
 
   const groups = useMemo<DeckGroup[]>(() => {
     const query = search.trim().toLowerCase();
     const byTopic = new Map<TopicId, DeckEntry[]>();
 
-    algorithms.forEach((algorithm) => {
-      const topics = getAlgorithmTopics(algorithm);
+    learningItems.forEach((item) => {
+      const topics = getLearningItemTopics(item);
       if (topicFilter !== "ALL" && !topics.includes(topicFilter as TopicId)) return;
-      if (difficultyFilter !== "ALL" && algorithm.difficulty !== difficultyFilter) return;
-      const sources = getAlgorithmSources(algorithm);
+      if (difficultyFilter !== "ALL" && item.difficulty !== difficultyFilter) return;
+      const sources = item.sources;
       if (sourceFilter !== "ALL") {
-        if (!sources.some((s) => getSourceKind(s) === sourceFilter)) return;
+        if (!sources.some((source) => source.kind === sourceFilter)) return;
       }
 
       const visibleTopics =
@@ -55,15 +54,15 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
         const label = TOPIC_LABELS[topicId] ?? topicId;
         const matches =
           query.length === 0 ||
-          algorithm.title.toLowerCase().includes(query) ||
+          item.title.toLowerCase().includes(query) ||
           label.toLowerCase().includes(query);
         if (!matches) return;
 
         const entries = byTopic.get(topicId) ?? [];
         entries.push({
-          id: algorithm.id,
-          title: algorithm.title,
-          difficulty: algorithm.difficulty,
+          id: item.id,
+          title: item.title,
+          difficulty: item.difficulty,
           sources,
         });
         byTopic.set(topicId, entries);
@@ -75,7 +74,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
       label: TOPIC_LABELS[topic.id] ?? topic.id,
       entries: byTopic.get(topic.id) ?? [],
     }));
-  }, [algorithms, search, topicFilter, difficultyFilter, sourceFilter]);
+  }, [learningItems, search, topicFilter, difficultyFilter, sourceFilter]);
 
   const visibleIds = useMemo(
     () => [...new Set(groups.flatMap((group) => group.entries.map((entry) => entry.id)))],
@@ -91,7 +90,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
     onChange(selected.has(id) ? deck.filter((entry) => entry !== id) : [...deck, id]);
   };
 
-  const addEverything = () => addMany(algorithms.map((algorithm) => algorithm.id));
+  const addEverything = () => addMany(learningItems.map((item) => item.id));
 
   const clearDeck = () => {
     if (deck.length > 0) onChange([]);
@@ -167,7 +166,7 @@ export const TriviaDeckBuilder: React.FC<TriviaDeckBuilderProps> = ({ deck, onCh
               {deck.length} in deck
             </Badge>
             <Badge variant="neutral" size="md">
-              {deck.length} of {algorithms.length} algorithms selected
+              {deck.length} of {learningItems.length} algorithms selected
             </Badge>
             {search.trim().length > 0 ||
             topicFilter !== "ALL" ||

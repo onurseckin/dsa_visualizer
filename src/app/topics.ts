@@ -1,4 +1,4 @@
-import type { AlgorithmDefinition } from "../types/dsa";
+import type { LearningItem } from "../learning/types";
 import {
   TOPIC_CATALOG,
   getTopicLabel,
@@ -16,12 +16,11 @@ export const TOPICS: readonly { id: TopicId; label: string }[] = TOPIC_CATALOG.m
   }),
 );
 
-export const getAlgorithmTopics = (
-  algorithm: AlgorithmDefinition,
-): readonly [TopicId, ...TopicId[]] => algorithm.topicIds;
+export const getLearningItemTopics = (item: LearningItem): readonly [TopicId, ...TopicId[]] =>
+  item.topicIds;
 
-export const getAlgorithmTopicLabels = (algorithm: AlgorithmDefinition): string[] =>
-  algorithm.topicIds.map(getTopicLabel).sort((left, right) => left.localeCompare(right));
+export const getLearningItemTopicLabels = (item: LearningItem): string[] =>
+  item.topicIds.map(getTopicLabel).sort((left, right) => left.localeCompare(right));
 
-export const isMlInfraAlgorithm = (algorithm: AlgorithmDefinition): boolean =>
-  algorithm.topicIds.some(isMlInfraTopic);
+export const isMlInfraLearningItem = (item: LearningItem): boolean =>
+  item.topicIds.some(isMlInfraTopic);

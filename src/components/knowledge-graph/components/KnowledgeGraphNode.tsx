@@ -1,6 +1,6 @@
 import React from "react";
-import { getAllAlgorithms } from "../../../algorithms/registry";
-import { getAlgorithmTopics } from "../../../app/topics";
+import { getAllLearningItems } from "../../../learning/registry";
+import { getLearningItemTopics } from "../../../app/topics";
 import {
   DSA_TREE_PLACEMENT_MAP,
   DsaCurriculumPlacement,
@@ -32,8 +32,8 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       (hoveredNode?.prerequisites.includes(node.id) ?? false));
 
   const actualCount = React.useMemo(() => {
-    return getAllAlgorithms().filter((algorithm) =>
-      getAlgorithmTopics(algorithm).includes(node.topicId),
+    return getAllLearningItems().filter((item) =>
+      getLearningItemTopics(item).includes(node.topicId),
     ).length;
   }, [node.topicId]);
 

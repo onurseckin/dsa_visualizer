@@ -1,15 +1,16 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { getAllAlgorithms } from "../../../algorithms/registry";
-import { getAlgorithmTopics } from "../../../app/topics";
+import { CODE_LEARNING_ITEMS } from "../../../learning/registry";
+import { getLearningItemTopics } from "../../../app/topics";
+import { isTriviaEligibleLearningItem } from "../../../learning/types";
 import { TriviaDeckBuilder } from "../../../ui";
 
-const ALL = getAllAlgorithms();
+const ALL = CODE_LEARNING_ITEMS.filter(isTriviaEligibleLearningItem);
 const TOTAL = ALL.length;
 
-const arraysIds = ALL.filter((algorithm) =>
-  getAlgorithmTopics(algorithm).includes("arrays_and_hashing"),
-).map((algorithm) => algorithm.id);
+const arraysIds = ALL.filter((item) =>
+  getLearningItemTopics(item).includes("arrays_and_hashing"),
+).map((item) => item.id);
 
 const groupRow = (container: HTMLElement, label: string): HTMLElement => {
   const title = Array.from(container.querySelectorAll<HTMLElement>(".ui-collapsible__title")).find(
