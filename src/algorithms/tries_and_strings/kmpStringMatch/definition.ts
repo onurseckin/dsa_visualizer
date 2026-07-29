@@ -74,19 +74,21 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: 'text = "ABABDABACDABABCABAB", pattern = "ABABCABAB"',
-      outputDisplay: "10",
-      title: "Basic Example",
-      input: { text: "ABABDABACDABABCABAB", pattern: "ABABCABAB" },
+      outputDisplay: "[10]",
+      title: "Standard Single Match Search",
+      input: DEFAULT_KMP_INPUT,
       output: "[10]",
       explanation:
         "Precomputed LPS table allows skipping backward text comparisons during partial mismatches.",
     },
     {
       kind: "complex",
-      inputDisplay: 'text = "AAAAABAAABA", pattern = "AAAA"',
-      outputDisplay: "0",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      inputDisplay: 'text = "AABAACAADAABAABA", pattern = "AABA"',
+      outputDisplay: "[0, 9, 12]",
+      title: "Adversarial Overlapping & Multiple Matches",
       input: { text: "AABAACAADAABAABA", pattern: "AABA" },
       output: "[0, 9, 12]",
       explanation:
@@ -94,9 +96,10 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: 'text = "ABCDEFG", pattern = "XYZ"',
-      outputDisplay: "-1",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: 'text = "AAAAABAAAAA", pattern = "AAAAAC"',
+      outputDisplay: "[]",
+      title: "Boundary Long Partial Mismatch Case",
       input: { text: "AAAAABAAAAA", pattern: "AAAAAC" },
       output: "[]",
       explanation:
