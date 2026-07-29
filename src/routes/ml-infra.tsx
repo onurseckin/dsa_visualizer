@@ -38,9 +38,6 @@ function MLInfraPage(): React.ReactElement {
               navigate({ to: "/problems", search: { topic: topicId } });
             }
           }}
-          onNavigateToAlgorithm={(algorithmId) => {
-            navigate({ to: "/workspace/$algorithmId", params: { algorithmId } });
-          }}
         />
       </Suspense>
     </main>

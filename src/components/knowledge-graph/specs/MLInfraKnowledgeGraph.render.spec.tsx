@@ -55,7 +55,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
 
       expect(canvasSvg).toHaveAttribute("width", "100%");
       expect(canvasSvg).toHaveAttribute("height", "100%");
-      expect(canvasSvg).toHaveAttribute("viewBox", "0 0 960 720");
+      expect(canvasSvg).toHaveAttribute("viewBox", "0 0 960 496");
     } finally {
       if (widthDescriptor) {
         Object.defineProperty(HTMLElement.prototype, "clientWidth", widthDescriptor);
@@ -106,7 +106,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     });
   });
 
-  it("opens and closes a target topic drawer and reports its canonical topic ID", () => {
+  it("sends a clicked topic directly to the filtered Problem List", () => {
     const onSelectTopic = vi.fn();
     render(<MLInfraKnowledgeGraph onSelectTopic={onSelectTopic} />);
 
@@ -116,23 +116,12 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
       }),
     );
 
-    expect(onSelectTopic).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("dialog", {
-        name: /Python, Environments & Scientific Computing Drawer/i,
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Curated Problems (3)")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Close Topic Drawer" }));
-    expect(
-      screen.queryByRole("dialog", {
-        name: /Python, Environments & Scientific Computing Drawer/i,
-      }),
-    ).not.toBeInTheDocument();
+    expect(onSelectTopic).toHaveBeenCalledOnce();
+    expect(onSelectTopic).toHaveBeenCalledWith("ml_python_scientific_computing");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("supports keyboard selection and the drawer topic action", () => {
+  it("supports keyboard selection for the filtered Problem List", () => {
     const onSelectTopic = vi.fn();
     render(<MLInfraKnowledgeGraph onSelectTopic={onSelectTopic} />);
     const node = screen.getByRole("button", {
@@ -140,33 +129,8 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     });
 
     fireEvent.keyDown(node, { key: "Enter" });
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /View ML Problem Framing & Success Metrics Problems in Problem List/i,
-      }),
-    );
-
     expect(onSelectTopic).toHaveBeenCalledOnce();
     expect(onSelectTopic).toHaveBeenCalledWith("ml_problem_framing");
-  });
-
-  it("opens a node drawer and sends its canonical item id to the workspace", () => {
-    const onNavigateToAlgorithm = vi.fn();
-    render(<MLInfraKnowledgeGraph onNavigateToAlgorithm={onNavigateToAlgorithm} />);
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: /Python, Environments & Scientific Computing/i,
-      }),
-    );
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Visualize reproducible-python-environment in Workspace →",
-      }),
-    );
-
-    expect(onNavigateToAlgorithm).toHaveBeenCalledOnce();
-    expect(onNavigateToAlgorithm).toHaveBeenCalledWith("reproducible-python-environment");
   });
 
   it("tracks pointer and focus states without changing node geometry", () => {

@@ -10,7 +10,7 @@ import {
 } from "../knowledgeGraphData";
 
 interface KnowledgeGraphNodeProps {
-  node: DsaCurriculumPlacement;
+  node: DsaCurriculumPlacement & { width?: number; height?: number };
   hoveredNodeId: string | null;
   onSelectTopic: (topicId: string) => void;
   onHover: (id: string | null) => void;
@@ -22,6 +22,8 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
   onSelectTopic,
   onHover,
 }) => {
+  const width = node.width ?? 190;
+  const height = node.height ?? 64;
   const [isFocused, setIsFocused] = React.useState(false);
   const isHovered = hoveredNodeId === node.id;
   const hoveredNode =
@@ -51,7 +53,7 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       role="button"
       tabIndex={0}
       aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-      transform={`translate(${node.x - 95}, ${node.y - 32})`}
+      transform={`translate(${node.x - width / 2}, ${node.y - height / 2})`}
       onClick={() => onSelectTopic(node.topicId)}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => onHover(node.id)}
@@ -72,8 +74,8 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       className={isHovered ? "scale-[1.02]" : ""}
     >
       <rect
-        width="190"
-        height="64"
+        width={width}
+        height={height}
         rx="12"
         fill={activeFocusOrHover ? topicFamilyFillHover(node.family) : topicFamilyFill(node.family)}
         stroke={
@@ -93,9 +95,11 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       />
 
       <text
-        x="95"
+        x={width / 2}
         y="28"
         textAnchor="middle"
+        textLength={Math.max(width - 20, 1)}
+        lengthAdjust="spacingAndGlyphs"
         fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
         className="font-bold text-[13px] transition-all duration-300"
       >
@@ -103,7 +107,7 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
       </text>
 
       <text
-        x="95"
+        x={width / 2}
         y="48"
         textAnchor="middle"
         fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}

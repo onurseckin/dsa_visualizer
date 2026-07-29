@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
   DSA_TREE_PLACEMENTS,
   DsaCurriculumPlacement,
@@ -12,6 +12,13 @@ import { KnowledgeGraph } from "../../ui";
 import { VIZ_SLOT_COUNT } from "../primitives/vizPalette";
 
 describe("KnowledgeGraph Component Spec", () => {
+  const originalResizeObserver = window.ResizeObserver;
+
+  afterEach(() => {
+    window.ResizeObserver = originalResizeObserver;
+    vi.restoreAllMocks();
+  });
+
   it("renders SVG region and interactive roadmap nodes", () => {
     const onSelectMock = vi.fn();
     render(<KnowledgeGraph onSelectTopic={onSelectMock} />);
@@ -33,6 +40,43 @@ describe("KnowledgeGraph Component Spec", () => {
     // Click SVG node button
     fireEvent.click(buttons[0]);
     expect(onSelectMock).toHaveBeenCalledWith("arrays_and_hashing");
+  });
+
+  it("uses the measured canvas box instead of a fixed SVG viewBox", () => {
+    const widthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const heightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get: () => 720,
+    });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get: () => 640,
+    });
+    window.ResizeObserver = vi.fn().mockImplementation(() => ({
+      observe: vi.fn(),
+      disconnect: vi.fn(),
+    }));
+
+    try {
+      const { container } = render(<KnowledgeGraph onSelectTopic={vi.fn()} />);
+      const svg = container.querySelector("svg");
+
+      expect(svg).toHaveAttribute("width", "100%");
+      expect(svg).toHaveAttribute("height", "100%");
+      expect(svg).toHaveAttribute("viewBox", "0 0 720 596");
+    } finally {
+      if (widthDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", widthDescriptor);
+      } else {
+        delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+      }
+      if (heightDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, "clientHeight", heightDescriptor);
+      } else {
+        delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight;
+      }
+    }
   });
 
   it("supports keyboard navigation via Enter and Space keypresses", () => {

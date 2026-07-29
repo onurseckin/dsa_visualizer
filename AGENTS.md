@@ -33,6 +33,18 @@ visualizations, and retrieval-practice trivia. Read [README.md](README.md) for s
 | --- | --- |
 | `bun install` | Install dependencies |
 | `bun run dev` | Start Vite on port 5173 (do not leave it running for a user) |
+| `bun run ddev` | Start the Docker development stack with web HMR and backend source watchers |
+| `bun run ddev:down` | Stop the Docker development stack while preserving persisted data |
+| `bun run ddev:logs` | Follow development-stack service logs |
+| `bun run ddev:ps` | Show development-stack service status |
+| `bun run dup` | Build and start the Docker Compose stack, waiting for healthy services |
+| `bun run ddown` | Stop the Docker Compose stack and preserve persisted data |
+| `bun run drestart` | Rebuild and restart the Docker Compose stack |
+| `bun run dbuild` | Build Docker Compose images without starting services |
+| `bun run dlogs` | Follow Docker Compose logs for all services |
+| `bun run dps` | Show Docker Compose service status |
+| `bun run dclean` | Stop the stack and delete persisted Docker volumes (destructive) |
+| `bun run compose:dev:check` | Validate the Docker development Compose configuration |
 | `bun run typecheck` | TypeScript check |
 | `bun run format:check` | Check formatting |
 | `bun run lint` | Run Oxlint with zero warnings |

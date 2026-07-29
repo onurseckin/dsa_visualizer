@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { Button } from "../../ui";
 import { getAllLearningItems } from "../../learning/registry";
-import { getLearningItemTopics, isMlInfraLearningItem } from "../../app/topics";
-import { boxViewBox, spreadToBox, useCanvasBox, viewBoxAttr } from "../primitives/vizGeometry";
+import { getLearningItemTopics } from "../../app/topics";
+import { boxViewBox, useCanvasBox, viewBoxAttr } from "../primitives/vizGeometry";
+import { layoutResponsiveGraph } from "./responsiveGraphLayout";
 import {
   ML_INFRA_FAMILIES,
   ML_INFRA_TREE_PLACEMENTS,
@@ -27,19 +27,13 @@ export type { MLInfraCurriculumPlacement, MLInfraFamily, MLInfraFamilyId } from 
 
 export interface MLInfraKnowledgeGraphProps {
   onSelectTopic?: (topicId: string) => void;
-  onNavigateToAlgorithm?: (algorithmId: string) => void;
 }
 
-const ML_INFRA_CANVAS_FALLBACK = { width: 1800, height: 1800 };
-const ML_INFRA_LAYOUT_PADDING = 250;
+const ML_INFRA_CANVAS_FALLBACK = { width: 1200, height: 1 };
 
-export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
-  onSelectTopic,
-  onNavigateToAlgorithm,
-}) => {
+export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ onSelectTopic }) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
-  const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
   const { ref: canvasRef, box: measuredBox } = useCanvasBox(ML_INFRA_CANVAS_FALLBACK);
 
   const problemCountByTopicId = useMemo(() => {
@@ -52,46 +46,20 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
     return counts;
   }, []);
 
-  const activeDrawerTopic = useMemo(() => {
-    return drawerTopicId ? ML_INFRA_TREE_PLACEMENT_MAP.get(drawerTopicId) || null : null;
-  }, [drawerTopicId]);
-
-  const drawerQuestions = useMemo(() => {
-    if (!activeDrawerTopic) return [];
-    const topicId = activeDrawerTopic.topicId;
-    const allItems = getAllLearningItems();
-    const matchingItems = allItems.filter((item) => getLearningItemTopics(item).includes(topicId));
-
-    return matchingItems.map((item) => ({
-      id: item.id,
-      title: item.title,
-      algorithmId: item.id,
-      difficulty: item.difficulty,
-      type: isMlInfraLearningItem(item) ? "ML Systems Implementation" : "Foundational Math & DSA",
-      description: item.description,
-    }));
-  }, [activeDrawerTopic]);
-
   const handleSelectNode = (node: MLInfraCurriculumPlacement) => {
-    setDrawerTopicId(node.id);
-  };
-
-  const handleNavigateQuestion = (algorithmId: string) => {
-    onNavigateToAlgorithm?.(algorithmId);
+    onSelectTopic?.(node.topicId);
   };
 
   const hoveredNode = hoveredNodeId ? ML_INFRA_TREE_PLACEMENT_MAP.get(hoveredNodeId) : undefined;
   const positionedPlacements = useMemo(() => {
-    const positions = spreadToBox(
-      ML_INFRA_TREE_PLACEMENTS.map(({ x, y }) => ({ x, y })),
-      measuredBox,
-      ML_INFRA_LAYOUT_PADDING,
-    );
-    return ML_INFRA_TREE_PLACEMENTS.map((placement, index) => ({
-      ...placement,
-      ...positions[index],
-    }));
+    return layoutResponsiveGraph(ML_INFRA_TREE_PLACEMENTS, { width: measuredBox.width, height: 0 })
+      .nodes;
   }, [measuredBox]);
+  const canvasHeight = layoutResponsiveGraph(ML_INFRA_TREE_PLACEMENTS, {
+    width: measuredBox.width,
+    height: 0,
+  }).canvasHeight;
+  const canvasBox = { width: measuredBox.width, height: canvasHeight };
   const positionedPlacementMap = useMemo(
     () => new Map(positionedPlacements.map((placement) => [placement.id, placement])),
     [positionedPlacements],
@@ -126,130 +94,21 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
         ))}
       </ul>
 
-      {/* Slide-Over Topic Sidebar Drawer */}
-      {activeDrawerTopic && (
-        <div
-          role="dialog"
-          aria-label={`${activeDrawerTopic.title} Drawer`}
-          className="absolute right-0 top-0 bottom-0 z-30 w-full max-w-md bg-[var(--bg-surface)] border-l border-[var(--border-default)] p-6 shadow-2xl overflow-y-auto flex flex-col gap-5 rounded-r-3xl"
-        >
-          {/* Drawer Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-[var(--border-default)] pb-4">
-            <div>
-              <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                {activeDrawerTopic.title}
-              </h2>
-              <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
-                {activeDrawerTopic.description}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setDrawerTopicId(null)}
-              aria-label="Close Topic Drawer"
-              className="p-1.5 rounded-lg bg-[var(--bg-inset)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-page)] transition-all cursor-pointer"
-            >
-              ✕
-            </button>
-          </div>
-
-          <Button onClick={() => onSelectTopic?.(activeDrawerTopic.topicId)}>
-            View {activeDrawerTopic.title} Problems in Problem List →
-          </Button>
-
-          {/* Prerequisite Topics if any */}
-          {activeDrawerTopic.prerequisites.length > 0 && (
-            <div className="text-xs text-[var(--text-muted)] flex flex-wrap items-center gap-1.5">
-              <span className="font-semibold text-[var(--text-secondary)]">Prerequisites:</span>
-              {activeDrawerTopic.prerequisites.map((pId: string) => {
-                const pTopic = ML_INFRA_TREE_PLACEMENT_MAP.get(pId);
-                return (
-                  <span
-                    key={pId}
-                    className="px-2 py-0.5 rounded text-[11px] font-mono bg-[var(--bg-inset)] text-[var(--accent)] border border-[var(--border-default)]"
-                  >
-                    {pTopic?.title || pId}
-                  </span>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Curated Questions List */}
-          <div className="flex-1 overflow-y-auto pr-1 space-y-4 scrollbar-thin">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              Curated Problems ({drawerQuestions.length})
-            </h3>
-
-            {drawerQuestions.map((q) => {
-              const isFoundational = q.type === "Foundational Math & DSA";
-
-              return (
-                <div
-                  key={q.id}
-                  className="p-4 rounded-xl bg-[var(--bg-inset)] border border-[var(--border-default)] hover:border-[var(--border-accent)] transition-all flex flex-col gap-3"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
-                        isFoundational
-                          ? "bg-sky-500/10 text-sky-400 border-sky-500/30"
-                          : "bg-purple-500/10 text-purple-400 border-purple-500/30"
-                      }`}
-                    >
-                      {q.type}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                        q.difficulty === "Easy"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                          : q.difficulty === "Medium"
-                            ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
-                            : "bg-rose-500/10 text-rose-400 border-rose-500/30"
-                      }`}
-                    >
-                      {q.difficulty}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-bold text-[var(--text-primary)]">{q.title}</h4>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1 leading-relaxed">
-                      {q.description}
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleNavigateQuestion(q.algorithmId)}
-                    className="w-full py-2 px-3 rounded-lg text-xs font-bold bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-all cursor-pointer text-center"
-                  >
-                    Visualize {q.algorithmId} in Workspace →
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Main Card Container */}
-      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-3xl p-8 shadow-2xl relative overflow-x-auto mx-auto">
+      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-3 shadow-2xl relative mx-auto">
         <div
           ref={canvasRef}
           data-testid="ml-infra-canvas"
           style={{
             width: "100%",
-            minWidth: "1500px",
-            height: "1800px",
-            minHeight: 0,
+            height: `${canvasHeight}px`,
             overflow: "hidden",
           }}
         >
           <svg
             width="100%"
             height="100%"
-            viewBox={viewBoxAttr(boxViewBox(measuredBox))}
+            viewBox={viewBoxAttr(boxViewBox(canvasBox))}
             className="block relative z-0 drop-shadow-sm"
           >
             <defs>
@@ -286,15 +145,13 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
             {/* Connectors Group */}
             <g className="connectors">
-              {positionedPlacements.map((node: MLInfraCurriculumPlacement) =>
+              {positionedPlacements.map((node) =>
                 node.prerequisites.map((prereqId: string) => {
                   const parent = positionedPlacementMap.get(prereqId);
                   if (!parent) return null;
 
-                  const isConnectedToDrawer =
-                    drawerTopicId === node.id || drawerTopicId === parent.id;
                   const isHovered = hoveredNodeId === node.id || hoveredNodeId === parent.id;
-                  const isHighlighted = isConnectedToDrawer || isHovered;
+                  const isHighlighted = isHovered;
 
                   const strokeColor = isHighlighted
                     ? "var(--accent)"
@@ -303,22 +160,20 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
                   let startX = parent.x;
-                  let startY = parent.y + 32;
+                  let startY = parent.y + parent.height / 2;
                   let endX = node.x;
-                  let endY = node.y - 32;
+                  let endY = node.y - node.height / 2;
 
                   if (parent.y === node.y) {
-                    const parentWidth = Math.max(190, parent.title.length * 8.5 + 40);
-                    const nodeWidth = Math.max(190, node.title.length * 8.5 + 40);
                     if (parent.x < node.x) {
-                      startX = parent.x + parentWidth / 2;
+                      startX = parent.x + parent.width / 2;
                       startY = parent.y;
-                      endX = node.x - nodeWidth / 2;
+                      endX = node.x - node.width / 2;
                       endY = node.y;
                     } else {
-                      startX = parent.x - parentWidth / 2;
+                      startX = parent.x - parent.width / 2;
                       startY = parent.y;
-                      endX = node.x + nodeWidth / 2;
+                      endX = node.x + node.width / 2;
                       endY = node.y;
                     }
                   }
@@ -350,7 +205,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
             {/* Nodes Group */}
             <g className="nodes">
-              {positionedPlacements.map((node: MLInfraCurriculumPlacement) => {
+              {positionedPlacements.map((node) => {
                 const isHovered = hoveredNodeId === node.id;
                 const isFocused = focusedNodeId === node.id;
                 const activeFocusOrHover = isHovered || isFocused;
@@ -359,7 +214,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   (node.prerequisites.includes(hoveredNodeId) ||
                     (hoveredNode?.prerequisites.includes(node.id) ?? false));
 
-                const width = Math.max(190, node.title.length * 8.5 + 40);
+                const width = node.width;
 
                 const handleKeyDown = (e: React.KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -376,7 +231,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                     role="button"
                     tabIndex={0}
                     aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-                    transform={`translate(${node.x - width / 2}, ${node.y - 32})`}
+                    transform={`translate(${node.x - width / 2}, ${node.y - node.height / 2})`}
                     onClick={() => handleSelectNode(node)}
                     onKeyDown={handleKeyDown}
                     onMouseEnter={() => setHoveredNodeId(node.id)}
@@ -398,7 +253,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                   >
                     <rect
                       width={width}
-                      height="64"
+                      height={node.height}
                       rx="12"
                       fill={
                         activeFocusOrHover
@@ -425,6 +280,8 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
                       x={width / 2}
                       y="28"
                       textAnchor="middle"
+                      textLength={Math.max(width - 20, 1)}
+                      lengthAdjust="spacingAndGlyphs"
                       fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
                       className="font-bold text-[13px] transition-all duration-300"
                     >

@@ -34,7 +34,7 @@ export default defineConfig({
   plugins: [
     ...viteStaticCopyPyodide(),
     // Owns the same Fetch API handler used by apps/api in Docker production.
-    sqliteVitePlugin(),
+    ...(process.env.VITE_USE_DOCKER_API === "1" ? [] : [sqliteVitePlugin()]),
     // Router plugin must precede the React plugin — wrong order fails silently.
     tanstackRouter({
       target: "react",
@@ -47,6 +47,8 @@ export default defineConfig({
     tailwindcss(),
     react(),
   ],
+  server:
+    process.env.VITE_USE_DOCKER_API === "1" ? { proxy: { "/api": "http://api:3000" } } : undefined,
   test: {
     globals: true,
     environment: "jsdom",
