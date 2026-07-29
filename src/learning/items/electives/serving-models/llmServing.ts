@@ -93,6 +93,17 @@ const pagedCacheExecution = functionExecution({
   ],
 });
 
+interface PagedCacheInput {
+  readonly block_size: number;
+  readonly capacity_blocks: number;
+  readonly requests: readonly {
+    readonly id: string;
+    readonly tokens: number;
+    readonly evicted_tokens?: number;
+    readonly shared_blocks?: number;
+  }[];
+}
+
 export const pagedKvCacheAllocation = defineTraceItem({
   id: "paged-kv-cache-allocation",
   title: "Paged KV-cache allocation",
@@ -105,7 +116,10 @@ export const pagedKvCacheAllocation = defineTraceItem({
   completionEvidence:
     "The learner accounts for logical pages, physical shared-prefix savings, tail waste, eviction, and a capacity breach from the same request state.",
   sources: [
-    verifiedSource({ label: "PagedAttention paper", url: "https://arxiv.org/abs/2309.06180" }),
+    verifiedSource({
+      label: "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+      url: "https://arxiv.org/abs/2309.06180",
+    }),
     verifiedSource({
       label: "vLLM Paged Attention design",
       url: "https://docs.vllm.ai/en/latest/design/paged_attention/",
@@ -120,37 +134,62 @@ export const pagedKvCacheAllocation = defineTraceItem({
   }),
   execution: pagedCacheExecution,
   generateSteps: (input) => {
-    const record = input as { block_size?: number; requests?: { id: string; tokens: number }[] };
-    const requests = record.requests ?? [];
+    const record = input as PagedCacheInput;
+    const live = record.requests.map((request) => ({
+      ...request,
+      liveTokens: Math.max(0, request.tokens - (request.evicted_tokens ?? 0)),
+    }));
+    const pages = live.map((request) => ({
+      ...request,
+      logical: Math.ceil(request.liveTokens / record.block_size),
+    }));
+    const physical = pages.map((request) => ({
+      ...request,
+      physical: Math.max(0, request.logical - (request.shared_blocks ?? 0)),
+    }));
+    const used = physical.reduce((total, request) => total + request.physical, 0);
+    const fragmentation = pages.reduce(
+      (total, request) => total + request.logical * record.block_size - request.liveTokens,
+      0,
+    );
     return arraySteps([
       {
         codeLine: 2,
         what: "Read the fixed page size and incoming token counts.",
         why: "Page units bound allocation bookkeeping even when request lengths differ.",
-        values: [record.block_size ?? 0, ...requests.map((request) => request.tokens)],
+        values: [
+          `block=${record.block_size}`,
+          ...live.map((request) => `${request.id}:${request.liveTokens} live tokens`),
+        ],
         activeIndices: [0],
       },
       {
         codeLine: 8,
         what: "Round each live sequence into logical pages before sharing.",
         why: "A partial final page still consumes a page and exposes tail fragmentation.",
-        values: requests.map((request) => Math.ceil(request.tokens / (record.block_size ?? 1))),
-        activeIndices: [0],
-        completedIndices: requests.slice(1).map((_, index) => index + 1),
+        values: pages.map((request) => `${request.id}:${request.logical} logical pages`),
+        activeIndices: pages.map((_, index) => index),
       },
       {
         codeLine: 10,
         what: "Subtract only explicitly shared prefix pages from physical occupancy.",
         why: "Sharing changes memory ownership while logical token accounting remains per request.",
-        values: ["logical pages", "shared pages", "physical pages"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: physical.map(
+          (request) =>
+            `${request.id}:${request.logical}-${request.shared_blocks ?? 0}=${request.physical}`,
+        ),
+        activeIndices: physical.map((_, index) => index),
       },
       {
         codeLine: 14,
         what: "Expose free capacity and tail waste as separate invariants.",
         why: "A page pool can fit while still carrying fragmentation that affects admission decisions.",
-        values: ["used blocks", "free blocks", "tail slots", "fits"],
+        values: [
+          `used=${used}`,
+          `free=${record.capacity_blocks - used}`,
+          `tail=${fragmentation}`,
+          `fits=${used <= record.capacity_blocks}`,
+        ],
         activeIndices: [3],
         completedIndices: [0, 1, 2],
       },
@@ -168,25 +207,37 @@ export const pagedKvCacheAllocation = defineTraceItem({
 });
 
 const batchingCode = `def trace_continuous_batching(record):
-    active = []
+    pending = {request["id"] for request in record["requests"]}
+    active = {}
+    admitted = set()
+    completed = set()
+    cancelled = set()
     trace = []
     for tick in range(record["ticks"]):
+        cancelling = {request["id"] for request in record["requests"] if request.get("cancel_at") == tick}
+        for request_id in cancelling:
+            if request_id in pending or request_id in active:
+                pending.discard(request_id)
+                active.pop(request_id, None)
+                cancelled.add(request_id)
         for request in record["requests"]:
-            if request["arrival"] == tick:
-                active.append({"id": request["id"], "remaining": request["decode_tokens"]})
-        cancelled = {request["id"] for request in record["requests"] if request.get("cancel_at") == tick}
-        active = [request for request in active if request["id"] not in cancelled]
-        prefill_tokens = sum(request.get("prompt_tokens", 0) for request in record["requests"] if request["arrival"] == tick)
-        trace.append({"tick": tick, "active": [request["id"] for request in active], "prefill_tokens": prefill_tokens})
-        for request in active:
-            request["remaining"] -= 1
-        active = [request for request in active if request["remaining"] > 0]
-    return {"ticks": trace, "completed": sorted({request["id"] for request in record["requests"]} - {request["id"] for request in active} - {request["id"] for request in record["requests"] if request.get("cancel_at") is not None})}`;
+            if request["arrival"] == tick and request["id"] in pending:
+                pending.remove(request["id"])
+                admitted.add(request["id"])
+                active[request["id"]] = request["decode_tokens"]
+        prefill_tokens = sum(request.get("prompt_tokens", 0) for request in record["requests"] if request["arrival"] == tick and request["id"] in active)
+        trace.append({"tick": tick, "active": sorted(active), "prefill_tokens": prefill_tokens})
+        for request_id in list(active):
+            active[request_id] -= 1
+            if active[request_id] <= 0:
+                del active[request_id]
+                completed.add(request_id)
+    return {"ticks": trace, "pending": sorted(pending), "admitted": sorted(admitted), "completed": sorted(completed), "cancelled": sorted(cancelled)}`;
 
 const batchingExecution = functionExecution({
   entrypoint: "trace_continuous_batching",
   outputContract:
-    "Return an educational tick-by-tick active-request trace, admitted prompt-token total, and completed request IDs. It models mixed arrival, prompt and decode lengths, and cancellation; it does not execute model inference.",
+    "Return an educational tick-by-tick active-request trace, admitted prompt-token total, and explicit pending, admitted, completed, and cancelled request IDs. It models mixed arrival, prompt and decode lengths, and cancellation; it does not execute model inference.",
   cases: [
     {
       id: "mixed-arrivals",
@@ -204,7 +255,10 @@ const batchingExecution = functionExecution({
           { tick: 1, active: ["a", "b"], prefill_tokens: 3 },
           { tick: 2, active: ["b"], prefill_tokens: 0 },
         ],
+        pending: [],
+        admitted: ["a", "b"],
         completed: ["a", "b"],
+        cancelled: [],
       },
       comparison: "deep-equal",
     },
@@ -221,7 +275,10 @@ const batchingExecution = functionExecution({
           { tick: 1, active: [], prefill_tokens: 0 },
           { tick: 2, active: [], prefill_tokens: 0 },
         ],
+        pending: [],
+        admitted: ["a"],
         completed: [],
+        cancelled: ["a"],
       },
       comparison: "deep-equal",
     },
@@ -240,12 +297,85 @@ const batchingExecution = functionExecution({
           { tick: 0, active: ["a", "b"], prefill_tokens: 6 },
           { tick: 1, active: ["b"], prefill_tokens: 0 },
         ],
+        pending: [],
+        admitted: ["a", "b"],
         completed: ["a", "b"],
+        cancelled: [],
+      },
+      comparison: "deep-equal",
+    },
+    {
+      id: "late-arrival-pending",
+      label: "A request arriving after the trace stays pending",
+      input: {
+        ticks: 2,
+        requests: [{ id: "late", arrival: 3, prompt_tokens: 9, decode_tokens: 1 }],
+      },
+      expected: {
+        ticks: [
+          { tick: 0, active: [], prefill_tokens: 0 },
+          { tick: 1, active: [], prefill_tokens: 0 },
+        ],
+        pending: ["late"],
+        admitted: [],
+        completed: [],
+        cancelled: [],
       },
       comparison: "deep-equal",
     },
   ],
 });
+
+interface BatchingRequest {
+  readonly id: string;
+  readonly arrival: number;
+  readonly prompt_tokens: number;
+  readonly decode_tokens: number;
+  readonly cancel_at?: number;
+}
+
+interface BatchingInput {
+  readonly ticks: number;
+  readonly requests: readonly BatchingRequest[];
+}
+
+function batchingTrace(record: BatchingInput) {
+  const pending = new Set(record.requests.map((request) => request.id));
+  const active = new Map<string, number>();
+  const admitted = new Set<string>();
+  const completed = new Set<string>();
+  const cancelled = new Set<string>();
+  const ticks: { tick: number; active: string[]; prefillTokens: number }[] = [];
+  for (let tick = 0; tick < record.ticks; tick += 1) {
+    for (const request of record.requests) {
+      if (request.cancel_at === tick && (pending.has(request.id) || active.has(request.id))) {
+        pending.delete(request.id);
+        active.delete(request.id);
+        cancelled.add(request.id);
+      }
+    }
+    for (const request of record.requests) {
+      if (request.arrival === tick && pending.has(request.id)) {
+        pending.delete(request.id);
+        admitted.add(request.id);
+        active.set(request.id, request.decode_tokens);
+      }
+    }
+    const prefillTokens = record.requests
+      .filter((request) => request.arrival === tick && active.has(request.id))
+      .reduce((total, request) => total + request.prompt_tokens, 0);
+    ticks.push({ tick, active: [...active.keys()].sort(), prefillTokens });
+    for (const [requestId, remaining] of [...active.entries()]) {
+      if (remaining <= 1) {
+        active.delete(requestId);
+        completed.add(requestId);
+      } else {
+        active.set(requestId, remaining - 1);
+      }
+    }
+  }
+  return { ticks, pending, admitted, completed, cancelled };
+}
 
 export const continuousBatchingTrace = defineTraceItem({
   id: "continuous-batching-trace",
@@ -263,7 +393,10 @@ export const continuousBatchingTrace = defineTraceItem({
       label: "Orca: a distributed serving system for transformer-based generative models",
       url: "https://www.usenix.org/conference/osdi22/presentation/yu",
     }),
-    verifiedSource({ label: "PagedAttention paper", url: "https://arxiv.org/abs/2309.06180" }),
+    verifiedSource({
+      label: "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+      url: "https://arxiv.org/abs/2309.06180",
+    }),
   ],
   code: batchingCode,
   starterCode: semanticStarter({
@@ -273,40 +406,56 @@ export const continuousBatchingTrace = defineTraceItem({
       "Trace prompt-token admission, cancellation, and one decode token retired per active request each tick.",
   }),
   execution: batchingExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as BatchingInput;
+    const state = batchingTrace(record);
+    const arrivalValues = record.requests.map(
+      (request) =>
+        `${request.id}@${request.arrival}:p${request.prompt_tokens}/d${request.decode_tokens}`,
+    );
+    return arraySteps([
       {
         codeLine: 4,
         what: "Admit requests whose arrival tick has occurred and record their prompt work.",
         why: "Continuous batching changes membership over time instead of waiting for a fixed batch to finish.",
-        values: ["arrival", "active decode set"],
-        activeIndices: [1],
+        values: arrivalValues.length > 0 ? arrivalValues : ["no requests"],
+        activeIndices: arrivalValues.map((_, index) => index),
       },
       {
         codeLine: 6,
         what: "Remove cancellation targets before the decode step.",
         why: "Cancelled work must stop consuming the modeled scheduler budget at its cancellation boundary.",
-        values: ["active", "cancelled", "remaining"],
+        values: [
+          `pending=${[...state.pending].sort().join(",") || "none"}`,
+          `cancelled=${[...state.cancelled].sort().join(",") || "none"}`,
+        ],
         activeIndices: [1],
-        completedIndices: [0],
       },
       {
         codeLine: 8,
         what: "Record each active set at the tick boundary.",
         why: "The trace makes changing membership inspectable without claiming measured throughput.",
-        values: ["tick", "active request IDs"],
-        activeIndices: [1],
-        completedIndices: [0],
+        values: state.ticks.map(
+          (tick) =>
+            `t${tick.tick}:${tick.active.join(",") || "idle"};prefill=${tick.prefillTokens}`,
+        ),
+        activeIndices: state.ticks.map((_, index) => index),
       },
       {
         codeLine: 10,
         what: "Retire one modeled decode token and release completed requests.",
         why: "Per-request completion lets later arrivals share the next tick without a static-batch barrier.",
-        values: ["decrement", "filter complete", "next tick"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: [
+          `admitted=${[...state.admitted].sort().join(",") || "none"}`,
+          `completed=${[...state.completed].sort().join(",") || "none"}`,
+          `cancelled=${[...state.cancelled].sort().join(",") || "none"}`,
+          `pending=${[...state.pending].sort().join(",") || "none"}`,
+        ],
+        activeIndices: [1],
+        completedIndices: [0],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-arrival-cancellation-mix",
     changedContext: true,
@@ -388,6 +537,31 @@ const policyExecution = functionExecution({
   ],
 });
 
+interface ServingPolicyInput {
+  readonly admission_limit: number;
+  readonly queue_timeout_ms: number;
+  readonly slo_p95_ms: number;
+  readonly prefix_cache: boolean;
+  readonly cache_key_version?: string;
+  readonly speculative: boolean;
+  readonly draft_acceptance_rate?: number;
+  readonly overload_action: string;
+}
+
+function servingPolicyFailures(policy: ServingPolicyInput): string[] {
+  const missing: string[] = [];
+  if (policy.admission_limit < 1) missing.push("admission_limit");
+  if (policy.queue_timeout_ms > policy.slo_p95_ms) missing.push("queue_timeout");
+  if (policy.prefix_cache && !policy.cache_key_version) missing.push("cache_key_version");
+  if (policy.speculative && (policy.draft_acceptance_rate ?? 0) <= 0) {
+    missing.push("acceptance_measurement");
+  }
+  if (!["reject", "degrade", "shed"].includes(policy.overload_action)) {
+    missing.push("overload_action");
+  }
+  return missing.sort();
+}
+
 export const llmServingPolicy = defineScenarioItem({
   id: "llm-serving-policy",
   title: "LLM serving policy",
@@ -401,7 +575,7 @@ export const llmServingPolicy = defineScenarioItem({
     "The rubric evaluates the rationale; the playground only verifies that its submitted policy artifact includes measurable protections and cache/speculation invariants.",
   sources: [
     verifiedSource({
-      label: "LLM inference serving survey",
+      label: "Efficient Memory Management for Large Language Model Serving with PagedAttention",
       url: "https://arxiv.org/abs/2309.06180",
     }),
     verifiedSource({
@@ -454,20 +628,30 @@ export const llmServingPolicy = defineScenarioItem({
         "Validate the measurable invariants of a serving-policy artifact; leave its qualitative design to the rubric.",
     }),
     execution: policyExecution,
-    generateSteps: () =>
-      arraySteps([
+    generateSteps: (input) => {
+      const policy = input as ServingPolicyInput;
+      const failures = servingPolicyFailures(policy);
+      return arraySteps([
         {
           codeLine: 3,
           what: "Check that policy admission is explicitly bounded.",
           why: "A bounded system must decide what happens before saturation rather than silently accumulating work.",
-          values: ["admission limit", "queue", "SLO"],
+          values: [
+            `limit=${policy.admission_limit}`,
+            `overload=${policy.overload_action}`,
+            `bounded=${policy.admission_limit >= 1}`,
+          ],
           activeIndices: [0],
         },
         {
           codeLine: 4,
           what: "Compare queue timeout with the stated tail-latency budget.",
           why: "Queueing can consume an SLO before any modeled decode work begins.",
-          values: ["queue timeout", "p95 SLO", "within budget"],
+          values: [
+            `queue=${policy.queue_timeout_ms}ms`,
+            `slo=${policy.slo_p95_ms}ms`,
+            `within=${policy.queue_timeout_ms <= policy.slo_p95_ms}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
@@ -475,7 +659,12 @@ export const llmServingPolicy = defineScenarioItem({
           codeLine: 5,
           what: "Require a versioned cache key when prefix reuse is enabled.",
           why: "Cache reuse is only safe when ownership and invalidation semantics are explicit.",
-          values: ["prefix cache", "key version", "safe reuse"],
+          values: [
+            `prefix=${policy.prefix_cache}`,
+            `key=${policy.cache_key_version || "missing"}`,
+            `speculative=${policy.speculative}`,
+            `acceptance=${policy.draft_acceptance_rate ?? "missing"}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
@@ -483,11 +672,16 @@ export const llmServingPolicy = defineScenarioItem({
           codeLine: 9,
           what: "Return a structural policy result, not an architecture verdict.",
           why: "The scenario rubric judges the design rationale while this artifact checks measurable commitments.",
-          values: ["valid", "missing", "artifact"],
+          values: [
+            `valid=${failures.length === 0}`,
+            `missing=${failures.join(",") || "none"}`,
+            `overload=${policy.overload_action}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
-      ]),
+      ]);
+    },
   },
   assessmentPayload: {
     variant: "changed-slo-and-prompt-mix",

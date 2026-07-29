@@ -87,6 +87,38 @@ const searchExecution = functionExecution({
   ],
 });
 
+interface SearchInput {
+  readonly points: readonly { readonly id: string; readonly value: number }[];
+  readonly graph: Readonly<Record<string, readonly string[]>>;
+  readonly start: string;
+  readonly query: number;
+  readonly k: number;
+}
+
+function traceSearch(record: SearchInput) {
+  const points = new Map(record.points.map((point) => [point.id, point.value]));
+  const distance = (id: string) => Math.abs((points.get(id) ?? 0) - record.query);
+  const ranked = [...record.points].sort(
+    (left, right) => distance(left.id) - distance(right.id) || left.id.localeCompare(right.id),
+  );
+  const exact = ranked.slice(0, record.k).map((point) => point.id);
+  const visited: string[] = [];
+  let current = record.start;
+  while (!visited.includes(current)) {
+    visited.push(current);
+    const better = (record.graph[current] ?? [])
+      .filter((id) => distance(id) < distance(current))
+      .sort((left, right) => distance(left) - distance(right) || left.localeCompare(right));
+    if (better.length === 0) break;
+    current = better[0];
+  }
+  const approximate = [...visited]
+    .sort((left, right) => distance(left) - distance(right) || left.localeCompare(right))
+    .slice(0, record.k);
+  const recall = exact.filter((id) => approximate.includes(id)).length / record.k;
+  return { distance, ranked, exact, visited, approximate, recall };
+}
+
 export const exactVsHnswSearch = defineTraceItem({
   id: "exact-vs-hnsw-search",
   title: "Exact versus HNSW search",
@@ -113,41 +145,53 @@ export const exactVsHnswSearch = defineTraceItem({
       "Compare exhaustive ranking with a deterministic greedy graph-search simulation; do not import an ANN library.",
   }),
   execution: searchExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as SearchInput;
+    const trace = traceSearch(record);
+    return arraySteps([
       {
         codeLine: 4,
         what: "Rank every point by exact distance to the query.",
         why: "Exhaustive ranking is the reference set used to measure approximation recall.",
-        values: ["all points", "distance", "exact top-k"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: trace.ranked.map(
+          (point) => `${point.id}:${point.value};d=${trace.distance(point.id)}`,
+        ),
+        activeIndices: trace.exact.map((id) => trace.ranked.findIndex((point) => point.id === id)),
       },
       {
         codeLine: 7,
         what: "Start from one graph entry point and record visits.",
         why: "Approximate graph search sees only the path it explores, not the entire collection.",
-        values: ["entry", "visited", "neighbors"],
-        activeIndices: [1],
-        completedIndices: [0],
+        values: [
+          `start=${record.start}`,
+          ...trace.visited.map((id) => `${id}:d=${trace.distance(id)}`),
+        ],
+        activeIndices: trace.visited.map((_, index) => index + 1),
       },
       {
         codeLine: 9,
         what: "Move only to a strictly closer neighbor in this simulation.",
         why: "A local optimum illustrates the search-quality tradeoff without reproducing HNSW internals.",
-        values: ["current", "closer neighbor", "local minimum"],
-        activeIndices: [1],
-        completedIndices: [0, 2],
+        values: trace.visited.map(
+          (id, index) =>
+            `${id}->${trace.visited[index + 1] ?? "stop"};neighbors=${(record.graph[id] ?? []).join(",") || "none"}`,
+        ),
+        activeIndices: [Math.max(0, trace.visited.length - 1)],
       },
       {
         codeLine: 13,
         what: "Measure overlap with exact top-k as recall@k.",
         why: "Recall exposes quality loss independently from unmeasured latency claims.",
-        values: ["exact", "simulated", "recall@k"],
+        values: [
+          `exact=${trace.exact.join(",")}`,
+          `simulated=${trace.approximate.join(",")}`,
+          `recall@${record.k}=${trace.recall}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-entry-and-graph-edges",
     changedContext: true,
@@ -214,6 +258,38 @@ const indexExecution = functionExecution({
     },
   ],
 });
+
+interface VectorIndexInput {
+  readonly min_recall: number;
+  readonly max_latency_ms: number;
+  readonly max_memory_mb: number;
+  readonly max_freshness_s: number;
+  readonly options: readonly {
+    readonly name: string;
+    readonly recall: number;
+    readonly latency_ms: number;
+    readonly memory_mb: number;
+    readonly freshness_s: number;
+  }[];
+}
+
+function eligibleVectorIndexes(record: VectorIndexInput) {
+  return record.options
+    .filter(
+      (option) =>
+        option.recall >= record.min_recall &&
+        option.latency_ms <= record.max_latency_ms &&
+        option.memory_mb <= record.max_memory_mb &&
+        option.freshness_s <= record.max_freshness_s,
+    )
+    .sort(
+      (left, right) =>
+        left.latency_ms - right.latency_ms ||
+        left.memory_mb - right.memory_mb ||
+        left.name.localeCompare(right.name),
+    );
+}
+
 export const vectorIndexTradeoffs = defineCalculatorItem({
   id: "vector-index-tradeoffs",
   title: "Vector-index tradeoffs",
@@ -239,40 +315,60 @@ export const vectorIndexTradeoffs = defineCalculatorItem({
       "Filter supplied index measurements by recall, latency, memory, and freshness then select a deterministic eligible candidate.",
   }),
   execution: indexExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as VectorIndexInput;
+    const eligible = eligibleVectorIndexes(record);
+    return arraySteps([
       {
         codeLine: 2,
         what: "Read the minimum quality and operational constraints.",
         why: "Index names are not decisions until their measured limits are compared with the workload contract.",
-        values: ["recall", "latency", "memory", "freshness"],
+        values: [
+          `recall>=${record.min_recall}`,
+          `latency<=${record.max_latency_ms}`,
+          `memory<=${record.max_memory_mb}`,
+          `freshness<=${record.max_freshness_s}`,
+        ],
         activeIndices: [0, 1, 2, 3],
       },
       {
         codeLine: 2,
         what: "Filter every supplied option against every hard constraint.",
         why: "A low latency number cannot compensate for a recall, memory, or staleness violation.",
-        values: ["flat", "graph", "partitioned", "eligible"],
-        activeIndices: [3],
-        completedIndices: [0, 1, 2],
+        values: record.options.map(
+          (option) =>
+            `${option.name}:r${option.recall}/l${option.latency_ms}/m${option.memory_mb}/f${option.freshness_s}`,
+        ),
+        activeIndices: record.options
+          .map((option, index) => (eligible.includes(option) ? index : -1))
+          .filter((index) => index >= 0),
       },
       {
         codeLine: 3,
         what: "Sort eligible candidates by the authored tie-breaking policy.",
         why: "Deterministic selection makes the calculator auditable without claiming the policy is universal.",
-        values: ["latency", "memory", "name"],
+        values:
+          eligible.length > 0
+            ? eligible.map(
+                (option) => `${option.name}:${option.latency_ms}ms/${option.memory_mb}MB`,
+              )
+            : ["no eligible options"],
         activeIndices: [0],
-        completedIndices: [1, 2],
       },
       {
         codeLine: 4,
         what: "Return no selection when the evidence does not satisfy the constraints.",
         why: "Forcing an index choice hides an infeasible production requirement.",
-        values: ["eligible", "selected", "constraints met"],
+        values: [
+          `eligible=${eligible.map((option) => option.name).join(",") || "none"}`,
+          `selected=${eligible[0]?.name ?? "none"}`,
+          `constraints=${eligible.length > 0}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-recall-and-freshness-budget",
     changedContext: true,
@@ -348,6 +444,30 @@ const retrievalExecution = functionExecution({
     },
   ],
 });
+
+interface RetrievalRegressionInput {
+  readonly query_embedding_version: string;
+  readonly index_embedding_version: string;
+  readonly index_age_s: number;
+  readonly freshness_slo_s: number;
+  readonly distance: string;
+  readonly chunking_version: string;
+  readonly filter_applied: boolean;
+  readonly filter_field_version?: string;
+}
+
+function retrievalFailures(record: RetrievalRegressionInput): string[] {
+  const failures: string[] = [];
+  if (record.query_embedding_version !== record.index_embedding_version) {
+    failures.push("embedding_version");
+  }
+  if (record.index_age_s > record.freshness_slo_s) failures.push("index_staleness");
+  if (!["cosine", "dot", "l2"].includes(record.distance)) failures.push("distance");
+  if (!record.chunking_version) failures.push("chunking");
+  if (record.filter_applied && !record.filter_field_version) failures.push("filter_metadata");
+  return failures.sort();
+}
+
 export const retrievalRegressionDebugging = defineDebuggingItem({
   id: "retrieval-regression-debugging",
   title: "Retrieval regression debugging",
@@ -372,13 +492,19 @@ export const retrievalRegressionDebugging = defineDebuggingItem({
     contract: "Return sorted retrieval-contract failures from the supplied artifact evidence.",
   }),
   execution: retrievalExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as RetrievalRegressionInput;
+    const failures = retrievalFailures(record);
+    return arraySteps([
       {
         codeLine: 3,
         what: "Compare query and index embedding versions.",
         why: "A shared vector space is a contract, not an implicit property of embedding APIs.",
-        values: ["query version", "index version", "compatible"],
+        values: [
+          `query=${record.query_embedding_version}`,
+          `index=${record.index_embedding_version}`,
+          `compatible=${record.query_embedding_version === record.index_embedding_version}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
@@ -386,7 +512,11 @@ export const retrievalRegressionDebugging = defineDebuggingItem({
         codeLine: 4,
         what: "Check index age against its freshness SLO.",
         why: "An otherwise valid index can return obsolete corpus evidence.",
-        values: ["index age", "freshness SLO", "stale"],
+        values: [
+          `age=${record.index_age_s}s`,
+          `slo=${record.freshness_slo_s}s`,
+          `stale=${record.index_age_s > record.freshness_slo_s}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
@@ -394,7 +524,11 @@ export const retrievalRegressionDebugging = defineDebuggingItem({
         codeLine: 6,
         what: "Require an explicit chunking version.",
         why: "Chunk boundaries change retrieval semantics and must be auditable during a regression.",
-        values: ["documents", "chunking version", "retrieval units"],
+        values: [
+          `distance=${record.distance}`,
+          `chunks=${record.chunking_version || "missing"}`,
+          `filter=${record.filter_applied ? record.filter_field_version || "missing" : "unused"}`,
+        ],
         activeIndices: [1],
         completedIndices: [0, 2],
       },
@@ -402,11 +536,16 @@ export const retrievalRegressionDebugging = defineDebuggingItem({
         codeLine: 9,
         what: "Return sorted evidence failures for repair planning.",
         why: "A diagnosis distinguishes multiple contract breaks instead of pretending one cause explains every quality loss.",
-        values: ["healthy", "failures", "repair"],
+        values: [
+          `healthy=${failures.length === 0}`,
+          `failures=${failures.join(",") || "none"}`,
+          `count=${failures.length}`,
+        ],
         activeIndices: [1],
         completedIndices: [0, 2],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-index-and-filter-evidence",
     changedContext: true,
