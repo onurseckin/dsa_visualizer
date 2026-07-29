@@ -55,8 +55,17 @@ export interface LearningItemBase {
   readonly difficultyLabel: LearningDifficultyLabel;
   readonly difficulty: DifficultyLevel;
   readonly description: string;
+  readonly objective: string;
+  readonly completionEvidence: string;
   readonly sources: readonly [LearningSource, ...LearningSource[]];
   readonly assessment: AssessmentDefinition;
+}
+
+export interface LearningItemPlayground {
+  readonly code: string;
+  readonly starterCode: string;
+  readonly execution: PythonExecutionSpec;
+  readonly generateSteps: (input: unknown) => AlgorithmStep[];
 }
 
 interface CodeLearningItemBase extends LearningItemBase {
@@ -115,6 +124,7 @@ interface RubricLearningItemBase extends LearningItemBase {
   readonly starterCode?: never;
   readonly execution?: never;
   readonly generateSteps?: never;
+  readonly playground?: LearningItemPlayground;
 }
 
 export interface ScenarioLearningItem extends RubricLearningItemBase {
@@ -158,6 +168,23 @@ export function isCodeLearningItem(item: LearningItem): item is CodeLearningItem
 
 export function isRubricLearningItem(item: LearningItem): item is RubricLearningItem {
   return item.kind === "scenario" || item.kind === "capstone";
+}
+
+export function getLearningItemPlayground(item: LearningItem): LearningItemPlayground | undefined {
+  if (isCodeLearningItem(item)) {
+    if (!item.execution) {
+      return undefined;
+    }
+
+    return {
+      code: item.code,
+      starterCode: item.starterCode ?? item.code,
+      execution: item.execution,
+      generateSteps: item.generateSteps,
+    };
+  }
+
+  return item.playground;
 }
 
 export function hasExecutionSpec(item: CodeLearningItem): item is ExecutionReadyLearningItem {

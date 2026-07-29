@@ -110,6 +110,12 @@ export function adaptAlgorithmDefinition(algorithm: AlgorithmDefinition): Algori
     get description() {
       return algorithm.description;
     },
+    get objective() {
+      return `Explain and execute ${algorithm.title}.`;
+    },
+    get completionEvidence() {
+      return `A correct ${algorithm.id} trace, explanation, and executable result.`;
+    },
     sources,
     assessment,
     get code() {

@@ -46,6 +46,8 @@ const rubricFixtureBase = {
   difficultyLabel: sampleItem.difficultyLabel,
   difficulty: sampleItem.difficulty,
   description: "Evaluate a realistic systems decision.",
+  objective: "Defend a systems decision using the governing tradeoff.",
+  completionEvidence: "A rubric-scored decision with explicit tradeoff evidence.",
   sources: sampleItem.sources,
   prompt: {
     context: "A service is approaching its latency budget.",
@@ -93,6 +95,8 @@ const traceItem: TraceLearningItem = {
   difficultyLabel: sampleItem.difficultyLabel,
   difficulty: sampleItem.difficulty,
   description: "Trace cache behavior.",
+  objective: "Trace cache behavior across a short request sequence.",
+  completionEvidence: "A correct cache trace with invariant evidence.",
   sources: sampleItem.sources,
   code: "def trace_cache():\n    pass",
   generateSteps: () => [],
