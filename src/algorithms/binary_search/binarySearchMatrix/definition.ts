@@ -151,29 +151,22 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
         "matrix = [[1, 3, 5, 7, 9], [10, 12, 14, 16, 18], [20, 22, 24, 26, 28], [30, 32, 34, 36, 38], [40, 42, 44, 46, 48]], target = 34",
       outputDisplay: "true",
-      title: "Basic Example",
-      input: {
-        matrix: [
-          [1, 3, 5, 7, 9],
-          [10, 12, 14, 16, 18],
-          [20, 22, 24, 26, 28],
-          [30, 32, 34, 36, 38],
-          [40, 42, 44, 46, 48],
-        ],
-        target: 34,
-      },
+      title: "Standard 5x5 Matrix Target Present",
+      input: DEFAULT_BINARY_SEARCH_MATRIX_INPUT,
       output: "true",
       explanation: "5x5 matrix search; flat index 17 maps to row 3, col 2 where 34 is located.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay:
         "matrix = [[1, 2, 4, 8], [12, 16, 20, 24], [28, 32, 40, 50], [60, 70, 80, 90]], target = 50",
       outputDisplay: "true",
-      title: "Complex Edge Case",
+      title: "Adversarial 4x4 Matrix Search",
       input: {
         matrix: [
           [1, 2, 4, 8],
@@ -188,9 +181,10 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13",
       outputDisplay: "false",
-      title: "Failing / Boundary Case",
+      title: "Boundary Absent Target Search",
       input: {
         matrix: [
           [1, 3, 5, 7],
