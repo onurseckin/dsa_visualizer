@@ -503,6 +503,7 @@ export const mergeSortTree: AlgorithmDefinition<MergeSortTreeInput> = {
       label: "Competitive Programmer Handbook",
       bookTitle: "Competitive Programmer Handbook",
       chapter: 28,
+      section: "28.3 Data structures",
     },
   ],
   defaultInput: DEFAULT_MERGE_SORT_TREE_INPUT,

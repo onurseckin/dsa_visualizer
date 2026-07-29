@@ -583,17 +583,54 @@ export const advancedRangeQueriesExecutions = [
       kind: "function",
       arguments: [input("arr"), input("ql"), input("qr"), input("k")],
     },
-    cases: cases(
-      { label: "Array [5,2,6,1]", input: { nums: [5, 2, 6, 1] }, expected: [2, 1, 1, 0] },
-      { label: "Single element", input: { nums: [1] }, expected: [0] },
-      { label: "Sorted array", input: { nums: [1, 2, 3] }, expected: [0, 0, 0] },
-    ),
+    cases: [
+      ...cases(
+        {
+          label: "Interior threshold count",
+          input: { arr: [5, 2, 8, 1, 9, 3], ql: 1, qr: 4, k: 5 },
+          expected: 2,
+        },
+        {
+          label: "Single element below threshold",
+          input: { arr: [1], ql: 0, qr: 0, k: 1 },
+          expected: 1,
+        },
+        {
+          label: "Whole range duplicate count",
+          input: { arr: [2, 2, 2, 3], ql: 0, qr: 3, k: 2 },
+          expected: 3,
+        },
+      ),
+      ...extraCases(
+        { label: "No value qualifies", input: { arr: [4, 5, 6], ql: 0, qr: 2, k: 3 }, expected: 0 },
+        {
+          label: "All values qualify",
+          input: { arr: [-2, 0, 4], ql: 0, qr: 2, k: 4 },
+          expected: 3,
+        },
+        {
+          label: "Left boundary range",
+          input: { arr: [7, 1, 5, 2], ql: 0, qr: 1, k: 3 },
+          expected: 1,
+        },
+        {
+          label: "Right boundary range",
+          input: { arr: [7, 1, 5, 2], ql: 2, qr: 3, k: 4 },
+          expected: 1,
+        },
+        {
+          label: "Negative threshold",
+          input: { arr: [-5, -1, 0, 3], ql: 0, qr: 2, k: -1 },
+          expected: 2,
+        },
+      ),
+    ],
     audit: {
-      signature: "solve(input: dict) -> list[int]",
-      defaultInputShape: "{ nums: number[] }",
-      argumentMapping: ["input <- $"],
+      signature: "merge_sort_tree(arr, ql, qr, k) -> int",
+      defaultInputShape: "{ arr: number[]; ql: number; qr: number; k: number }",
+      argumentMapping: ["arr <- $.arr", "ql <- $.ql", "qr <- $.qr", "k <- $.k"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns counts of smaller numbers after self.",
+      returnBehavior: "Returns the count of values less than or equal to k in the inclusive range.",
     },
   }),
   defineDsaExecution({
@@ -603,40 +640,128 @@ export const advancedRangeQueriesExecutions = [
       kind: "function",
       arguments: [input("matrix"), input("r1"), input("c1"), input("r2"), input("c2")],
     },
-    cases: cases(
-      {
-        label: "3x3 Matrix",
-        input: {
-          matrix: [
-            [3, 0, 1, 4, 2],
-            [5, 6, 3, 2, 1],
-            [1, 2, 0, 1, 5],
-            [4, 1, 0, 1, 7],
-            [1, 0, 3, 0, 5],
-          ],
-          queries: [[2, 1, 4, 3]],
+    cases: [
+      ...cases(
+        {
+          label: "Interior subgrid",
+          input: {
+            matrix: [
+              [3, 0, 1, 4, 2],
+              [5, 6, 3, 2, 1],
+              [1, 2, 0, 1, 5],
+              [4, 1, 0, 1, 7],
+              [1, 0, 3, 0, 5],
+            ],
+            r1: 2,
+            c1: 1,
+            r2: 4,
+            c2: 3,
+          },
+          expected: 8,
         },
-        expected: [8],
-      },
-      { label: "1x1 Matrix", input: { matrix: [[5]], queries: [[0, 0, 0, 0]] }, expected: [5] },
-      {
-        label: "2x2 Matrix",
-        input: {
-          matrix: [
-            [1, 2],
-            [3, 4],
-          ],
-          queries: [[0, 0, 1, 1]],
+        { label: "Single cell", input: { matrix: [[5]], r1: 0, c1: 0, r2: 0, c2: 0 }, expected: 5 },
+        {
+          label: "Whole small matrix",
+          input: {
+            matrix: [
+              [1, 2],
+              [3, 4],
+            ],
+            r1: 0,
+            c1: 0,
+            r2: 1,
+            c2: 1,
+          },
+          expected: 10,
         },
-        expected: [10],
-      },
-    ),
+      ),
+      ...extraCases(
+        {
+          label: "Top row slice",
+          input: {
+            matrix: [
+              [1, 2, 3],
+              [4, 5, 6],
+            ],
+            r1: 0,
+            c1: 1,
+            r2: 0,
+            c2: 2,
+          },
+          expected: 5,
+        },
+        {
+          label: "Left column slice",
+          input: {
+            matrix: [
+              [1, 2],
+              [3, 4],
+              [5, 6],
+            ],
+            r1: 0,
+            c1: 0,
+            r2: 2,
+            c2: 0,
+          },
+          expected: 9,
+        },
+        {
+          label: "Negative subgrid",
+          input: {
+            matrix: [
+              [-1, 2],
+              [3, -4],
+            ],
+            r1: 0,
+            c1: 0,
+            r2: 1,
+            c2: 1,
+          },
+          expected: 0,
+        },
+        {
+          label: "Bottom-right cell",
+          input: {
+            matrix: [
+              [7, 8],
+              [9, 10],
+            ],
+            r1: 1,
+            c1: 1,
+            r2: 1,
+            c2: 1,
+          },
+          expected: 10,
+        },
+        {
+          label: "Middle rectangle",
+          input: {
+            matrix: [
+              [1, 1, 1],
+              [1, 2, 3],
+              [1, 4, 5],
+            ],
+            r1: 1,
+            c1: 1,
+            r2: 2,
+            c2: 2,
+          },
+          expected: 14,
+        },
+      ),
+    ],
     audit: {
-      signature: "solve(input: dict) -> list[int]",
-      defaultInputShape: "{ matrix: number[][]; queries: number[][] }",
-      argumentMapping: ["input <- $"],
+      signature: "segment_tree_2d(matrix, r1, c1, r2, c2) -> int",
+      defaultInputShape: "{ matrix: number[][]; r1: number; c1: number; r2: number; c2: number }",
+      argumentMapping: [
+        "matrix <- $.matrix",
+        "r1 <- $.r1",
+        "c1 <- $.c1",
+        "r2 <- $.r2",
+        "c2 <- $.c2",
+      ],
       mutation: "No input mutation.",
-      returnBehavior: "Returns 2D range sum query results.",
+      returnBehavior: "Returns the inclusive rectangular range sum.",
     },
   }),
 ];
