@@ -88,4 +88,41 @@ describe("ScenarioAssessment", () => {
     expect(screen.getByRole("alert")).not.toHaveTextContent(/pending/i);
     expect(screen.queryByText(/saved for rubric review/i)).toBeNull();
   });
+
+  it("saves a free-form decision with criterion-specific self-evidence", () => {
+    const onSubmit = vi.fn(() => true);
+    render(
+      <ScenarioAssessment
+        title="Serving decision"
+        prompt={{ context: "Context", question: "Decision?" }}
+        payload={{ variant: "default", changedContext: false, isomorphicRetest: false }}
+        rubric={{
+          criteria: [{ id: "reasoning", label: "Reasoning", description: "Explains.", points: 1 }],
+        }}
+        submissionContext={{ confidence: 3, invariantEvidence: "", tradeoffEvidence: "" }}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Decision" }), {
+      target: { value: "Increase the serving fleet." },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Rationale" }), {
+      target: { value: "It preserves the latency budget while traffic grows." },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Evidence for Reasoning" }), {
+      target: { value: "The rationale explicitly ties capacity to the latency budget." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save response" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("saved for rubric review");
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          decision: "Increase the serving fleet.",
+          evidence: { reasoning: "The rationale explicitly ties capacity to the latency budget." },
+        }),
+      }),
+    );
+  });
 });

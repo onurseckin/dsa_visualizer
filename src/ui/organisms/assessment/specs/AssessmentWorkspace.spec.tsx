@@ -64,6 +64,9 @@ describe("AssessmentWorkspace", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Governing invariant evidence" }), {
       target: { value: "FIFO selects A first." },
     });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tradeoff evidence" }), {
+      target: { value: "Running the oldest job first reduces queue fairness risk." },
+    });
     fireEvent.change(screen.getByRole("textbox", { name: "Predicted next state" }), {
       target: { value: "A starts running" },
     });
@@ -80,6 +83,7 @@ describe("AssessmentWorkspace", () => {
         changedContext: true,
         isomorphicRetest: false,
         invariantEvidence: "FIFO selects A first.",
+        tradeoffEvidence: "Running the oldest job first reduces queue fairness risk.",
         delayedRetrievalDueAt: 86_400_000,
         createdAt: 1_000,
         updatedAt: 1_000,

@@ -44,4 +44,19 @@ describe("TraceAssessment", () => {
       }),
     );
   });
+
+  it("explains when no authored trace payload is available", () => {
+    render(
+      <TraceAssessment
+        title="Queue trace"
+        submissionContext={{ confidence: 3, invariantEvidence: "", tradeoffEvidence: "" }}
+        onSubmit={vi.fn(() => true)}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Queue trace" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Queue trace trace assessment")).toHaveTextContent(
+      "This trace assessment has no authored payload yet.",
+    );
+  });
 });

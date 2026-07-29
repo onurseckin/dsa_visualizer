@@ -21,6 +21,28 @@ describe("PythonEditor", () => {
     expect(editor).toHaveAttribute("spellcheck", "false");
   });
 
+  it("relays fallback edits and only runs from Ctrl/Cmd+Enter", () => {
+    const onChange = vi.fn();
+    const onRun = vi.fn();
+    render(
+      <PythonEditor
+        value="# draft"
+        label="Python playground editor"
+        onChange={onChange}
+        onRun={onRun}
+        loadEditor={() => new Promise(() => {})}
+      />,
+    );
+
+    const editor = screen.getByRole("textbox", { name: "Python playground editor" });
+    fireEvent.change(editor, { target: { value: "# revised" } });
+    fireEvent.keyDown(editor, { key: "Enter" });
+    fireEvent.keyDown(editor, { key: "Enter", ctrlKey: true });
+
+    expect(onChange).toHaveBeenCalledWith("# revised");
+    expect(onRun).toHaveBeenCalledOnce();
+  });
+
   it("keeps local Ctrl/Cmd+Enter bound to Run without stealing plain Enter", async () => {
     const onRun = vi.fn();
     const LoadedEditor: ComponentType<PythonEditorControlProps> = (props) => (

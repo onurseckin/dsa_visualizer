@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ALGORITHM_REGISTRY } from "../registry";
 import type { AlgorithmDefinition } from "../../types/dsa";
-import { TOPIC_CATALOG } from "../../curriculum/topics";
+import { getAllTopics, getTopic, TOPIC_CATALOG } from "../../curriculum/topics";
 
 const CANONICAL_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REMOVED_RELATION_FIELDS = [
@@ -18,6 +18,25 @@ const topicIds = new Set<string>(TOPIC_CATALOG.map((topic) => topic.id));
 const enrolledDefinitions = Object.entries(ALGORITHM_REGISTRY);
 
 describe("canonical problem catalog contract", () => {
+  it("exposes canonical topics for lookup across both catalog tracks", () => {
+    const topics = getAllTopics();
+    const dsaTopic = getTopic("arrays_and_hashing");
+    const mlInfraTopic = getTopic("ml_model_evaluation");
+
+    expect(topics).toBe(TOPIC_CATALOG);
+    expect(dsaTopic).toMatchObject({
+      id: "arrays_and_hashing",
+      label: "Arrays & Hashing",
+      track: "dsa",
+    });
+    expect(mlInfraTopic).toMatchObject({
+      id: "ml_model_evaluation",
+      label: "Baseline Models, Evaluation & Error Analysis",
+      track: "ml-infra",
+    });
+    expect(getTopic("removed-topic")).toBeUndefined();
+  });
+
   it("enrolls every definition once, under its own canonical id", () => {
     const enrollmentIdsByDefinition = new Map<AlgorithmDefinition, string[]>();
 

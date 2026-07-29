@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MLInfraKnowledgeGraph, ML_INFRA_TREE_PLACEMENTS } from "../MLInfraKnowledgeGraph";
+import { ML_INFRA_FAMILIES, mlInfraFamilyLabel } from "../mlInfraTree";
 
 const originalResizeObserver = window.ResizeObserver;
 
@@ -24,6 +25,12 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
     expect(screen.getByText("Operations & Governance")).toBeInTheDocument();
     expect(screen.getByText("Capstone")).toBeInTheDocument();
     expect(screen.getByText("Advanced Electives")).toBeInTheDocument();
+  });
+
+  it("uses the canonical family labels in the tree legend", () => {
+    expect(ML_INFRA_FAMILIES.map(({ id }) => mlInfraFamilyLabel(id))).toEqual(
+      ML_INFRA_FAMILIES.map(({ label }) => label),
+    );
   });
 
   it("uses the measured canvas box for the SVG viewBox", () => {
@@ -141,6 +148,25 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
 
     expect(onSelectTopic).toHaveBeenCalledOnce();
     expect(onSelectTopic).toHaveBeenCalledWith("ml_problem_framing");
+  });
+
+  it("opens a node drawer and sends its canonical item id to the workspace", () => {
+    const onNavigateToAlgorithm = vi.fn();
+    render(<MLInfraKnowledgeGraph onNavigateToAlgorithm={onNavigateToAlgorithm} />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Python, Environments & Scientific Computing/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Visualize reproducible-python-environment in Workspace →",
+      }),
+    );
+
+    expect(onNavigateToAlgorithm).toHaveBeenCalledOnce();
+    expect(onNavigateToAlgorithm).toHaveBeenCalledWith("reproducible-python-environment");
   });
 
   it("tracks pointer and focus states without changing node geometry", () => {
