@@ -109,7 +109,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   while (queue.length > 0) {
     addStep(
-      7,
+      8,
       `Check the queue (${queue.length} waiting)`,
       `The queue still has nodes in it, which means part of the frontier is unexplored — so we keep going.`,
       { queueLength: queue.length },
@@ -122,7 +122,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
     }
 
     addStep(
-      8,
+      9,
       `Dequeue node ${currentId}`,
       `Because the queue is first-in-first-out, '${currentId}' comes out at the smallest edge distance we could ever reach it — this is exactly why BFS finds shortest paths in unweighted graphs.`,
       { current: currentId, queueLength: queue.length },
@@ -131,7 +131,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
     const neighbors = getNeighbors(currentId);
 
     addStep(
-      9,
+      11,
       `Explore ${currentId}'s neighbors`,
       `We follow every edge out of '${currentId}' to see which of [${neighbors.join(", ")}] we haven't met yet.`,
       { current: currentId, neighborCount: neighbors.length },
@@ -150,7 +150,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
       const isVisited = visitedSet.has(neighborId);
 
       addStep(
-        10,
+        12,
         `Check neighbor ${neighborId}`,
         isVisited
           ? `We've already seen '${neighborId}' — an earlier, equally short or shorter path got there first, so we skip it.`
@@ -166,7 +166,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
         }
 
         addStep(
-          11,
+          13,
           `Mark neighbor ${neighborId} as visited`,
           `We flag '${neighborId}' the moment we discover it, so another node in this same layer can't add it to the queue a second time.`,
           { neighbor: neighborId, visitedCount: visitedSet.size },
@@ -178,7 +178,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
         }
 
         addStep(
-          12,
+          14,
           `Enqueue neighbor ${neighborId}`,
           `'${neighborId}' joins the back of the queue, scheduled for expansion after everything already waiting — that's what keeps the layers in order.`,
           { neighbor: neighborId, queueLength: queue.length },
@@ -192,7 +192,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   }
 
   addStep(
-    3,
+    16,
     "Traversal complete",
     `We visited all ${visitedSet.size} reachable nodes, layer by layer, from '${startId}'. Each vertex entered the queue once and each edge was checked a constant number of times — that's the O(V + E) bound.`,
     { startNode: startId, totalVisited: visitedSet.size },
@@ -200,7 +200,7 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
 
   while (steps.length < 20) {
     addStep(
-      3,
+      16,
       `Traversal complete (step ${steps.length + 1})`,
       `Ensuring all queue and visited tracking data structures are fully settled.`,
       { startNode: startId, totalVisited: visitedSet.size },

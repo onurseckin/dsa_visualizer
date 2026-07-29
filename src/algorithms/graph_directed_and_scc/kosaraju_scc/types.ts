@@ -6,6 +6,12 @@ export interface KosarajuSccInput {
 }
 
 export const KOSARAJU_SCC_CODE = `def kosaraju_scc(n, edges):
+    adj = [[] for _ in range(n)]
+    rev_adj = [[] for _ in range(n)]
+    for u, v in edges:
+        adj[u].append(v)
+        rev_adj[v].append(u)
+
     visited = set()
     stack = []
     def dfs1(u):

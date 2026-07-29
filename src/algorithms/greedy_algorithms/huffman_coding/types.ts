@@ -28,7 +28,24 @@ def build_huffman_tree(text):
         merged.right = right
         heapq.heappush(heap, merged)
 
-    return heap[0] if heap else None`;
+    return heap[0] if heap else None
+
+def huffman_codes(text):
+    root = build_huffman_tree(text)
+    if root is None:
+        return {}
+
+    codes = {}
+
+    def collect(node, prefix):
+        if node.char is not None:
+            codes[node.char] = prefix or "0"
+            return
+        collect(node.left, prefix + "0")
+        collect(node.right, prefix + "1")
+
+    collect(root, "")
+    return codes`;
 
 export const DEFAULT_HUFFMAN_CODING_INPUT: HuffmanCodingInput = {
   text: "abracadabra",

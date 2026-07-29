@@ -1,11 +1,13 @@
 import type { PythonExecutionSpec } from "@dsa-visualizer/execution-contracts";
+import { DSA_EXECUTION_SPECS, DSA_STARTER_CODE } from "./specs-data/dsa";
 
-/**
- * The canonical execution-spec seam. Task 9 enrolls the 88 retained DSA specs
- * here; until then a missing entry deliberately means "scratchpad only".
- */
-const PYTHON_EXECUTION_SPECS: ReadonlyMap<string, PythonExecutionSpec> = new Map();
+const PYTHON_EXECUTION_SPECS: ReadonlyMap<string, PythonExecutionSpec> = DSA_EXECUTION_SPECS;
+const PYTHON_STARTER_CODE: ReadonlyMap<string, string> = DSA_STARTER_CODE;
 
 export function getPythonExecutionSpec(itemId: string): PythonExecutionSpec | undefined {
   return PYTHON_EXECUTION_SPECS.get(itemId);
+}
+
+export function getPythonStarterCode(itemId: string): string | undefined {
+  return PYTHON_STARTER_CODE.get(itemId);
 }

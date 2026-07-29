@@ -29,6 +29,9 @@ export const PYTHON_RUN_ID_MAX_BYTES = 128;
 export const PYTHON_CASE_ID_MAX_BYTES = 96;
 export const PYTHON_ID_PATTERN_SOURCE = "[A-Za-z0-9._:-]+";
 export const PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES = PYTHON_RUN_ID_MAX_BYTES + 128;
+export const PYTHON_INVOCATION_PATH_MAX_SEGMENTS = 32;
+export const PYTHON_INVOCATION_SETUP_MAX_STEPS = 32;
+const PYTHON_INVOCATION_PATH_STRING_MAX_BYTES = 128;
 
 export interface ValidationIssue {
   readonly path: string;
@@ -176,15 +179,18 @@ function validateInvocation(input: unknown, path: string, issues: ValidationIssu
   }
 
   if (input.kind === "function") {
-    validateBindings(input.arguments, `${path}.arguments`, issues);
+    validateBindings(input.arguments, `${path}.arguments`, issues, false);
+    validateResultSelection(input.result, `${path}.result`, issues, false);
     return;
   }
   if (input.kind === "class-method") {
-    validateBindings(input.constructor, `${path}.constructor`, issues);
-    validateBindings(input.arguments, `${path}.arguments`, issues);
-    if (!isPythonIdentifier(input.method)) {
+    validateBindings(input.constructor, `${path}.constructor`, issues, false);
+    validateSetup(input.setup, `${path}.setup`, issues);
+    validateBindings(input.arguments, `${path}.arguments`, issues, true);
+    if (!isPublicPythonIdentifier(input.method)) {
       issue(issues, `${path}.method`, "must be a non-keyword Python identifier");
     }
+    validateResultSelection(input.result, `${path}.result`, issues, true);
     return;
   }
   if (input.kind === "stdin") {
@@ -194,7 +200,62 @@ function validateInvocation(input: unknown, path: string, issues: ValidationIssu
   issue(issues, `${path}.kind`, "must be function, class-method, or stdin");
 }
 
-function validateBindings(input: unknown, path: string, issues: ValidationIssue[]): void {
+function validateSetup(input: unknown, path: string, issues: ValidationIssue[]): void {
+  if (input === undefined) return;
+  if (!Array.isArray(input)) {
+    issue(issues, path, "must be an array");
+    return;
+  }
+  if (input.length > PYTHON_INVOCATION_SETUP_MAX_STEPS) {
+    issue(issues, path, `must contain at most ${PYTHON_INVOCATION_SETUP_MAX_STEPS} steps`);
+  }
+  input.forEach((step, index) => {
+    const stepPath = `${path}[${index}]`;
+    if (!isRecord(step)) {
+      issue(issues, stepPath, "must be an object");
+      return;
+    }
+    if (!isPublicPythonIdentifier(step.method)) {
+      issue(issues, `${stepPath}.method`, "must be a public non-keyword Python identifier");
+    }
+    validateBindings(step.arguments, `${stepPath}.arguments`, issues, true);
+  });
+}
+
+function validateResultSelection(
+  input: unknown,
+  path: string,
+  issues: ValidationIssue[],
+  allowInstance: boolean,
+): void {
+  if (input === undefined) return;
+  if (!isRecord(input)) {
+    issue(issues, path, "must be an object");
+    return;
+  }
+  if (
+    input.from !== "return" &&
+    input.from !== "input" &&
+    !(allowInstance && input.from === "instance")
+  ) {
+    issue(
+      issues,
+      `${path}.from`,
+      allowInstance ? "must be return, input, or instance" : "must be return or input",
+    );
+  }
+  validateValuePath(input.path, `${path}.path`, issues);
+  if (input.project !== undefined && input.project !== "json") {
+    issue(issues, `${path}.project`, "must be json");
+  }
+}
+
+function validateBindings(
+  input: unknown,
+  path: string,
+  issues: ValidationIssue[],
+  allowInstance: boolean,
+): void {
   if (!Array.isArray(input)) {
     issue(issues, path, "must be an array");
     return;
@@ -205,20 +266,46 @@ function validateBindings(input: unknown, path: string, issues: ValidationIssue[
       issue(issues, bindingPath, "must be an object");
       return;
     }
-    if (binding.from !== "input") issue(issues, `${bindingPath}.from`, "must be input");
-    if (!Array.isArray(binding.path)) {
-      issue(issues, `${bindingPath}.path`, "must be an array");
-      return;
+    if (binding.from !== "input" && !(allowInstance && binding.from === "instance")) {
+      issue(
+        issues,
+        `${bindingPath}.from`,
+        allowInstance ? "must be input or instance" : "must be input",
+      );
     }
-    binding.path.forEach((segment, segmentIndex) => {
-      if (typeof segment !== "string" && (!Number.isInteger(segment) || segment < 0)) {
-        issue(
-          issues,
-          `${bindingPath}.path[${segmentIndex}]`,
-          "must be a string or non-negative integer",
-        );
+    validateValuePath(binding.path, `${bindingPath}.path`, issues);
+    if (binding.from === "input") {
+      if (binding.convert !== undefined && binding.convert !== "namespace") {
+        issue(issues, `${bindingPath}.convert`, "must be namespace");
       }
-    });
+    } else if (binding.convert !== undefined) {
+      issue(issues, `${bindingPath}.convert`, "is only supported for input bindings");
+    }
+  });
+}
+
+function validateValuePath(input: unknown, path: string, issues: ValidationIssue[]): void {
+  if (!Array.isArray(input)) {
+    issue(issues, path, "must be an array");
+    return;
+  }
+  if (input.length > PYTHON_INVOCATION_PATH_MAX_SEGMENTS) {
+    issue(issues, path, `must contain at most ${PYTHON_INVOCATION_PATH_MAX_SEGMENTS} segments`);
+  }
+  input.forEach((segment, segmentIndex) => {
+    const segmentPath = `${path}[${segmentIndex}]`;
+    if (typeof segment === "string") {
+      const bytes = utf8ByteLength(segment);
+      if (
+        !isPublicPythonPathSegment(segment) ||
+        bytes === undefined ||
+        bytes > PYTHON_INVOCATION_PATH_STRING_MAX_BYTES
+      ) {
+        issue(issues, segmentPath, "must be a bounded public identifier segment");
+      }
+    } else if (!Number.isInteger(segment) || segment < 0) {
+      issue(issues, segmentPath, "must be a string or non-negative integer");
+    }
   });
 }
 
@@ -445,6 +532,14 @@ function validateCaseSelection(selection: unknown, spec: unknown, issues: Valida
 
 function isPythonIdentifier(value: unknown): value is string {
   return typeof value === "string" && IDENTIFIER.test(value) && !PYTHON_KEYWORDS.has(value);
+}
+
+function isPublicPythonIdentifier(value: unknown): value is string {
+  return isPythonIdentifier(value) && !value.startsWith("_");
+}
+
+function isPublicPythonPathSegment(value: unknown): value is string {
+  return typeof value === "string" && IDENTIFIER.test(value) && !value.startsWith("_");
 }
 
 export function isPythonRunId(value: unknown): value is string {

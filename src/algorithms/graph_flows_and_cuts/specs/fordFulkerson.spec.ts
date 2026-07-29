@@ -18,7 +18,7 @@ describe("fordFulkerson algorithm logic spec", () => {
 
   it("should generate valid steps with 1-indexed codeLine within bounds for default input and examples", () => {
     const lineCount = fordFulkerson.code.split("\n").length;
-    expect(lineCount).toBe(29);
+    expect(lineCount).toBe(32);
 
     const steps = generateFordFulkersonSteps(DEFAULT_FORD_FULKERSON_INPUT);
     expect(steps.length).toBeGreaterThan(0);

@@ -70,6 +70,103 @@ describe("execution contract validation", () => {
     expect(validatePythonRunRequest(request).ok).toBe(true);
   });
 
+  it("accepts bounded setup calls, safe namespace conversion, and explicit result selection", () => {
+    const classRequest = {
+      ...functionRequest,
+      spec: {
+        ...functionRequest.spec,
+        entrypoint: "Accumulator",
+        invocation: {
+          kind: "class-method",
+          constructor: [{ from: "input", path: ["initial"] }],
+          setup: [
+            {
+              method: "add",
+              arguments: [{ from: "input", path: ["first"] }],
+            },
+            {
+              method: "add",
+              arguments: [{ from: "input", path: ["second"] }],
+            },
+          ],
+          method: "total",
+          arguments: [],
+          result: { from: "instance", path: ["value"] },
+        },
+      },
+    };
+    const namespaceRequest = {
+      ...functionRequest,
+      spec: {
+        ...functionRequest.spec,
+        entrypoint: "read_node",
+        invocation: {
+          kind: "function",
+          arguments: [{ from: "input", path: ["node"], convert: "namespace" }],
+          result: { from: "return", path: [], project: "json" },
+        },
+      },
+    };
+
+    expect(validatePythonRunRequest(classRequest).ok).toBe(true);
+    expect(validatePythonRunRequest(namespaceRequest).ok).toBe(true);
+  });
+
+  it("bounds setup and binding paths and rejects private authored access", () => {
+    const setup = Array.from({ length: 33 }, () => ({
+      method: "add",
+      arguments: [{ from: "input", path: ["value"] }],
+    }));
+    const invalidInvocations = [
+      {
+        kind: "function",
+        arguments: [{ from: "input", path: Array.from({ length: 33 }, () => "nested") }],
+      },
+      {
+        kind: "function",
+        arguments: [{ from: "input", path: ["__class__"] }],
+      },
+      {
+        kind: "function",
+        arguments: [{ from: "input", path: ["not-an-identifier"] }],
+      },
+      {
+        kind: "class-method",
+        constructor: [],
+        setup,
+        method: "total",
+        arguments: [],
+      },
+      {
+        kind: "class-method",
+        constructor: [],
+        setup: [{ method: "_private", arguments: [] }],
+        method: "total",
+        arguments: [],
+      },
+      {
+        kind: "class-method",
+        constructor: [],
+        method: "total",
+        arguments: [{ from: "instance", path: ["_secret"] }],
+      },
+      {
+        kind: "function",
+        arguments: [],
+        result: { from: "return", path: ["__dict__"] },
+      },
+    ];
+
+    for (const invocation of invalidInvocations) {
+      expect(
+        validatePythonExecutionSpec({
+          ...functionRequest.spec,
+          invocation,
+        }).ok,
+      ).toBe(false);
+    }
+  });
+
   it("accepts a valid stdin invocation request", () => {
     const request = {
       ...functionRequest,
