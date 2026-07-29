@@ -1,5 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  PrimaryVisualSnapshot,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface TwoSumSortedInput {
   nums: number[];
@@ -24,222 +31,265 @@ export const DEFAULT_TWO_SUM_SORTED_INPUT: TwoSumSortedInput = {
   target: 11,
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "When an array is pre-sorted in non-decreasing order, we can find two numbers that sum to a target T without using extra memory by leveraging converging pointers.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "default" },
+        { id: "c2", value: 3, label: "[1]", state: "default" },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "default" },
+        { id: "c6", value: 10, label: "[5]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Standard Two Sum uses an O(N) hash map to store visited elements; in a sorted array, the sorted order lets us eliminate candidate pairs in O(1) space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "compare", pointers: ["L"] },
+        { id: "c2", value: 3, label: "[1]", state: "default" },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "default" },
+        { id: "c6", value: 10, label: "[5]", state: "compare", pointers: ["R"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We place two pointers at opposite ends of the sorted array: pointer L at index 0 (smallest value) and pointer R at index N - 1 (largest value).",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "active", pointers: ["L"] },
+        { id: "c2", value: 3, label: "[1]", state: "default" },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "default" },
+        { id: "c6", value: 10, label: "[5]", state: "active", pointers: ["R"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "At each step, we calculate sum = nums[L] + nums[R]. If sum < T, the current total is too small, so we increment L += 1 to test a larger value.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "visited" },
+        { id: "c2", value: 3, label: "[1]", state: "active", pointers: ["L"] },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "default" },
+        { id: "c6", value: 10, label: "[5]", state: "active", pointers: ["R"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Incrementing L is safe because nums is sorted: if nums[L] + nums[R] < T, then nums[L] paired with any element smaller than nums[R] would also be strictly less than T.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "visited", pointers: ["pruned"] },
+        { id: "c2", value: 3, label: "[1]", state: "active", pointers: ["L"] },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "default" },
+        { id: "c6", value: 10, label: "[5]", state: "active", pointers: ["R"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Conversely, if sum > T, the current total is too large, so we decrement R -= 1 to test a smaller value from the right.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "visited" },
+        { id: "c2", value: 3, label: "[1]", state: "active", pointers: ["L"] },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "active", pointers: ["R"] },
+        { id: "c6", value: 10, label: "[5]", state: "visited", pointers: ["pruned"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When sum == T, we have found the exact matching pair and immediately return their 0-based index positions [L, R].",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "sorted", pointers: ["match L"] },
+        { id: "c2", value: 3, label: "[1]", state: "default" },
+        { id: "c3", value: 4, label: "[2]", state: "default" },
+        { id: "c4", value: 6, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "default" },
+        { id: "c6", value: 10, label: "[5]", state: "sorted", pointers: ["match R"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Because each pointer step inward prunes one element from consideration, the algorithm terminates in at most N steps, achieving O(N) time and O(1) space complexity.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "sorted", pointers: ["match L"] },
+        { id: "c2", value: 3, label: "[1]", state: "sorted" },
+        { id: "c3", value: 4, label: "[2]", state: "sorted" },
+        { id: "c4", value: 6, label: "[3]", state: "sorted" },
+        { id: "c5", value: 8, label: "[4]", state: "sorted" },
+        { id: "c6", value: 10, label: "[5]", state: "sorted", pointers: ["match R"] },
+      ],
+    },
+  },
+];
+
 export const generateTwoSumSortedSteps = (input: TwoSumSortedInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nums = Array.isArray(input?.nums) ? input.nums : DEFAULT_TWO_SUM_SORTED_INPUT.nums;
-  const target =
-    typeof input?.target === "number" ? input.target : DEFAULT_TWO_SUM_SORTED_INPUT.target;
+  const nums = Array.isArray(input?.nums) && input.nums.length > 0 ? input.nums : DEFAULT_TWO_SUM_SORTED_INPUT.nums;
+  const target = typeof input?.target === "number" ? input.target : DEFAULT_TWO_SUM_SORTED_INPUT.target;
   const n = nums.length;
 
-  const elements: ArrayElement[] = nums.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
-
   const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
   ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          target: String(target),
-          currentPointers: `left: ${variables.left ?? "-"}, right: ${variables.right ?? "-"}`,
-        },
-      },
-      variables,
-    });
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  addStep(
-    1,
-    "Set up two-pointer search",
-    `Searching sorted array [${nums.join(", ")}] for two elements summing to ${target} by placing pointers at opposite ends of the sorted sequence.`,
-    { target, length: n },
-  );
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.nums) &&
+      input.nums.length === DEFAULT_TWO_SUM_SORTED_INPUT.nums.length &&
+      input.target === DEFAULT_TWO_SUM_SORTED_INPUT.target &&
+      input.nums.every((val, idx) => val === DEFAULT_TWO_SUM_SORTED_INPUT.nums[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const makeSnapshot = (
+    leftIdx?: number,
+    rightIdx?: number,
+    isMatch?: boolean,
+    isEvaluating?: boolean,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = nums.map((val, idx) => {
+      const ptrs: string[] = [];
+      if (idx === leftIdx) ptrs.push("left");
+      if (idx === rightIdx) ptrs.push("right");
+
+      let state: ArrayElement["state"] = "default";
+      if (isMatch && (idx === leftIdx || idx === rightIdx)) {
+        state = "sorted";
+      } else if (idx === leftIdx || idx === rightIdx) {
+        state = isEvaluating ? "compare" : "active";
+      } else if (
+        leftIdx !== undefined &&
+        rightIdx !== undefined &&
+        (idx < leftIdx || idx > rightIdx)
+      ) {
+        state = "visited";
+      }
+
+      return {
+        id: `el-${idx}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
+    });
+
+    return {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements,
+    };
+  };
 
   if (n < 2) {
     addStep(
-      12,
-      "Return empty array [] (array length < 2)",
-      "Array contains fewer than 2 elements. Cannot form a valid pair.",
-      { target, length: n },
+      `The input array has ${n} element${n === 1 ? "" : "s"}, which is fewer than 2; cannot form a pair, returning [].`,
+      makeSnapshot(),
     );
-    while (steps.length < 20) {
-      addStep(
-        12,
-        `Verification step ${steps.length + 1}`,
-        "Array length constraint check completed. Returning [].",
-        { target, length: n },
-      );
-    }
     return steps;
   }
 
+  addStep(
+    `Having established the mental model, let's now transition to our selected sorted input array of ${n} elements with target sum T = ${target}.`,
+    makeSnapshot(0, n - 1, false, false),
+  );
+
   let left = 0;
   let right = n - 1;
-
-  addStep(
-    2,
-    "Initialize left = 0",
-    `Left pointer placed at start index 0 (smallest value nums[0] = ${nums[left]}).`,
-    { left, target },
-  );
-
-  addStep(
-    3,
-    `Initialize right = ${right}`,
-    `Right pointer placed at tail index ${right} (largest value nums[${right}] = ${nums[right]}).`,
-    { left, right, target },
-  );
-
-  let foundMatch = false;
-  let matchLeft = -1;
-  let matchRight = -1;
+  let found = false;
 
   while (left < right) {
-    for (let k = 0; k < n; k++) {
-      if (k < left || k > right) {
-        elements[k].state = "visited";
-        elements[k].pointers = undefined;
-      } else if (k !== left && k !== right) {
-        elements[k].state = "default";
-        elements[k].pointers = undefined;
-      }
-    }
-
-    elements[left].state = "compare";
-    elements[left].pointers = ["L"];
-    elements[right].state = "compare";
-    elements[right].pointers = ["R"];
-
-    addStep(
-      4,
-      `Check loop condition: left (${left}) < right (${right})`,
-      `Pointers have not crossed; active window contains candidate pairs.`,
-      { left, right },
-    );
-
     const sum = nums[left] + nums[right];
 
-    addStep(
-      5,
-      `Compute current_sum = ${nums[left]} + ${nums[right]} = ${sum}`,
-      `Evaluating pair at indices L=${left} (${nums[left]}) and R=${right} (${nums[right]}). Sum = ${sum}.`,
-      {
-        left,
-        right,
-        "nums[left]": nums[left],
-        "nums[right]": nums[right],
-        current_sum: sum,
-        target,
-      },
-    );
-
     if (sum === target) {
+      found = true;
       addStep(
-        6,
-        `Evaluate if current_sum (${sum}) == target (${target})`,
-        `Sum matches target exactly! Target pair found.`,
-        { sum, target, isMatch: true },
-      );
-
-      elements[left].state = "sorted";
-      elements[left].pointers = ["L", "MATCH"];
-      elements[right].state = "sorted";
-      elements[right].pointers = ["R", "MATCH"];
-
-      matchLeft = left;
-      matchRight = right;
-      foundMatch = true;
-
-      addStep(
-        7,
-        `Return matching pair indices [${left}, ${right}]`,
-        `Found pair nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${target}. Returning [${left}, ${right}].`,
-        { resultIdx1: left, resultIdx2: right, target, sum },
+        `Evaluate current_sum = nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${sum}: exact match with target ${target}! Returning index pair [${left}, ${right}].`,
+        makeSnapshot(left, right, true, true),
       );
       break;
     } else if (sum < target) {
       addStep(
-        8,
-        `Evaluate elif current_sum (${sum}) < target (${target})`,
-        `Current sum ${sum} is less than target ${target}. Incrementing left pointer is the only way to increase sum.`,
-        { sum, target },
+        `Evaluate current_sum = nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${sum}: since ${sum} < target (${target}), increment left pointer (left = ${left + 1}) to test a larger element.`,
+        makeSnapshot(left, right, false, true),
       );
-
-      addStep(
-        9,
-        `Advance left pointer: left += 1 (now ${left + 1})`,
-        `Increasing left pointer from index ${left} to ${left + 1} brings in a larger value.`,
-        { left: left + 1, right, sum, target },
-      );
-
-      elements[left].state = "visited";
-      elements[left].pointers = undefined;
-      left++;
+      left += 1;
     } else {
       addStep(
-        10,
-        `Evaluate else branch (current_sum ${sum} > target ${target})`,
-        `Current sum ${sum} exceeds target ${target}. Decrementing right pointer is the only way to decrease sum.`,
-        { sum, target },
+        `Evaluate current_sum = nums[${left}] (${nums[left]}) + nums[${right}] (${nums[right]}) = ${sum}: since ${sum} > target (${target}), decrement right pointer (right = ${right - 1}) to test a smaller element.`,
+        makeSnapshot(left, right, false, true),
       );
-
-      addStep(
-        11,
-        `Decrement right pointer: right -= 1 (now ${right - 1})`,
-        `Decreasing right pointer from index ${right} to ${right - 1} brings in a smaller value.`,
-        { left, right: right - 1, sum, target },
-      );
-
-      elements[right].state = "visited";
-      elements[right].pointers = undefined;
-      right--;
+      right -= 1;
     }
   }
 
-  if (!foundMatch) {
+  if (!found) {
     addStep(
-      12,
-      "Return empty array []",
-      `Pointers crossed without finding target sum ${target}. Returning [].`,
-      { target },
+      `Pointers crossed (left = ${left}, right = ${right}) without finding any pair that sums to ${target}. Returning empty array [].`,
+      makeSnapshot(undefined, undefined, false),
     );
-  }
-
-  // Ensure >= 20 steps
-  while (steps.length < 20) {
-    if (foundMatch) {
-      addStep(
-        7,
-        `Verification step ${steps.length + 1}: Return matching pair [${matchLeft}, ${matchRight}]`,
-        `Verifying optimal pair indices [${matchLeft}, ${matchRight}] sum to ${target}.`,
-        { resultIdx1: matchLeft, resultIdx2: matchRight, target, verified: true },
-      );
-    } else {
-      addStep(
-        12,
-        `Verification step ${steps.length + 1}: Return empty array []`,
-        `Verifying pointer search space exhaustively searched. Returning [].`,
-        { target, verified: true },
-      );
-    }
   }
 
   return steps;
@@ -247,58 +297,61 @@ export const generateTwoSumSortedSteps = (input: TwoSumSortedInput): AlgorithmSt
 
 const TWO_SUM_SORTED_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p>The converging two-pointer technique searches pre-sorted data from opposite ends inward. By taking advantage of array monotonicity, Two Sum II eliminates entire sub-ranges of invalid candidate pairs in <code>O(1)</code> time per step. This guarantees an optimal <code>O(N)</code> time complexity and <code>O(1)</code> auxiliary space without requiring hash maps.</p>",
+    "<p>Two Sum II leverages the pre-sorted structure of an array to search for pair target sums in <code>O(N)</code> time and <code>O(1)</code> space. By placing two pointers at opposite ends of the array and moving them inward monotonically, we prune entire sub-matrices of candidate pairs at each step.</p>",
   sections: [
     {
-      heading: "Core Concept & Monotonic Search Space Reduction",
-      body: "<p>Initialize <code>left = 0</code> at the smallest element and <code>right = N - 1</code> at the largest. Compute <code>current_sum = nums[left] + nums[right]</code>. If <code>current_sum &lt; target</code>, any pair involving <code>nums[left]</code> with a smaller right element is strictly smaller than target, so <code>left</code> can be incremented safely. Conversely, if <code>current_sum &gt; target</code>, <code>right</code> is decremented. Each comparison prunes an entire row or column of potential pairs.</p>",
+      heading: "Monotonic Pruning & Mathematical Proof",
+      body: "<p>Let <code>nums</code> be sorted in non-decreasing order. If <code>nums[L] + nums[R] < target</code>, then for any index <code>k < R</code>, <code>nums[L] + nums[k] <= nums[L] + nums[R] < target</code>. Thus, no element at index <code>L</code> can ever pair with any index <code>k <= R</code> to reach target. Incrementing <code>L += 1</code> safely prunes all these pairs simultaneously.</p>",
     },
     {
-      heading: "Systems & Performance Impact: Memory Locality vs. Hash Tables",
-      body: "<p>Unlike standard Two Sum which relies on hash map lookups subject to hash collisions, bucket overhead, and cache misses, Two Sum II operates directly on contiguous memory arrays. B-Tree index range scans and Sort-Merge Joins in database engines exploit this exact sequential access pattern to maximize L1/L2 cache line hits.</p>",
-    },
-    {
-      heading: "Implementation Nuances & Loop Invariants",
-      body: "<p>The strict loop condition <code>left &lt; right</code> guarantees an element will never be paired with itself. Because the input array is non-decreasing, negative integers, zero, and duplicate values maintain monotonicity without requiring special-case branching.</p>",
-    },
-    {
-      heading: "Edge Case & Boundary Analysis",
-      body: "<p>For minimal inputs (<code>N = 2</code>), a single comparison resolves the answer. When no valid pair exists, <code>left</code> and <code>right</code> converge until <code>left == right</code>, at which point the algorithm returns an empty list <code>[]</code>.</p>",
+      heading: "Systems & Memory Trade-offs",
+      body: "<p>While standard Two Sum requires an <code>O(N)</code> auxiliary hash map, Two Sum II uses <code>O(1)</code> space. In systems handling massive sorted datasets (e.g. database index scans, column store ranges), avoiding memory allocation prevents garbage collection pauses and cache pollution.</p>",
     },
   ],
   keyTerms: [
     {
+      term: "Two Pointers Technique",
+      definition:
+        "An algorithmic pattern where two pointers iterate through a data structure simultaneously to solve search problems.",
+    },
+    {
       term: "Monotonicity",
       definition:
-        "The mathematical property where increasing an index yields non-decreasing array values, enabling direct elimination decisions.",
-    },
-    {
-      term: "Sort-Merge Join",
-      definition:
-        "A relational database join algorithm operating over pre-sorted inputs using synchronized pointer sweeps.",
-    },
-    {
-      term: "Search Space Pruning",
-      definition:
-        "Discarding large combinations of candidate solutions simultaneously using structural invariants.",
+        "A mathematical property where a sequence or function strictly increases or decreases, allowing directional search decisions.",
     },
   ],
 };
 
 const TWO_SUM_SORTED_TRIVIA: TriviaMeta = {
+  skipLines: [1],
+  distractors: [
+    "left = 1; right = len(nums)",
+    "while left <= right:",
+    "if current_sum < target: right -= 1",
+    "else: left += 1",
+  ],
+  hints: [
+    {
+      line: 2,
+      hint: "Place the left pointer at index 0 and right pointer at the last valid index (len(nums) - 1).",
+    },
+    {
+      line: 5,
+      hint: "Compare current_sum against target; if sum is too small, advance the left pointer to increase the sum.",
+    },
+  ],
   lineExplanations: {
-    1: "Declares function two_sum_sorted accepting a sorted array nums and target sum integer.",
-    2: "Initializes left pointer to index 0 (pointing to the smallest element).",
-    3: "Initializes right pointer to index len(nums) - 1 (pointing to the largest element).",
-    4: "Executes loop while left < right, preventing element self-pairing.",
-    5: "Computes current_sum = nums[left] + nums[right] to evaluate the current pointer pair.",
-    6: "Checks if current_sum equals target, indicating the target pair has been located.",
-    7: "Returns list [left, right] containing 0-indexed positions of the matching pair.",
-    8: "Checks if current_sum is less than target, signaling the sum must be increased.",
-    9: "Increments left pointer by 1 (left += 1) to select a larger element value.",
-    10: "Else branch executed when current_sum is strictly greater than target.",
-    11: "Decrements right pointer by 1 (right -= 1) to select a smaller element value.",
-    12: "Returns empty list [] if left and right pointers cross without finding a matching target sum.",
+    1: "Declares function two_sum_sorted accepting a sorted integer array nums and target integer sum.",
+    2: "Initializes left pointer at 0 (smallest element index).",
+    3: "Initializes right pointer at len(nums) - 1 (largest element index).",
+    4: "Runs loop while left pointer is strictly less than right pointer.",
+    5: "Computes current_sum = nums[left] + nums[right].",
+    6: "Checks if current_sum equals target.",
+    7: "Returns index pair [left, right] upon discovering exact target sum.",
+    8: "Checks if current_sum is strictly less than target.",
+    9: "Increments left pointer by 1 to increase candidate sum.",
+    10: "Decrements right pointer by 1 to decrease candidate sum.",
+    11: "Returns [] if pointers cross without finding a target pair.",
   },
 };
 
@@ -318,27 +371,30 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "numbers = [2, 7, 11, 15], target = 9",
-      outputDisplay: "[0, 1]",
-      title: "Basic Example",
-      input: { nums: [2, 7, 11, 15], target: 9 },
-      output: "[0, 1]",
-      explanation: "Sum of 2 and 7 equals 9, returning 0-indexed positions [0, 1].",
-    },
-    {
-      kind: "complex",
-      inputDisplay: "numbers = [1, 3, 4, 6, 8, 10, 13], target = 11",
+      scenario: "standard",
+      inputDisplay: "nums = [1, 3, 4, 6, 8, 10, 13], target = 11",
       outputDisplay: "[0, 5]",
-      title: "Complex Edge Case",
-      input: { nums: [1, 3, 4, 6, 8, 10, 13], target: 11 },
+      title: "Standard 7-Element Sorted Array",
+      input: DEFAULT_TWO_SUM_SORTED_INPUT,
       output: "[0, 5]",
       explanation: "Two-pointer narrowing matches 1 + 10 = 11 at indices [0, 5].",
     },
     {
-      kind: "negative",
-      inputDisplay: "numbers = [-8, -3, 0, 4, 7], target = -11",
+      kind: "complex",
+      scenario: "adversarial",
+      inputDisplay: "nums = [2, 7, 11, 15], target = 9",
       outputDisplay: "[0, 1]",
-      title: "Failing / Boundary Case",
+      title: "Adversarial Immediate Match",
+      input: { nums: [2, 7, 11, 15], target: 9 },
+      output: "[0, 1]",
+      explanation: "First pair 2 + 7 equals 9, returning [0, 1].",
+    },
+    {
+      kind: "negative",
+      scenario: "boundary",
+      inputDisplay: "nums = [-8, -3, 0, 4, 7], target = -11",
+      outputDisplay: "[0, 1]",
+      title: "Boundary Negative Values",
       input: { nums: [-8, -3, 0, 4, 7], target: -11 },
       output: "[0, 1]",
       explanation: "Negative values -8 + -3 = -11 match target -11 at indices [0, 1].",
@@ -373,3 +429,5 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   defaultInput: DEFAULT_TWO_SUM_SORTED_INPUT,
   generateSteps: generateTwoSumSortedSteps,
 };
+
+export default twoSumSorted;
