@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getAllLearningItems } from "../../../learning/registry";
 import { getLearningItemTopics } from "../../../app/topics";
-import { TOPIC_CATALOG } from "../../../curriculum/topics";
+import { ML_INFRA_LEGACY_TOPIC_TRANSITION } from "../../../curriculum/topics";
 import { DSA_TREE_PLACEMENTS } from "../data/dsaTree";
 import { ML_INFRA_TREE_PLACEMENTS } from "../mlInfraTree";
 
@@ -13,14 +13,7 @@ describe("Systemic Knowledge Node Category & Navigation Integrity Spec", () => {
       ...DSA_TREE_PLACEMENTS.map((placement) => placement.topicId),
       ...ML_INFRA_TREE_PLACEMENTS.map((placement) => placement.topicId),
     ]);
-    const targetMlTopicIds = new Set(
-      ML_INFRA_TREE_PLACEMENTS.map((placement) => placement.topicId),
-    );
-    const transitionalLegacyMlTopicIds = new Set(
-      TOPIC_CATALOG.filter(
-        (topic) => topic.track === "ml-infra" && !targetMlTopicIds.has(topic.id),
-      ).map((topic) => topic.id),
-    );
+    const transitionalLegacyMlTopicIds = new Set<string>(ML_INFRA_LEGACY_TOPIC_TRANSITION.topicIds);
 
     const unexplainedOrphans = learningItems.filter((item) => {
       const topicIds = getLearningItemTopics(item);

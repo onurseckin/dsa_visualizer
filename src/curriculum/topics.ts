@@ -6,6 +6,25 @@ interface TopicDefinitionShape {
   track: TopicTrack;
 }
 
+export const ML_INFRA_LEGACY_TOPIC_TRANSITION = Object.freeze({
+  removalTask: 16 as const,
+  topicIds: Object.freeze([
+    "ml_tensor_algebra",
+    "ml_gemm_roofline",
+    "ml_autograd_dags",
+    "ml_precision_quantization",
+    "ml_vector_search",
+    "ml_tokenization",
+    "ml_tree_ensembles",
+    "ml_convolutions",
+    "ml_recurrent_gates",
+    "ml_attention_geometry",
+    "ml_hardware_kernels",
+    "ml_graph_compilers",
+    "ml_distributed_systems",
+  ] as const),
+});
+
 export const TOPIC_CATALOG = [
   { id: "arrays_and_hashing", label: "Arrays & Hashing", track: "dsa" },
   { id: "two_pointers", label: "Two Pointers", track: "dsa" },
