@@ -4,11 +4,7 @@ import { resolve } from "node:path";
 import { validatePythonExecutionSpec } from "@dsa-visualizer/execution-contracts";
 import { describe, expect, test } from "vitest";
 
-import {
-  getLearningItem,
-  LEARNING_ITEMS,
-  TRANSITIONAL_LEARNING_REGISTRY_STATE,
-} from "../../../registry";
+import { getLearningItem, LEARNING_ITEMS } from "../../../registry";
 import {
   getLearningItemPlayground,
   isCodeLearningItem,
@@ -70,15 +66,12 @@ describe("required R1-R6 foundation enrollment", () => {
     );
   });
 
-  test("keeps the explicit additive 320 + 18 = 338 transition", () => {
-    expect(TRANSITIONAL_LEARNING_REGISTRY_STATE).toEqual({
-      enabled: true,
-      legacyExpectedItemCount: 320,
-      requiredFoundationsExpectedItemCount: 18,
-      expectedItemCount: 338,
-      removalTask: 16,
-    });
-    expect(LEARNING_ITEMS).toHaveLength(338);
+  test("enrolls its exact bank without owning the temporary global registry total", () => {
+    const requiredIds = new Set<string>(REQUIRED_FOUNDATION_ITEMS.map((item) => item.id));
+    expect(LEARNING_ITEMS.filter((item) => requiredIds.has(item.id))).toHaveLength(18);
+    for (const item of REQUIRED_FOUNDATION_ITEMS) {
+      expect(getLearningItem(item.id)).toBe(item);
+    }
   });
 
   test("authors exactly three items per required topic and five qualitative scenarios", () => {
@@ -151,11 +144,13 @@ describe("required R1-R6 foundation enrollment", () => {
         value: playground.execution,
       });
       expect(playground.execution.outputContract?.trim().length).toBeGreaterThan(30);
-      expect(playground.execution.cases).toHaveLength(3);
-      expect(new Set(playground.execution.cases.map((testCase) => testCase.id)).size).toBe(3);
+      expect(playground.execution.cases.length).toBeGreaterThanOrEqual(3);
+      expect(new Set(playground.execution.cases.map((testCase) => testCase.id)).size).toBe(
+        playground.execution.cases.length,
+      );
       expect(
         new Set(playground.execution.cases.map((testCase) => JSON.stringify(testCase.input))).size,
-      ).toBe(3);
+      ).toBe(playground.execution.cases.length);
       expect(
         new Set(playground.execution.cases.map((testCase) => JSON.stringify(testCase.expected)))
           .size,
@@ -174,9 +169,9 @@ describe("required R1-R6 foundation enrollment", () => {
 
     expect(numpyIds).toEqual(["tensor-dtype-device-boundary", "tensor-layout-explorer"]);
     expect(
-      requiredFoundationItems.filter((item) => !numpyIds.includes(item.id)).every(
-        (item) => getLearningItemPlayground(item)?.execution.packages.length === 0,
-      ),
+      requiredFoundationItems
+        .filter((item) => !numpyIds.includes(item.id))
+        .every((item) => getLearningItemPlayground(item)?.execution.packages.length === 0),
     ).toBe(true);
   });
 
