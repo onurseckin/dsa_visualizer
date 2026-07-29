@@ -48,13 +48,13 @@ describe("TriviaDeckBuilderFilter", () => {
     const { container } = render(<TriviaDeckBuilder deck={[]} onChange={vi.fn()} />);
 
     fireEvent.change(screen.getByPlaceholderText(/filter algorithms/i), {
-      target: { value: "geometry" },
+      target: { value: "sliding window" },
     });
 
     const titles = Array.from(container.querySelectorAll(".ui-collapsible__title")).map(
       (node) => node.textContent,
     );
-    expect(titles).toEqual(["Geometry & Sweep Line", "Attention Geometry & KV-Cache"]);
+    expect(titles).toEqual(["Sliding Window"]);
   });
 
   it("groups and searches algorithms through every related topic without duplicating the deck", () => {

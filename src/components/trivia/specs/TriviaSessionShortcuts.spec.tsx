@@ -118,6 +118,40 @@ describe("TriviaSession Component Spec - Shortcuts & Controls", () => {
     expect(slot(2)).toHaveAttribute("data-state", "empty");
   });
 
+  it("yields every global shortcut while a learner is typing a review response", () => {
+    const { onSubmit, onNext } = setup(choiceRound());
+    const input = document.createElement("textarea");
+    document.body.append(input);
+    input.focus();
+
+    fireEvent.keyDown(input, { key: "r", metaKey: true });
+    fireEvent.keyDown(input, { key: "e", altKey: true });
+    fireEvent.keyDown(input, { key: "h", metaKey: true });
+    fireEvent.keyDown(input, { key: "Enter", metaKey: true });
+
+    expect(slot(2)).toHaveAttribute("data-state", "empty");
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+    input.remove();
+  });
+
+  it("yields every global shortcut while a dialog owns the keyboard", () => {
+    const { onSubmit, onNext } = setup(choiceRound());
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    document.body.append(dialog);
+
+    fireEvent.keyDown(window, { key: "r", metaKey: true });
+    fireEvent.keyDown(window, { key: "e", altKey: true });
+    fireEvent.keyDown(window, { key: "h", metaKey: true });
+    fireEvent.keyDown(window, { key: "Enter", metaKey: true });
+
+    expect(slot(2)).toHaveAttribute("data-state", "empty");
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(onNext).not.toHaveBeenCalled();
+    dialog.remove();
+  });
+
   it("checks the round with the global ⌘Enter shortcut even when nothing is focused, once every blank is filled", () => {
     const { onSubmit } = setup(choiceRound());
 

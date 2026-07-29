@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { isDialogOpen, isTypingTarget } from "../../../../app/keyboardGuards";
 
 interface KeyHandlers {
   currentTargetLine: number | null;
@@ -19,6 +20,11 @@ export function useTriviaSessionKeyboard(handlers: KeyHandlers) {
 
   useEffect(() => {
     const onGlobalKeyDown = (e: KeyboardEvent): void => {
+      // A reflection textarea and a modal both own the user's keyboard. Do this
+      // before `preventDefault` so native typing and dialog controls keep their
+      // expected behavior as well.
+      if (isTypingTarget(e.target) || isDialogOpen()) return;
+
       const {
         currentTargetLine: target,
         graded: isGraded,
