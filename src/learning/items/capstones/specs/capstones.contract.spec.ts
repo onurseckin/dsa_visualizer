@@ -65,7 +65,9 @@ describe("ML platform capstone contract", () => {
       "delayed-evaluation",
     ]);
     expect(
-      batchMlPlatformCapstone.rubric.criteria.filter(({ critical }) => critical).map(({ id }) => id),
+      batchMlPlatformCapstone.rubric.criteria
+        .filter(({ critical }) => critical)
+        .map(({ id }) => id),
     ).toEqual(["snapshot", "publication"]);
     expect(
       realtimeMlPlatformCapstone.rubric.criteria

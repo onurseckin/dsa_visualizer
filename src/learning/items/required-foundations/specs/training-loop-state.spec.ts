@@ -1,3 +1,5 @@
+import { describe, expect, it } from "vitest";
+
 import { trainingLoopState } from "../training-loop-state";
 import { getLearningItemPlayground } from "../../../types";
 import { describeRequiredFoundation } from "./focusedItemSpec";
