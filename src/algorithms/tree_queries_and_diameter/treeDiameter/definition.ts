@@ -58,31 +58,21 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "root = [1, 2, 3, 4, 5]",
-      outputDisplay: "3",
-      title: "Basic Example",
-      input: {
-        rootId: "1",
-        nodes: [
-          { id: "1", val: 1, leftId: "2", rightId: "3", state: "default" },
-          { id: "2", val: 2, leftId: "4", rightId: "5", state: "default" },
-          { id: "3", val: 3, rightId: "6", state: "default" },
-          { id: "4", val: 4, leftId: "7", state: "default" },
-          { id: "5", val: 5, state: "default" },
-          { id: "6", val: 6, rightId: "8", state: "default" },
-          { id: "7", val: 7, state: "default" },
-          { id: "8", val: 8, state: "default" },
-        ],
-      },
+      outputDisplay: "6",
+      title: "Standard 8-Node Unweighted Tree",
+      input: DEFAULT_TREE_DIAMETER_INPUT,
       output: "6",
       explanation:
         "Pass 1 from node 1 finds leaf 7 (dist 3). Pass 2 from node 7 finds leaf 8 (dist 6). The longest simple path 7->4->2->1->3->6->8 has 6 edges.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "root = [1, 2, 3, 4, null, null, 5, 6, null, null, 7]",
       outputDisplay: "5",
-      title: "Complex Edge Case",
+      title: "Adversarial Asymmetric Tree",
       input: {
         rootId: "1",
         nodes: [
@@ -102,15 +92,16 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "root = [1]",
       outputDisplay: "0",
-      title: "Failing / Boundary Case",
+      title: "Boundary Single Node Case",
       input: {
         rootId: "1",
         nodes: [{ id: "1", val: 1, state: "default" }],
       },
       output: "0",
-      explanation: "A single node tree has zero edges. The diameter distance is 0.",
+      explanation: "Single node tree has zero edges; diameter is 0.",
     },
   ],
   code: TREE_DIAMETER_CODE,
