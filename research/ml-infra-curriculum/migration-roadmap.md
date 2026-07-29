@@ -7,7 +7,8 @@ approved 23-topic, 69-item curriculum without weakening catalog contracts,
 losing valuable visual work, or creating a compatibility layer the repository
 explicitly forbids.
 
-This document is sequencing guidance, not authorization to implement.
+Status: completed. This document records the sequence and exit gates used by
+the implementation.
 
 ## Phase 0 — Ratify the curriculum contract
 

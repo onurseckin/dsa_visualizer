@@ -1,8 +1,20 @@
 # DSA Visualizer
 
-An interactive learning workspace for data structures, algorithms, and ML-infrastructure
-concepts. It combines step-by-step visualizations, executable-style Python listings,
-curriculum roadmaps, a searchable problem directory, and a code-occlusion trivia drill.
+An interactive learning workspace for data structures, algorithms, and ML
+infrastructure. It combines step-by-step visualizations, executable Python
+playgrounds, curriculum roadmaps, a searchable learning-item directory, and
+retrieval-practice trivia.
+
+The active catalog is intentionally bounded at **157 learning items**:
+
+- 88 data-structures and algorithms exercises; and
+- 69 ML-infrastructure assessments across 15 required topics and 8 electives.
+
+Each of the 23 ML topics contains exactly three complementary assessments. The ML
+path starts with Python, problem framing, data contracts, numerical foundations,
+evaluation, and training before moving through reproducibility, data/feature
+pipelines, orchestration, platforms, release, serving, production operations, and
+capstones.
 
 ## Stack
 
@@ -10,35 +22,52 @@ curriculum roadmaps, a searchable problem directory, and a code-occlusion trivia
 - Vite 5 + TanStack Router file routes
 - Tailwind 4 and token-based CSS
 - Bun scripts, Vitest + jsdom, Oxlint, and Oxfmt
-- Local SQLite-backed persistence through a Vite plugin, with a safe fallback when
-  `bun:sqlite` is unavailable
-
-## Start here
-
-```bash
-bun install
-bun run dev
-```
-
-Open `http://localhost:5173`.
+- A Bun HTTP API with persistent SQLite state
+- A hybrid Python runner: Pyodide in a Web Worker for browser-compatible NumPy
+  exercises and an isolated CPython 3.12 container for server/PyTorch exercises
+- Nginx and Docker Compose as the supported full-stack local runtime
 
 ## Local full-stack runtime
 
-Docker Compose is the supported local runtime for the API and Python playground.
-It starts an Nginx web server, a Bun API with persistent SQLite state, and an
-internal-only CPython 3.12 runner with pinned NumPy and CPU PyTorch.
-Base images are pinned by immutable digest; the Python wheels are version-pinned
-and hash-locked per supported local CPU architecture.
+Docker Compose is the supported way to use the complete application. It starts
+an Nginx web server, a Bun API with persistent SQLite state, and an internal-only
+CPython 3.12 runner with pinned NumPy and CPU PyTorch. Base images are pinned by
+immutable digest; Python wheels are version-pinned and hash-locked for the
+supported local CPU architectures.
 
 ```bash
 docker compose up --build --wait
 ```
 
-Open `http://localhost:5173`. The runner is never published to the host; the web
-container proxies `/api` to the Bun API, which reaches the runner over an internal
-network. Stop the stack with `docker compose down`. This preserves the `api_data`
-named volume and its local state. Use `docker compose down -v` only when you intend
-to remove that saved state.
+Open `http://localhost:5173`. Only the web service publishes a host port. It
+proxies `/api` to the API container, and the API reaches the runner over a
+separate internal network. The API and Python runner have no host ports.
+
+Stop the stack with `docker compose down`. This preserves the `api_data` named
+volume. Use `docker compose down -v` only when you intentionally want to delete
+saved layouts, drafts, trivia sessions, and learning progress.
+
+For frontend-focused development, `bun run dev` still serves the app on port
+5173 and exposes the same persistence API through the Vite development adapter.
+Server-only Python exercises require the Compose stack.
+
+## Workspace and assessments
+
+Every executable workspace has two code surfaces:
+
+- **Reference** is the immutable, authored solution and remains connected to the
+  step-by-step explanation and visualization.
+- **Playground** is an editable starter or draft. Running it executes authored
+  cases, reports per-case results, and captures `stdout` from `print`.
+
+The hybrid selector uses browser Pyodide for compatible NumPy exercises and the
+Docker CPython runner for server/PyTorch exercises. A browser infrastructure
+failure can fall back to the server when the execution contract permits it.
+Learner drafts are saved per item and validated when restored.
+
+ML content uses six explicit learning-item modes: algorithm, trace, calculator,
+debugging, scenario, and capstone. Difficulty is derived from a four-factor
+profile rather than inferred from an advanced-sounding title.
 
 ## Common commands
 
@@ -52,23 +81,30 @@ to remove that saved state.
 | `bun run test:coverage` | Full suite with enforced coverage floors |
 | `bun run build` | Production build |
 | `bun run compose:check` | Validate Compose topology and runner hardening |
-| `bun run check` | Typecheck, format, lint, Intent, coverage, and build |
+| `bun run audit:catalog` | Verify the exact 88 + 69 catalog, Python assets, sources, and retirement ledger |
+| `bun run test:e2e` | Browser smoke suite; Docker-only runner test is skipped |
+| `bun run test:e2e:docker` | Complete browser suite against the running Compose stack |
+| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog, coverage, and build |
 
 Use Bun for every command in this repository. Do not add npm, pnpm, or yarn lockfiles.
 
 ## The catalog and curriculum
 
-Every problem has one canonical kebab-case ID and one `AlgorithmDefinition` with a
-non-empty `topicIds` tuple. `src/curriculum/topics.ts` owns `TOPIC_CATALOG`; algorithm
-membership, filters, counts, search, roadmap drawers, and trivia all derive from those
-definitions. There are no aliases, legacy category fields, manual roadmap counts, or
-static problem lists in curriculum data. Every topic binding is equal—there is no
-primary-topic convention hidden in tuple order.
+Every item has one canonical kebab-case ID and a non-empty `topicIds` tuple.
+`src/algorithms/registry.ts` enrolls the 88 DSA `AlgorithmDefinition` records.
+`src/learning/registry.ts` adapts those definitions and enrolls the 69 native ML
+items into the 157-item `LEARNING_ITEMS` catalog. Filters, counts, search,
+roadmap drawers, workspace routing, and trivia derive from that catalog.
 
-Curriculum placements are authored teaching and layout data: prerequisites, family,
-copy, difficulty framing, and coordinates. They reference topics, but never duplicate
-algorithm facts. See [docs/catalog.md](docs/catalog.md) for the contribution workflow
-and [docs/architecture.md](docs/architecture.md) for the runtime data flow.
+There are no aliases, legacy category fields, manual roadmap counts, or static
+problem lists in curriculum data. Every topic binding is equal—tuple order never
+creates a primary topic. Curriculum placements own only teaching sequence,
+prerequisites, family, copy, difficulty framing, and coordinates.
+
+See [docs/catalog.md](docs/catalog.md) for the contribution workflow,
+[docs/architecture.md](docs/architecture.md) for system boundaries, and
+[research/ml-infra-curriculum/README.md](research/ml-infra-curriculum/README.md)
+for the research and migration record.
 
 The coverage gate includes every executable `src/**/*.ts(x)` file and currently
 enforces 98% statements/lines, 89% branches, and 97% functions, plus a per-file rule

@@ -14,8 +14,9 @@ Before editing files for a substantial task:
 
 # DSA Visualizer contributor guide
 
-This is a client-side learning app for algorithms, curriculum roadmaps, workspace
-visualizations, and code-occlusion trivia. Read [README.md](README.md) for setup,
+This is a local-first full-stack learning app with exactly 88 DSA and 69
+ML-infrastructure items, curriculum roadmaps, executable Python workspaces,
+visualizations, and retrieval-practice trivia. Read [README.md](README.md) for setup,
 [docs/architecture.md](docs/architecture.md) for system boundaries, and
 [docs/catalog.md](docs/catalog.md) before changing curriculum or algorithm data.
 
@@ -25,8 +26,8 @@ visualizations, and code-occlusion trivia. Read [README.md](README.md) for setup
   token-based CSS.
 - Bun is the only package/script runner. Do not add npm, pnpm, or yarn lockfiles.
 - Vitest + jsdom test the app. Oxlint and Oxfmt are the lint/format tools.
-- The Vite development plugin exposes local SQLite-backed persistence through
-  `/api/db/*`; it falls back safely when `bun:sqlite` is unavailable.
+- Docker Compose runs Nginx, the Bun/SQLite API, and an internal CPython runner.
+  The Vite plugin exposes the same persistence surface for frontend development.
 
 | Command | Purpose |
 | --- | --- |
@@ -39,6 +40,9 @@ visualizations, and code-occlusion trivia. Read [README.md](README.md) for setup
 | `bun run test` | Run the full suite |
 | `bun run test:coverage` | Run the suite and enforce repository coverage floors |
 | `bun run build` | Typecheck and create `dist/` |
+| `bun run audit:catalog` | Verify exact active counts, Python assets, sources, and retirement |
+| `bun run test:e2e` | Run local browser smoke tests |
+| `bun run test:e2e:docker` | Run the complete browser suite against Compose |
 | `bun run check` | Full quality gate |
 
 `src/routeTree.gen.ts` is generated. Never edit it by hand. Keep the TanStack Router
@@ -49,7 +53,9 @@ file changes.
 
 ```text
 src/curriculum/       canonical topics and authored roadmap placements
-src/algorithms/       one definition per problem plus the canonical enrollment list
+src/algorithms/       88 canonical DSA definitions and enrollment
+src/learning/         157-item model/registry, 69 ML items, assessment and progress
+src/playground/       DSA execution adapters, hybrid runners, and draft persistence
 src/routes/           file-based pages and workspace/trivia behavior
 src/components/       feature components and visualizer primitives
 src/ui/               reusable UI/organism/template components
@@ -57,6 +63,9 @@ src/app/              settings, local persistence, topic selectors, keyboard gua
 src/trivia/           code-occlusion engine and session-owned persistence
 src/server/           Vite-local SQLite persistence adapter
 src/styles/           token system and shared UI styling
+apps/api/             Bun HTTP API, SQLite state, and runner proxy
+apps/python-runner/   bounded CPython service and execution harness
+packages/execution-contracts/ shared validated Python protocol
 ```
 
 ## Catalog contract: clean break
@@ -68,8 +77,11 @@ The catalog has one source of truth for each kind of fact.
 - `AlgorithmDefinition.topicIds` is required and non-empty. Every listed topic has
   equal membership semantics; tuple order is not a primary/fallback mechanism. Do not introduce
   `category`, `categories`, `mlInfraCategory`, `isMlInfra`, or an implicit fallback.
-- `src/algorithms/registry.ts` enrolls each definition exactly once in `ALGORITHMS`.
-  The registry is built from `definition.id`; IDs are canonical kebab-case.
+- `src/algorithms/registry.ts` enrolls exactly 88 DSA definitions in `ALGORITHMS`.
+  `src/learning/registry.ts` adapts them and enrolls exactly 69 native ML items
+  into the 157-item cross-track catalog.
+- ML items use algorithm, trace, calculator, debugging, scenario, or capstone
+  evidence. Each of the 23 ML topics contains exactly three items.
 - There are **no secondary UUIDs, aliases, or legacy ID compatibility layers**. A changed ID is a
   breaking content change: update every in-repo reference in the same change.
 - Curriculum placements describe teaching sequence and layout, not algorithm data.
@@ -77,11 +89,10 @@ The catalog has one source of truth for each kind of fact.
   algorithm registry. Never add `algorithmCount`, static problem/question lists, or
   copied algorithm title/difficulty/description to a placement.
 
-The catalog contract tests in `src/algorithms/specs/catalogRegistry.contract.spec.ts`
-and `src/components/knowledge-graph/specs/catalogTopology.contract.spec.ts` are
-required gates for catalog changes.
+The DSA catalog, learning registry, target catalog, and graph topology contracts,
+plus `bun run audit:catalog`, are required gates for catalog changes.
 
-## Adding or changing an algorithm
+## Adding or changing content
 
 1. Choose existing `topicIds` from `TOPIC_CATALOG`; add a new topic only when the
    curriculum really needs a new navigable subject.
@@ -94,6 +105,12 @@ required gates for catalog changes.
 5. Add or revise a curriculum placement only when the teaching roadmap needs it;
    do not create a placement merely to expose a topic in filtering.
 6. Run the catalog contracts, the algorithm tests, then `bun run check` before handoff.
+
+For native ML content, use `src/learning/authoring` and enroll it in the matching
+`src/learning/items` collection, not `ALGORITHMS`. Preserve the three-items-per-topic
+contract. Every item needs objective/evidence, four-factor difficulty, sources,
+assessment metadata, distinct starter/reference Python, a validated execution spec
+with at least three cases, and input-derived steps. See [docs/catalog.md](docs/catalog.md).
 
 ## UI and runtime rules
 
@@ -109,15 +126,16 @@ required gates for catalog changes.
   optional sharpening, never a second source for code or algorithm identity. Session
   records are the only trivia persistence model; do not add standalone config/progress
   mirrors.
+- The immutable Reference tab remains the canonical solution. Playground drafts
+  are editable, keyed by canonical item ID, and must execute through the shared
+  browser/server contract with bounded output and authored cases.
 
 ## Quality baseline
 
 Coverage uses `all: true` over executable `src/**/*.ts(x)` files. The enforced floors
 are 98% statements, 89% branches, 97% functions, and 98% lines. The additional
-per-file gate rejects a source file with zero hits in any applicable metric. The
-verified 2026-07-28 run passed 569 test files / 2,460 tests at 98.71% statements/lines,
-89.43% branches, and 97.75% functions across 568 source files. These are floors, not a
-reason to avoid improving a changed module toward 100%.
+per-file gate rejects a source file with zero hits in any applicable metric. These
+are floors, not a reason to avoid improving a changed module toward 100%.
 
 ## Working in a shared checkout
 
