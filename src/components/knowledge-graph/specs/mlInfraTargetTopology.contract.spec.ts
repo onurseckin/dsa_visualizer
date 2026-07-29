@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TOPIC_CATALOG } from "../../../curriculum/topics";
+import { ML_INFRA_LEGACY_TOPIC_TRANSITION, TOPIC_CATALOG } from "../../../curriculum/topics";
 import { ML_INFRA_TREE_PLACEMENTS } from "../mlInfraTree";
 
 const REQUIRED_TOPIC_IDS = [
@@ -33,6 +33,22 @@ const ELECTIVE_TOPIC_IDS = [
 ] as const;
 
 const TARGET_TOPIC_IDS = [...REQUIRED_TOPIC_IDS, ...ELECTIVE_TOPIC_IDS] as const;
+
+const LEGACY_ONLY_TOPIC_IDS = [
+  "ml_tensor_algebra",
+  "ml_gemm_roofline",
+  "ml_autograd_dags",
+  "ml_precision_quantization",
+  "ml_vector_search",
+  "ml_tokenization",
+  "ml_tree_ensembles",
+  "ml_convolutions",
+  "ml_recurrent_gates",
+  "ml_attention_geometry",
+  "ml_hardware_kernels",
+  "ml_graph_compilers",
+  "ml_distributed_systems",
+] as const;
 
 const EXPECTED_PREREQUISITES = {
   ml_python_scientific_computing: [],
@@ -142,7 +158,13 @@ describe("target ML infrastructure curriculum topology", () => {
 
     expect(mlCatalogIds).toEqual(expect.arrayContaining([...TARGET_TOPIC_IDS]));
     expect(placementTopicIds).toEqual(TARGET_TOPIC_IDS);
-    expect(transitionalLegacyIds.length).toBeGreaterThan(0);
+    expect(ML_INFRA_LEGACY_TOPIC_TRANSITION).toEqual({
+      removalTask: 16,
+      topicIds: LEGACY_ONLY_TOPIC_IDS,
+    });
+    expect(Object.isFrozen(ML_INFRA_LEGACY_TOPIC_TRANSITION)).toBe(true);
+    expect(Object.isFrozen(ML_INFRA_LEGACY_TOPIC_TRANSITION.topicIds)).toBe(true);
+    expect(transitionalLegacyIds).toEqual(ML_INFRA_LEGACY_TOPIC_TRANSITION.topicIds);
     expect(placementTopicIds).not.toEqual(expect.arrayContaining(transitionalLegacyIds));
   });
 
