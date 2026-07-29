@@ -1,38 +1,228 @@
-import type { AlgorithmStep, GridCellNode, GridVisualSnapshot } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  ElementState,
+  GridCellNode,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
 import type { NumberOfIslandsInput } from "./definition";
 import { DEFAULT_NUMBER_OF_ISLANDS_INPUT } from "./definition";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Number of Islands problem counts maximal connected land components in a 2D binary grid in O(R * C) time using BFS or DFS flood fill.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "Binary Grid",
+      grid: [
+        [
+          { row: 0, col: 0, state: "active" },
+          { row: 0, col: 1, state: "active" },
+          { row: 0, col: 2, isWall: true, state: "default" },
+        ],
+        [
+          { row: 1, col: 0, state: "active" },
+          { row: 1, col: 1, state: "active" },
+          { row: 1, col: 2, isWall: true, state: "default" },
+        ],
+        [
+          { row: 2, col: 0, isWall: true, state: "default" },
+          { row: 2, col: 1, isWall: true, state: "default" },
+          { row: 2, col: 2, state: "sorted" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Implicit Graph Model: land cells ('1') act as vertices and orthogonal connections (up, down, left, right) act as edges. Water cells ('0') form boundaries.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "Implicit Edges",
+      grid: [
+        [
+          { row: 0, col: 0, state: "pivot" },
+          { row: 0, col: 1, state: "compare" },
+        ],
+        [
+          { row: 1, col: 0, state: "compare" },
+          { row: 1, col: 1, isWall: true, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Grid Sweep Strategy: iterate row by row across every cell. Encountering unvisited land ('1') signals the top-left corner of a new island.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "Sweep Inspection",
+      grid: [
+        [
+          { row: 0, col: 0, state: "visited" },
+          { row: 0, col: 1, state: "visited" },
+        ],
+        [
+          { row: 1, col: 0, isWall: true, state: "default" },
+          { row: 1, col: 1, state: "active" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Island Counter Increment: upon discovering unvisited land, increment islandCount by 1 and initiate a flood fill from that seed cell.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "New Island Discovered",
+      grid: [
+        [
+          { row: 0, col: 0, state: "visited" },
+          { row: 0, col: 1, isWall: true, state: "default" },
+        ],
+        [
+          { row: 1, col: 0, isWall: true, state: "default" },
+          { row: 1, col: 1, state: "active" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Flood Fill Propagation: BFS queue or DFS recursion traverses all orthogonally reachable land cells, expanding the component outward.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "Flood Expanding",
+      grid: [
+        [
+          { row: 0, col: 0, state: "active" },
+          { row: 0, col: 1, state: "pivot" },
+        ],
+        [
+          { row: 1, col: 0, state: "pivot" },
+          { row: 1, col: 1, isWall: true, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Early Visitor Tracking: mark land cells as visited immediately upon queue insertion to prevent redundant processing or stack overflow.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "Visited Land",
+      grid: [
+        [
+          { row: 0, col: 0, state: "visited" },
+          { row: 0, col: 1, state: "visited" },
+        ],
+        [
+          { row: 1, col: 0, state: "visited" },
+          { row: 1, col: 1, isWall: true, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Water Boundary Exclusion: water cells ('0') and out-of-bound coordinates terminate flood expansion in that direction.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "Water Boundary",
+      grid: [
+        [
+          { row: 0, col: 0, state: "visited" },
+          { row: 0, col: 1, isWall: true, state: "swap" },
+        ],
+        [
+          { row: 1, col: 0, isWall: true, state: "swap" },
+          { row: 1, col: 1, isWall: true, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Completeness & Complexity: visiting every cell once ensures no island is counted twice, yielding O(R * C) time and O(min(R, C)) auxiliary space.",
+    primarySnapshot: {
+      kind: "grid",
+      name: "All Islands Counted",
+      grid: [
+        [
+          { row: 0, col: 0, state: "sorted" },
+          { row: 0, col: 1, state: "sorted" },
+        ],
+        [
+          { row: 1, col: 0, isWall: true, state: "default" },
+          { row: 1, col: 1, state: "sorted" },
+        ],
+      ],
+    },
+  },
+];
 
 export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
-  const rawGrid = Array.isArray(input?.grid) ? input.grid : DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid;
   let stepIndex = 0;
 
+  const rawGrid = Array.isArray(input?.grid) && input.grid.length > 0
+    ? input.grid
+    : DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid;
+
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.grid) &&
+      input.grid.length === DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid.length &&
+      input.grid.every(
+        (row, r) =>
+          row.length === DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid[r].length &&
+          row.every((val, c) => val === DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid[r][c]),
+      ));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   if (!rawGrid || rawGrid.length === 0 || rawGrid[0].length === 0) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 5,
-      explanation: {
-        what: "Handle an empty grid",
-        why: "There are no cells at all, so the island count is 0 and we're done before we start.",
+    addStep(
+      "The input grid is empty: returning 0 islands immediately.",
+      {
+        kind: "grid",
+        name: "Empty Grid",
+        grid: [],
       },
-      primarySnapshot: { kind: "grid", grid: [] },
-      auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-      variables: { count: 0 },
-    });
+    );
     return steps;
   }
 
   const rows = rawGrid.length;
   const cols = rawGrid[0].length;
   const visitedSet = new Set<string>();
-  let count = 0;
+  let islandCount = 0;
 
   const createGridSnapshot = (
     activePos?: [number, number],
     queuedPositions: Array<[number, number]> = [],
-  ): GridVisualSnapshot => {
-    const gridNodes: GridCellNode[][] = [];
+    evalPos?: [number, number],
+    isComplete?: boolean,
+    discoveredPos?: [number, number],
+  ): PrimaryVisualSnapshot => {
     const queuedSet = new Set(queuedPositions.map(([r, c]) => `${r},${c}`));
+    const gridNodes: GridCellNode[][] = [];
 
     for (let r = 0; r < rows; r++) {
       const rowNodes: GridCellNode[] = [];
@@ -41,280 +231,77 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
         const isWater = rawGrid[r][c] === "0";
         const isVisited = visitedSet.has(key);
         const isActive = activePos && activePos[0] === r && activePos[1] === c;
+        const isDiscovered = discoveredPos && discoveredPos[0] === r && discoveredPos[1] === c;
+        const isEval = evalPos && evalPos[0] === r && evalPos[1] === c;
         const isQueued = queuedSet.has(key);
+
+        let state: ElementState = "default";
+        if (isComplete) {
+          state = isWater ? "default" : "sorted";
+        } else if (isDiscovered) {
+          state = "compare";
+        } else if (isActive) {
+          state = "active";
+        } else if (isEval) {
+          state = isWater ? "swap" : "compare";
+        } else if (isQueued) {
+          state = "pivot";
+        } else if (isVisited) {
+          state = "visited";
+        }
 
         rowNodes.push({
           row: r,
           col: c,
           isWall: isWater,
           isVisited: isVisited && !isActive,
-          state: isActive ? "active" : isQueued ? "queued" : isVisited ? "visited" : "default",
+          state,
         });
       }
       gridNodes.push(rowNodes);
     }
-    return { kind: "grid", grid: gridNodes };
+    return { kind: "grid", name: `Grid (${rows}x${cols}) - Islands: ${islandCount}`, grid: gridNodes };
   };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: "Import deque from collections",
-      why: "BFS flood fill needs a FIFO queue. Python's deque gives O(1) append and popleft — essential for efficient BFS without the O(n) cost of list.pop(0).",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
+  addStep(
+    `Having established the mental model, let's now transition to grid sweep across ${rows}x${cols} grid to count islands.`,
+    createGridSnapshot(undefined),
+  );
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: `Scan the ${rows}x${cols} grid`,
-      why: "We sweep the grid cell by cell, row by row. Whenever we step on land we haven't seen before, we know we've found the corner of a brand-new island.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { count: 0, rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: "Validate the grid is non-empty",
-      why: "An empty grid or a grid with no columns has no cells to scan, so we handle it early and return 0.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: `Record grid dimensions: maxRow=${rows}, maxCol=${cols}`,
-      why: "We cache the bounds once so every bounds check inside getNeighbors runs in O(1) without re-querying the grid.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0, maxRow: rows, maxCol: cols } },
-    variables: { maxRow: rows, maxCol: cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 8,
-    explanation: {
-      what: "Define the 4 cardinal directions",
-      why: "Islands are connected via orthogonal adjacency (up/down/left/right). Diagonal neighbors don't count as connected.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: {
-      visited: [],
-      customState: { islandCount: 0, directions: "[(1,0),(-1,0),(0,1),(0,-1)]" },
-    },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 9,
-    explanation: {
-      what: "Initialize visited set",
-      why: "We use a hash set for O(1) membership checks to avoid re-processing cells that are already part of a previously flooded island.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { visitedSize: 0 },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 10,
-    explanation: {
-      what: "Initialize island counter to 0",
-      why: "The count variable tracks how many distinct BFS floods we've started, which equals the number of islands.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { count: 0 },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 12,
-    explanation: {
-      what: "Define getNeighbors(row, col) helper",
-      why: "This generator yields valid, unvisited land neighbors in the 4 cardinal directions. Encapsulating the bounds and water checks here keeps the BFS loop clean.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: 0 } },
-    variables: { rows, cols },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 22,
-    explanation: {
-      what: `Begin row sweep (${rows} rows)`,
-      why: "We scan every row in order. The outer loop advances the sweep line downward through the grid.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: count } },
-    variables: { count, rows },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 23,
-    explanation: {
-      what: `Begin column sweep (${cols} cols)`,
-      why: "The inner loop checks each cell in the current row left to right, completing a full raster scan of the grid.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { visited: [], customState: { islandCount: count } },
-    variables: { count, cols },
-  });
+  const directions = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const key = `${r},${c}`;
-      const isLand = rawGrid[r][c] === "1";
-      const isAlreadyVisited = visitedSet.has(key);
 
-      if (isLand && !isAlreadyVisited) {
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 24,
-          explanation: {
-            what: `Inspect cell (${r}, ${c})`,
-            why: `Cell (${r}, ${c}) is unvisited land ('1'). Launching a new island flood fill!`,
-          },
-          primarySnapshot: createGridSnapshot([r, c]),
-          auxiliaryState: {
-            visited: Array.from(visitedSet),
-            customState: { islandCount: count, inspectedCell: `(${r},${c})` },
-          },
-          variables: { r, c, isLand, isAlreadyVisited },
-        });
-
-        count++;
+      if (rawGrid[r][c] === "1" && !visitedSet.has(key)) {
+        islandCount++;
         visitedSet.add(key);
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 25,
-          explanation: {
-            what: `Count island #${count}`,
-            why: `Landing on unvisited land cell (${r},${c}). Incrementing count to ${count} and kicking off BFS to flood the whole island.`,
-          },
-          primarySnapshot: createGridSnapshot([r, c]),
-          auxiliaryState: {
-            queue: [`(${r},${c})`],
-            visited: Array.from(visitedSet),
-            customState: { islandCount: count, currentCell: `(${r},${c})` },
-          },
-          variables: { r, c, islandCount: count },
-        });
+        addStep(
+          `Discovered new Island #${islandCount} at cell (${r}, ${c}): incrementing island counter and initiating BFS flood fill.`,
+          createGridSnapshot(undefined, [], undefined, false, [r, c]),
+        );
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 26,
-          explanation: {
-            what: `Mark (${r},${c}) as visited`,
-            why: "We add the cell to visited immediately before BFS to prevent double-counting if another path reaches this cell during the flood.",
-          },
-          primarySnapshot: createGridSnapshot([r, c]),
-          auxiliaryState: {
-            visited: Array.from(visitedSet),
-            customState: { islandCount: count, markedCell: `(${r},${c})` },
-          },
-          variables: { r, c, visitedSize: visitedSet.size },
-        });
+        const bfsQueue: Array<[number, number]> = [[r, c]];
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 27,
-          explanation: {
-            what: `Initialize BFS queue with (${r},${c})`,
-            why: "Start the flood fill queue from the newly discovered island cell. The queue holds all cells to be explored and expanded.",
-          },
-          primarySnapshot: createGridSnapshot([r, c]),
-          auxiliaryState: {
-            queue: [`(${r},${c})`],
-            visited: Array.from(visitedSet),
-            customState: { islandCount: count },
-          },
-          variables: { r, c, queueSize: 1 },
-        });
+        while (bfsQueue.length > 0) {
+          const [currR, currC] = bfsQueue.shift()!;
 
-        const queue: Array<[number, number]> = [[r, c]];
+          addStep(
+            `Dequeued cell (${currR}, ${currC}) during flood fill: inspecting 4-directional orthogonal neighbors.`,
+            createGridSnapshot([currR, currC], bfsQueue),
+          );
 
-        while (queue.length > 0) {
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 28,
-            explanation: {
-              what: `BFS loop: ${queue.length} cell(s) in queue`,
-              why: "Continue the flood until we've explored every connected land cell belonging to this island.",
-            },
-            primarySnapshot: createGridSnapshot(undefined, queue),
-            auxiliaryState: {
-              queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
-              visited: Array.from(visitedSet),
-              customState: { islandCount: count },
-            },
-            variables: { queueLength: queue.length },
-          });
-
-          const [cr, cc] = queue.shift()!;
-
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 29,
-            explanation: {
-              what: `Explore cell (${cr}, ${cc})`,
-              why: `We take the next cell of island #${count} off the queue and look at its four orthogonal neighbors, pushing the island's known boundary outward.`,
-            },
-            primarySnapshot: createGridSnapshot([cr, cc], queue),
-            auxiliaryState: {
-              queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
-              visited: Array.from(visitedSet),
-              customState: { islandCount: count, activeCell: `(${cr},${cc})` },
-            },
-            variables: { cr, cc, queueLength: queue.length },
-          });
-
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 30,
-            explanation: {
-              what: `Iterate valid neighbors of (${cr},${cc})`,
-              why: "getNeighbors yields each in-bounds, unvisited land neighbor. For each one we mark it visited and enqueue it to spread the flood.",
-            },
-            primarySnapshot: createGridSnapshot([cr, cc], queue),
-            auxiliaryState: {
-              queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
-              visited: Array.from(visitedSet),
-              customState: { islandCount: count },
-            },
-            variables: { cr, cc },
-          });
-
-          const dirs = [
-            [-1, 0],
-            [1, 0],
-            [0, -1],
-            [0, 1],
-          ];
-
-          for (const [dr, dc] of dirs) {
-            const nr = cr + dr;
-            const nc = cc + dc;
-            const neighborKey = `${nr},${nc}`;
+          for (const [dr, dc] of directions) {
+            const nr = currR + dr;
+            const nc = currC + dc;
+            const nKey = `${nr},${nc}`;
 
             if (
               nr >= 0 &&
@@ -322,97 +309,38 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
               nc >= 0 &&
               nc < cols &&
               rawGrid[nr][nc] === "1" &&
-              !visitedSet.has(neighborKey)
+              !visitedSet.has(nKey)
             ) {
-              visitedSet.add(neighborKey);
-              queue.push([nr, nc]);
+              visitedSet.add(nKey);
+              bfsQueue.push([nr, nc]);
 
-              steps.push({
-                stepIndex: stepIndex++,
-                codeLine: 31,
-                explanation: {
-                  what: `Mark (${nr},${nc}) visited`,
-                  why: `Immediately marking it prevents another cell from re-discovering (${nr},${nc}) and double-counting it.`,
-                },
-                primarySnapshot: createGridSnapshot([cr, cc], queue),
-                auxiliaryState: {
-                  queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
-                  visited: Array.from(visitedSet),
-                  customState: { islandCount: count, markedNeighbor: `(${nr},${nc})` },
-                },
-                variables: { nr, nc, visitedSize: visitedSet.size },
-              });
-
-              steps.push({
-                stepIndex: stepIndex++,
-                codeLine: 32,
-                explanation: {
-                  what: `Enqueue (${nr},${nc}) for BFS expansion`,
-                  why: `Adding (${nr},${nc}) to the queue so we'll explore its neighbors in a future iteration, continuing the flood fill outward.`,
-                },
-                primarySnapshot: createGridSnapshot([cr, cc], queue),
-                auxiliaryState: {
-                  queue: queue.map(([qr, qc]) => `(${qr},${qc})`),
-                  visited: Array.from(visitedSet),
-                  customState: { islandCount: count, addedNeighbor: `(${nr},${nc})` },
-                },
-                variables: { nr, nc, queueLength: queue.length },
-              });
+              addStep(
+                `Flooded connected land cell (${nr}, ${nc}): marked visited and enqueued for further expansion.`,
+                createGridSnapshot([currR, currC], bfsQueue, [nr, nc]),
+              );
             }
           }
         }
-      } else {
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 24,
-          explanation: {
-            what: `Inspect cell (${r}, ${c})`,
-            why: !isLand
-              ? `Cell (${r}, ${c}) is water ('0'), skipping.`
-              : `Cell (${r}, ${c}) is land ('1') already visited in island #${count}, skipping.`,
-          },
-          primarySnapshot: createGridSnapshot([r, c]),
-          auxiliaryState: {
-            visited: Array.from(visitedSet),
-            customState: { islandCount: count, inspectedCell: `(${r},${c})` },
-          },
-          variables: { r, c, isLand, isAlreadyVisited },
-        });
+
+        addStep(
+          `Completed flood fill for Island #${islandCount}: all connected land cells claimed.`,
+          createGridSnapshot(undefined, [], undefined),
+        );
+      } else if (rawGrid[r][c] === "0") {
+        addStep(
+          `Grid sweep at cell (${r}, ${c}): water cell '0' — moving to next position.`,
+          createGridSnapshot(undefined, [], [r, c]),
+        );
       }
     }
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 34,
-    explanation: {
-      what: `Scan complete — ${count} island(s) found`,
-      why: `Every cell has now been checked, either by the sweep or by a flood. Each BFS we launched corresponds to exactly one connected land component, so the flood count is the island count. Touching each cell a constant number of times is what keeps this O(M * N).`,
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: {
-      visited: Array.from(visitedSet),
-      customState: { totalIslands: count },
-    },
-    variables: { totalIslands: count },
-  });
-
-  while (steps.length < 20) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 34,
-      explanation: {
-        what: `Scan complete — ${count} island(s) found (step ${steps.length + 1})`,
-        why: `Every cell has now been checked, either by the sweep or by a flood. Each BFS we launched corresponds to exactly one connected land component, so the flood count is the island count.`,
-      },
-      primarySnapshot: createGridSnapshot(),
-      auxiliaryState: {
-        visited: Array.from(visitedSet),
-        customState: { totalIslands: count },
-      },
-      variables: { totalIslands: count },
-    });
-  }
+  addStep(
+    `Number of Islands complete! Scanned all ${rows * cols} cells and found a total of ${islandCount} distinct island component(s).`,
+    createGridSnapshot(undefined, [], undefined, true),
+  );
 
   return steps;
 };
+
+export default generateNumberOfIslandsSteps;

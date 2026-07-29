@@ -128,27 +128,22 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: 'grid = [["1","1","0"],["1","1","0"],["0","0","1"]]',
-      outputDisplay: "2",
-      title: "Basic Example",
-      input: {
-        grid: [
-          ["1", "1", "0", "0", "0"],
-          ["1", "1", "0", "0", "0"],
-          ["0", "0", "1", "0", "0"],
-          ["0", "0", "0", "1", "1"],
-        ],
-      },
+      scenario: "standard",
+      inputDisplay: 'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
+      outputDisplay: "3",
+      title: "Standard Multi-Island Grid Flood Fill",
+      input: DEFAULT_NUMBER_OF_ISLANDS_INPUT,
       output: "3",
       explanation:
         "Top-left 2x2 land forms Island 1. Cell (2,2) forms Island 2. Bottom-right cells (3,3) and (3,4) form Island 3. Total = 3.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay:
-        'grid = [["1","1","0","0"],["1","0","0","1"],["0","0","1","1"],["0","0","0","0"]]',
-      outputDisplay: "2",
-      title: "Complex Edge Case",
+        'grid = [["1","0","1"],["0","1","0"],["1","0","1"]]',
+      outputDisplay: "5",
+      title: "Adversarial Checkerboard Corner-Touching Islands",
       input: {
         grid: [
           ["1", "0", "1"],
@@ -162,9 +157,10 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: 'grid = [["0","0"],["0","0"]]',
       outputDisplay: "0",
-      title: "Failing / Boundary Case",
+      title: "Boundary All Water Case",
       input: {
         grid: [
           ["0", "0"],
