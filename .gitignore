@@ -4,6 +4,8 @@ dist
 *.log
 coverage
 coverage_dir/
+playwright-report/
+test-results/
 .tmp/
 data/
 *.sqlite

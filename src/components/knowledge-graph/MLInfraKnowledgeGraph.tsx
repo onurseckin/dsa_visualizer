@@ -74,9 +74,6 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
   const handleSelectNode = (node: MLInfraCurriculumPlacement) => {
     setDrawerTopicId(node.id);
-    if (onSelectTopic) {
-      onSelectTopic(node.topicId);
-    }
   };
 
   const handleNavigateQuestion = (algorithmId: string) => {

@@ -109,7 +109,7 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
       }),
     );
 
-    expect(onSelectTopic).toHaveBeenCalledWith("ml_python_scientific_computing");
+    expect(onSelectTopic).not.toHaveBeenCalled();
     expect(
       screen.getByRole("dialog", {
         name: /Python, Environments & Scientific Computing Drawer/i,
@@ -139,8 +139,8 @@ describe("MLInfraKnowledgeGraph Component Render Spec", () => {
       }),
     );
 
-    expect(onSelectTopic).toHaveBeenNthCalledWith(1, "ml_problem_framing");
-    expect(onSelectTopic).toHaveBeenNthCalledWith(2, "ml_problem_framing");
+    expect(onSelectTopic).toHaveBeenCalledOnce();
+    expect(onSelectTopic).toHaveBeenCalledWith("ml_problem_framing");
   });
 
   it("tracks pointer and focus states without changing node geometry", () => {
