@@ -259,6 +259,18 @@ output examples, and complexity claims mutually true. For example, only teach
 path compression if the visual generator and implementation perform it, and
 only teach early termination if the walkthrough actually stops there.
 
+## Problem Description vs Solution Ownership
+
+`AlgorithmDefinition.description` owns the **Problem Statement ONLY**. It must never leak the solution or algorithm mechanics:
+
+| Content Area | Field Owner | Allowed Content | Prohibited Content |
+| --- | --- | --- | --- |
+| **Problem Statement** | `description` | HTML markup detailing: Problem Statement, Input Parameters, Output Format, Constraints & Edge Cases. | NO solution spoilers, NO algorithm mechanics/steps, NO time/space complexity analysis, NO intuition summaries. |
+| **Solution & Deep-Dive Guide** | `topicGuide` | HTML overview and sections explaining: Mental model, intuition, step-by-step algorithm mechanism, naive vs optimal trade-offs, pitfalls, and generalizations. | Raw problem statements or duplicated basic constraint lists. |
+| **Complexity Analysis** | `complexityAnalysis` | Detailed natural language explanation of time (best/average/worst) and space bounds. | Short unexplained formulas. |
+
+Ensure a clean boundary: when a learner reads `description`, they see only *what* problem is being solved, *what inputs* are given, *what output* is expected, and *what constraints* apply. How the algorithm operates and why its time/space complexity holds belong strictly in `topicGuide`, `complexityAnalysis`, and the visualizer tutorial steps.
+
 ## Migration checklist
 
 - [ ] Read the existing generator, its examples, and the relevant primitive.
