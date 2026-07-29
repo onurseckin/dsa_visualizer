@@ -51,7 +51,6 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "root = [1, 2, 3, 4, 5]",
       outputDisplay: "6",
@@ -62,7 +61,6 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
         "Pass 1 from node 1 finds leaf 7 (dist 3). Pass 2 from node 7 finds leaf 8 (dist 6). The longest simple path 7->4->2->1->3->6->8 has 6 edges.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: "root = [1, 2, 3, 4, null, null, 5, 6, null, null, 7]",
@@ -86,7 +84,6 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
         "The diameter path goes from leaf 7 through 5 -> 3 -> 6 to leaf 8, yielding a longest simple path of 5 edges.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "root = [1]",

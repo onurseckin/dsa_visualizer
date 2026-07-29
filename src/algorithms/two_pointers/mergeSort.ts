@@ -1,5 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  PrimaryVisualSnapshot,
+  TopicGuide,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface MergeSortInput {
   array: number[];
@@ -28,6 +35,137 @@ export const DEFAULT_MERGE_SORT_INPUT: MergeSortInput = {
   array: [38, 27, 43, 3, 9, 82, 10],
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Merge Sort is a classic divide-and-conquer sorting algorithm that guarantees strict O(N log N) runtime performance across all input distributions.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "e1", value: 38, label: "[0]", state: "default" },
+        { id: "e2", value: 27, label: "[1]", state: "default" },
+        { id: "e3", value: 43, label: "[2]", state: "default" },
+        { id: "e4", value: 3, label: "[3]", state: "default" },
+        { id: "e5", value: 9, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Divide step recursively splits an unsorted array of size N at its arithmetic midpoint mid = floor(N / 2) into left and right sub-arrays.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "d1", value: 38, label: "Left", state: "active" },
+        { id: "d2", value: 27, label: "Left", state: "active" },
+        { id: "d3", value: 43, label: "Mid Split", state: "compare" },
+        { id: "d4", value: 3, label: "Right", state: "visited" },
+        { id: "d5", value: 9, label: "Right", state: "visited" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Recursion continues partitioning until reaching base case sub-arrays of size 0 or 1, which are trivially sorted by definition.",
+    primarySnapshot: {
+      kind: "array",
+      name: "base_cases",
+      mode: "box",
+      elements: [
+        { id: "b1", value: 38, label: "Base [38]", state: "sorted" },
+        { id: "b2", value: 27, label: "Base [27]", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "As recursive call frames unwind, the Combine (Merge) step zips adjacent sorted sub-arrays into a single combined sorted sub-array.",
+    primarySnapshot: {
+      kind: "array",
+      name: "merge_phase",
+      mode: "box",
+      elements: [
+        { id: "m1", value: 27, label: "Merged [0]", state: "sorted" },
+        { id: "m2", value: 38, label: "Merged [1]", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Two pointers i and j iterate through the left and right sub-arrays, repeatedly picking min(left[i], right[j]) to append to the merged buffer.",
+    primarySnapshot: {
+      kind: "array",
+      name: "two_pointers",
+      mode: "box",
+      elements: [
+        { id: "tp1", value: 27, label: "left[i]", state: "compare", pointers: ["i"] },
+        { id: "tp2", value: 3, label: "right[j]", state: "compare", pointers: ["j"] },
+        { id: "tp3", value: 3, label: "pick 3", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Merge Sort is a stable sort: when left[i] equals right[j], the element from the left sub-array is picked first, preserving original relative element ordering.",
+    primarySnapshot: {
+      kind: "array",
+      name: "stability",
+      mode: "box",
+      elements: [
+        { id: "st1", value: 5, label: "left[i]=5", state: "sorted" },
+        { id: "st2", value: 5, label: "right[j]=5", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When one sub-array is exhausted, any remaining elements from the other sub-array are flushed directly into the merged output buffer in linear O(N) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "flush_tail",
+      mode: "box",
+      elements: [
+        { id: "f1", value: 3, label: "merged", state: "sorted" },
+        { id: "f2", value: 9, label: "merged", state: "sorted" },
+        { id: "f3", value: 43, label: "flush left", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Sequential memory access during merging yields excellent CPU cache locality, making Merge Sort the ideal foundation for external disk-based sorting.",
+    primarySnapshot: {
+      kind: "array",
+      name: "cache_locality",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "Sequential Memory Streams", state: "sorted" },
+        { id: "c2", value: "Cache-Prefetch Friendly", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The recursion tree has log2(N) levels with O(N) work per level, guaranteeing O(N log N) time complexity across all cases using O(N) auxiliary space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "summary",
+      mode: "box",
+      elements: [
+        { id: "s1", value: "Time: O(N log N) Best/Avg/Worst", state: "sorted" },
+        { id: "s2", value: "Space: O(N) Auxiliary Buffer", state: "default" },
+      ],
+    },
+  },
+];
+
 export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -38,12 +176,35 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
   const currentArr = [...safeInput.array];
   const n = currentArr.length;
 
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input?.array) &&
+      input.array.length === DEFAULT_MERGE_SORT_INPUT.array.length &&
+      input.array.every((val, idx) => val === DEFAULT_MERGE_SORT_INPUT.array[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   const makeElements = (
     activeRange?: [number, number],
     comparingIndices?: [number, number],
     sortedIndices?: number[],
-  ): ArrayElement[] => {
-    return currentArr.map((val, idx) => {
+  ): PrimaryVisualSnapshot => ({
+    kind: "array",
+    name: "arr",
+    mode: "box",
+    elements: currentArr.map((val, idx) => {
       let state: ArrayElement["state"] = "default";
       if (sortedIndices && sortedIndices.includes(idx)) {
         state = "sorted";
@@ -55,75 +216,22 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
       return {
         id: `el-${idx}`,
         value: val,
+        label: `[${idx}]`,
         state,
       };
-    });
-  };
-
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    activeRange?: [number, number],
-    comparingIndices?: [number, number],
-    sortedIndices?: number[],
-    customState?: Record<string, string | number>,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: makeElements(activeRange, comparingIndices, sortedIndices),
-      },
-      auxiliaryState: {
-        customState: customState ?? {
-          currentArray: currentArr.join(", "),
-        },
-      },
-      variables,
-    });
-  };
+    }),
+  });
 
   addStep(
-    1,
-    "Start Merge Sort",
-    `Sorting input array of size N = ${n}: [${currentArr.join(", ")}].`,
-    { n },
+    `Initializing Merge Sort on input array of size N = ${n}: [${currentArr.join(", ")}].`,
+    makeElements([0, Math.max(0, n - 1)]),
   );
 
   if (n <= 1) {
     addStep(
-      2,
-      "Check base case len(arr) <= 1",
-      "Evaluating base case condition for small input array.",
-      { n },
-      [0, Math.max(0, n - 1)],
-      undefined,
-      n === 1 ? [0] : [],
+      `Array size N = ${n} <= 1: base case reached immediately. Array is trivially sorted.`,
+      makeElements([0, Math.max(0, n - 1)], undefined, [0]),
     );
-    addStep(
-      3,
-      "Base case reached: return arr",
-      "Array with 0 or 1 elements is already sorted.",
-      { n },
-      [0, Math.max(0, n - 1)],
-      undefined,
-      n === 1 ? [0] : [],
-    );
-    while (steps.length < 20) {
-      addStep(
-        3,
-        `Base case verification step ${steps.length + 1}`,
-        "Trivially sorted array verification completed.",
-        { n },
-        [0, Math.max(0, n - 1)],
-        undefined,
-        n === 1 ? [0] : [],
-      );
-    }
     return steps;
   }
 
@@ -135,78 +243,24 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
 
     if (subLength <= 1) {
       addStep(
-        2,
-        `Check base case len(arr) <= 1 for sub-array [${l}..${r}]`,
-        `Sub-array [${subArr.join(", ")}] has length ${subLength} <= 1.`,
-        { len: subLength, arr: subArr.join(", ") },
-        [l, r],
-      );
-      addStep(
-        3,
-        `Base case reached: return arr [${subArr.join(", ")}]`,
-        `Sub-array of size ${subLength} is trivially sorted.`,
-        { len: subLength, arr: subArr.join(", ") },
-        [l, r],
+        `Base case len <= 1 for sub-array interval [${l}..${r}] ([${subArr.join(", ")}]); returning as sorted.`,
+        makeElements([l, r]),
       );
       return subArr;
     }
 
     const mid = Math.floor(subLength / 2);
-
     addStep(
-      4,
-      `Compute midpoint index mid = len(arr) // 2 (${mid})`,
-      `Splitting sub-array [${subArr.join(", ")}] of size ${subLength} at mid index ${mid}.`,
-      { len: subLength, mid },
-      [l, r],
+      `Splitting sub-array [${subArr.join(", ")}] at mid index ${mid}: left subproblem [${l}..${l + mid - 1}], right subproblem [${l + mid}..${r}].`,
+      makeElements([l, r]),
     );
 
-    addStep(
-      5,
-      `Recurse on left half arr[:${mid}]`,
-      `Calling merge_sort on left partition [${subArr.slice(0, mid).join(", ")}].`,
-      { leftPart: subArr.slice(0, mid).join(", ") },
-      [l, l + mid - 1],
-    );
     const leftSorted = sortSubarray(l, l + mid - 1);
-
-    addStep(
-      6,
-      `Recurse on right half arr[${mid}:]`,
-      `Calling merge_sort on right partition [${subArr.slice(mid).join(", ")}].`,
-      { rightPart: subArr.slice(mid).join(", ") },
-      [l + mid, r],
-    );
     const rightSorted = sortSubarray(l + mid, r);
 
     addStep(
-      7,
-      `Initialize empty merged list for interval [${l}..${r}]`,
-      `Creating new empty list 'merged = []' to collect sorted elements from left [${leftSorted.join(", ")}] and right [${rightSorted.join(", ")}].`,
-      { left: leftSorted.join(", "), right: rightSorted.join(", ") },
-      [l, r],
-      undefined,
-      Array.from(sortedIndicesSet),
-      {
-        left: leftSorted.join(", "),
-        right: rightSorted.join(", "),
-        merged: "[]",
-      },
-    );
-
-    addStep(
-      8,
-      "Initialize pointers i = 0, j = 0",
-      "Setting pointer i = 0 for left sub-array and j = 0 for right sub-array.",
-      { i: 0, j: 0 },
-      [l, r],
-      undefined,
-      Array.from(sortedIndicesSet),
-      {
-        left: leftSorted.join(", "),
-        right: rightSorted.join(", "),
-        merged: "[]",
-      },
+      `Conquered subproblems: merging left sorted half [${leftSorted.join(", ")}] and right sorted half [${rightSorted.join(", ")}].`,
+      makeElements([l, r]),
     );
 
     const merged: number[] = [];
@@ -220,169 +274,45 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
       }
     };
 
-    updateCurrentArr();
-
     while (i < leftSorted.length && j < rightSorted.length) {
-      const leftIdxInCurrent = l + merged.length;
-      const rightIdxInCurrent = l + merged.length + (leftSorted.length - i);
+      const leftVal = leftSorted[i];
+      const rightVal = rightSorted[j];
 
-      addStep(
-        9,
-        `Check while condition: i (${i}) < ${leftSorted.length} and j (${j}) < ${rightSorted.length}`,
-        `Both left and right sub-arrays have unmerged elements remaining.`,
-        { i, j, leftLen: leftSorted.length, rightLen: rightSorted.length },
-        [l, r],
-        [leftIdxInCurrent, rightIdxInCurrent],
-        Array.from(sortedIndicesSet),
-        {
-          left: leftSorted.join(", "),
-          right: rightSorted.join(", "),
-          merged: `[${merged.join(", ")}]`,
-        },
-      );
-
-      addStep(
-        10,
-        `Compare left[${i}] = ${leftSorted[i]} with right[${j}] = ${rightSorted[j]}`,
-        `Comparing ${leftSorted[i]} and ${rightSorted[j]} to choose the smaller value.`,
-        { i, j, leftVal: leftSorted[i], rightVal: rightSorted[j] },
-        [l, r],
-        [leftIdxInCurrent, rightIdxInCurrent],
-        Array.from(sortedIndicesSet),
-        {
-          left: leftSorted.join(", "),
-          right: rightSorted.join(", "),
-          merged: `[${merged.join(", ")}]`,
-        },
-      );
-
-      if (leftSorted[i] <= rightSorted[j]) {
-        merged.push(leftSorted[i]);
-
+      if (leftVal <= rightVal) {
+        merged.push(leftVal);
         addStep(
-          11,
-          `Append left[${i}] (${leftSorted[i]}) to merged`,
-          `left[${i}] (${leftSorted[i]}) <= right[${j}] (${rightSorted[j]}); appending ${leftSorted[i]} to merged (preserving stability).`,
-          { i, val: leftSorted[i] },
-          [l, r],
-          [leftIdxInCurrent, rightIdxInCurrent],
-          Array.from(sortedIndicesSet),
-          {
-            left: leftSorted.join(", "),
-            right: rightSorted.join(", "),
-            merged: `[${merged.join(", ")}]`,
-          },
+          `Comparing left[${i}] = ${leftVal} and right[${j}] = ${rightVal}: ${leftVal} <= ${rightVal}, appending ${leftVal} to merged buffer (preserving stability).`,
+          makeElements([l, r], [l + i, l + mid + j]),
         );
-
         i++;
-        updateCurrentArr();
-
-        addStep(
-          12,
-          `Increment pointer i: i += 1 (now ${i})`,
-          `Advanced left pointer i to ${i}.`,
-          { i },
-          [l, r],
-          undefined,
-          Array.from(sortedIndicesSet),
-          {
-            left: leftSorted.join(", "),
-            right: rightSorted.join(", "),
-            merged: `[${merged.join(", ")}]`,
-          },
-        );
       } else {
+        merged.push(rightVal);
         addStep(
-          13,
-          `Else branch: right[${j}] (${rightSorted[j]}) < left[${i}] (${leftSorted[i]})`,
-          `right[${j}] (${rightSorted[j]}) is strictly smaller than left[${i}] (${leftSorted[i]}).`,
-          { i, j, leftVal: leftSorted[i], rightVal: rightSorted[j] },
-          [l, r],
-          [leftIdxInCurrent, rightIdxInCurrent],
-          Array.from(sortedIndicesSet),
-          {
-            left: leftSorted.join(", "),
-            right: rightSorted.join(", "),
-            merged: `[${merged.join(", ")}]`,
-          },
+          `Comparing left[${i}] = ${leftVal} and right[${j}] = ${rightVal}: ${rightVal} < ${leftVal}, appending ${rightVal} to merged buffer.`,
+          makeElements([l, r], [l + i, l + mid + j]),
         );
-
-        merged.push(rightSorted[j]);
-
-        addStep(
-          14,
-          `Append right[${j}] (${rightSorted[j]}) to merged`,
-          `Appending smaller right element ${rightSorted[j]} to merged list.`,
-          { j, val: rightSorted[j] },
-          [l, r],
-          [leftIdxInCurrent, rightIdxInCurrent],
-          Array.from(sortedIndicesSet),
-          {
-            left: leftSorted.join(", "),
-            right: rightSorted.join(", "),
-            merged: `[${merged.join(", ")}]`,
-          },
-        );
-
         j++;
-        updateCurrentArr();
-
-        addStep(
-          15,
-          `Increment pointer j: j += 1 (now ${j})`,
-          `Advanced right pointer j to ${j}.`,
-          { j },
-          [l, r],
-          undefined,
-          Array.from(sortedIndicesSet),
-          {
-            left: leftSorted.join(", "),
-            right: rightSorted.join(", "),
-            merged: `[${merged.join(", ")}]`,
-          },
-        );
       }
-    }
-
-    if (i < leftSorted.length) {
-      const remainingLeft = leftSorted.slice(i);
-      addStep(
-        16,
-        `Extend remaining left elements ([${remainingLeft.join(", ")}]) into merged`,
-        `Right sub-array exhausted. Copying remaining ${remainingLeft.length} element(s) from left half into merged.`,
-        { remainingLeft: remainingLeft.join(", ") },
-        [l, r],
-        undefined,
-        Array.from(sortedIndicesSet),
-        {
-          left: leftSorted.join(", "),
-          right: rightSorted.join(", "),
-          merged: `[${merged.join(", ")}]`,
-        },
-      );
-      merged.push(...remainingLeft);
-      i = leftSorted.length;
       updateCurrentArr();
     }
 
-    if (j < rightSorted.length) {
-      const remainingRight = rightSorted.slice(j);
+    while (i < leftSorted.length) {
+      merged.push(leftSorted[i]);
       addStep(
-        17,
-        `Extend remaining right elements ([${remainingRight.join(", ")}]) into merged`,
-        `Left sub-array exhausted. Copying remaining ${remainingRight.length} element(s) from right half into merged.`,
-        { remainingRight: remainingRight.join(", ") },
-        [l, r],
-        undefined,
-        Array.from(sortedIndicesSet),
-        {
-          left: leftSorted.join(", "),
-          right: rightSorted.join(", "),
-          merged: `[${merged.join(", ")}]`,
-        },
+        `Right sub-array exhausted: flushing remaining left element ${leftSorted[i]} into merged buffer.`,
+        makeElements([l, r]),
       );
-      merged.push(...remainingRight);
-      j = rightSorted.length;
+      i++;
+      updateCurrentArr();
+    }
+
+    while (j < rightSorted.length) {
+      merged.push(rightSorted[j]);
+      addStep(
+        `Left sub-array exhausted: flushing remaining right element ${rightSorted[j]} into merged buffer.`,
+        makeElements([l, r]),
+      );
+      j++;
       updateCurrentArr();
     }
 
@@ -393,18 +323,8 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
     }
 
     addStep(
-      18,
-      `Return merged sub-array [${merged.join(", ")}]`,
-      `Completed merging subproblem [${l}..${r}]. Returning sorted result: [${merged.join(", ")}].`,
-      { merged: merged.join(", ") },
-      [l, r],
-      undefined,
-      Array.from(sortedIndicesSet),
-      {
-        left: leftSorted.join(", "),
-        right: rightSorted.join(", "),
-        merged: `[${merged.join(", ")}]`,
-      },
+      `Completed merging for interval [${l}..${r}]: result is [${merged.join(", ")}].`,
+      makeElements([l, r], undefined, Array.from(sortedIndicesSet)),
     );
 
     return merged;
@@ -413,26 +333,13 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
   sortSubarray(0, n - 1);
 
   addStep(
-    18,
-    "Merge Sort complete",
-    `Entire array is fully sorted in O(N log N) time: [${currentArr.join(", ")}].`,
-    { n, finalArray: currentArr.join(", ") },
-    undefined,
-    undefined,
-    Array.from({ length: n }, (_, idx) => idx),
-  );
-
-  while (steps.length < 20) {
-    addStep(
-      18,
-      `Verification step ${steps.length + 1}`,
-      `Verifying total array sorted order across all ${n} elements.`,
-      { n },
+    `Completed Merge Sort: entire array of ${n} elements is fully sorted in O(N log N) time: [${currentArr.join(", ")}].`,
+    makeElements(
       undefined,
       undefined,
       Array.from({ length: n }, (_, idx) => idx),
-    );
-  }
+    ),
+  );
 
   return steps;
 };
@@ -514,12 +421,13 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
   topicIds: ["two_pointers"],
   difficulty: "Medium",
   description:
-    "<p><strong>Merge Sort</strong> is a classic stable divide-and-conquer sorting algorithm that guarantees <code>O(N log N)</code> runtime.</p><h3>Why It Exists &amp; What It Solves</h3><p>Quick Sort offers fast in-place performance on average but suffers from an <code>O(N²)</code> worst-case runtime. Merge Sort solves this by guaranteeing a strict <code>O(N log N)</code> worst-case bound regardless of input ordering. Additionally, Merge Sort is a stable sort and streams data sequentially, making it the ideal foundation for external disk-based sorting (External Merge Sort).</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Divide</strong>: Split array of length <code>N</code> at midpoint <code>mid = &lfloor;N / 2&rfloor;</code> into <code>left</code> and <code>right</code> sub-arrays.</li><li><strong>Conquer</strong>: Recursively invoke <code>merge_sort</code> on <code>left</code> and <code>right</code> until base case <code>N &le; 1</code> is hit.</li><li><strong>Combine (Two-Pointer Merge)</strong>: Maintain pointers <code>i</code> and <code>j</code> at the start of <code>left</code> and <code>right</code>. Repeatedly select <code>min(left[i], right[j])</code> and append to <code>merged</code>. When equal, pick <code>left[i]</code> to preserve stability.</li><li><strong>Flush Tail</strong>: Append remaining elements <code>left[i:]</code> or <code>right[j:]</code> to <code>merged</code> and return.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input</strong>: <code>arr</code> (<code>number[]</code>), an un-sorted array of integers.</li><li><strong>Output</strong>: <code>number[]</code>, a new array sorted in non-decreasing order.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity</strong>: <code>O(N log N)</code> in best, average, and worst cases because the array is always halved <code>log₂ N</code> times.</li><li><strong>Space Complexity</strong>: <code>O(N)</code> auxiliary space for temporary <code>merged</code> buffers.</li></ul>",
+    "<p>Given an array of integers <code>array</code>, sort the array in non-decreasing order using the Merge Sort algorithm.</p><p><strong>Input:</strong> An array of integers <code>array</code>.</p><p><strong>Output:</strong> The array sorted in non-decreasing order.</p>",
   constraints: ["1 <= N <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Basic Example",
+      scenario: "standard",
+      title: "Standard Case",
       inputDisplay: "arr = [38, 27, 43, 3, 9, 82, 10]",
       outputDisplay: "arr = [3, 9, 10, 27, 38, 43, 82]",
       input: { array: [38, 27, 43, 3, 9, 82, 10] },
@@ -528,7 +436,8 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
     },
     {
       kind: "complex",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      title: "Adversarial Negative and Mixed Array",
       inputDisplay: "arr = [10, -5, 20, -15, 0, 5]",
       outputDisplay: "arr = [-15, -5, 0, 5, 10, 20]",
       input: { array: [10, -5, 20, -15, 0, 5] },
@@ -537,7 +446,8 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
     },
     {
       kind: "negative",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      title: "Single Element Boundary",
       inputDisplay: "arr = [7]",
       outputDisplay: "arr = [7]",
       input: { array: [7] },

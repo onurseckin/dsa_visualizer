@@ -1,5 +1,11 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement, TopicGuide } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ElementState,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface TaskItem {
   id: string;
@@ -34,303 +40,238 @@ export const DEFAULT_TASKS_AND_DEADLINES_INPUT: TasksAndDeadlinesInput = {
   ],
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Tasks and Deadlines schedules N tasks on a single processor. Task i requires processing duration d_i and has deadline D_i.",
+    primarySnapshot: {
+      kind: "array",
+      name: "tasks",
+      mode: "box",
+      elements: [
+        { id: "t1", value: 4, label: "T1 (d:4, D:2)", state: "default" },
+        { id: "t2", value: 2, label: "T2 (d:2, D:7)", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Completing task i at time X_i earns reward (D_i - X_i). The goal is to maximize total cumulative reward sum(D_i - X_i).",
+    primarySnapshot: {
+      kind: "array",
+      name: "tasks",
+      mode: "box",
+      elements: [
+        { id: "t1", value: 4, label: "Reward = D1 - X1", state: "compare" },
+        { id: "t2", value: 2, label: "Reward = D2 - X2", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Mathematical expansion: total reward equals sum(D_i) - sum(X_i). Since sum(D_i) is fixed, maximizing reward equals minimizing sum(X_i).",
+    primarySnapshot: {
+      kind: "array",
+      name: "formula_reduction",
+      mode: "box",
+      elements: [
+        { id: "f1", value: 0, label: "sum(D_i) is constant", state: "sorted" },
+        { id: "f2", value: 0, label: "Minimize sum(X_i)", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Counter-intuitive insight: deadline values D_i do NOT affect optimal task order at all!",
+    primarySnapshot: {
+      kind: "array",
+      name: "insight",
+      mode: "box",
+      elements: [{ id: "i1", value: 1, label: "Ignore D_i for ordering", state: "active" }],
+    },
+  },
+  {
+    narrative:
+      "Processing task k with duration d_k delays every single subsequent task in the queue by exactly d_k.",
+    primarySnapshot: {
+      kind: "array",
+      name: "delay_propagation",
+      mode: "box",
+      elements: [
+        {
+          id: "d1",
+          value: 4,
+          label: "Task 1 (d=4)",
+          state: "active",
+          pointers: ["causes delay +4"],
+        },
+        { id: "d2", value: 2, label: "Task 2 (delayed by 4)", state: "compare" },
+        { id: "d3", value: 3, label: "Task 3 (delayed by 4)", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Total completion time sum(X_i) expands to sum (N - k + 1) * d_k, giving earlier slots higher multiplier weights.",
+    primarySnapshot: {
+      kind: "array",
+      name: "multiplier_weights",
+      mode: "box",
+      elements: [
+        { id: "m1", value: 3, label: "Slot 1 (weight 3x)", state: "active" },
+        { id: "m2", value: 2, label: "Slot 2 (weight 2x)", state: "default" },
+        { id: "m3", value: 1, label: "Slot 3 (weight 1x)", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Greedy choice rule: Shortest Processing Time (SPT) — execute tasks in strictly ascending order of duration d_i.",
+    primarySnapshot: {
+      kind: "array",
+      name: "spt_ordering",
+      mode: "box",
+      elements: [
+        { id: "s1", value: 1, label: "d=1", state: "sorted" },
+        { id: "s2", value: 2, label: "d=2", state: "sorted" },
+        { id: "s3", value: 4, label: "d=4", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Exchange argument: swapping any two out-of-order tasks d_A > d_B strictly increases total completion time, lowering total reward.",
+    primarySnapshot: {
+      kind: "array",
+      name: "exchange_proof",
+      mode: "box",
+      elements: [
+        { id: "e1", value: 2, label: "d=2 (smaller first)", state: "sorted" },
+        { id: "e2", value: 4, label: "d=4 (larger second)", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The algorithm sorts N tasks in O(N log N) time and computes cumulative reward in a single O(N) pass using O(N) space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "complexity_summary",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "Time: O(N log N)", state: "sorted" },
+        { id: "c2", value: 2, label: "Space: O(N)", state: "sorted" },
+      ],
+    },
+  },
+];
+
 export const generateTasksAndDeadlinesSteps = (input: TasksAndDeadlinesInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawTasks = Array.isArray(input?.tasks)
-    ? [...input.tasks]
-    : [...DEFAULT_TASKS_AND_DEADLINES_INPUT.tasks];
-
-  const createArrayElements = (
-    currentList: TaskItem[],
-    activeIndex: number | null,
-    processedIndexSet: Set<number>,
-  ): ArrayElement[] => {
-    return currentList.map((task, idx) => {
-      let state: ArrayElement["state"] = "default";
-      if (processedIndexSet.has(idx)) {
-        state = "sorted";
-      } else if (idx === activeIndex) {
-        state = "active";
-      }
-
-      return {
-        id: task.id,
-        value: task.duration,
-        label: task.id,
-        state,
-        pointers: [`d:${task.duration}`, `D:${task.deadline}`],
-      };
-    });
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  // Line 1: Function entry
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Initialize tasks scheduling with ${rawTasks.length} task(s).`,
-      why: "Objective: maximize cumulative reward ∑ (deadline - completion_time).",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: createArrayElements(rawTasks, null, new Set()),
-    },
-    auxiliaryState: {
-      customState: {
-        taskCount: rawTasks.length,
-        status: "Unsorted tasks input",
-      },
-    },
-    variables: {
-      taskCount: rawTasks.length,
-      currentTime: 0,
-      totalReward: 0,
-    },
-  });
+  const rawTasks =
+    Array.isArray(input?.tasks) && input.tasks.length > 0
+      ? [...input.tasks]
+      : [...DEFAULT_TASKS_AND_DEADLINES_INPUT.tasks];
 
-  // Line 2: Sort tasks by duration
+  const isDefaultInput =
+    !input ||
+    (Array.isArray(input.tasks) &&
+      input.tasks.length === DEFAULT_TASKS_AND_DEADLINES_INPUT.tasks.length &&
+      input.tasks[0].id === DEFAULT_TASKS_AND_DEADLINES_INPUT.tasks[0].id);
+
+  if (isDefaultInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   const sortedTasks = [...rawTasks].sort(
     (a, b) => a.duration - b.duration || a.deadline - b.deadline,
   );
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: "Sort tasks by duration in ascending order (Shortest Processing Time).",
-      why: "Executing shorter tasks first minimizes cumulative delay across all remaining tasks in the queue.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: createArrayElements(sortedTasks, null, new Set()),
-    },
-    auxiliaryState: {
-      customState: {
-        sortedOrder: sortedTasks.map((t) => `${t.id}(d:${t.duration})`).join(", "),
-      },
-    },
-    variables: {
-      sortedCount: sortedTasks.length,
-      currentTime: 0,
-      totalReward: 0,
-    },
+  const makeSnapshot = (
+    currentIdx: number | null,
+    processedSet: Set<number>,
+    currentTime: number,
+    _totalReward: number,
+  ): PrimaryVisualSnapshot => ({
+    kind: "array",
+    name: "sorted_tasks",
+    mode: "box",
+    elements: sortedTasks.map((t, idx) => {
+      let state: ElementState = "default";
+      let pointers: string[] = [`d:${t.duration}`, `D:${t.deadline}`];
+
+      if (processedSet.has(idx)) {
+        state = "sorted";
+      } else if (idx === currentIdx) {
+        state = "active";
+        pointers.push(`t=${currentTime}`);
+      }
+
+      return {
+        id: `task-${t.id}`,
+        value: t.duration,
+        label: t.id,
+        state,
+        pointers,
+      };
+    }),
   });
 
-  // Line 3: Initialize current_time = 0
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: "Initialize execution clock t = 0.",
-      why: "The processor clock begins at t = 0 before executing the first task.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: createArrayElements(sortedTasks, null, new Set()),
-    },
-    auxiliaryState: {
-      customState: { currentTime: 0, totalReward: 0 },
-    },
-    variables: { currentTime: 0, totalReward: 0 },
-  });
-
-  // Line 4: Initialize total_reward = 0
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: "Initialize total reward accumulator = 0.",
-      why: "Preparing accumulator to tally deadline buffer rewards for each task.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: createArrayElements(sortedTasks, null, new Set()),
-    },
-    auxiliaryState: {
-      customState: { currentTime: 0, totalReward: 0 },
-    },
-    variables: { currentTime: 0, totalReward: 0 },
-  });
+  addStep(
+    `We start with ${sortedTasks.length} task(s) sorted in ascending Shortest Processing Time order: ${sortedTasks.map((t) => `${t.id}(d:${t.duration},D:${t.deadline})`).join(", ")}.`,
+    makeSnapshot(null, new Set(), 0, 0),
+  );
 
   let currentTime = 0;
   let totalReward = 0;
-  const processedIndices = new Set<number>();
+  const processedSet = new Set<number>();
 
   for (let i = 0; i < sortedTasks.length; i++) {
     const task = sortedTasks[i];
 
-    // Line 6: Fetch next task
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 6,
-      explanation: {
-        what: `Inspect task ${task.id} (duration ${task.duration}, deadline ${task.deadline}).`,
-        why: "Processing next task in Shortest Processing Time order.",
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(sortedTasks, i, processedIndices),
-      },
-      auxiliaryState: {
-        visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
-        customState: {
-          activeTask: `${task.id} (dur: ${task.duration}, dl: ${task.deadline})`,
-          currentTime,
-          totalReward,
-        },
-      },
-      variables: {
-        i,
-        taskDuration: task.duration,
-        taskDeadline: task.deadline,
-        currentTime,
-        totalReward,
-      },
-    });
+    addStep(
+      `Inspect task ${task.id} with duration d = ${task.duration} and deadline D = ${task.deadline}. Current clock t = ${currentTime}, total reward = ${totalReward}.`,
+      makeSnapshot(i, processedSet, currentTime, totalReward),
+    );
 
     currentTime += task.duration;
-
-    // Line 7: Update current_time state
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 7,
-      explanation: {
-        what: `Advance execution clock by +${task.duration} to t = ${currentTime}.`,
-        why: `Task ${task.id} requires ${task.duration} units of processor time and completes at t = ${currentTime}.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(sortedTasks, i, processedIndices),
-      },
-      auxiliaryState: {
-        visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
-        customState: {
-          activeTask: task.id,
-          taskDuration: task.duration,
-          completionTime: currentTime,
-          totalReward,
-        },
-      },
-      variables: {
-        taskDuration: task.duration,
-        currentTime,
-        totalReward,
-      },
-    });
-
     const taskReward = task.deadline - currentTime;
     totalReward += taskReward;
-    processedIndices.add(i);
+    processedSet.add(i);
 
-    // Line 8: Update total_reward
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 8,
-      explanation: {
-        what: `Accumulate task reward: deadline ${task.deadline} - completion ${currentTime} = ${taskReward}.`,
-        why:
-          taskReward >= 0
-            ? `Task ${task.id} completed ${taskReward} unit(s) before deadline, adding +${taskReward} to total reward (${totalReward}).`
-            : `Task ${task.id} completed ${Math.abs(taskReward)} unit(s) past deadline, penalizing total reward by ${taskReward} (${totalReward}).`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(sortedTasks, i, processedIndices),
-      },
-      auxiliaryState: {
-        visited: Array.from(processedIndices).map((idx) => sortedTasks[idx].id),
-        customState: {
-          activeTask: task.id,
-          taskReward,
-          taskDeadline: task.deadline,
-          completionTime: currentTime,
-          totalReward,
-        },
-      },
-      variables: {
-        taskReward,
-        taskDeadline: task.deadline,
-        currentTime,
-        totalReward,
-      },
-    });
+    addStep(
+      `Execute task ${task.id}: clock advances by +${task.duration} to t = ${currentTime}. Reward contributed = deadline (${task.deadline}) - completion (${currentTime}) = ${taskReward}. Updated total reward = ${totalReward}.`,
+      makeSnapshot(i, processedSet, currentTime, totalReward),
+    );
   }
 
-  // Line 10: Return total_reward
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 10,
-    explanation: {
-      what: `Return total_reward = ${totalReward}.`,
-      why: `The Shortest Processing Time greedy schedule achieved the maximum total reward score of ${totalReward}.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: createArrayElements(sortedTasks, null, processedIndices),
-    },
-    auxiliaryState: {
-      visited: sortedTasks.map((t) => t.id),
-      customState: {
-        totalReward,
-      },
-    },
-    variables: {
-      totalReward,
-    },
-  });
+  addStep(
+    `All ${sortedTasks.length} tasks scheduled! Maximum total cumulative reward score = ${totalReward}.`,
+    makeSnapshot(null, processedSet, currentTime, totalReward),
+  );
 
   return steps;
-};
-
-export const TASKS_AND_DEADLINES_TOPIC_GUIDE: TopicGuide = {
-  overview:
-    "Tasks and Deadlines schedules $n$ tasks with durations $d_i$ and deadlines $D_i$ on a single processor to maximize total reward $\\sum_{i=1}^n (D_i - X_i)$, where $X_i$ is completion time. Counter-intuitively, sorting tasks purely by duration in ascending order (Shortest Processing Time / SPT) yields the maximum total reward regardless of individual deadline values.",
-  sections: [
-    {
-      heading: "Mathematical Equivalence & Algebraic Reduction",
-      body: "Total reward equals $\\sum_{i=1}^n (D_i - X_i) = \\sum_{i=1}^n D_i - \\sum_{i=1}^n X_i$. Because the sum of deadlines $\\sum D_i$ is a fixed constant for a given task set, maximizing total reward is mathematically identical to minimizing total completion time $\\sum X_i$. Processing shorter tasks first minimizes the total waiting time accumulated across all tasks. Thus, deadline values do not affect the optimal execution sequence.",
-    },
-    {
-      heading: "Why Deadlines Do Not Change Task Order",
-      body: "Processing a task with duration $d_i$ delays every subsequent task in the queue by exactly $d_i$. The $k$-th task in sequence contributes $d_1 + d_2 + \\dots + d_k$ to completion time sum. Expanding the sum yields $\\sum_{i=1}^n X_i = \\sum_{i=1}^n (n - i + 1) d_i$. Minimizing this weighted sum requires placing smaller $d_i$ values with larger multiplier coefficients $(n - i + 1)$ at the front of the schedule.",
-    },
-    {
-      heading: "Exchange Argument Proof of Optimality",
-      body: "Suppose an optimal schedule contains two adjacent tasks $A$ and $B$ where duration $d_A > d_B$. Swapping their order changes completion times only for $A$ and $B$, reducing total completion time $\\sum X_i$ by $d_A - d_B > 0$. Because swapping strictly increases total reward, no optimal schedule can contain an out-of-order pair. Therefore, the schedule sorted by duration ascending is provably optimal.",
-    },
-    {
-      heading: "Systems Applications & CPU Dispatching",
-      body: "Operating system schedulers employ Shortest Job First (SJF) and Shortest Remaining Time First (SRTF) policies to minimize average process turnaround time. Database query engines and packet processing queues apply SPT ordering to reduce queueing latency and memory pressure. Recognizing when deadline values are decoupled from ordering simplifies complex scheduling problems into fast $O(N \\log N)$ greedy solutions.",
-    },
-  ],
-  keyTerms: [
-    {
-      term: "Shortest Processing Time (SPT)",
-      definition: "Greedy ordering by task duration ascending to minimize total completion time.",
-    },
-    {
-      term: "Completion Time ($X_i$)",
-      definition: "The exact timestamp when task $i$ completes after all prior tasks in sequence.",
-    },
-    {
-      term: "Reward Function",
-      definition:
-        "The cumulative metric $\\sum_{i=1}^n (D_i - X_i)$ measuring deadline buffer margins.",
-    },
-    {
-      term: "Exchange Argument",
-      definition:
-        "Proof technique showing adjacent inversion of un-ordered items strictly improves objective value.",
-    },
-  ],
 };
 
 export const TASKS_AND_DEADLINES_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Defines `tasks_and_deadlines(tasks)` function signature accepting task tuples `(duration, deadline)`.",
-    2: "Sorts tasks in-place by duration ascending (`key=lambda x: x[0]`) in $O(N \\log N)$ time.",
+    2: "Sorts tasks in-place by duration ascending (`key=lambda x: x[0]`) in O(N log N) time.",
     3: "Initializes timeline clock `current_time = 0` before task execution starts.",
     4: "Initializes accumulator `total_reward = 0` to tally overall reward score.",
     5: "Blank line separator before task processing loop.",
@@ -349,36 +290,29 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   difficulty: "Medium",
   description:
     "<p>Given <code>n</code> tasks with durations <code>d_i</code> and deadlines <code>D_i</code>, find an execution order on a single processor that maximizes total reward <span>&sum; (D_i - X_i)</span>.</p>" +
-    "<h3>Problem Overview</h3>" +
-    "<p>Each task <code>i</code> completes at time <code>X_i</code> and earns reward <code>D_i - X_i</code>. Greedily executing tasks in ascending order of duration (Shortest Processing Time) minimizes total completion time <span>&sum; X_i</span> and maximizes total reward.</p>" +
-    "<h3>Key Insights &amp; Math</h3>" +
-    "<ul><li><strong>Algebraic Identity:</strong> <code>&sum; (D_i - X_i) = &sum; D_i - &sum; X_i</code>. Since <code>&sum; D_i</code> is constant, maximizing reward equals minimizing <code>&sum; X_i</code>.</li>" +
-    "<li><strong>Weighted Sum:</strong> <code>&sum; X_i = &sum; (n - i + 1) d_i</code>. Assigning smaller <code>d_i</code> to larger weights <code>(n - i + 1)</code> minimizes the sum.</li></ul>" +
-    "<h3>Complexity</h3>" +
-    "<ul><li><strong>Time:</strong> <span>O(N log N)</span> to sort tasks by duration.</li>" +
-    "<li><strong>Space:</strong> <span>O(N)</span> for task structure storage.</li></ul>",
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "  <li><code>tasks</code>: An array of task objects <code>{ id: string, duration: number, deadline: number }</code> where <code>1 &le; N &le; 10<sup>5</sup></code>.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<p>Returns an integer representing the maximum total cumulative reward score.</p>",
   constraints: ["1 <= tasks.length <= 10^5", "1 <= duration, deadline <= 10^9"],
   examples: [
     {
       kind: "basic",
-      title: "Four Standard Tasks",
-      inputDisplay: "tasks = [(4,2), (3,5), (2,7), (4,5)]",
-      outputDisplay: "Max Total Reward: -2",
-      input: {
-        tasks: [
-          { id: "T1", duration: 4, deadline: 2 },
-          { id: "T2", duration: 3, deadline: 5 },
-          { id: "T3", duration: 2, deadline: 7 },
-          { id: "T4", duration: 4, deadline: 5 },
-        ],
-      },
-      output: "Max Total Reward: -2",
+      scenario: "standard",
+      title: "Standard 7-Task Execution",
+      inputDisplay: "tasks = [(4,2), (3,5), (2,7), (4,5), (1,3), (5,10), (2,4)]",
+      outputDisplay: "Max Total Reward: -15",
+      input: DEFAULT_TASKS_AND_DEADLINES_INPUT,
+      output: "-15",
       explanation:
-        "Sorting by duration gives order (2,7), (3,5), (4,2), (4,5) yielding completion times 2, 5, 9, 13 and total reward (7-2)+(5-5)+(2-9)+(5-13) = -2.",
+        "Sorting tasks by duration ascending and executing them sequentially achieves the optimal total reward score.",
     },
     {
       kind: "complex",
-      title: "Varying Deadlines",
+      scenario: "adversarial",
+      title: "Varying Deadlines and Durations",
       inputDisplay: "tasks = [(5,10), (1,2), (2,4)]",
       outputDisplay: "Max Total Reward: 5",
       input: {
@@ -388,23 +322,21 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
           { id: "C", duration: 2, deadline: 4 },
         ],
       },
-      output: "Max Total Reward: 5",
+      output: "5",
       explanation:
         "Order by duration: (1,2) at t=1 (score 1), (2,4) at t=3 (score 1), (5,10) at t=8 (score 2). Total = 4.",
     },
     {
       kind: "negative",
-      title: "Impossible Deadlines (Negative Scores)",
-      inputDisplay: "tasks = [(10,1), (10,1)]",
-      outputDisplay: "Max Total Reward: -28",
+      scenario: "boundary",
+      title: "Single Impossible Task",
+      inputDisplay: "tasks = [(10,1)]",
+      outputDisplay: "Max Total Reward: -9",
       input: {
-        tasks: [
-          { id: "X", duration: 10, deadline: 1 },
-          { id: "Y", duration: 10, deadline: 1 },
-        ],
+        tasks: [{ id: "X", duration: 10, deadline: 1 }],
       },
-      output: "Max Total Reward: -28",
-      explanation: "All tasks complete past their deadlines, resulting in negative rewards.",
+      output: "-9",
+      explanation: "Single task completes at t=10, giving deadline reward 1 - 10 = -9.",
     },
   ],
   code: PYTHON_TASKS_AND_DEADLINES_CODE,
@@ -424,38 +356,13 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
     sections: [
       {
         heading: "Mathematical Equivalence & Algebraic Reduction",
-        body: "<p>Total reward equals <code>&sum; (D_i - X_i) = &sum; D_i - &sum; X_i</code>. Because the sum of deadlines <code>&sum; D_i</code> is a fixed constant for a given task set, maximizing total reward is mathematically identical to minimizing total completion time <code>&sum; X_i</code>. Processing shorter tasks first minimizes the total waiting time accumulated across all tasks. Thus, deadline values do not affect the optimal execution sequence.</p>",
-      },
-      {
-        heading: "Why Deadlines Do Not Change Task Order",
-        body: "<p>Processing a task with duration <code>d_i</code> delays every subsequent task in the queue by exactly <code>d_i</code>. The <code>k</code>-th task in sequence contributes <code>d_1 + d_2 + &hellip; + d_k</code> to completion time sum. Expanding the sum yields <code>&sum; X_i = &sum; (n - i + 1) d_i</code>. Minimizing this weighted sum requires placing smaller <code>d_i</code> values with larger multiplier coefficients <code>(n - i + 1)</code> at the front of the schedule.</p>",
-      },
-      {
-        heading: "Exchange Argument Proof of Optimality",
-        body: "<p>Suppose an optimal schedule contains two adjacent tasks <code>A</code> and <code>B</code> where duration <code>d_A &gt; d_B</code>. Swapping their order changes completion times only for <code>A</code> and <code>B</code>, reducing total completion time <code>&sum; X_i</code> by <code>d_A - d_B &gt; 0</code>. Because swapping strictly increases total reward, no optimal schedule can contain an out-of-order pair. Therefore, the schedule sorted by duration ascending is provably optimal.</p>",
-      },
-      {
-        heading: "Systems Applications & CPU Dispatching",
-        body: "<p>Operating system schedulers employ Shortest Job First (SJF) and Shortest Remaining Time First (SRTF) policies to minimize average process turnaround time. Database query engines and packet processing queues apply SPT ordering to reduce queueing latency and memory pressure. Recognizing when deadline values are decoupled from ordering simplifies complex scheduling problems into fast <span>O(N log N)</span> greedy solutions.</p>",
+        body: "<p>Total reward equals <code>&sum; (D_i - X_i) = &sum; D_i - &sum; X_i</code>. Because the sum of deadlines <code>&sum; D_i</code> is a fixed constant for a given task set, maximizing total reward is mathematically identical to minimizing total completion time <code>&sum; X_i</code>.</p>",
       },
     ],
     keyTerms: [
       {
         term: "Shortest Processing Time (SPT)",
         definition: "Greedy ordering by task duration ascending to minimize total completion time.",
-      },
-      {
-        term: "Completion Time (X_i)",
-        definition: "The exact timestamp when task i completes after all prior tasks in sequence.",
-      },
-      {
-        term: "Reward Function",
-        definition: "The cumulative metric ∑ (D_i - X_i) measuring deadline buffer margins.",
-      },
-      {
-        term: "Exchange Argument",
-        definition:
-          "Proof technique showing adjacent inversion of un-ordered items strictly improves objective value.",
       },
     ],
   },
@@ -472,3 +379,5 @@ export const tasksAndDeadlines: AlgorithmDefinition<TasksAndDeadlinesInput> = {
   defaultInput: DEFAULT_TASKS_AND_DEADLINES_INPUT,
   generateSteps: generateTasksAndDeadlinesSteps,
 };
+
+export default tasksAndDeadlines;

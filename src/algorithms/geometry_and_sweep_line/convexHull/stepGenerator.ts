@@ -4,7 +4,10 @@ import type {
   GraphEdgeItem,
   GraphNodeItem,
   GraphVisualSnapshot,
+  PrimaryVisualSnapshot,
 } from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
+import { DEFAULT_CONVEX_HULL_INPUT } from "./definition";
 
 export interface Point2D {
   x: number;
@@ -17,34 +20,176 @@ export interface ConvexHullInput {
   points: Point2D[];
 }
 
-const FALLBACK_POINTS: Required<Point2D>[] = [
-  { x: 100, y: 300, id: "P0", label: "P0" },
-  { x: 150, y: 150, id: "P1", label: "P1" },
-  { x: 250, y: 100, id: "P2", label: "P2" },
-  { x: 300, y: 250, id: "P3", label: "P3" },
-  { x: 400, y: 350, id: "P4", label: "P4" },
-  { x: 200, y: 400, id: "P5", label: "P5" },
-  { x: 350, y: 180, id: "P6", label: "P6" },
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Given a set of 2D points on a Cartesian plane, the Convex Hull problem asks us to find the minimal convex polygon that encloses all points.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1", x: 100, y: 300, state: "default" },
+        { id: "p2", label: "P2", x: 250, y: 100, state: "default" },
+        { id: "p3", label: "P3", x: 400, y: 350, state: "default" },
+        { id: "p4", label: "P4", x: 250, y: 250, state: "default" },
+      ],
+      edges: [],
+    },
+  },
+  {
+    narrative:
+      "A useful physical mental model is imagining pins driven into the plane at every point, then stretching an elastic rubber band around all pins.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1", x: 100, y: 300, state: "sorted" },
+        { id: "p2", label: "P2", x: 250, y: 100, state: "sorted" },
+        { id: "p3", label: "P3", x: 400, y: 350, state: "sorted" },
+        { id: "p4", label: "P4 (interior)", x: 250, y: 250, state: "default" },
+      ],
+      edges: [
+        { from: "p1", to: "p2", isPath: true, isTraversed: true },
+        { from: "p2", to: "p3", isPath: true, isTraversed: true },
+        { from: "p3", to: "p1", isPath: true, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Naive verification tests every line segment connecting pairs of points to check if all remaining points lie on one side, taking O(N³) time.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1", x: 100, y: 300, state: "active" },
+        { id: "p4", label: "P4", x: 250, y: 250, state: "active" },
+        { id: "p2", label: "P2", x: 250, y: 100, state: "compare" },
+        { id: "p3", label: "P3", x: 400, y: 350, state: "compare" },
+      ],
+      edges: [{ from: "p1", to: "p4", isPath: true }],
+    },
+  },
+  {
+    narrative:
+      "Andrew's Monotone Chain algorithm begins by sorting points lexicographically by x-coordinate (breaking ties by y-coordinate).",
+    primarySnapshot: {
+      kind: "array",
+      name: "lexicographical_sort",
+      mode: "box",
+      elements: [
+        { id: "sp1", value: 100, label: "P1 (x:100)", state: "sorted" },
+        { id: "sp2", value: 250, label: "P2 (x:250)", state: "sorted" },
+        { id: "sp3", value: 250, label: "P4 (x:250)", state: "sorted" },
+        { id: "sp4", value: 400, label: "P3 (x:400)", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Orientation test: the 2D cross product cross(O, A, B) = (A.x - O.x)(B.y - O.y) - (A.y - O.y)(B.x - O.x) determines turn direction.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "o", label: "O (Origin)", x: 100, y: 300, state: "active" },
+        { id: "a", label: "A", x: 250, y: 100, state: "active" },
+        { id: "b", label: "B", x: 400, y: 350, state: "compare" },
+      ],
+      edges: [
+        { from: "o", to: "a", isPath: true },
+        { from: "a", to: "b", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A strictly positive cross product (> 0) represents a counter-clockwise left turn, keeping the new point on the outer convex boundary.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "o", label: "O", x: 100, y: 300, state: "sorted" },
+        { id: "a", label: "A", x: 250, y: 100, state: "sorted" },
+        { id: "b", label: "B (Left Turn)", x: 300, y: 250, state: "sorted" },
+      ],
+      edges: [
+        { from: "o", to: "a", isPath: true, isTraversed: true },
+        { from: "a", to: "b", isPath: true, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A cross product ≤ 0 represents a right turn or straight line, creating an interior dent. The middle point must be popped from the hull stack.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "o", label: "O", x: 100, y: 300, state: "sorted" },
+        { id: "a", label: "A (Popped Dent)", x: 250, y: 250, state: "visited" },
+        { id: "b", label: "B", x: 400, y: 350, state: "sorted" },
+      ],
+      edges: [{ from: "o", to: "b", isPath: true, isTraversed: true }],
+    },
+  },
+  {
+    narrative:
+      "The algorithm splits the boundary into a Lower Chain (swept left-to-right) and an Upper Chain (swept right-to-left).",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1 (Min X)", x: 100, y: 300, state: "active" },
+        { id: "p2", label: "P2", x: 250, y: 100, state: "sorted" },
+        { id: "p3", label: "P3 (Max X)", x: 400, y: 350, state: "active" },
+      ],
+      edges: [{ from: "p1", to: "p2", isPath: true, isTraversed: true }],
+    },
+  },
+  {
+    narrative:
+      "Combining lower and upper chains yields the complete convex hull in O(N log N) time due to sorting, using O(N) space.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1", x: 100, y: 300, state: "sorted" },
+        { id: "p2", label: "P2", x: 250, y: 100, state: "sorted" },
+        { id: "p3", label: "P3", x: 400, y: 350, state: "sorted" },
+      ],
+      edges: [
+        { from: "p1", to: "p2", isPath: true, isTraversed: true },
+        { from: "p2", to: "p3", isPath: true, isTraversed: true },
+        { from: "p3", to: "p1", isPath: true, isTraversed: true },
+      ],
+    },
+  },
 ];
 
-export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[] => {
+export function generateConvexHullSteps(input: ConvexHullInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const rawPoints = Array.isArray(input?.points) ? input.points : FALLBACK_POINTS;
-  let stepIndex = 0;
+  let stepIdx = 0;
 
-  if (!rawPoints || rawPoints.length === 0) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 3,
-      explanation: {
-        what: "Check the input points",
-        why: "There are no points to wrap, so we stop — a hull needs at least one point to exist.",
-      },
-      primarySnapshot: { kind: "graph", nodes: [], edges: [] },
-      auxiliaryState: { stack: [], visited: [] },
-      variables: { totalPoints: 0, hullSize: 0 },
-    });
-    return steps;
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIdx++, phase, narrative, primarySnapshot }));
+  };
+
+  const rawPoints =
+    Array.isArray(input?.points) && input.points.length > 0
+      ? input.points
+      : DEFAULT_CONVEX_HULL_INPUT.points;
+
+  const isDefaultInput =
+    !input ||
+    (Array.isArray(input.points) &&
+      input.points.length === DEFAULT_CONVEX_HULL_INPUT.points.length &&
+      input.points[0].x === DEFAULT_CONVEX_HULL_INPUT.points[0].x &&
+      input.points[0].y === DEFAULT_CONVEX_HULL_INPUT.points[0].y);
+
+  if (isDefaultInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
   }
 
   const points: Required<Point2D>[] = rawPoints.map((p, idx) => ({
@@ -90,36 +235,10 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
   };
 
   if (points.length <= 3) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 3,
-      explanation: {
-        what: `Check if point count (${points.length}) <= 3`,
-        why: "A set of 3 or fewer points is trivially convex; all points lie on the hull.",
-      },
-      primarySnapshot: createGraphSnapshot(undefined, points, true),
-      auxiliaryState: {
-        stack: points.map((p) => p.id),
-        visited: points.map((p) => p.id),
-        customState: { phase: "Base Case", count: points.length },
-      },
-      variables: { totalPoints: points.length, hullSize: points.length },
-    });
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 4,
-      explanation: {
-        what: `Return all ${points.length} points as the hull`,
-        why: "With 3 or fewer points, no interior points need to be eliminated.",
-      },
-      primarySnapshot: createGraphSnapshot(undefined, points, true),
-      auxiliaryState: {
-        stack: points.map((p) => p.id),
-        visited: points.map((p) => p.id),
-        customState: { phase: "Complete", count: points.length },
-      },
-      variables: { totalPoints: points.length, hullVerticesCount: points.length },
-    });
+    addStep(
+      `Point set contains ${points.length} point(s) (<= 3). A set of 3 or fewer points is trivially convex.`,
+      createGraphSnapshot(undefined, points, true),
+    );
     return steps;
   }
 
@@ -128,21 +247,10 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
   const cross = (o: Point2D, a: Point2D, b: Point2D): number =>
     (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: `Sort ${points.length} points left to right`,
-      why: "We order the points by x (then y) so we can sweep across the plane once for the lower boundary and once back for the upper — each half of the hull then builds up with a simple stack.",
-    },
-    primarySnapshot: createGraphSnapshot(),
-    auxiliaryState: {
-      stack: [],
-      visited: sorted.map((p) => p.id),
-      customState: { phase: "Start", sortedPoints: sorted.map((p) => p.id).join(", ") },
-    },
-    variables: { totalPoints: points.length },
-  });
+  addStep(
+    `Sort all ${points.length} points lexicographically by x-coordinate: ${sorted.map((p) => p.id).join(", ")}.`,
+    createGraphSnapshot(),
+  );
 
   const lower: Required<Point2D>[] = [];
   for (const p of sorted) {
@@ -150,41 +258,16 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
       const popped = lower.pop()!;
       const prevO = lower[lower.length - 1];
       const crossVal = cross(prevO, popped, p);
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 14,
-        explanation: {
-          what: `Pop ${popped.id} from the lower hull`,
-          why: `Walking from ${prevO.id} through ${popped.id} to ${p.id} turns clockwise or goes straight (cross product ${crossVal} <= 0), which would dent the boundary inward — so ${popped.id} can't be a corner of the hull.`,
-        },
-        primarySnapshot: createGraphSnapshot(p.id, [...lower, p]),
-        auxiliaryState: {
-          stack: lower.map((lp) => lp.id),
-          customState: {
-            phase: "Lower Hull",
-            action: "Pop",
-            poppedPoint: popped.id,
-            crossProduct: crossVal,
-          },
-        },
-        variables: { currentPoint: p.id, lowerHullSize: lower.length },
-      });
+      addStep(
+        `Turn from ${prevO.id} through ${popped.id} to ${p.id} makes a right/straight turn (cross product ${crossVal} <= 0). Pop interior point ${popped.id} from lower hull stack.`,
+        createGraphSnapshot(p.id, [...lower, p]),
+      );
     }
     lower.push(p);
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 15,
-      explanation: {
-        what: `Push ${p.id} onto the lower hull`,
-        why: `From here the boundary keeps turning left, so ${p.id} stands as a valid corner of the lower chain — at least until a later point proves otherwise.`,
-      },
-      primarySnapshot: createGraphSnapshot(p.id, lower),
-      auxiliaryState: {
-        stack: lower.map((lp) => lp.id),
-        customState: { phase: "Lower Hull", action: "Push", currentPoint: p.id },
-      },
-      variables: { currentPoint: p.id, lowerHullSize: lower.length },
-    });
+    addStep(
+      `Push point ${p.id} onto lower hull stack. Current lower hull contains ${lower.length} point(s): ${lower.map((lp) => lp.id).join(" -> ")}.`,
+      createGraphSnapshot(p.id, lower),
+    );
   }
 
   const upper: Required<Point2D>[] = [];
@@ -194,61 +277,26 @@ export const generateConvexHullSteps = (input: ConvexHullInput): AlgorithmStep[]
       const popped = upper.pop()!;
       const prevO = upper[upper.length - 1];
       const crossVal = cross(prevO, popped, p);
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 20,
-        explanation: {
-          what: `Pop ${popped.id} from the upper hull`,
-          why: `Scanning right to left now, ${p.id} makes a non-left turn through ${popped.id} (cross product ${crossVal} <= 0), so ${popped.id} sits inside the upper boundary and gets discarded.`,
-        },
-        primarySnapshot: createGraphSnapshot(p.id, [...upper, p]),
-        auxiliaryState: {
-          stack: upper.map((up) => up.id),
-          customState: {
-            phase: "Upper Hull",
-            action: "Pop",
-            poppedPoint: popped.id,
-            crossProduct: crossVal,
-          },
-        },
-        variables: { currentPoint: p.id, upperHullSize: upper.length },
-      });
+      addStep(
+        `Sweeping right-to-left, turn from ${prevO.id} through ${popped.id} to ${p.id} makes a right/straight turn (cross product ${crossVal} <= 0). Pop interior point ${popped.id} from upper hull stack.`,
+        createGraphSnapshot(p.id, [...upper, p]),
+      );
     }
     upper.push(p);
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 21,
-      explanation: {
-        what: `Push ${p.id} onto the upper hull`,
-        why: `The turn stays counter-clockwise, so ${p.id} holds a spot on the upper chain for now.`,
-      },
-      primarySnapshot: createGraphSnapshot(p.id, upper),
-      auxiliaryState: {
-        stack: upper.map((up) => up.id),
-        customState: { phase: "Upper Hull", action: "Push", currentPoint: p.id },
-      },
-      variables: { currentPoint: p.id, upperHullSize: upper.length },
-    });
+    addStep(
+      `Push point ${p.id} onto upper hull stack. Current upper hull contains ${upper.length} point(s): ${upper.map((up) => up.id).join(" -> ")}.`,
+      createGraphSnapshot(p.id, upper),
+    );
   }
 
   lower.pop();
   upper.pop();
   const fullHull = [...lower, ...upper];
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 25,
-    explanation: {
-      what: `Close the hull with ${fullHull.length} vertices`,
-      why: "We drop each chain's duplicated endpoint and stitch the lower and upper chains together into the smallest convex polygon enclosing every point. The initial sort dominated the work, at O(N log N).",
-    },
-    primarySnapshot: createGraphSnapshot(undefined, fullHull, true),
-    auxiliaryState: {
-      stack: fullHull.map((hp) => hp.id),
-      customState: { phase: "Complete", hullVerticesCount: fullHull.length },
-    },
-    variables: { hullVerticesCount: fullHull.length, totalPoints: points.length },
-  });
+  addStep(
+    `Stitch lower and upper chains by dropping duplicated endpoints. Convex hull complete with ${fullHull.length} vertices: ${fullHull.map((hp) => hp.id).join(" -> ")}.`,
+    createGraphSnapshot(undefined, fullHull, true),
+  );
 
   return steps;
-};
+}

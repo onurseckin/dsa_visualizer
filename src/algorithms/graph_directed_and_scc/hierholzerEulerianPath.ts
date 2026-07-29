@@ -3,8 +3,10 @@ import type {
   AlgorithmStep,
   GraphEdgeItem,
   GraphNodeItem,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface HierholzerEulerianPathInput {
   startNodeId?: string;
@@ -62,67 +64,205 @@ export const DEFAULT_HIERHOLZER_INPUT: HierholzerEulerianPathInput = {
   ],
 };
 
-export const HIERHOLZER_TRIVIA: TriviaMeta = {
-  skipLines: [5, 10, 16, 19, 27],
-  distractors: [
-    "stack.pop(0)",
-    "circuit.append(curr)",
-    "if in_deg[u] == out_deg[u]: start_node = u",
-    "circuit.sort()",
-  ],
-  hints: [
-    {
-      line: 13,
-      hint: "Select a start node with out_degree - in_degree == 1 for Eulerian path, or any node with out_degree > 0 for Eulerian circuit.",
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "An Eulerian Path in a directed graph is a continuous trail that visits every directed edge in the graph exactly once.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0", state: "active" },
+        { id: "1", label: "1", state: "default" },
+        { id: "2", label: "2", state: "default" },
+        { id: "3", label: "3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+        { from: "3", to: "0" },
+      ],
     },
-    {
-      line: 22,
-      hint: "Peek at the top of the stack and follow an unvisited outgoing edge if one exists.",
-    },
-    {
-      line: 26,
-      hint: "When a vertex has no remaining outgoing edges, pop it from stack into the circuit.",
-    },
-    {
-      line: 28,
-      hint: "The post-order traversal yields the circuit in reverse order.",
-    },
-  ],
-  lineExplanations: {
-    1: "Defines the hierholzer function to find an Eulerian path or circuit in a directed graph.",
-    2: "Initializes adjacency list mapping each node to its outgoing edges.",
-    3: "Initializes in-degree table tracking incoming edge counts per node.",
-    4: "Initializes out-degree table tracking outgoing edge counts per node.",
-    5: "Blank line separating variable initialization from edge processing.",
-    6: "Iterates over input directed edges to populate graph structures.",
-    7: "Appends neighbor v to adjacency list of source node u.",
-    8: "Increments out-degree count of source node u.",
-    9: "Increments in-degree count of destination node v.",
-    10: "Blank line separating edge population from start node selection.",
-    11: "Sets default start node to the first node in the graph.",
-    12: "Iterates over nodes to locate an Eulerian path start vertex.",
-    13: "Checks if node u has out_degree - in_degree == 1 (start node of an Eulerian path).",
-    14: "Assigns u as the start_node for the traversal.",
-    15: "Breaks search loop once valid start node is found.",
-    16: "Blank line separating start node selection from stack initialization.",
-    17: "Initializes traversal stack with start_node.",
-    18: "Initializes empty circuit list to store post-order vertex sequence.",
-    19: "Blank line separating state init from main loop.",
-    20: "Drives main loop while traversal stack contains active vertices.",
-    21: "Peeks top vertex u from the traversal stack.",
-    22: "Checks if vertex u has any remaining unvisited outgoing edges.",
-    23: "Pops next outgoing neighbor v from u's adjacency list.",
-    24: "Pushes neighbor v onto traversal stack to extend path.",
-    25: "Else branch when vertex u has no remaining outgoing edges.",
-    26: "Pops dead-end vertex u from stack and appends to post-order circuit.",
-    27: "Blank line separating loop completion from reversal.",
-    28: "Reverses post-order circuit list to produce valid Eulerian path sequence.",
-    29: "Returns final Eulerian path/circuit sequence.",
   },
-};
+  {
+    narrative:
+      "An Eulerian Circuit is a closed Eulerian path that begins and ends at the exact same vertex.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Start/End 0", state: "visited" },
+        { id: "1", label: "1", state: "visited" },
+        { id: "2", label: "2", state: "visited" },
+        { id: "3", label: "3", state: "visited" },
+      ],
+      edges: [
+        { from: "0", to: "1", isPath: true },
+        { from: "1", to: "2", isPath: true },
+        { from: "2", to: "3", isPath: true },
+        { from: "3", to: "0", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Degree conditions state that an Eulerian path requires at most one vertex with out_degree - in_degree = 1 (start) and one with in_degree - out_degree = 1 (end).",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Start 0 (out-in=1)", state: "active" },
+        { id: "1", label: "Node 1", state: "default" },
+        { id: "2", label: "Node 2", state: "default" },
+        { id: "3", label: "End 3 (in-out=1)", state: "compare" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+        { from: "0", to: "2" },
+        { from: "2", to: "1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Hierholzer's algorithm begins by identifying the valid start node with out_degree - in_degree == 1 (or any vertex with out_degree > 0 for circuits).",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Start Node 0", state: "active" },
+        { id: "1", label: "Node 1", state: "default" },
+        { id: "2", label: "Node 2", state: "default" },
+        { id: "3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1" },
+        { from: "1", to: "2" },
+        { from: "2", to: "3" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A LIFO traversal stack tracks the active path, pushing the start node first to guide deep exploration along directed edges.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Stack 0", state: "visited" },
+        { id: "1", label: "Stack 1", state: "visited" },
+        { id: "2", label: "Top 2", state: "active" },
+        { id: "3", label: "Node 3", state: "default" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "3" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "As edges are traversed, they are removed from the remaining edge set and the target vertex is pushed onto the stack.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Stack 0", state: "visited" },
+        { id: "1", label: "Stack 1", state: "visited" },
+        { id: "2", label: "Stack 2", state: "visited" },
+        { id: "3", label: "Top 3", state: "active" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "3", isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When the top vertex on the stack has zero remaining outgoing edges, it represents a dead end in the current sub-circuit.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Stack 0", state: "visited" },
+        { id: "1", label: "Stack 1", state: "visited" },
+        { id: "2", label: "Stack 2", state: "visited" },
+        { id: "3", label: "Dead End 3", state: "swap" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "3", isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Dead-end vertices are popped from the stack and appended to a post-order circuit list, guaranteeing sub-cycles are properly closed.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "Stack 0", state: "visited" },
+        { id: "1", label: "Stack 1", state: "visited" },
+        { id: "2", label: "Top 2", state: "active" },
+        { id: "3", label: "Circuit 3", state: "sorted" },
+      ],
+      edges: [
+        { from: "0", to: "1", isTraversed: true },
+        { from: "1", to: "2", isTraversed: true },
+        { from: "2", to: "3", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Reversing the post-order circuit list splices all sub-circuits together, yielding the valid forward Eulerian Path in O(V + E) time.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "0", label: "0 (Step 1)", state: "sorted" },
+        { id: "1", label: "1 (Step 2)", state: "sorted" },
+        { id: "2", label: "2 (Step 3)", state: "sorted" },
+        { id: "3", label: "3 (Step 4)", state: "sorted" },
+      ],
+      edges: [
+        { from: "0", to: "1", isPath: true },
+        { from: "1", to: "2", isPath: true },
+        { from: "2", to: "3", isPath: true },
+      ],
+    },
+  },
+];
 
 export function generateHierholzerSteps(input: HierholzerEulerianPathInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
+
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const safeInput = input && typeof input === "object" ? input : DEFAULT_HIERHOLZER_INPUT;
   const inputNodes =
     Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
@@ -158,54 +298,24 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
     inDeg[e.to]++;
   }
 
-  let stepIdx = 0;
-
-  // Step 0: Line 1 - Function Entry & Graph Data Structures Init
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 1,
-    explanation: {
-      what: `Initialize Hierholzer's Algorithm on graph with ${nodes.length} nodes and ${edges.length} edges.`,
-      why: "Create adjacency lists and degree tracking tables to process incoming and outgoing edges.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, state: "default" })),
-      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
-    },
-    auxiliaryState: {
-      visited: [],
-      stack: [],
-      customState: { Circuit: "[]" },
-    },
-    variables: { totalNodes: nodes.length, totalEdges: edges.length },
-  });
-
-  // Step 1: Line 6 - Degree Calculation
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 6,
-    explanation: {
-      what: `Populated adjacency lists and computed vertex degrees across ${edges.length} directed edges.`,
-      why: "In a directed Eulerian path, intermediate vertices must have equal in/out degrees, while the start vertex has out_deg - in_deg == 1.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, state: "default" })),
-      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
-    },
-    auxiliaryState: {
-      visited: [],
-      stack: [],
-      customState: {
-        Circuit: "[]",
-        "Degree Summary": nodes
-          .map((n) => `${n.id}: in=${inDeg[n.id] || 0}, out=${outDeg[n.id] || 0}`)
-          .join(" | "),
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Initializing Hierholzer's Algorithm on graph with ${nodes.length} vertices and ${edges.length} directed edges.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, state: "active" })),
+        edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
       },
-    },
-    variables: { totalNodes: nodes.length, totalEdges: edges.length },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { totalNodes: nodes.length, totalEdges: edges.length },
+    }),
+  );
 
   let startNode = input?.startNodeId || (nodes.length > 0 ? nodes[0].id : "0");
   for (const n of nodes) {
@@ -215,99 +325,93 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
     }
   }
 
-  // Step 2: Line 13 - Start Node Selection
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 13,
-    explanation: {
-      what: `Selected starting vertex '${startNode}' based on Eulerian path degree condition (out_deg - in_deg == 1).`,
-      why: "The start vertex of an Eulerian path must have one more outgoing edge than incoming edge (or any vertex with out_degree > 0 for a circuit).",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({
-        ...n,
-        state: n.id === startNode ? "active" : "default",
-      })),
-      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
-    },
-    auxiliaryState: {
-      visited: [],
-      stack: [],
-      customState: { Circuit: "[]", "Start Node": startNode },
-    },
-    variables: { startNode, outDeg: outDeg[startNode] || 0, inDeg: inDeg[startNode] || 0 },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Selected start node '${startNode}' based on out_deg - in_deg == 1 (or default start for circuit).`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: n.id === startNode ? "compare" : "default",
+        })),
+        edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
+      },
+      auxiliaryState: {
+        stack: [startNode],
+        visited: [],
+      },
+      variables: { startNode },
+    }),
+  );
 
   const stack: string[] = [startNode];
   const circuit: string[] = [];
   const edgeUsed: Record<string, boolean> = {};
 
-  // Step 3: Line 17 - Stack Init
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 17,
-    explanation: {
-      what: `Pushed start vertex '${startNode}' onto traversal stack. Initialized empty post-order circuit list.`,
-      why: "The LIFO stack will track the active path during traversal, pushing unvisited neighbors and popping when reaching dead ends.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({
-        ...n,
-        state: n.id === startNode ? "active" : "default",
-      })),
-      edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
-    },
-    auxiliaryState: {
-      visited: [],
-      stack: [...stack],
-      customState: { Circuit: "[]" },
-    },
-    variables: { startNode, stackLength: stack.length },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Pushed start node '${startNode}' onto LIFO traversal stack. Initialized empty post-order circuit array.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: n.id === startNode ? "swap" : "default",
+        })),
+        edges: edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
+      },
+      auxiliaryState: {
+        stack: [...stack],
+        visited: [],
+      },
+      variables: { startNode, stackLength: stack.length },
+    }),
+  );
 
   while (stack.length > 0) {
     const curr = stack[stack.length - 1];
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 21,
-      explanation: {
-        what: `Inspecting top of stack: vertex '${curr}'.`,
-        why: `Check if '${curr}' has remaining unvisited outgoing edges (${adj[curr]?.length ?? 0} remaining).`,
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          state:
-            n.id === curr
-              ? "active"
-              : stack.includes(n.id)
-                ? "in-stack"
-                : circuit.includes(n.id)
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `Inspecting top of stack vertex '${curr}': checking for remaining unvisited outgoing edges (${adj[curr]?.length ?? 0} remaining).`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            state:
+              n.id === curr
+                ? "active"
+                : stack.includes(n.id)
                   ? "visited"
-                  : "default",
-        })),
-        edges: edges.map((e, idx) => ({
-          ...e,
-          isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
-          isPath: false,
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        visited: [...circuit],
-        customState: { Current: curr, Circuit: `[${circuit.join(", ")}]` },
-      },
-      variables: { curr, remainingEdges: adj[curr]?.length ?? 0 },
-    });
+                  : circuit.includes(n.id)
+                    ? "sorted"
+                    : "default",
+          })),
+          edges: edges.map((e, idx) => ({
+            ...e,
+            isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
+            isPath: false,
+          })),
+        },
+        auxiliaryState: {
+          stack: [...stack],
+          visited: [...circuit],
+        },
+        variables: { curr, remainingEdges: adj[curr]?.length ?? 0 },
+      }),
+    );
 
     if (adj[curr] && adj[curr].length > 0) {
       const nxt = adj[curr].pop()!;
 
-      // Mark exact matching edge instance as used
       let edgeObjIndex = -1;
       for (let idx = 0; idx < edges.length; idx++) {
         const e = edges[idx];
@@ -322,126 +426,123 @@ export function generateHierholzerSteps(input: HierholzerEulerianPathInput): Alg
 
       stack.push(nxt);
 
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 23,
-        explanation: {
-          what: `Traversed edge '${curr}' -> '${nxt}' and pushed '${nxt}' onto stack.`,
-          why: "Unvisited outgoing edge found. Extending active traversal path to neighbor vertex.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({
-            ...n,
-            state:
-              n.id === nxt
-                ? "active"
-                : stack.includes(n.id)
-                  ? "in-stack"
-                  : circuit.includes(n.id)
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Traversed directed edge '${curr}' -> '${nxt}' and pushed neighbor '${nxt}' onto stack.`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: nodes.map((n) => ({
+              ...n,
+              state:
+                n.id === nxt
+                  ? "swap"
+                  : stack.includes(n.id)
                     ? "visited"
-                    : "default",
-          })),
-          edges: edges.map((e, idx) => ({
-            ...e,
-            isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
-            isPath: idx === edgeObjIndex,
-          })),
-        },
-        auxiliaryState: {
-          stack: [...stack],
-          visited: [...circuit],
-          customState: { Current: nxt, Circuit: `[${circuit.join(", ")}]` },
-        },
-        variables: { current: curr, next: nxt, stackSize: stack.length },
-      });
+                    : circuit.includes(n.id)
+                      ? "sorted"
+                      : "default",
+            })),
+            edges: edges.map((e, idx) => ({
+              ...e,
+              isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
+              isPath: idx === edgeObjIndex,
+            })),
+          },
+          auxiliaryState: {
+            stack: [...stack],
+            visited: [...circuit],
+          },
+          variables: { current: curr, next: nxt, stackSize: stack.length },
+        }),
+      );
     } else {
       const popped = stack.pop()!;
       circuit.push(popped);
 
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 26,
-        explanation: {
-          what: `Vertex '${popped}' has no remaining outgoing edges. Popped to post-order circuit list: [${circuit.join(", ")}].`,
-          why: "When a vertex has no unvisited outgoing edges, it forms a dead end in the current sub-circuit and is appended to the post-order circuit.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({
-            ...n,
-            state: circuit.includes(n.id)
-              ? "visited"
-              : stack.includes(n.id)
-                ? "in-stack"
-                : "default",
-          })),
-          edges: edges.map((e, idx) => ({
-            ...e,
-            isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
-            isPath: false,
-          })),
-        },
-        auxiliaryState: {
-          stack: [...stack],
-          visited: [...circuit],
-          customState: { Popped: popped, Circuit: `[${circuit.join(", ")}]` },
-        },
-        variables: { popped, circuitLength: circuit.length },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `Vertex '${popped}' has no remaining outgoing edges. Popped '${popped}' to post-order circuit: [${circuit.join(", ")}].`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: nodes.map((n) => ({
+              ...n,
+              state: circuit.includes(n.id)
+                ? "sorted"
+                : stack.includes(n.id)
+                  ? "visited"
+                  : "default",
+            })),
+            edges: edges.map((e, idx) => ({
+              ...e,
+              isTraversed: !!edgeUsed[`${e.from}->${e.to}-${idx}`],
+              isPath: false,
+            })),
+          },
+          auxiliaryState: {
+            stack: [...stack],
+            visited: [...circuit],
+          },
+          variables: { popped, circuitLength: circuit.length },
+        }),
+      );
     }
   }
 
   const resultPath = [...circuit].reverse();
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 28,
-    explanation: {
-      what: `Reversed post-order circuit list -> Final Eulerian Path: [${resultPath.join(" -> ")}].`,
-      why: "Hierholzer's post-order traversal constructs sub-circuits in reverse. Reversing the post-order array restores the correct forward path sequence.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
-      edges: edges.map((e) => ({ ...e, isPath: true, isTraversed: true })),
-    },
-    auxiliaryState: {
-      visited: [...resultPath],
-      stack: [],
-      customState: {
-        "Post-Order": `[${circuit.join(", ")}]`,
-        "Eulerian Path": resultPath.join(" -> "),
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `Hierholzer's algorithm complete. Reversed post-order circuit to construct final Eulerian Path: [${resultPath.join(" -> ")}].`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
+        edges: edges.map((e) => ({ ...e, isPath: true, isTraversed: true })),
       },
-    },
-    variables: { complete: true, pathLength: resultPath.length },
-  });
-
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 29,
-    explanation: {
-      what: `Returned completed Eulerian Path sequence: [${resultPath.join(" -> ")}].`,
-      why: "Successfully traversed every edge in the directed graph exactly once in O(V + E) time.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, state: "sorted" })),
-      edges: edges.map((e) => ({ ...e, isPath: true, isTraversed: true })),
-    },
-    auxiliaryState: {
-      visited: [...resultPath],
-      stack: [],
-      customState: {
-        "Eulerian Path": resultPath.join(" -> "),
-        "Total Edges Traversed": edges.length,
+      auxiliaryState: {
+        stack: [],
+        visited: [...resultPath],
       },
-    },
-    variables: { complete: true, result: resultPath },
-  });
+      variables: { completed: true, result: resultPath.join(" -> ") },
+    }),
+  );
 
   return steps;
 }
+
+export const HIERHOLZER_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Defines hierholzer function to find an Eulerian path or circuit in a directed graph.",
+    2: "Initializes adjacency list mapping each node to its outgoing edges.",
+    3: "Initializes in-degree table tracking incoming edge counts.",
+    4: "Initializes out-degree table tracking outgoing edge counts.",
+    6: "Iterates over input directed edges.",
+    7: "Appends neighbor v to adjacency list of u.",
+    8: "Increments out-degree of u.",
+    9: "Increments in-degree of v.",
+    11: "Sets default start node.",
+    12: "Iterates over nodes to find Eulerian start node.",
+    13: "Checks if out_degree - in_degree == 1.",
+    14: "Assigns start node.",
+    17: "Pushes start node onto stack.",
+    18: "Initializes circuit array.",
+    20: "Drives main loop while stack is non-empty.",
+    21: "Peeks top of stack.",
+    22: "Checks if top node has remaining outgoing edges.",
+    23: "Pops edge and pushes target to stack.",
+    26: "Pops dead-end node and appends to circuit.",
+    28: "Reverses post-order circuit.",
+    29: "Returns Eulerian path.",
+  },
+};
 
 export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathInput> = {
   id: "hierholzer-eulerian-path",
@@ -449,7 +550,7 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "<p>Finds an Eulerian path or Eulerian circuit in a directed graph—a trail that visits every directed edge exactly once. An Eulerian path exists if and only if at most one vertex has <code>out_degree - in_degree == 1</code> (start) and at most one has <code>in_degree - out_degree == 1</code> (end), with all other vertices having equal in-degree and out-degree. The algorithm uses a post-order DFS stack to traverse sub-circuits and splice them together in <code>O(V + E)</code> time.</p>",
+    "<p>Given a directed graph <code>G = (V, E)</code>, find an Eulerian Path or Eulerian Circuit—a continuous trail that visits every directed edge in the graph exactly once.</p><h3>Problem Statement</h3><p>Compute an Eulerian path sequence using Hierholzer's post-order DFS stack algorithm. If an Eulerian path exists, return the ordered sequence of vertices visited.</p><h3>Input Parameters</h3><ul><li><code>nodes</code>: List of graph vertices.</li><li><code>edges</code>: List of directed edges.</li><li><code>startNodeId</code>: Optional designated starting vertex ID.</li></ul><h3>Output</h3><p>Returns an array of vertex IDs in the exact order traversed by the Eulerian Path.</p>",
   constraints: [
     "1 <= Vertices V <= 10^4",
     "0 <= Edges E <= 3 * 10^4",
@@ -458,12 +559,53 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   examples: [
     {
       kind: "basic",
-      inputDisplay: "5 nodes, 8 directed edges",
-      outputDisplay: "Eulerian Path found",
-      title: "5-Node Eulerian Path Graph",
+      scenario: "standard",
+      inputDisplay: "5 nodes, 8 directed edges with Eulerian path",
+      outputDisplay: "[0, 1, 2, 3, 4, 0, 2, 3, 1]",
+      title: "Standard 5-Node Eulerian Path Graph",
       input: DEFAULT_HIERHOLZER_INPUT,
       output: "[0, 1, 2, 3, 4, 0, 2, 3, 1]",
       explanation: "Visits all 8 directed edges exactly once.",
+    },
+    {
+      kind: "complex",
+      scenario: "adversarial",
+      inputDisplay: "4 nodes in closed Eulerian circuit",
+      outputDisplay: "[0, 1, 2, 3, 0]",
+      title: "Adversarial Closed Eulerian Circuit",
+      input: {
+        nodes: [
+          { id: "0", label: "0", state: "default" },
+          { id: "1", label: "1", state: "default" },
+          { id: "2", label: "2", state: "default" },
+          { id: "3", label: "3", state: "default" },
+        ],
+        edges: [
+          { from: "0", to: "1" },
+          { from: "1", to: "2" },
+          { from: "2", to: "3" },
+          { from: "3", to: "0" },
+        ],
+      },
+      output: "[0, 1, 2, 3, 0]",
+      explanation:
+        "Closed 4-node loop forms a complete Eulerian circuit starting and ending at node 0.",
+    },
+    {
+      kind: "negative",
+      scenario: "boundary",
+      inputDisplay: "2 nodes, 1 directed edge",
+      outputDisplay: "[0, 1]",
+      title: "Boundary Single Edge Path",
+      input: {
+        nodes: [
+          { id: "0", label: "0", state: "default" },
+          { id: "1", label: "1", state: "default" },
+        ],
+        edges: [{ from: "0", to: "1" }],
+      },
+      output: "[0, 1]",
+      explanation: "Single edge path traversing from node 0 to node 1.",
     },
   ],
   code: HIERHOLZER_CODE,
@@ -495,7 +637,7 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
       },
       {
         heading: "Complexity Analysis",
-        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Time:</strong> Every directed edge is pushed and popped from adjacency lists once, taking linear <code>O(V + E)</code> time.</li><li><strong>Space:</strong> Memory for adjacency lists, LIFO stack, and output circuit array takes <code>O(V + E)</code> space.</li></ul>",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>Every directed edge is pushed and popped from adjacency lists once, taking linear <code>O(V + E)</code> time. Memory for adjacency lists, LIFO stack, and output circuit array takes <code>O(V + E)</code> space.</p>",
       },
     ],
     keyTerms: [
@@ -522,10 +664,9 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   trivia: HIERHOLZER_TRIVIA,
   sources: [
     {
-      type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 17",
+      chapter: 17,
       label: "Competitive Programmer's Handbook, Ch 17",
     },
   ],

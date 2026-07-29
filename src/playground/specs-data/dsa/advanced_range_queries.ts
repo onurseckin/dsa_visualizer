@@ -440,7 +440,7 @@ export const advancedRangeQueriesExecutions = [
   defineDsaExecution({
     id: "sqrt-heavy-light",
     entrypoint: "sqrt_heavy_light",
-    invocation: { kind: "function", arguments: [input()] },
+    invocation: { kind: "function", arguments: [input("n"), input("queries")] },
     cases: cases(
       {
         label: "Nodes and threshold",
@@ -499,7 +499,10 @@ export const advancedRangeQueriesExecutions = [
   defineDsaExecution({
     id: "merge-sort-tree",
     entrypoint: "merge_sort_tree",
-    invocation: { kind: "function", arguments: [input()] },
+    invocation: {
+      kind: "function",
+      arguments: [input("arr"), input("ql"), input("qr"), input("k")],
+    },
     cases: cases(
       { label: "Array [5,2,6,1]", input: { nums: [5, 2, 6, 1] }, expected: [2, 1, 1, 0] },
       { label: "Single element", input: { nums: [1] }, expected: [0] },
@@ -516,7 +519,10 @@ export const advancedRangeQueriesExecutions = [
   defineDsaExecution({
     id: "segment-tree-2d",
     entrypoint: "segment_tree_2d",
-    invocation: { kind: "function", arguments: [input()] },
+    invocation: {
+      kind: "function",
+      arguments: [input("matrix"), input("r1"), input("c1"), input("r2"), input("c2")],
+    },
     cases: cases(
       {
         label: "3x3 Matrix",

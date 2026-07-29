@@ -39,43 +39,37 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
   topicIds: ["two_pointers", "intervals"],
   difficulty: "Medium",
   description:
-    "<p>Merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same range as the input intervals.</p>" +
-    "<h3>Problem Overview</h3>" +
-    "<p>Given a collection of intervals, merge all overlapping ranges into a minimal set of disjoint intervals. Sorting intervals by start coordinate <code>start_i</code> allows overlap detection in a single <span>O(N)</span> linear scan after an <span>O(N log N)</span> sort.</p>" +
-    "<h3>Key Insights &amp; Invariants</h3>" +
-    "<ul><li><strong>Sorting Order:</strong> Sorting by start time guarantees that if interval B overlaps with any prior interval, it MUST overlap with the most recently added interval in the merged list.</li>" +
-    "<li><strong>Overlap Condition:</strong> Two sorted intervals <code>[a, b]</code> and <code>[c, d]</code> overlap if <code>c &le; b</code>. They merge into <code>[a, max(b, d)]</code>.</li>" +
-    "<li><strong>Nested Protection:</strong> Using <code>max(b, d)</code> ensures nested intervals like <code>[1, 10]</code> and <code>[2, 5]</code> do not shrink the merged span.</li></ul>" +
-    "<h3>Complexity</h3>" +
-    "<ul><li><strong>Time:</strong> <span>O(N log N)</span> where N is the number of intervals, dominated by sorting.</li>" +
-    "<li><strong>Space:</strong> <span>O(N)</span> auxiliary space for storing the merged output list.</li></ul>",
+    "<p>Given an array of intervals where each interval is represented as <code>[start, end]</code>, merge all overlapping intervals into a minimal set of non-overlapping intervals that cover the exact same numerical range.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "  <li><code>intervals</code>: An array of interval objects <code>{ start: number, end: number }</code> where <code>1 &le; N &le; 10<sup>4</sup></code>.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<p>Returns an array of merged disjoint interval objects <code>{ start: number, end: number }</code> in sorted order by start coordinate.</p>",
   constraints: [
     "1 <= intervals.length <= 10^4",
-    "intervals[i].length == 2",
+    "intervals[i].start <= intervals[i].end",
     "0 <= start_i <= end_i <= 10^4",
   ],
   examples: [
     {
       kind: "basic",
-      inputDisplay: "intervals = [[1, 3], [2, 6], [8, 10], [15, 18]]",
-      outputDisplay: "[[1, 6], [8, 10], [15, 18]]",
-      title: "Basic Example",
-      input: {
-        intervals: [
-          { start: 1, end: 3 },
-          { start: 2, end: 6 },
-          { start: 8, end: 10 },
-          { start: 15, end: 18 },
-        ],
-      },
-      output: "[[1,6], [8,10], [15,18]]",
-      explanation: "Intervals [1,3] and [2,6] overlap since 2 <= 3; they merge into [1,6].",
+      scenario: "standard",
+      inputDisplay:
+        "intervals = [[1, 3], [2, 6], [8, 10], [9, 12], [15, 18], [17, 20], [22, 25], [24, 26]]",
+      outputDisplay: "[[1, 6], [8, 12], [15, 20], [22, 26]]",
+      title: "Standard 8-Interval Set",
+      input: DEFAULT_MERGE_INTERVALS_INPUT,
+      output: "[[1,6], [8,12], [15,20], [22,26]]",
+      explanation:
+        "Pairs of overlapping intervals merge sequentially into 4 consolidated disjoint ranges.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "intervals = [[1, 10], [2, 3], [4, 8], [9, 12]]",
       outputDisplay: "[[1, 12]]",
-      title: "Complex Edge Case",
+      title: "Enclosing and Chained Overlaps",
       input: {
         intervals: [
           { start: 1, end: 10 },
@@ -90,19 +84,15 @@ export const mergeIntervals: AlgorithmDefinition<MergeIntervalsInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "intervals = [[1, 2], [3, 4], [5, 6]]",
-      outputDisplay: "[[1, 2], [3, 4], [5, 6]]",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: "intervals = [[5, 5]]",
+      outputDisplay: "[[5, 5]]",
+      title: "Single Zero-Length Point Interval",
       input: {
-        intervals: [
-          { start: 1, end: 2 },
-          { start: 3, end: 4 },
-          { start: 5, end: 6 },
-        ],
+        intervals: [{ start: 5, end: 5 }],
       },
-      output: "[[1,2], [3,4], [5,6]]",
-      explanation:
-        "Disjoint intervals with non-zero gaps between each pair; no merges occur and all intervals remain unchanged.",
+      output: "[[5,5]]",
+      explanation: "A single point interval requires no merges and is returned directly.",
     },
   ],
   code: MERGE_INTERVALS_CODE,

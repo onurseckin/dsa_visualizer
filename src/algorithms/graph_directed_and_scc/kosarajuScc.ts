@@ -13,7 +13,7 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "<p>Finds all <strong>Strongly Connected Components (SCCs)</strong> in a directed graph <code>G = (V, E)</code> using Kosaraju's two-pass Depth-First Search algorithm with graph transposition. Given a directed graph with <code>|V|</code> vertices and <code>|E|</code> edges, it partitions all vertices into their maximal SCCs (subgraphs where every vertex is mutually reachable from every other vertex).</p><p>Kosaraju's algorithm decomposes the graph in linear <code>O(V + E)</code> time: <strong>Pass 1</strong> computes vertex finish times by pushing nodes onto a stack during post-order traversal; <strong>Pass 2</strong> explores the transposed graph <code>G<sup>T</sup></code> in decreasing finish-time order to extract each SCC.</p>",
+    "<p>Given a directed graph <code>G = (V, E)</code>, find all <strong>Strongly Connected Components (SCCs)</strong> — maximal subgraphs where every vertex is mutually reachable from every other vertex.</p><h3>Problem Statement</h3><p>Partition the vertices of <code>G</code> into disjoint sets of strongly connected components using Kosaraju's two-pass Depth-First Search algorithm with graph transposition.</p><h3>Input Parameters</h3><ul><li><code>nodes</code>: List of graph vertices.</li><li><code>edges</code>: List of directed edges connecting pairs of vertices.</li></ul><h3>Output</h3><p>Returns a list of arrays, where each array contains the vertex IDs belonging to one strongly connected component.</p>",
   constraints: [
     "1 <= V <= 500",
     "0 <= E <= 2000",
@@ -22,9 +22,11 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "vertices = [0, 1, 2, 3, 4], edges = [(1,0), (0,2), (2,1), (0,3), (3,4)]",
-      outputDisplay: "[[0, 1, 2], [3], [4]]",
-      title: "Basic Example",
+      scenario: "standard",
+      inputDisplay:
+        "vertices = [0, 1, 2, 3, 4], edges = [(0,1), (1,2), (2,0), (1,3), (3,4), (4,3)]",
+      outputDisplay: "2 SCCs: {0, 1, 2}, {3, 4}",
+      title: "Standard Graph with 2 SCCs",
       input: {
         nodes: [
           { id: "0", label: "0", x: 120, y: 120, state: "default" },
@@ -48,10 +50,10 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
     },
     {
       kind: "complex",
-      inputDisplay:
-        "vertices = [A, B, C, D, E, F, G, H], edges = [(A,B), (B,C), (C,A), (B,D), (D,E), (E,F), (F,D), (G,F), (G,H)]",
-      outputDisplay: "[[A, B, C], [D, E, F], [G], [H]]",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      inputDisplay: "vertices = [0,1,2,3,4,5], edges forming 3 chained 2-node cycles",
+      outputDisplay: "3 SCCs: {0, 1}, {2, 3}, {4, 5}",
+      title: "Adversarial Chained Cycle Graph",
       input: {
         nodes: [
           { id: "0", label: "0", x: 100, y: 100, state: "default" },
@@ -78,9 +80,10 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "vertices = [A, B, C, D], edges = [(A,B), (B,C), (C,D)]",
-      outputDisplay: "[[A], [B], [C], [D]]",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: "vertices = [0, 1, 2, 3], edges = [(0,1), (2,3)]",
+      outputDisplay: "4 Singleton SCCs: {0}, {1}, {2}, {3}",
+      title: "Boundary Acyclic Disconnected Graph",
       input: {
         nodes: [
           { id: "0", label: "0", state: "default" },
@@ -128,3 +131,5 @@ export const kosarajuScc: AlgorithmDefinition<KosarajuSccInput> = {
   defaultInput: DEFAULT_KOSARAJU_INPUT,
   generateSteps: generateKosarajuSccSteps,
 };
+
+export default kosarajuScc;

@@ -34,48 +34,46 @@ const SIEVE_PRIMES_TRIVIA: TriviaMeta = {
 
 export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   id: "sieve-primes",
-  title: "Sieve of Eratosthenes",
+  title: "Count Primes (Sieve of Eratosthenes)",
   topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "<p>The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit <code>n</code>. Instead of testing numbers individually via trial division in <span>O(n &radic;n)</span> time, it crosses out multiples of each discovered prime <code>p</code> starting from <code>p&sup2;</code>, leaving only primes standing in nearly linear time: <span>O(n log log n)</span>.</p>" +
-    "<h3>Primality State Vector</h3>" +
-    "<p>The primality status is recorded in state vector <code>v</code> of size <code>n + 1</code> where <code>v[i] = 1</code> indicates <code>i</code> is prime and <code>v[i] = 0</code> indicates <code>i</code> is composite.</p>" +
+    "<p>Given an integer <code>n</code>, return the number of prime numbers that are strictly less than <code>n</code> using the Sieve of Eratosthenes algorithm.</p>" +
     "<h3>Input Parameters</h3>" +
-    "<ul><li><code>limit</code> (<code>n &ge; 0</code>): Upper bound inclusive limit.</li></ul>" +
+    "<ul><li><code>n</code> (<code>n &ge; 0</code>): Upper bound integer.</li></ul>" +
     "<h3>Output</h3>" +
-    "<ul><li><code>list[int]</code>: List of all prime numbers <code>p &le; n</code>.</li></ul>" +
-    "" +
-    "<ul><li><code>limit &lt; 2</code>: Returns empty list <code>[]</code>.</li>" +
-    "<li>Large <code>limit</code>: Memory scales linearly with limit <span>O(n)</span>.</li></ul>",
-  constraints: ["0 <= limit <= 10^5"],
+    "<ul><li><code>int</code>: The number of prime numbers strictly less than <code>n</code>.</li></ul>",
+  constraints: ["0 <= n <= 5 * 10^6"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "n = 10",
-      outputDisplay: "[2, 3, 5, 7]",
-      title: "Basic Example",
+      outputDisplay: "4",
+      title: "Standard Example",
       input: { limit: 10 },
-      output: "[2, 3, 5, 7]",
-      explanation: "Composite numbers 4, 6, 8, 9, 10 are eliminated, leaving 4 prime numbers.",
-    },
-    {
-      kind: "complex",
-      inputDisplay: "n = 30",
-      outputDisplay: "[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]",
-      title: "Complex Edge Case",
-      input: { limit: 30 },
-      output: "[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]",
-      explanation: "Iteratively marks multiples of base primes 2, 3, and 5 up to sqrt(30) ~ 5.47.",
+      output: "4",
+      explanation: "There are 4 prime numbers less than 10: 2, 3, 5, 7.",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "n = 1",
-      outputDisplay: "[]",
-      title: "Failing / Boundary Case",
+      outputDisplay: "0",
+      title: "Boundary Case (N = 1)",
       input: { limit: 1 },
-      output: "[]",
-      explanation: "Boundary input limit=1 contains no prime numbers since 0 and 1 are non-prime.",
+      output: "0",
+      explanation: "There are 0 prime numbers less than 1.",
+    },
+    {
+      kind: "complex",
+      scenario: "adversarial",
+      inputDisplay: "n = 30",
+      outputDisplay: "10",
+      title: "Adversarial Case (N = 30)",
+      input: { limit: 30 },
+      output: "10",
+      explanation: "There are 10 prime numbers less than 30: 2, 3, 5, 7, 11, 13, 17, 19, 23, 29.",
     },
   ],
   code: PYTHON_SIEVE_CODE,

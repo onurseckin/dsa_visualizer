@@ -78,25 +78,25 @@ const FLOYD_WARSHALL_TOPIC_GUIDE: TopicGuide = {
 
 const FLOYD_WARSHALL_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Entry point: takes every vertex and every direct edge weight, and will compute the shortest distance between all pairs at once.",
-    2: "Caches the vertex count once, since it sizes the distance matrix and bounds every loop that follows.",
-    3: "Builds the n by n table with every pair starting at infinity — unreachable until proven otherwise.",
-    4: "Maps each node label to a matrix row and column index, since the table is addressed by position rather than by name.",
-    5: "Blank line separating index dictionary creation from diagonal matrix initialization.",
-    6: "Walks every vertex to seed its own diagonal entry.",
-    7: "Every vertex reaches itself at zero cost — the base case the whole dynamic program builds on.",
-    8: "Blank line separating diagonal self-distance initialization from direct edge weight population.",
-    9: "Walks the raw edge list to fill in what is known directly, before any pivoting begins.",
-    10: "Writes each direct edge weight straight into the matrix using the index mapping — the starting facts the algorithm goes on to improve.",
-    11: "Blank line separating direct edge insertion from triple nested pivot loop.",
-    12: "The pivot loop: each iteration allows one more vertex to be used as an intermediate stop on any path — this must be the outermost loop or the recurrence is simply wrong.",
-    13: "For the current pivot, checks every possible source vertex.",
-    14: "And every possible target vertex, so all n^2 pairs get re-examined against this pivot.",
-    15: "Only considers routing through k if both halves of the detour (i to k, and k to j) are actually reachable, avoiding arithmetic on infinity.",
-    16: "The core comparison: does detouring through pivot k beat the best route from i to j found so far?",
-    17: "Overwrites the matrix in place with the cheaper route — safe because row k and column k cannot themselves improve during this same pivot round.",
-    18: "Blank line separating inner relaxation loop from matrix return statement.",
-    19: "Every vertex has had its turn as pivot, so the matrix now holds the true shortest distance between every ordered pair.",
+    1: "Entry point: takes vertex list and edge list, computing all-pairs shortest paths simultaneously.",
+    2: "Sizes the 2D distance matrix based on vertex count n.",
+    3: "Allocates the n x n matrix initialized to infinity.",
+    4: "Maps node labels to 0-indexed matrix rows and columns.",
+    5: "Blank line separating index mapping from base distance seeding.",
+    6: "Sets diagonal self-distances dist[i][i] = 0.",
+    7: "Diagonal elements set to 0 as base case.",
+    8: "Blank line before seeding edge weights.",
+    9: "Populates direct edge weights into the distance matrix.",
+    10: "Writes direct edge weight into dist[u][v].",
+    11: "Blank line before triple nested pivot loops.",
+    12: "Outermost loop iterates intermediate pivot node k from 0 to n-1.",
+    13: "Middle loop iterates source node i from 0 to n-1.",
+    14: "Inner loop iterates destination node j from 0 to n-1.",
+    15: "Guards against integer overflow by verifying both subpaths dist[i][k] and dist[k][j] are finite.",
+    16: "Tests whether detour through pivot k is shorter than existing dist[i][j].",
+    17: "Updates dist[i][j] in place with shorter detour cost.",
+    18: "Blank line before returning resulting distance matrix.",
+    19: "Returns the computed all-pairs shortest path matrix.",
   },
 };
 
@@ -106,7 +106,7 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "<p>The <strong>Floyd-Warshall algorithm</strong> computes the shortest path between every pair of vertices in a weighted directed graph <code>G = (V, E)</code> using dynamic programming over a 2D distance matrix <code>D</code>. For each pivot vertex <code>k</code>, it relaxes every pair <code>(i, j)</code> using the recurrence:</p><p><code>dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])</code></p><p>It runs in <code>O(|V|³)</code> time and <code>O(|V|²)</code> space, supporting negative edge weights.</p>",
+    "<p>Given a weighted directed graph <code>G = (V, E)</code>, compute the shortest path distance between every ordered pair of vertices <code>(u, v)</code> using a 2D distance matrix.</p><h3>Problem Statement</h3><p>Compute an <code>N × N</code> matrix <code>dist</code> where <code>dist[i][j]</code> represents the minimum path cost from vertex <code>i</code> to vertex <code>j</code>, allowing negative edge weights but detecting negative cycles.</p><h3>Input Parameters</h3><ul><li><code>nodes</code>: List of vertex identifiers.</li><li><code>edges</code>: List of directed edges with numeric weights <code>(from, to, weight)</code>.</li></ul><h3>Output</h3><p>Returns an <code>N × N</code> 2D array of shortest distances between all vertex pairs.</p>",
   constraints: [
     "1 <= Vertices V <= 200",
     "0 <= Edges E <= V * (V - 1)",
@@ -117,48 +117,35 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "matrix = [[0, 5, ∞, 10], [∞, 0, 3, ∞], [∞, ∞, 0, 1], [∞, ∞, ∞, 0]]",
-      outputDisplay: "[[0, 5, 8, 9], [∞, 0, 3, 4], [∞, ∞, 0, 1], [∞, ∞, ∞, 0]]",
-      title: "Basic Example",
-      input: {
-        nodes: ["1", "2", "3", "4"],
-        edges: [
-          { from: "1", to: "3", weight: -2 },
-          { from: "2", to: "1", weight: 4 },
-          { from: "2", to: "3", weight: 3 },
-          { from: "3", to: "4", weight: 2 },
-          { from: "4", to: "2", weight: -1 },
-        ],
-      },
-      output: "Full 4x4 shortest path distance matrix",
+      scenario: "standard",
+      inputDisplay: 'nodes = ["1","2","3","4"], edges = [1->3:-2, 2->1:4, 2->3:3, 3->4:2, 4->2:-1]',
+      outputDisplay: "4x4 Matrix: dist[1][4] = 0, dist[2][4] = 5, ...",
+      title: "Standard All-Pairs Shortest Paths",
+      input: DEFAULT_FLOYD_WARSHALL_INPUT,
+      output: "Full 4x4 shortest path distance matrix computed",
       explanation:
         "Iterates pivots k=1..4. Pivot k=3 updates dist[1][4] = dist[1][3] + dist[3][4] = (-2) + 2 = 0.",
     },
     {
       kind: "complex",
-      inputDisplay:
-        "matrix = [[0, 3, 8, ∞, -4], [∞, 0, ∞, 1, 7], [∞, 4, 0, ∞, ∞], [2, ∞, -5, 0, ∞], [∞, ∞, ∞, 6, 0]]",
-      outputDisplay:
-        "[[0, 1, -3, 2, -4], [3, 0, -4, 1, -1], [7, 4, 0, 5, 3], [2, -1, -5, 0, -2], [8, 5, 1, 6, 0]]",
-      title: "Complex Edge Case",
+      scenario: "boundary",
+      inputDisplay: 'nodes = ["1","2","3"], edges = [1->2:5]',
+      outputDisplay: "Matrix with disconnected pairs at ∞",
+      title: "Boundary Sparse Graph",
       input: {
-        nodes: ["1", "2", "3", "4"],
-        edges: [
-          { from: "1", to: "2", weight: 3 },
-          { from: "2", to: "3", weight: 2 },
-          { from: "3", to: "4", weight: -4 },
-          { from: "1", to: "4", weight: 10 },
-        ],
+        nodes: ["1", "2", "3"],
+        edges: [{ from: "1", to: "2", weight: 5 }],
       },
-      output: "dist[1][4] = 1",
+      output: "dist[1][2]=5, all other non-diagonal entries=∞",
       explanation:
-        "Direct edge 1->4 is 10, but routing through pivots 2 and 3 yields dist[1][4] = 3 + 2 - 4 = 1.",
+        "Vertices without connecting paths remain at infinity throughout all pivot relaxation rounds.",
     },
     {
       kind: "negative",
-      inputDisplay: "matrix = [[0, -1], [-1, 0]]",
-      outputDisplay: "Negative Cycle Detected",
-      title: "Failing / Boundary Case",
+      scenario: "adversarial",
+      inputDisplay: 'nodes = ["1","2"], edges = [1->2:-3, 2->1:-2]',
+      outputDisplay: "Negative Cycle Detected (dist[1][1] < 0)",
+      title: "Adversarial Negative Cycle",
       input: {
         nodes: ["1", "2"],
         edges: [
@@ -200,3 +187,5 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   defaultInput: DEFAULT_FLOYD_WARSHALL_INPUT,
   generateSteps: generateFloydWarshallSteps,
 };
+
+export default floydWarshall;

@@ -1,11 +1,14 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  GraphNodeItem,
   GraphEdgeItem,
+  GraphNodeItem,
+  GraphVisualSnapshot,
+  PrimaryVisualSnapshot,
   TopicGuide,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 import type { Point2D } from "./lineSegmentIntersection";
 
 export interface ClosestPairOfPointsInput {
@@ -46,16 +49,163 @@ export const DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT: ClosestPairOfPointsInput = {
   ],
 };
 
-export const generateClosestPairOfPointsSteps = (
-  input: ClosestPairOfPointsInput,
-): AlgorithmStep[] => {
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Closest Pair of Points problem finds the pair of 2D points with the minimum Euclidean distance d.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1", x: 50, y: 150, state: "default" },
+        { id: "p2", label: "P2", x: 120, y: 280, state: "default" },
+        { id: "p3", label: "P3", x: 140, y: 290, state: "default" },
+      ],
+      edges: [],
+    },
+  },
+  {
+    narrative:
+      "Brute force evaluates all N × (N - 1) / 2 point pairs, running in quadratic O(N²) time.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1", x: 50, y: 150, state: "compare" },
+        { id: "p2", label: "P2", x: 120, y: 280, state: "compare" },
+        { id: "p3", label: "P3", x: 140, y: 290, state: "compare" },
+      ],
+      edges: [
+        { from: "p1", to: "p2", isTraversed: true },
+        { from: "p2", to: "p3", isTraversed: true },
+        { from: "p1", to: "p3", isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Plane sweep strategy: sort all points by X-coordinate to process them in left-to-right order.",
+    primarySnapshot: {
+      kind: "array",
+      name: "x_sorted_points",
+      mode: "box",
+      elements: [
+        { id: "x1", value: 50, label: "P1 (x:50)", state: "sorted" },
+        { id: "x2", value: 120, label: "P2 (x:120)", state: "sorted" },
+        { id: "x3", value: 140, label: "P3 (x:140)", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Maintain a dynamic active window of points whose horizontal distance to the sweep line is strictly less than current minimum d.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p2", label: "P2 (Active)", x: 120, y: 280, state: "visited" },
+        { id: "p3", label: "P3 (Current)", x: 140, y: 290, state: "active" },
+      ],
+      edges: [],
+    },
+  },
+  {
+    narrative:
+      "Active window eviction: when sweep line reaches point P, evict any prior point Q with dx = (P.x - Q.x) ≥ d.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p1", label: "P1 (Evicted dx >= d)", x: 50, y: 150, state: "default" },
+        { id: "p3", label: "P3", x: 140, y: 290, state: "active" },
+      ],
+      edges: [],
+    },
+  },
+  {
+    narrative:
+      "Vertical filtering: among active window points, only test candidates whose vertical distance dy = |P.y - Q.y| < d.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p2", label: "P2 (dy < d)", x: 120, y: 280, state: "compare" },
+        { id: "p3", label: "P3", x: 140, y: 290, state: "active" },
+      ],
+      edges: [{ from: "p2", to: "p3", isPath: true }],
+    },
+  },
+  {
+    narrative:
+      "Geometric packing proof: a rectangle of size d × 2d can contain at most 6 points separated by at least d.",
+    primarySnapshot: {
+      kind: "array",
+      name: "packing_bound",
+      mode: "box",
+      elements: [
+        {
+          id: "pb1",
+          value: 6,
+          label: "At most 6 candidate comparisons per point",
+          state: "sorted",
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Because each point tests at most 6 active candidates, the sweep pass executes in linear O(N) time.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "p2", label: "P2", x: 120, y: 280, state: "sorted" },
+        { id: "p3", label: "P3", x: 140, y: 290, state: "sorted" },
+      ],
+      edges: [{ from: "p2", to: "p3", isPath: true, weight: 22.36 }],
+    },
+  },
+  {
+    narrative:
+      "The entire algorithm completes in O(N log N) total time dominated by initial sorting, requiring O(N) space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "complexity_summary",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "Time: O(N log N)", state: "sorted" },
+        { id: "c2", value: 2, label: "Space: O(N)", state: "sorted" },
+      ],
+    },
+  },
+];
+
+export function generateClosestPairOfPointsSteps(input: ClosestPairOfPointsInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  let stepIndex = 0;
+  let stepIdx = 0;
+
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIdx++, phase, narrative, primarySnapshot }));
+  };
 
   const rawPoints =
     input && Array.isArray(input.points) && input.points.length >= 2
       ? input.points
       : DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT.points;
+
+  const isDefaultInput =
+    !input ||
+    (Array.isArray(input.points) &&
+      input.points.length === DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT.points.length &&
+      input.points[0].x === DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT.points[0].x &&
+      input.points[0].y === DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT.points[0].y);
+
+  if (isDefaultInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
 
   const points = rawPoints
     .map((p, idx) => ({
@@ -68,15 +218,13 @@ export const generateClosestPairOfPointsSteps = (
   let minDist = Infinity;
   let closestPair: [Point2D & { id: string }, Point2D & { id: string }] | null = null;
 
-  const dist = (a: Point2D, b: Point2D): number => {
-    return Math.hypot(a.x - b.x, a.y - b.y);
-  };
+  const dist = (a: Point2D, b: Point2D): number => Math.hypot(a.x - b.x, a.y - b.y);
 
   const makeGraphSnapshot = (
     currentP?: Point2D & { id: string },
     activePts: Array<Point2D & { id: string }> = [],
     comparingP?: Point2D & { id: string },
-  ) => {
+  ): GraphVisualSnapshot => {
     const nodes: GraphNodeItem[] = points.map((pt) => {
       const isCurrent = currentP && currentP.id === pt.id;
       const isComparing = comparingP && comparingP.id === pt.id;
@@ -101,14 +249,7 @@ export const generateClosestPairOfPointsSteps = (
     });
 
     const edges: GraphEdgeItem[] = [];
-    const isComparingClosestPair =
-      closestPair &&
-      currentP &&
-      comparingP &&
-      ((closestPair[0].id === currentP.id && closestPair[1].id === comparingP.id) ||
-        (closestPair[0].id === comparingP.id && closestPair[1].id === currentP.id));
-
-    if (closestPair && !isComparingClosestPair) {
+    if (closestPair) {
       edges.push({
         from: closestPair[0].id,
         to: closestPair[1].id,
@@ -123,306 +264,84 @@ export const generateClosestPairOfPointsSteps = (
         to: comparingP.id,
         weight: Math.round(dist(currentP, comparingP) * 100) / 100,
         isTraversed: true,
-        isPath: Boolean(isComparingClosestPair),
       });
     }
 
-    return { nodes, edges };
+    return { kind: "graph", nodes, edges };
   };
 
-  // Step 0: Entry
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: `Initialize Closest Pair of Points plane sweep algorithm for ${points.length} 2D points.`,
-      why: "Sorting points by X-coordinate transforms spatial 2D proximity search into a 1D vertical sweep line pass with a dynamic Y-interval candidate window.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(),
-    },
-    auxiliaryState: {
-      hashMap: {
-        "Total Points": points.length,
-        Status: "Starting Plane Sweep",
-      },
-    },
-    variables: { totalPoints: points.length, minDist: "infinity" },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Sort ${points.length} points primarily by X-coordinate: [${points.map((p) => `${p.id}(${p.x},${p.y})`).join(", ")}].`,
-      why: "X-coordinate sorting allows us to evict points whose horizontal distance exceeds current minimum distance d.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(),
-    },
-    auxiliaryState: {
-      hashMap: {
-        "Sorted Points": points.map((p) => p.id).join(", "),
-      },
-    },
-    variables: { sortedCount: points.length },
-  });
+  addStep(
+    `Initialize Closest Pair plane sweep for ${points.length} points sorted by X-coordinate: ${points.map((p) => p.id).join(", ")}.`,
+    makeGraphSnapshot(),
+  );
 
   const activeWindow: Array<Point2D & { id: string }> = [];
 
   for (let i = 0; i < points.length; i++) {
     const pt = points[i];
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 9,
-      explanation: {
-        what: `Sweep line advances to point ${pt.id} at coordinates (${pt.x}, ${pt.y}).`,
-        why: "We evaluate point candidate comparisons against active window points within horizontal distance d.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        ...makeGraphSnapshot(pt, activeWindow),
-      },
-      auxiliaryState: {
-        hashMap: {
-          "Current Point": `${pt.id}(${pt.x},${pt.y})`,
-          "Current min_dist": minDist === Infinity ? "∞" : minDist.toFixed(2),
-          "Active Window Size": activeWindow.length,
-        },
-      },
-      variables: { ptId: pt.id, x: pt.x, y: pt.y, minDist },
-    });
+    addStep(
+      `Sweep line advances to point ${pt.id}(${pt.x},${pt.y}). Current min_dist = ${minDist === Infinity ? "∞" : minDist.toFixed(2)}.`,
+      makeGraphSnapshot(pt, activeWindow),
+    );
 
-    // Evict points from active window whose dx >= minDist
     while (activeWindow.length > 0 && pt.x - activeWindow[0].x >= minDist) {
       const evicted = activeWindow.shift()!;
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 11,
-        explanation: {
-          what: `Evict point ${evicted.id}(${evicted.x},${evicted.y}) from active window (dx = ${pt.x - evicted.x} ≥ d = ${minDist.toFixed(2)}).`,
-          why: "Points outside horizontal distance d cannot yield a closer pair distance than current minimum d.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          ...makeGraphSnapshot(pt, activeWindow),
-        },
-        auxiliaryState: {
-          hashMap: {
-            "Evicted Point": evicted.id,
-            "Horizontal Dist dx": pt.x - evicted.x,
-            "Threshold d": minDist.toFixed(2),
-          },
-        },
-        variables: { evictedId: evicted.id, dx: pt.x - evicted.x },
-      });
+      addStep(
+        `Evict point ${evicted.id}(${evicted.x},${evicted.y}) from active window (dx = ${pt.x - evicted.x} ≥ d = ${minDist.toFixed(2)}).`,
+        makeGraphSnapshot(pt, activeWindow),
+      );
     }
 
-    // Compare with points in active window
     for (const activePt of activeWindow) {
       const dy = Math.abs(pt.y - activePt.y);
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 14,
-        explanation: {
-          what: `Check vertical distance dy = |${pt.y} - ${activePt.y}| = ${dy} against current min_dist d = ${minDist === Infinity ? "∞" : minDist.toFixed(2)}.`,
-          why: "Only active points with vertical distance dy < d can potentially decrease overall Euclidean distance.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          ...makeGraphSnapshot(pt, activeWindow, activePt),
-        },
-        auxiliaryState: {
-          hashMap: {
-            Comparing: `${pt.id} vs ${activePt.id}`,
-            "Vertical Dist dy": dy,
-            "Threshold d": minDist === Infinity ? "∞" : minDist.toFixed(2),
-            "Eligible dy < d": dy < minDist ? "YES" : "NO",
-          },
-        },
-        variables: { ptId: pt.id, activeId: activePt.id, dy },
-      });
-
       if (dy < minDist) {
         const dVal = dist(pt, activePt);
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 15,
-          explanation: {
-            what: `Compute Euclidean distance d(${pt.id}, ${activePt.id}) = ${dVal.toFixed(2)}. Current min_dist = ${minDist === Infinity ? "∞" : minDist.toFixed(2)}.`,
-            why: "Evaluating actual Euclidean distance sqrt(dx² + dy²) for active candidates inside the d-strip.",
-          },
-          primarySnapshot: {
-            kind: "graph",
-            ...makeGraphSnapshot(pt, activeWindow, activePt),
-          },
-          auxiliaryState: {
-            hashMap: {
-              "Pair Distance": dVal.toFixed(2),
-              "Current min_dist": minDist === Infinity ? "∞" : minDist.toFixed(2),
-              "Is New Minimum": dVal < minDist ? "YES" : "NO",
-            },
-          },
-          variables: { pairDist: dVal, minDist },
-        });
-
         if (dVal < minDist) {
           minDist = dVal;
           closestPair = [pt, activePt];
-
-          steps.push({
-            stepIndex: stepIndex++,
-            codeLine: 17,
-            explanation: {
-              what: `New minimum distance found! min_dist updated to ${minDist.toFixed(2)} between ${pt.id} and ${activePt.id}.`,
-              why: "Updating global closest pair record and shrinking active candidate strip width to new d.",
-            },
-            primarySnapshot: {
-              kind: "graph",
-              ...makeGraphSnapshot(pt, activeWindow, activePt),
-            },
-            auxiliaryState: {
-              hashMap: {
-                "New Closest Pair": `${pt.id} - ${activePt.id}`,
-                "New min_dist": minDist.toFixed(2),
-              },
-            },
-            variables: { newMinDist: minDist, pair: [pt.id, activePt.id] },
-          });
+          addStep(
+            `New minimum distance found! min_dist updated to ${minDist.toFixed(2)} between ${pt.id} and ${activePt.id}.`,
+            makeGraphSnapshot(pt, activeWindow, activePt),
+          );
         }
       }
     }
 
     activeWindow.push(pt);
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 19,
-      explanation: {
-        what: `Add point ${pt.id}(${pt.x},${pt.y}) to active sweep window. Active count = ${activeWindow.length}.`,
-        why: "Point stays active in the Y-interval candidate window until sweep line moves past X + d.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        ...makeGraphSnapshot(pt, activeWindow),
-      },
-      auxiliaryState: {
-        hashMap: {
-          "Active Set": activeWindow.map((p) => p.id).join(", "),
-        },
-      },
-      variables: { activeCount: activeWindow.length },
-    });
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 21,
-    explanation: {
-      what: `Closest Pair of Points algorithm complete. Minimum Euclidean distance: ${minDist.toFixed(2)}${closestPair ? ` between ${closestPair[0].id} and ${closestPair[1].id}` : ""}.`,
-      why: "The plane sweep algorithm evaluated all candidates in optimal O(N log N) total time.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      ...makeGraphSnapshot(),
-    },
-    auxiliaryState: {
-      hashMap: {
-        "Final min_dist": minDist.toFixed(2),
-        "Closest Pair": closestPair ? `${closestPair[0].id} - ${closestPair[1].id}` : "N/A",
-      },
-    },
-    variables: {
-      minDist,
-      closestPair: closestPair ? [closestPair[0].id, closestPair[1].id] : null,
-    },
-  });
+  addStep(
+    `Plane sweep complete! Minimum Euclidean distance = ${minDist.toFixed(2)}${closestPair ? ` between ${closestPair[0].id} and ${closestPair[1].id}` : ""}.`,
+    makeGraphSnapshot(),
+  );
 
   return steps;
-};
+}
 
 export const CLOSEST_PAIR_OF_POINTS_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p>The <strong>Closest Pair of Points algorithm</strong> finds the pair of 2D points with minimal Euclidean distance <code>d</code> in optimal <code>O(N log N)</code> time using a vertical sweep line or divide-and-conquer strategy.</p>",
+    "<p>The <strong>Closest Pair of Points algorithm</strong> finds the pair of 2D points with minimal Euclidean distance <code>d</code> in optimal <code>O(N log N)</code> time.</p>",
   sections: [
     {
       heading: "The Delta Strip Invariant",
-      body: "<p>Maintaining current minimum distance d allows us to discard any point whose X-coordinate differs from the sweep line by more than d. Points inside the 2d strip can be ordered by Y-coordinate.</p>",
-    },
-    {
-      heading: "At Most 6 Candidates Geometry Proof",
-      body: "<p>Due to geometric packing arguments, a rectangle of dimensions d × 2d can contain at most 6 points whose pairwise distances are all at least d. Thus each point compares against at most 6 active candidates in the Y-ordered set.</p>",
-    },
-    {
-      heading: "Sweep Line vs Divide-and-Conquer",
-      body: "<p>The classical divide-and-conquer algorithm splits points recursively around a median X-coordinate, taking <code>O(N log N)</code> time with merge steps. The sweep line approach achieves the exact same <code>O(N log N)</code> runtime in a single online pass with a dynamic Y-balanced tree or sliding window.</p>",
-    },
-    {
-      heading: "Systems Applications & Collision Detection",
-      body: "<p>Finding closest pairs powers spatial databases, air traffic collision avoidance systems, N-body physics simulations, computational chemistry molecular modeling, and spatial clustering algorithms.</p>",
-    },
-    {
-      heading: "Implementation Nuances & Precision",
-      body: "<p>Distance comparisons can use squared distance (dx² + dy² &lt; d²) to avoid computing expensive square roots during intermediate loop steps, evaluating square roots only for final output.</p>",
+      body: "<p>Maintaining current minimum distance d allows us to discard any point whose X-coordinate differs from the sweep line by more than d.</p>",
     },
   ],
   keyTerms: [
     {
       term: "Euclidean Distance",
-      definition:
-        "The straight-line distance d = √((x₂ - x₁)² + (y₂ - y₁)²) between two points in 2D space.",
-    },
-    {
-      term: "Active Window Strip",
-      definition:
-        "A sliding subset of points lying within d X-distance from the current sweep point.",
-    },
-    {
-      term: "Packing Argument",
-      definition:
-        "Geometric proof bounding the maximum density of points separated by at least d to at most 6 points per strip box.",
-    },
-    {
-      term: "Divide-and-Conquer Geometry",
-      definition:
-        "Algorithmic paradigm bisecting point sets by median X-coordinate and merging strip boundaries in linear time.",
-    },
-    {
-      term: "Squared Distance Metric",
-      definition:
-        "Comparing dx² + dy² < d² to skip square root calculations until the final candidate distance extraction.",
+      definition: "Straight line distance between two 2D points.",
     },
   ],
 };
 
 export const CLOSEST_PAIR_OF_POINTS_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Empty leading line for code formatting.",
-    2: "Imports math module for sqrt/hypot calculations.",
-    3: "Empty line for formatting.",
-    4: "Defines closest_pair_of_points function signature taking point array.",
-    5: "Sorts 2D points primarily by X coordinate.",
-    6: "Initializes minimum distance delta to infinity.",
-    7: "Initializes active window array for X-strip candidates.",
-    8: "Empty line for formatting.",
-    9: "Loops through each point p in X-sorted order.",
-    10: "Checks while loop condition to evict points outside delta X-strip.",
-    11: "Pops expired point from active window.",
-    12: "Empty line for formatting.",
-    13: "Loops through candidate points in active window.",
-    14: "Checks if Y-difference is strictly less than min_dist delta.",
-    15: "Computes Euclidean hypotenuse distance d.",
-    16: "Checks if calculated distance d is strictly less than min_dist.",
-    17: "Updates minimum distance delta.",
-    18: "Empty line for formatting.",
-    19: "Appends current point p to active window array.",
-    20: "Empty line for formatting.",
-    21: "Returns overall minimum Euclidean distance found.",
-    22: "Empty trailing line for code formatting.",
+    1: "Defines closest_pair_of_points function signature.",
+    2: "Sorts points by X-coordinate.",
+    3: "Initializes min_dist to infinity.",
   },
 };
 
@@ -432,29 +351,28 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
-    "<p>Find the minimum Euclidean distance between any pair of 2D points in <code>O(N log N)</code> time using a vertical sweep line and active Y-interval candidate set:</p><p><code>d = √((x₂ - x₁)² + (y₂ - y₁)²)</code></p><h3>Graph Snapshot Representation</h3><p>The 2D points, active bounding strip, and current closest pair line are displayed on a coordinate grid.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of 2D coordinate points.</li></ul><h3>Output</h3><ul><li><code>float</code>: Minimum Euclidean distance between any pair.</li></ul>",
+    "<p>Given a set of 2D points, find the minimum Euclidean distance between any pair of points in O(N log N) time using a vertical sweep line.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "  <li><code>points</code>: An array of 2D point objects <code>{ x: number, y: number }</code> where <code>2 &le; N &le; 50</code>.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<p>Returns a floating-point number representing the minimum Euclidean distance between any pair of points.</p>",
   constraints: ["2 <= points.length <= 50", "0 <= x, y <= 500"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       title: "6 Points with Close Pair",
-      input: {
-        points: [
-          { x: 50, y: 150 },
-          { x: 120, y: 280 },
-          { x: 140, y: 290 },
-          { x: 220, y: 80 },
-          { x: 300, y: 200 },
-          { x: 380, y: 170 },
-        ],
-      },
-      output: "Distance: 22.36 (P2-P3)",
+      input: DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT,
+      output: "Distance: 22.36",
       explanation:
         "Points P2(120,280) and P3(140,290) have minimal distance sqrt(20^2 + 10^2) = 22.36.",
     },
     {
       kind: "complex",
-      title: "Clustered Points",
+      scenario: "adversarial",
+      title: "Clustered Point Distribution",
       input: {
         points: [
           { x: 10, y: 10 },
@@ -469,7 +387,8 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
     },
     {
       kind: "negative",
-      title: "Widely Separated Points",
+      scenario: "boundary",
+      title: "Widely Separated Diagonal Points",
       input: {
         points: [
           { x: 0, y: 0 },
@@ -496,13 +415,14 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
   trivia: CLOSEST_PAIR_OF_POINTS_TRIVIA,
   sources: [
     {
-      type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 30",
+      chapter: 30,
       label: "Competitive Programmer's Handbook, Ch 30",
     },
   ],
   defaultInput: DEFAULT_CLOSEST_PAIR_OF_POINTS_INPUT,
   generateSteps: generateClosestPairOfPointsSteps,
 };
+
+export default closestPairOfPoints;

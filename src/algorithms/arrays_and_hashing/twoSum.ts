@@ -465,7 +465,6 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [3, 5, 2, 8, 11, 14, 7], target = 15",
       outputDisplay: "[3, 6]",
@@ -477,7 +476,6 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [3, 2, 4, 1, 9, 8], target = 12",
       outputDisplay: "[2, 5]",
@@ -488,7 +486,6 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
         "Looking up complement 12 - 8 = 4 in the hash map finds index 2 (value 4), returning [2, 5].",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [4], target = 4",

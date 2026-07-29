@@ -370,7 +370,6 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "arr = [1, 2, 3, 7, 5, 4, 1, 6], target = 12",
       outputDisplay: "[1, 3]",
@@ -381,7 +380,6 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "arr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 15",
       outputDisplay: "[0, 4]",
@@ -391,7 +389,6 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
       explanation: "Window [1, 2, 3, 4, 5] from index 0 to 4 sums to 15.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "arr = [1, 2, 3], target = 100",

@@ -817,7 +817,6 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [2, 4, 1, 3, 5, 2, 6, 4]",
       outputDisplay: "[0, 2, 6, 7, 10, 15, 17, 23, 27]",
@@ -827,7 +826,6 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
       explanation: "Computes prefix sums incrementally where prefix[i+1] = prefix[i] + nums[i].",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [10, -5, 20, -10, 30]",
@@ -839,7 +837,6 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
         "Handles negative numbers and zeros, correctly updating prefix sums across signs.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [0]",

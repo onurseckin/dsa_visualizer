@@ -3,8 +3,10 @@ import type {
   AlgorithmStep,
   GridCellNode,
   GridVisualSnapshot,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface GridPathsDpInput {
   grid: number[][];
@@ -39,6 +41,153 @@ export const PYTHON_GRID_PATHS_CODE = `def unique_paths_with_obstacles(obstacleG
 
     return dp[m - 1][n - 1]`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Grid Unique Paths with Obstacles problem asks for the total number of unique paths a robot can take from top-left (0,0) to bottom-right (m-1, n-1) on an m x n grid.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, isStart: true, distance: 1, state: "active" },
+          { row: 0, col: 1, distance: 0, state: "default" },
+        ],
+        [
+          { row: 1, col: 0, distance: 0, state: "default" },
+          { row: 1, col: 1, isEnd: true, distance: 0, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Movement is strictly restricted to moving Right or Down at every step; moving Left or Up is prohibited.",
+    primarySnapshot: {
+      kind: "array",
+      name: "moves",
+      mode: "box",
+      elements: [
+        { id: "m1", value: "Right (col + 1)", state: "sorted" },
+        { id: "m2", value: "Down (row + 1)", state: "sorted" },
+        { id: "m3", value: "Left / Up (Prohibited)", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Obstacle cells (grid[r][c] = 1) act as impassable walls that completely block robot traversal through that cell.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, isStart: true, distance: 1, state: "visited" },
+          { row: 0, col: 1, isWall: true, distance: 0, state: "pivot" },
+        ],
+        [
+          { row: 1, col: 0, distance: 1, state: "visited" },
+          { row: 1, col: 1, isEnd: true, distance: 1, state: "sorted" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "On an obstacle-free grid, paths can be counted with a simple combinatorics formula C(m+n-2, m-1); however, obstacles break simple combination math, requiring dynamic programming.",
+    primarySnapshot: {
+      kind: "array",
+      name: "comparison",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "No Obstacles: Binomial C(m+n-2, m-1)", state: "default" },
+        { id: "c2", value: "With Obstacles: Dynamic Programming O(M*N)", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We define 2D state dp[r][c] as the exact number of unique valid paths reaching cell (r, c) from the start position (0,0).",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 2,
+      cols: 2,
+      cells: [
+        { row: 0, col: 0, value: "dp[0][0]", state: "sorted" },
+        { row: 0, col: 1, value: "dp[0][1]", state: "default" },
+        { row: 1, col: 0, value: "dp[1][0]", state: "default" },
+        { row: 1, col: 1, value: "dp[1][1]", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The base case sets dp[0][0] = 1 assuming the starting cell is unblocked, because there is exactly 1 way to be at the starting position.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, isStart: true, distance: 1, state: "sorted" },
+          { row: 0, col: 1, distance: 0, state: "default" },
+        ],
+        [
+          { row: 1, col: 0, distance: 0, state: "default" },
+          { row: 1, col: 1, isEnd: true, distance: 0, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "By the Rule of Sum, any open cell receives paths from its top neighbor (dp[r-1][c]) and its left neighbor (dp[r][c-1]), yielding dp[r][c] = dp[r-1][c] + dp[r][c-1].",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, distance: 1, state: "visited" },
+          { row: 0, col: 1, distance: 1, state: "compare" },
+        ],
+        [
+          { row: 1, col: 0, distance: 1, state: "compare" },
+          { row: 1, col: 1, isEnd: true, distance: 2, state: "active" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "If cell (r, c) contains an obstacle, dp[r][c] is set to 0, ensuring no incoming paths flow through that cell to subsequent subproblems.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, distance: 1, state: "visited" },
+          { row: 0, col: 1, isWall: true, distance: 0, state: "pivot" },
+        ],
+        [
+          { row: 1, col: 0, distance: 1, state: "visited" },
+          { row: 1, col: 1, isEnd: true, distance: 1, state: "active" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "Traversing the grid in row-major order computes all subproblems in O(M * N) time, which can also be memory-compressed to O(N) space using a single row buffer.",
+    primarySnapshot: {
+      kind: "array",
+      name: "summary",
+      mode: "box",
+      elements: [
+        { id: "s1", value: "Time Complexity: O(M * N)", state: "default" },
+        { id: "s2", value: "Space Complexity: O(M * N) -> O(N)", state: "sorted" },
+      ],
+    },
+  },
+];
+
 export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep[] => {
   const grid = input?.grid && input.grid.length > 0 ? input.grid : DEFAULT_GRID_PATHS_INPUT.grid;
   const m = grid.length;
@@ -48,21 +197,56 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
 
   const dp: number[][] = Array.from({ length: m }, () => new Array(n).fill(0));
 
-  const createSnapshot = (activePos?: [number, number]): GridVisualSnapshot => {
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input?.grid) &&
+      input.grid.length === DEFAULT_GRID_PATHS_INPUT.grid.length &&
+      input.grid.every((row, r) =>
+        row.every((val, c) => val === DEFAULT_GRID_PATHS_INPUT.grid[r][c]),
+      ));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const makeGridSnapshot = (
+    activePos?: [number, number],
+    highlightResult = false,
+  ): GridVisualSnapshot => {
     const gridNodes: GridCellNode[][] = [];
     for (let r = 0; r < m; r++) {
       const rowNodes: GridCellNode[] = [];
       for (let c = 0; c < n; c++) {
         const isWall = grid[r][c] === 1;
         const isActive = Boolean(activePos && activePos[0] === r && activePos[1] === c);
+        const isEnd = r === m - 1 && c === n - 1;
         rowNodes.push({
           row: r,
           col: c,
           isStart: r === 0 && c === 0,
-          isEnd: r === m - 1 && c === n - 1,
+          isEnd,
           isWall,
           distance: dp[r][c],
-          state: isActive ? "active" : isWall ? "pivot" : dp[r][c] > 0 ? "visited" : "default",
+          state:
+            highlightResult && isEnd
+              ? "sorted"
+              : isActive
+                ? "active"
+                : isWall
+                  ? "pivot"
+                  : dp[r][c] > 0
+                    ? "visited"
+                    : "default",
         });
       }
       gridNodes.push(rowNodes);
@@ -70,229 +254,54 @@ export const generateGridPathsDpSteps = (input: GridPathsDpInput): AlgorithmStep
     return { kind: "grid", grid: gridNodes };
   };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Start unique paths algorithm on ${m}x${n} grid`,
-      why: "The goal is to compute total unique paths from top-left (0,0) to bottom-right destination while dodging obstacle walls.",
-    },
-    primarySnapshot: createSnapshot([0, 0]),
-    auxiliaryState: { customState: { m, n } },
-    variables: { m, n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Check boundary conditions and starting cell obstacle status (grid[0][0] = ${grid[0][0]})`,
-      why: "If the starting cell contains an obstacle (1), no paths can leave the starting position, returning 0 immediately.",
-    },
-    primarySnapshot: createSnapshot([0, 0]),
-    auxiliaryState: { customState: { startBlocked: grid[0][0] === 1 } },
-    variables: { m, n, startBlocked: grid[0][0] === 1 },
-  });
+  addStep(
+    `Initializing 2D DP grid of size ${m}x${n} for unique paths calculation starting at (0,0).`,
+    makeGridSnapshot([0, 0]),
+  );
 
   if (grid[0][0] === 1) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 3,
-      explanation: {
-        what: "Start cell (0,0) is blocked by an obstacle. Returning 0.",
-        why: "Impossible to reach destination because starting cell is blocked.",
-      },
-      primarySnapshot: createSnapshot([0, 0]),
-      auxiliaryState: { customState: { paths: 0 } },
-      variables: { result: 0 },
-    });
+    addStep(
+      `Starting cell (0,0) is blocked by an obstacle wall! Returning 0 unique paths immediately.`,
+      makeGridSnapshot([0, 0]),
+    );
     return steps;
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Extract grid dimensions: rows m = ${m}, cols n = ${n}`,
-      why: "Dimensions specify matrix allocation boundaries and grid traversal range.",
-    },
-    primarySnapshot: createSnapshot([0, 0]),
-    auxiliaryState: { customState: { m, n } },
-    variables: { m, n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: `Allocate 2D DP matrix of size ${m} x ${n} filled with zeros`,
-      why: "dp[r][c] stores the total number of unique paths reaching cell (r, c).",
-    },
-    primarySnapshot: createSnapshot([0, 0]),
-    auxiliaryState: { customState: { m, n } },
-    variables: { m, n },
-  });
-
   dp[0][0] = 1;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: "Initialize base case dp[0][0] = 1",
-      why: "There is exactly 1 way to be at the starting location (0,0).",
-    },
-    primarySnapshot: createSnapshot([0, 0]),
-    auxiliaryState: { customState: { "dp[0][0]": 1 } },
-    variables: { m, n, "dp[0][0]": 1 },
-  });
+  addStep(
+    `Set base case dp[0][0] = 1, as there is exactly 1 way to begin at the start position.`,
+    makeGridSnapshot([0, 0]),
+  );
 
   for (let r = 0; r < m; r++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 9,
-      explanation: {
-        what: `Begin traversing row r = ${r}`,
-        why: "Row-by-row traversal guarantees topological ordering because moves are strictly rightward and downward.",
-      },
-      primarySnapshot: createSnapshot([r, 0]),
-      auxiliaryState: { customState: { currentCombinedRow: r } },
-      variables: { r, m },
-    });
-
     for (let c = 0; c < n; c++) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 10,
-        explanation: {
-          what: `Evaluate cell (${r}, ${c})`,
-          why: `Processing state for row ${r}, column ${c}.`,
-        },
-        primarySnapshot: createSnapshot([r, c]),
-        auxiliaryState: { customState: { r, c } },
-        variables: { r, c },
-      });
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 11,
-        explanation: {
-          what: `Check condition if obstacleGrid[${r}][${c}] == 1 (${grid[r][c] === 1})`,
-          why:
-            grid[r][c] === 1
-              ? `Cell (${r}, ${c}) is an obstacle wall!`
-              : `Cell (${r}, ${c}) is an open floor cell.`,
-        },
-        primarySnapshot: createSnapshot([r, c]),
-        auxiliaryState: { customState: { r, c, isObstacle: grid[r][c] === 1 } },
-        variables: { r, c, isObstacle: grid[r][c] === 1 },
-      });
+      if (r === 0 && c === 0) continue;
 
       if (grid[r][c] === 1) {
         dp[r][c] = 0;
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 12,
-          explanation: {
-            what: `Set dp[${r}][${c}] = 0 for obstacle cell`,
-            why: "Obstacles block path traversal, so dp[r][c] must be set to 0.",
-          },
-          primarySnapshot: createSnapshot([r, c]),
-          auxiliaryState: { customState: { r, c, dpVal: 0 } },
-          variables: { r, c, "dp[r][c]": 0 },
-        });
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 13,
-          explanation: {
-            what: `Continue to next cell, skipping additions for obstacle (${r}, ${c})`,
-            why: "No incoming paths can pass through an obstacle.",
-          },
-          primarySnapshot: createSnapshot([r, c]),
-          auxiliaryState: { customState: { r, c, skipped: true } },
-          variables: { r, c },
-        });
+        addStep(
+          `Cell (${r}, ${c}) contains an obstacle: setting dp[${r}][${c}] = 0 to block path propagation.`,
+          makeGridSnapshot([r, c]),
+        );
         continue;
       }
 
-      if (r === 0 && c === 0) continue;
+      const topVal = r > 0 ? dp[r - 1][c] : 0;
+      const leftVal = c > 0 ? dp[r][c - 1] : 0;
+      dp[r][c] = topVal + leftVal;
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 14,
-        explanation: {
-          what: `Evaluate top neighbor condition if r > 0 (r = ${r})`,
-          why:
-            r > 0
-              ? `Top neighbor cell (${r - 1}, ${c}) exists.`
-              : `Top boundary reached (row 0), no top neighbor.`,
-        },
-        primarySnapshot: createSnapshot([r, c]),
-        auxiliaryState: { customState: { r, c, hasTop: r > 0 } },
-        variables: { r, c, hasTop: r > 0 },
-      });
-
-      if (r > 0) {
-        const topVal = dp[r - 1][c];
-        dp[r][c] += topVal;
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 15,
-          explanation: {
-            what: `Add top neighbor paths: dp[${r}][${c}] += dp[${r - 1}][${c}] (${topVal})`,
-            why: `Robot can move down from top neighbor cell (${r - 1}, ${c}). Total paths now ${dp[r][c]}.`,
-          },
-          primarySnapshot: createSnapshot([r, c]),
-          auxiliaryState: { customState: { r, c, topAdded: topVal, currentPaths: dp[r][c] } },
-          variables: { r, c, topVal, "dp[r][c]": dp[r][c] },
-        });
-      }
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 16,
-        explanation: {
-          what: `Evaluate left neighbor condition if c > 0 (c = ${c})`,
-          why:
-            c > 0
-              ? `Left neighbor cell (${r}, ${c - 1}) exists.`
-              : `Left boundary reached (col 0), no left neighbor.`,
-        },
-        primarySnapshot: createSnapshot([r, c]),
-        auxiliaryState: { customState: { r, c, hasLeft: c > 0 } },
-        variables: { r, c, hasLeft: c > 0 },
-      });
-
-      if (c > 0) {
-        const leftVal = dp[r][c - 1];
-        dp[r][c] += leftVal;
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 17,
-          explanation: {
-            what: `Add left neighbor paths: dp[${r}][${c}] += dp[${r}][${c - 1}] (${leftVal})`,
-            why: `Robot can move right from left neighbor cell (${r}, ${c - 1}). Total paths now ${dp[r][c]}.`,
-          },
-          primarySnapshot: createSnapshot([r, c]),
-          auxiliaryState: { customState: { r, c, leftAdded: leftVal, currentPaths: dp[r][c] } },
-          variables: { r, c, leftVal, "dp[r][c]": dp[r][c] },
-        });
-      }
+      addStep(
+        `Evaluating open cell (${r}, ${c}): adding top neighbor paths dp[${r - 1 < 0 ? 0 : r - 1}][${c}] = ${topVal} and left neighbor paths dp[${r}][${c - 1 < 0 ? 0 : c - 1}] = ${leftVal}. Updated dp[${r}][${c}] = ${dp[r][c]}.`,
+        makeGridSnapshot([r, c]),
+      );
     }
   }
 
-  const ans = dp[m - 1][n - 1];
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 19,
-    explanation: {
-      what: `Final result dp[${m - 1}][${n - 1}] = ${ans}`,
-      why: `The total number of unique paths to reach bottom-right cell (${m - 1}, ${n - 1}) is ${ans}.`,
-    },
-    primarySnapshot: createSnapshot([m - 1, n - 1]),
-    auxiliaryState: { customState: { totalPaths: ans } },
-    variables: { result: ans },
-  });
+  const finalAns = dp[m - 1][n - 1];
+  addStep(
+    `Completed grid DP tabulation: dp[${m - 1}][${n - 1}] = ${finalAns}. The total number of unique paths from (0,0) to (${m - 1}, ${n - 1}) avoiding obstacles is ${finalAns}.`,
+    makeGridSnapshot([m - 1, n - 1], true),
+  );
 
   return steps;
 };
@@ -327,7 +336,7 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   topicIds: ["dp_2d"],
   difficulty: "Medium",
   description:
-    "<p>The <strong>Grid Unique Paths with Obstacles</strong> problem (LeetCode #63) asks for the total number of unique paths a robot can take from top-left <code>(0,0)</code> to bottom-right <code>(m-1, n-1)</code> on an <code>m &times; n</code> grid while avoiding obstacle cells (<code>grid[r][c] = 1</code>).</p><p>Movement is strictly limited to <strong>Right</strong> and <strong>Down</strong>. By the Rule of Sum, the total number of unique paths reaching cell <code>(r, c)</code> is <code>dp[r][c] = dp[r-1][c] + dp[r][c-1]</code> if unblocked, and <code>0</code> for obstacle cells.</p>",
+    "<p>Given an <code>m &times; n</code> integer array <code>grid</code> where <code>grid[i][j] = 1</code> represents an obstacle wall and <code>0</code> represents an open path cell, determine the number of unique paths a robot can take from top-left <code>(0,0)</code> to bottom-right <code>(m-1, n-1)</code>. The robot can only move either <strong>down</strong> or <strong>right</strong> at any point in time.</p><p><strong>Input:</strong> A 2D integer array <code>grid</code>.</p><p><strong>Output:</strong> The total number of unique paths to reach the bottom-right destination cell.</p>",
   constraints: [
     "1 <= m, n <= 100",
     "grid[i][j] is 0 or 1",
@@ -336,25 +345,10 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "grid = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]",
-      outputDisplay: "2",
-      title: "Basic Case",
-      input: {
-        grid: [
-          [0, 0, 0],
-          [0, 1, 0],
-          [0, 0, 0],
-        ],
-      },
-      output: "2",
-      explanation:
-        "Obstacle at center (1,1) allows only 2 paths around it (Right-Right-Down-Down and Down-Down-Right-Right).",
-    },
-    {
-      kind: "complex",
+      scenario: "standard",
       inputDisplay: "grid = [[0, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]",
       outputDisplay: "8",
-      title: "4x4 Grid with Obstacle",
+      title: "Standard Case",
       input: {
         grid: [
           [0, 0, 0, 0],
@@ -368,10 +362,28 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
         "A 4x4 grid with an obstacle at (1,1) yields 8 unique paths from (0,0) to (3,3).",
     },
     {
+      kind: "complex",
+      scenario: "adversarial",
+      inputDisplay: "grid = [[0, 0, 0], [0, 1, 0], [0, 0, 0]]",
+      outputDisplay: "2",
+      title: "Adversarial Central Blockade",
+      input: {
+        grid: [
+          [0, 0, 0],
+          [0, 1, 0],
+          [0, 0, 0],
+        ],
+      },
+      output: "2",
+      explanation:
+        "Obstacle at center (1,1) allows only 2 paths around it (Right-Right-Down-Down and Down-Down-Right-Right).",
+    },
+    {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "grid = [[1, 0], [0, 0]]",
       outputDisplay: "0",
-      title: "Blocked Start",
+      title: "Blocked Start Boundary",
       input: {
         grid: [
           [1, 0],
@@ -435,7 +447,7 @@ export const gridPathsDp: AlgorithmDefinition<GridPathsDpInput> = {
       type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 7",
+      chapter: 7,
       label: "Competitive Programmer's Handbook, Ch 7",
     },
   ],

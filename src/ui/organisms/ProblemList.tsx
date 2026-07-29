@@ -8,12 +8,16 @@ interface ProblemListProps {
   onSelectAlgorithm: (algorithmId: string) => void;
   topic?: TopicId | "All";
   onTopicChange?: (topic: TopicId | "All") => void;
+  tag?: string | "All";
+  onTagChange?: (tag: string | "All") => void;
 }
 
 export const ProblemList: React.FC<ProblemListProps> = ({
   onSelectAlgorithm,
   topic,
   onTopicChange,
+  tag,
+  onTagChange,
 }) => {
   const {
     searchTerm,
@@ -24,6 +28,9 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     setSelectedDifficulty,
     selectedSource,
     setSelectedSource,
+    selectedTag,
+    setSelectedTag,
+    availableTags,
     sortBy,
     toggleSort,
     stats,
@@ -33,7 +40,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
     setCurrentPage,
     totalPages,
     ITEMS_PER_PAGE,
-  } = useProblemListState({ topic: topic ?? "All", onTopicChange });
+  } = useProblemListState({ topic: topic ?? "All", onTopicChange, tag: tag ?? "All", onTagChange });
 
   return (
     <main
@@ -56,6 +63,9 @@ export const ProblemList: React.FC<ProblemListProps> = ({
         onDifficultySelect={setSelectedDifficulty}
         selectedSource={selectedSource}
         onSourceSelect={setSelectedSource}
+        selectedTag={selectedTag}
+        onTagSelect={setSelectedTag}
+        availableTags={availableTags}
         filteredCount={filteredAlgorithms.length}
         stats={stats}
       />
@@ -71,6 +81,7 @@ export const ProblemList: React.FC<ProblemListProps> = ({
           sortBy={sortBy}
           onToggleSort={toggleSort}
           onSelectAlgorithm={onSelectAlgorithm}
+          onSelectTag={setSelectedTag}
         />
       </div>
     </main>

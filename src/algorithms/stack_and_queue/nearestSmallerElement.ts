@@ -480,7 +480,6 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [6, 4, 5, 2, 10, 8, 7, 12, 1, 9]",
       outputDisplay: "[-1, -1, 4, -1, 2, 2, 2, 7, -1, 1]",
@@ -491,7 +490,6 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [4, 5, 2, 10, 8]",
       outputDisplay: "[-1, 4, -1, 2, 2]",
@@ -501,7 +499,6 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
       explanation: "Returns nearest smaller elements [-1, 4, -1, 2, 2].",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [5, 4, 3, 2, 1]",
@@ -573,7 +570,7 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
     {
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 8",
+      chapter: 8,
       label: "Competitive Programmer's Handbook, Ch 8",
     },
   ],

@@ -39,7 +39,6 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: 'words = ["cat", "car", "dog"], search("car"), startsWith("ca")',
       outputDisplay: 'search("car") -> true, startsWith("ca") -> true',
@@ -49,7 +48,6 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
       explanation: 'Words "cat" and "car" share prefix "ca". Searching "car" finds terminal node.',
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay:
@@ -66,7 +64,6 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
         '"app" is a prefix of "apple" as well as a standalone word; "apr" matches prefix of "apricot".',
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'words = ["tree", "trie"], search("trip"), startsWith("tra")',

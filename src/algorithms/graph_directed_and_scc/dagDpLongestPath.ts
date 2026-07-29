@@ -3,8 +3,10 @@ import type {
   AlgorithmStep,
   GraphEdgeItem,
   GraphNodeItem,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface DagDpLongestPathInput {
   nodes: GraphNodeItem[];
@@ -48,60 +50,6 @@ def dag_longest_path(nodes, edges):
     
     return dp[max_node], path`;
 
-export const DAG_DP_TRIVIA: TriviaMeta = {
-  skipLines: [1, 2],
-  distractors: [
-    "if dp[u] + w < dp[v]: dp[v] = dp[u] + w",
-    "queue.pop()",
-    "dp[u] = max(dp.values())",
-    "topo_order.reverse()",
-  ],
-  hints: [
-    {
-      line: 10,
-      hint: "Topological sorting processes nodes in an order where all incoming dependencies precede target nodes.",
-    },
-    {
-      line: 20,
-      hint: "Initialize DP array dp[u] = 0 for all nodes.",
-    },
-    {
-      line: 24,
-      hint: "Relax edges u -> v: if dp[u] + weight > dp[v], update dp[v] and track predecessor.",
-    },
-    {
-      line: 28,
-      hint: "The maximum value in the DP table yields the longest path length in the DAG.",
-    },
-  ],
-  lineExplanations: {
-    1: "Imports deque for Kahn's topological sort queue.",
-    3: "Defines the DAG longest path dynamic programming algorithm.",
-    4: "Initializes adjacency list for directed graph representation.",
-    5: "Initializes in-degree counters for all vertices.",
-    6: "Populates adjacency list and computes in-degrees for each vertex.",
-    10: "Initializes Kahn's queue with in-degree 0 source vertices.",
-    11: "Initializes list to store topological ordering.",
-    12: "Processes nodes from the queue until empty.",
-    13: "Pops next vertex from queue.",
-    14: "Appends vertex to topological ordering.",
-    15: "Iterates through outgoing edges of current vertex.",
-    16: "Decrements in-degree of neighboring vertex.",
-    17: "Checks if neighboring vertex has no remaining incoming edges.",
-    18: "Adds neighbor to queue once in-degree reaches 0.",
-    20: "Initializes DP distance array dp[u] = 0.",
-    21: "Initializes parent pointers for path reconstruction.",
-    22: "Iterates over vertices in topological order.",
-    23: "Iterates over outgoing edges from current vertex.",
-    24: "Checks if path through u yields a longer path to v.",
-    25: "Updates dp[v] with new maximal path weight.",
-    26: "Stores predecessor pointer parent[v] = u.",
-    28: "Identifies the node with maximum DP score.",
-    31: "Reconstructs longest path by backtracking parent pointers.",
-    36: "Returns maximum path length and path sequence.",
-  },
-};
-
 export const DEFAULT_DAG_DP_INPUT: DagDpLongestPathInput = {
   nodes: [
     { id: "A", label: "A", x: 100, y: 150, state: "default" },
@@ -122,8 +70,198 @@ export const DEFAULT_DAG_DP_INPUT: DagDpLongestPathInput = {
   ],
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Longest Path Problem in a Directed Acyclic Graph (DAG) finds the simple path that maximizes cumulative edge weight from any source to any reachable vertex.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A", state: "active" },
+        { id: "B", label: "B", state: "default" },
+        { id: "C", label: "C", state: "default" },
+        { id: "D", label: "D", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 3 },
+        { from: "A", to: "C", weight: 2 },
+        { from: "B", to: "D", weight: 4 },
+        { from: "C", to: "D", weight: 5 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "While finding longest paths in general graphs is NP-hard, the absence of directed cycles in a DAG enables exact polynomial-time Dynamic Programming.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A (No Cycles)", state: "visited" },
+        { id: "B", label: "B", state: "visited" },
+        { id: "C", label: "C", state: "visited" },
+        { id: "D", label: "D", state: "visited" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 3, isTraversed: true },
+        { from: "B", to: "D", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "C", to: "D", weight: 5, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Topological Sorting orders vertices linearly so that for every directed edge u -> v, vertex u always precedes vertex v in the evaluation order.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A (1st)", state: "sorted" },
+        { id: "B", label: "B (2nd)", state: "sorted" },
+        { id: "C", label: "C (3rd)", state: "sorted" },
+        { id: "D", label: "D (4th)", state: "sorted" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 3, isPath: true },
+        { from: "B", to: "D", weight: 4, isPath: true },
+        { from: "A", to: "C", weight: 2 },
+        { from: "C", to: "D", weight: 5 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Kahn's Algorithm computes topological rank by maintaining a queue of in-degree 0 source nodes and peeling off edges in linear O(V + E) time.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A (in:0)", state: "active" },
+        { id: "B", label: "B (in:1)", state: "default" },
+        { id: "C", label: "C (in:1)", state: "default" },
+        { id: "D", label: "D (in:2)", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 3 },
+        { from: "A", to: "C", weight: 2 },
+        { from: "B", to: "D", weight: 4 },
+        { from: "C", to: "D", weight: 5 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Optimal Substructure dictates that the longest path ending at vertex v builds upon the maximum path length among all incoming predecessor vertices u.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "B", label: "B (dp:3)", state: "visited" },
+        { id: "C", label: "C (dp:2)", state: "visited" },
+        { id: "D", label: "D (dp:?)", state: "swap" },
+      ],
+      edges: [
+        { from: "B", to: "D", weight: 4, isTraversed: true },
+        { from: "C", to: "D", weight: 5, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The DP State Equation evaluates dp[v] = max(dp[v], dp[u] + weight(u, v)) initialized with dp[u] = 0 across all vertices.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "B", label: "B (dp:3)", state: "visited" },
+        { id: "C", label: "C (dp:2)", state: "visited" },
+        { id: "D", label: "D (dp:7)", state: "active" },
+      ],
+      edges: [
+        { from: "B", to: "D", weight: 4 },
+        { from: "C", to: "D", weight: 5, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Edge Relaxation processes outgoing edges u -> v in topological order, updating target distance dp[v] whenever a longer path is found.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A (dp:0)", state: "visited" },
+        { id: "C", label: "C (dp:2)", state: "active" },
+        { id: "D", label: "D (dp:7)", state: "swap" },
+      ],
+      edges: [
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "C", to: "D", weight: 5, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Parent Pointer Tracking records parent[v] = u during each DP update, enabling exact path reconstruction from sink back to source.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A", state: "sorted" },
+        { id: "C", label: "C (parent:A)", state: "sorted" },
+        { id: "D", label: "D (parent:C)", state: "sorted" },
+      ],
+      edges: [
+        { from: "A", to: "C", weight: 2, isPath: true },
+        { from: "C", to: "D", weight: 5, isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Extracting max(dp) and backtracking parent pointers computes the global longest path in a DAG in linear O(V + E) time and space.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "A", label: "A (dp:0)", state: "sorted" },
+        { id: "B", label: "B (dp:3)", state: "default" },
+        { id: "C", label: "C (dp:2)", state: "sorted" },
+        { id: "D", label: "D (Max:7)", state: "sorted" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 3 },
+        { from: "B", to: "D", weight: 4 },
+        { from: "A", to: "C", weight: 2, isPath: true },
+        { from: "C", to: "D", weight: 5, isPath: true },
+      ],
+    },
+  },
+];
+
 export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  let stepIdx = 0;
+
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const safeInput = input && typeof input === "object" ? input : DEFAULT_DAG_DP_INPUT;
   const inputNodes =
     Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
@@ -148,147 +286,145 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
     inDegree[e.to] = (inDegree[e.to] || 0) + 1;
   }
 
-  let stepIdx = 0;
-
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 3,
-    explanation: {
-      what: "Initialized DAG Longest Path DP algorithm.",
-      why: `Graph contains ${nodes.length} nodes and ${edges.length} directed weighted edges. Built adjacency list and in-degree table.`,
-    },
-    primarySnapshot: { kind: "graph", nodes: [...nodes], edges: [...edges] },
-    auxiliaryState: {
-      visited: [],
-      distanceTable: {},
-      customState: {
-        "In-Degrees": Object.entries(inDegree)
-          .map(([k, v]) => `${k}:${v}`)
-          .join(", "),
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Initialized DAG Longest Path DP for ${nodes.length} vertices and ${edges.length} weighted edges.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, state: "active" })),
+        edges: [...edges],
       },
-    },
-    variables: { totalNodes: nodes.length, totalEdges: edges.length },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { totalNodes: nodes.length, totalEdges: edges.length },
+    }),
+  );
 
   // Kahn's Topological Sort Queue Init
   const queue: string[] = nodes.filter((n) => inDegree[n.id] === 0).map((n) => n.id);
   const topoOrder: string[] = [];
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 10,
-    explanation: {
-      what: `Identified source nodes with in-degree 0: [${queue.join(", ")}].`,
-      why: "In Kahn's algorithm, vertices with zero incoming dependencies form the initial topological sorting queue.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({
-        ...n,
-        state: queue.includes(n.id) ? "queued" : "default",
-      })),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      queue: [...queue],
-      customState: { "Topo Order": "[]" },
-    },
-    variables: { initialQueue: queue.join(", ") },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Identified source nodes with in-degree 0: [${queue.join(", ")}]. Initialized Kahn's topological sort queue.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({
+          ...n,
+          state: queue.includes(n.id) ? "compare" : "default",
+        })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        stack: [...queue],
+        visited: [],
+      },
+      variables: { initialQueue: queue.join(", ") },
+    }),
+  );
 
   const inDegCopy = { ...inDegree };
   while (queue.length > 0) {
     const u = queue.shift()!;
     topoOrder.push(u);
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 13,
-      explanation: {
-        what: `Popped node ${u} from queue and added to Topological Order.`,
-        why: `Node ${u} has no remaining unprocessed incoming edges. Current topological order: [${topoOrder.join(", ")}].`,
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          state:
-            n.id === u
-              ? "active"
-              : topoOrder.includes(n.id)
-                ? "visited"
-                : queue.includes(n.id)
-                  ? "queued"
-                  : "default",
-        })),
-        edges: [...edges],
-      },
-      auxiliaryState: {
-        queue: [...queue],
-        customState: { "Topo Order": `[${topoOrder.join(", ")}]` },
-      },
-      variables: { current: u, topoOrder: topoOrder.join(" -> ") },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Popped node '${u}' from queue and added to Topological Order: [${topoOrder.join(", ")}].`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            state:
+              n.id === u
+                ? "swap"
+                : topoOrder.includes(n.id)
+                  ? "visited"
+                  : queue.includes(n.id)
+                    ? "compare"
+                    : "default",
+          })),
+          edges: [...edges],
+        },
+        auxiliaryState: {
+          stack: [...queue],
+          visited: [...topoOrder],
+        },
+        variables: { current: u, topoOrder: topoOrder.join(" -> ") },
+      }),
+    );
 
     for (const item of adj[u]) {
       const v = item.to;
       inDegCopy[v]--;
       if (inDegCopy[v] === 0) {
         queue.push(v);
-        steps.push({
-          stepIndex: stepIdx++,
-          codeLine: 18,
-          explanation: {
-            what: `In-degree of node ${v} reached 0 after removing edge ${u} -> ${v}. Pushed ${v} to queue.`,
-            why: `All incoming dependencies for node ${v} have been processed in the topological sorting stage.`,
-          },
-          primarySnapshot: {
-            kind: "graph",
-            nodes: nodes.map((n) => ({
-              ...n,
-              state:
-                n.id === v
-                  ? "queued"
-                  : n.id === u
-                    ? "active"
-                    : topoOrder.includes(n.id)
-                      ? "visited"
-                      : queue.includes(n.id)
-                        ? "queued"
-                        : "default",
-            })),
-            edges: edges.map((e) => ({
-              ...e,
-              isPath: e.from === u && e.to === v,
-            })),
-          },
-          auxiliaryState: {
-            queue: [...queue],
-            customState: { "Topo Order": `[${topoOrder.join(", ")}]` },
-          },
-          variables: { u, v, newInDegree: 0 },
-        });
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIdx++,
+            phase: "walkthrough",
+            narrative: `In-degree of node '${v}' reached 0 after removing edge '${u}' -> '${v}'. Pushed '${v}' to queue.`,
+            primarySnapshot: {
+              kind: "graph",
+              directed: true,
+              nodes: nodes.map((n) => ({
+                ...n,
+                state:
+                  n.id === v
+                    ? "compare"
+                    : n.id === u
+                      ? "active"
+                      : topoOrder.includes(n.id)
+                        ? "visited"
+                        : queue.includes(n.id)
+                          ? "compare"
+                          : "default",
+              })),
+              edges: edges.map((e) => ({
+                ...e,
+                isPath: e.from === u && e.to === v,
+              })),
+            },
+            auxiliaryState: {
+              stack: [...queue],
+              visited: [...topoOrder],
+            },
+            variables: { u, v, newInDegree: 0 },
+          }),
+        );
       }
     }
   }
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 14,
-    explanation: {
-      what: `Topological Order computed: [${topoOrder.join(", ")}].`,
-      why: "Evaluating DP transitions in topological order guarantees all path sub-problems ending at predecessors are solved beforehand.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, state: "visited" })),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      customState: { "Topo Order": `[${topoOrder.join(", ")}]` },
-    },
-    variables: { topoOrder: topoOrder.join(" -> ") },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Completed Topological Sorting: [${topoOrder.join(", ")}]. Next, evaluate DP transitions in topological order.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, state: "visited" })),
+        edges: [...edges],
+      },
+      auxiliaryState: {
+        stack: [],
+        visited: [...topoOrder],
+      },
+      variables: { topoOrder: topoOrder.join(" -> ") },
+    }),
+  );
 
   // DP for Longest Path
   const dp: Record<string, number> = {};
@@ -298,50 +434,51 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
     parent[n.id] = null;
   }
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 20,
-    explanation: {
-      what: "Initialized DP array dp[u] = 0 and parent[u] = null for all nodes.",
-      why: "Base case: a single node path has length 0. All vertices begin with initial candidate length 0.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, val: 0, state: "default" })),
-      edges: [...edges],
-    },
-    auxiliaryState: {
-      distanceTable: { ...dp },
-    },
-    variables: { dpInit: "0 for all" },
-  });
-
-  for (const u of topoOrder) {
-    steps.push({
+  steps.push(
+    createTutorialStep({
       stepIndex: stepIdx++,
-      codeLine: 22,
-      explanation: {
-        what: `Processing node ${u} (dp[${u}] = ${dp[u]}).`,
-        why: `Relaxing outgoing directed edges from current topological vertex ${u}.`,
-      },
+      phase: "walkthrough",
+      narrative: "Initialized DP array dp[u] = 0 and parent[u] = null for all vertices.",
       primarySnapshot: {
         kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          val: dp[n.id],
-          state: n.id === u ? "active" : "default",
-        })),
-        edges: edges.map((e) => ({
-          ...e,
-          isPath: e.from === u,
-        })),
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, val: 0, state: "default" })),
+        edges: [...edges],
       },
       auxiliaryState: {
-        distanceTable: { ...dp },
-        customState: { "Active Node": u },
+        stack: [],
+        visited: [...topoOrder],
       },
-      variables: { activeNode: u, currentDp: dp[u] },
-    });
+      variables: { dpInit: "0 for all" },
+    }),
+  );
+
+  for (const u of topoOrder) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Processing vertex '${u}' (current dp[${u}] = ${dp[u]}): relaxing outgoing directed edges.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            val: dp[n.id],
+            state: n.id === u ? "active" : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            isPath: e.from === u,
+          })),
+        },
+        auxiliaryState: {
+          stack: [],
+          visited: [...topoOrder],
+        },
+        variables: { activeNode: u, currentDp: dp[u] },
+      }),
+    );
 
     for (const item of adj[u]) {
       const v = item.to;
@@ -351,30 +488,31 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
         dp[v] = dp[u] + w;
         parent[v] = u;
 
-        steps.push({
-          stepIndex: stepIdx++,
-          codeLine: 25,
-          explanation: {
-            what: `Relaxed edge ${u} -> ${v} (weight ${w}): updated dp[${v}] = ${dp[v]}.`,
-            why: `Found a longer path ending at ${v} via vertex ${u}: dp[${u}] (${dp[u]} - ${w}) = ${dp[v]} > previous dp[${v}].`,
-          },
-          primarySnapshot: {
-            kind: "graph",
-            nodes: nodes.map((n) => ({
-              ...n,
-              val: dp[n.id],
-              state: n.id === v ? "swap" : n.id === u ? "active" : "default",
-            })),
-            edges: edges.map((e) => ({
-              ...e,
-              isPath: e.from === u && e.to === v,
-            })),
-          },
-          auxiliaryState: {
-            distanceTable: { ...dp },
-          },
-          variables: { u, v, weight: w, newDp: dp[v] },
-        });
+        steps.push(
+          createTutorialStep({
+            stepIndex: stepIdx++,
+            phase: "walkthrough",
+            narrative: `Relaxed edge '${u}' -> '${v}' (weight ${w}): updated dp[${v}] = ${dp[v]}.`,
+            primarySnapshot: {
+              kind: "graph",
+              directed: true,
+              nodes: nodes.map((n) => ({
+                ...n,
+                val: dp[n.id],
+                state: n.id === v ? "swap" : n.id === u ? "active" : "default",
+              })),
+              edges: edges.map((e) => ({
+                ...e,
+                isPath: e.from === u && e.to === v,
+              })),
+            },
+            auxiliaryState: {
+              stack: [],
+              visited: [...topoOrder],
+            },
+            variables: { u, v, weight: w, newDp: dp[v] },
+          }),
+        );
       }
     }
   }
@@ -395,43 +533,69 @@ export function generateDagDpSteps(input: DagDpLongestPathInput): AlgorithmStep[
   }
   longestPathNodes.reverse();
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 36,
-    explanation: {
-      what: `Longest Path in DAG: ${longestPathNodes.join(" -> ")} (Length = ${dp[maxNode]}).`,
-      why: `Vertex ${maxNode} achieves the maximum total path weight of ${dp[maxNode]} in the DAG. Backtracked parent pointers to reconstruct the exact path.`,
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({
-        ...n,
-        val: dp[n.id],
-        state: longestPathNodes.includes(n.id) ? "sorted" : "default",
-      })),
-      edges: edges.map((e) => {
-        let isPath = false;
-        for (let i = 0; i < longestPathNodes.length - 1; i++) {
-          if (e.from === longestPathNodes[i] && e.to === longestPathNodes[i + 1]) {
-            isPath = true;
-            break;
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `DAG Longest Path complete: [${longestPathNodes.join(" -> ")}] with total path weight ${dp[maxNode]}.`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({
+          ...n,
+          val: dp[n.id],
+          state: longestPathNodes.includes(n.id) ? "sorted" : "default",
+        })),
+        edges: edges.map((e) => {
+          let isPath = false;
+          for (let i = 0; i < longestPathNodes.length - 1; i++) {
+            if (e.from === longestPathNodes[i] && e.to === longestPathNodes[i + 1]) {
+              isPath = true;
+              break;
+            }
           }
-        }
-        return { ...e, isPath, isTraversed: isPath };
-      }),
-    },
-    auxiliaryState: {
-      distanceTable: { ...dp },
-      customState: {
-        "Longest Path": longestPathNodes.join(" -> "),
-        "Max Length": dp[maxNode],
+          return { ...e, isPath, isTraversed: isPath };
+        }),
       },
-    },
-    variables: { maxLength: dp[maxNode], path: longestPathNodes.join(" -> ") },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: [...longestPathNodes],
+      },
+      variables: { maxLength: dp[maxNode], path: longestPathNodes.join(" -> ") },
+    }),
+  );
 
   return steps;
 }
+
+export const DAG_DP_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Imports deque for Kahn's topological sort queue.",
+    3: "Defines DAG longest path algorithm.",
+    4: "Initializes adjacency list.",
+    5: "Initializes in-degree counters.",
+    6: "Populates adjacency list.",
+    10: "Initializes queue with in-degree 0 nodes.",
+    11: "Initializes topological order list.",
+    12: "Processes queue nodes.",
+    13: "Pops next vertex.",
+    14: "Appends vertex to topo order.",
+    15: "Iterates over outgoing edges.",
+    16: "Decrements in-degree of neighbor.",
+    17: "Checks if neighbor in-degree reached 0.",
+    18: "Adds neighbor to queue.",
+    20: "Initializes DP array dp[u] = 0.",
+    21: "Initializes parent pointers.",
+    22: "Iterates over vertices in topological order.",
+    23: "Iterates over outgoing edges.",
+    24: "Checks if path through u yields longer path.",
+    25: "Updates dp[v].",
+    26: "Stores parent[v] = u.",
+    28: "Identifies max DP score node.",
+    31: "Reconstructs longest path.",
+    36: "Returns max path length and path sequence.",
+  },
+};
 
 export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   id: "dag-dp-longest-path",
@@ -439,7 +603,7 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Medium",
   description:
-    "<p>Finds the longest simple path in a Directed Acyclic Graph (DAG) in linear <code>O(V + E)</code> time using Dynamic Programming combined with Topological Sort. Given a DAG with V vertices and E weighted edges, compute the length of the longest path along with the sequence of vertices forming that path. While finding the longest path in general graphs is NP-hard, DAG acyclicity allows evaluating DP transitions in topological order: <code>dp[v] = max(dp[v], dp[u] + weight(u, v))</code>. Return the maximum path length in the DAG.</p>",
+    "<p>Given a Directed Acyclic Graph (DAG) <code>G = (V, E)</code> with weighted directed edges, compute the maximum total path weight from any source vertex to any reachable destination vertex.</p><h3>Problem Statement</h3><p>Use Kahn's algorithm to find a Topological Order, then evaluate Dynamic Programming state transitions <code>dp[v] = max(dp[v], dp[u] + weight(u, v))</code>. Reconstruct and return the global longest path sequence and maximum path weight.</p><h3>Input Parameters</h3><ul><li><code>nodes</code>: List of DAG vertices with coordinates and labels.</li><li><code>edges</code>: List of directed edges with numerical weights <code>(from, to, weight)</code>.</li></ul><h3>Output</h3><p>Returns the maximum cumulative path weight and ordered sequence of vertices forming the longest path.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 5000",
@@ -449,18 +613,20 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "nodes = [A, B, C, D, E, F], edges with weights",
-      outputDisplay: "Longest Path: A -> B -> D -> F (Length: 9)",
-      title: "Weighted 6-Node DAG",
+      scenario: "standard",
+      inputDisplay: "nodes = [A, B, C, D, E, F], 7 weighted edges",
+      outputDisplay: "A -> C -> E -> F (Length: 10)",
+      title: "Standard Weighted 6-Node DAG",
       input: DEFAULT_DAG_DP_INPUT,
       output: "A -> C -> E -> F (Length: 10)",
       explanation: "Path A -> C (2) -> E (5) -> F (3) yields total weight 10.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "nodes = [1, 2, 3, 4], edges = (1->2:5), (1->3:3), (2->4:6), (3->4:10)",
-      outputDisplay: "Longest Path: 1 -> 3 -> 4 (Length: 13)",
-      title: "Parallel Branching Paths",
+      outputDisplay: "1 -> 3 -> 4 (Length: 13)",
+      title: "Adversarial Parallel Branching Paths",
       input: {
         nodes: [
           { id: "1", label: "1", x: 100, y: 150, state: "default" },
@@ -480,9 +646,10 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "nodes = [1, 2, 3], edges = (1->2:1), (2->3:1)",
-      outputDisplay: "Longest Path: 1 -> 2 -> 3 (Length: 2)",
-      title: "Unweighted Simple Chain",
+      outputDisplay: "1 -> 2 -> 3 (Length: 2)",
+      title: "Boundary Unweighted Simple Chain",
       input: {
         nodes: [
           { id: "1", label: "1", x: 100, y: 150, state: "default" },
@@ -531,7 +698,7 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
       },
       {
         heading: "Complexity Analysis",
-        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Topological Sort:</strong> Kahn's BFS algorithm visits all V nodes and E edges in <code>O(V + E)</code> time.</li><li><strong>DP Transitions:</strong> Edge relaxation inspects every edge once, running in <code>O(V + E)</code> time.</li></ul>",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>Topological sorting (Kahn's algorithm) and DP edge relaxation visit all V nodes and E edges in <code>O(V + E)</code> time.</p>",
       },
     ],
     keyTerms: [
@@ -566,3 +733,5 @@ export const dagDpLongestPath: AlgorithmDefinition<DagDpLongestPathInput> = {
   defaultInput: DEFAULT_DAG_DP_INPUT,
   generateSteps: generateDagDpSteps,
 };
+
+export default dagDpLongestPath;

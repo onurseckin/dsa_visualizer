@@ -1,5 +1,6 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, PrimaryVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface LongestIncreasingSubsequenceInput {
   nums: number[];
@@ -22,295 +23,338 @@ export const PYTHON_LIS_CODE = `def length_of_lis(nums: list[int]) -> int:
 
     return max(dp)`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "A subsequence is formed by deleting zero or more elements from an array without changing the relative order of the remaining elements; LIS seeks the maximum length of a strictly increasing subsequence.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "Subsequence vs Subarray",
+      items: [
+        {
+          id: "nums-array",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "e1", value: 10, label: "[0]", state: "default" },
+              { id: "e2", value: 9, label: "[1]", state: "default" },
+              { id: "e3", value: 2, label: "[2]", state: "active" },
+              { id: "e4", value: 5, label: "[3]", state: "default" },
+              { id: "e5", value: 3, label: "[4]", state: "active" },
+              { id: "e6", value: 7, label: "[5]", state: "active" },
+            ],
+          },
+        },
+        {
+          id: "sub-display",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "subsequence",
+            mode: "box",
+            elements: [
+              { id: "s1", value: 2, label: "[0]", state: "sorted" },
+              { id: "s2", value: 3, label: "[1]", state: "sorted" },
+              { id: "s3", value: 7, label: "[2]", state: "sorted" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Strict monotonicity requires each element in the subsequence to be strictly greater than its predecessor (nums[i] > nums[j]); duplicate values or equal elements cannot extend the sequence.",
+    primarySnapshot: {
+      kind: "array",
+      name: "comparison",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 5, label: "j", state: "compare" },
+        { id: "c2", value: 5, label: "i (equal)", state: "compare" },
+        { id: "c3", value: "Invalid", label: "Strict > required", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A brute-force check generates all 2^N possible subsequences, which causes exponential time complexity O(2^N) and quickly becomes intractable for larger inputs.",
+    primarySnapshot: {
+      kind: "array",
+      name: "complexity",
+      mode: "box",
+      elements: [
+        { id: "b1", value: "Subsequences: 2^N", state: "compare" },
+        { id: "b2", value: "Brute Force: O(2^N)", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Dynamic programming optimizes this by defining dp[i] as the length of the longest strictly increasing subsequence that ends exactly at index i.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "vertical",
+      heading: "DP State Definition",
+      items: [
+        {
+          id: "nums-array",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: Array.from({ length: 6 }, (_, idx) => ({
+              id: `n-${idx}`,
+              value: [10, 9, 2, 5, 3, 7][idx],
+              label: `[${idx}]`,
+              state: idx === 5 ? "active" : "default",
+            })),
+          },
+        },
+        {
+          id: "dp-array",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "dp",
+            mode: "box",
+            elements: Array.from({ length: 6 }, (_, idx) => ({
+              id: `d-${idx}`,
+              value: idx === 5 ? "dp[5] = 3" : "?",
+              label: `[${idx}]`,
+              state: idx === 5 ? "sorted" : "default",
+            })),
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Every single element by itself forms a valid increasing subsequence of length 1, so we initialize all dp[i] = 1 for all 0 <= i < N.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: Array.from({ length: 6 }, (_, idx) => ({
+        id: `init-${idx}`,
+        value: 1,
+        label: `[${idx}]`,
+        state: "default",
+      })),
+    },
+  },
+  {
+    narrative:
+      "For each index i from 1 to N - 1, we inspect all preceding indices j < i to test if nums[i] can append after nums[j].",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "p1", value: 2, label: "j", state: "compare" },
+        { id: "p2", value: 5, label: "j", state: "compare" },
+        { id: "p3", value: 7, label: "i (target)", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "If nums[i] > nums[j], index i can extend the LIS ending at j, giving recurrence dp[i] = max(dp[i], dp[j] + 1).",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: [
+        { id: "r1", value: "dp[j]", label: "[j]", state: "compare" },
+        { id: "r2", value: "dp[i] = max(dp[i], dp[j]+1)", label: "[i]", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "After populating the entire DP array, the overall answer is max(dp) across all ending indices i.",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: Array.from({ length: 6 }, (_, idx) => ({
+        id: `final-${idx}`,
+        value: [1, 1, 1, 2, 2, 3][idx],
+        label: `[${idx}]`,
+        state: idx === 5 ? "sorted" : "default",
+        pointers: idx === 5 ? ["max = 3"] : undefined,
+      })),
+    },
+  },
+  {
+    narrative:
+      "Standard DP solves LIS in O(N^2) time and O(N) space; advanced patience sorting with binary search can further optimize runtime to O(N log N).",
+    primarySnapshot: {
+      kind: "array",
+      name: "summary",
+      mode: "box",
+      elements: [
+        { id: "s1", value: "DP Tabulation: O(N^2)", state: "default" },
+        { id: "s2", value: "Patience Search: O(N log N)", state: "sorted" },
+      ],
+    },
+  },
+];
+
 export const generateLisSteps = (input: LongestIncreasingSubsequenceInput): AlgorithmStep[] => {
   const nums = input?.nums ? [...input.nums] : DEFAULT_LIS_INPUT.nums;
   const n = nums.length;
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  // Line 1: Function entry
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Start length_of_lis(nums=[${nums.join(", ")}])`,
-      why: "The goal is to find the length of the longest strictly increasing subsequence in nums.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
-        id: `dp-${idx}`,
-        value: "?",
-        state: "default" as const,
-        pointers: [`nums[${idx}] = ${val}`],
-      })),
-    },
-    auxiliaryState: {
-      customState: { nums: nums.join(", "), n },
-    },
-    variables: { n },
-  });
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
 
-  // Line 2: Empty check
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input?.nums) &&
+      input.nums.length === DEFAULT_LIS_INPUT.nums.length &&
+      input.nums.every((val, idx) => val === DEFAULT_LIS_INPUT.nums[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   if (n === 0) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 2,
-      explanation: {
-        what: "Check condition 'if not nums:' -> True",
-        why: "The input array is empty, so the guard condition evaluates to True.",
-      },
-      primarySnapshot: {
+    addStep(
+      "The input array is empty, so we immediately return length 0 without computing DP transitions.",
+      {
         kind: "array",
+        name: "nums",
+        mode: "box",
         elements: [],
       },
-      auxiliaryState: {
-        customState: { isEmpty: true, n: 0 },
-      },
-      variables: { n: 0 },
-    });
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 3,
-      explanation: {
-        what: "Return 0",
-        why: "An empty array has no increasing subsequence, so return length 0 immediately.",
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: [],
-      },
-      auxiliaryState: {
-        customState: { result: 0 },
-      },
-      variables: { result: 0 },
-    });
-
+    );
     return steps;
   }
 
-  // Non-empty input branch
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: "Check condition 'if not nums:' -> False",
-      why: `nums contains ${n} element${n > 1 ? "s" : ""}, so we skip early return and proceed to calculate length.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
-        id: `dp-${idx}`,
-        value: "?",
-        state: "default" as const,
-        pointers: [`nums[${idx}] = ${val}`],
-      })),
-    },
-    auxiliaryState: {
-      customState: { nums: nums.join(", "), n },
-    },
-    variables: { n },
-  });
-
-  // Line 4: Store array length
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: `Store input array length n = ${n}`,
-      why: "Determines boundaries for outer and inner iteration loops.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
-        id: `dp-${idx}`,
-        value: "?",
-        state: "default" as const,
-        pointers: [`nums[${idx}] = ${val}`],
-      })),
-    },
-    auxiliaryState: {
-      customState: { n },
-    },
-    variables: { n },
-  });
-
   const dp = new Array<number>(n).fill(1);
 
-  // Line 5: Initialize DP array
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Initialize DP table dp = [1] * ${n}`,
-      why: "dp[i] stores the length of the longest strictly increasing subsequence ending at index i. Initially 1 for all elements since a single element is a valid subsequence of length 1.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v,
-        state: "default" as const,
-        pointers: [`nums[${idx}] = ${nums[idx]}`],
-      })),
-    },
-    auxiliaryState: {
-      customState: { nums: nums.join(", "), dp: `[${dp.join(", ")}]` },
-    },
-    variables: { n, "max(dp)": 1 },
+  const makeSnapshot = (
+    currentI: number,
+    currentJ?: number,
+    highlightMax = false,
+  ): PrimaryVisualSnapshot => ({
+    kind: "composite",
+    layout: "vertical",
+    heading: `LIS Evaluation (Index i = ${currentI})`,
+    items: [
+      {
+        id: "nums-array",
+        role: "auxiliary",
+        snapshot: {
+          kind: "array",
+          name: "nums",
+          mode: "box",
+          elements: nums.map((val, idx) => ({
+            id: `num-${idx}`,
+            value: val,
+            label: `[${idx}]`,
+            state:
+              idx === currentI
+                ? "active"
+                : currentJ !== undefined && idx === currentJ
+                  ? "compare"
+                  : idx < currentI
+                    ? "visited"
+                    : "default",
+            pointers:
+              idx === currentI
+                ? [`i`]
+                : currentJ !== undefined && idx === currentJ
+                  ? [`j`]
+                  : undefined,
+          })),
+        },
+      },
+      {
+        id: "dp-array",
+        role: "primary",
+        snapshot: {
+          kind: "array",
+          name: "dp",
+          mode: "box",
+          elements: dp.map((v, idx) => ({
+            id: `dp-${idx}`,
+            value: v,
+            label: `[${idx}]`,
+            state:
+              highlightMax && v === Math.max(...dp)
+                ? "sorted"
+                : idx === currentI
+                  ? "active"
+                  : currentJ !== undefined && idx === currentJ
+                    ? "compare"
+                    : idx < currentI
+                      ? "visited"
+                      : "default",
+            pointers:
+              highlightMax && v === Math.max(...dp)
+                ? [`max = ${v}`]
+                : idx === currentI
+                  ? [`dp[${idx}] = ${v}`]
+                  : undefined,
+          })),
+        },
+      },
+    ],
   });
 
+  addStep(
+    `We initialize the DP table of size ${n} with 1 for all elements, because each individual element nums[i] constitutes a valid strictly increasing subsequence of length 1.`,
+    makeSnapshot(0),
+  );
+
   for (let i = 1; i < n; i++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 7,
-      explanation: {
-        what: `Outer loop for i = ${i} (nums[${i}] = ${nums[i]})`,
-        why: `Evaluating all preceding elements j < ${i} to determine the longest strictly increasing subsequence ending at index ${i}.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: dp.map((v, idx) => ({
-          id: `dp-${idx}`,
-          value: v,
-          state:
-            idx === i ? ("active" as const) : idx < i ? ("visited" as const) : ("default" as const),
-          pointers: idx === i ? [`i (nums[${i}]=${nums[i]})`] : [`nums[${idx}]=${nums[idx]}`],
-        })),
-      },
-      auxiliaryState: {
-        customState: { i, "nums[i]": nums[i], "dp[i]": dp[i] },
-      },
-      variables: { i, "nums[i]": nums[i], "dp[i]": dp[i] },
-    });
+    addStep(
+      `Evaluating target index i = ${i} (nums[${i}] = ${nums[i]}); we will inspect all preceding indices j from 0 to ${i - 1} to determine if nums[${i}] can extend their LIS.`,
+      makeSnapshot(i),
+    );
 
     for (let j = 0; j < i; j++) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 8,
-        explanation: {
-          what: `Inner loop inspecting predecessor j = ${j} (nums[${j}] = ${nums[j]}) for target i = ${i} (nums[${i}] = ${nums[i]})`,
-          why: `Comparing preceding element nums[${j}] against target element nums[${i}].`,
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: dp.map((v, idx) => ({
-            id: `dp-${idx}`,
-            value: v,
-            state:
-              idx === i
-                ? ("active" as const)
-                : idx === j
-                  ? ("compare" as const)
-                  : idx < i
-                    ? ("visited" as const)
-                    : ("default" as const),
-            pointers: idx === i ? [`i (${nums[i]})`] : idx === j ? [`j (${nums[j]})`] : undefined,
-          })),
-        },
-        auxiliaryState: {
-          customState: { i, j, "nums[i]": nums[i], "nums[j]": nums[j] },
-        },
-        variables: { i, j, "nums[i]": nums[i], "nums[j]": nums[j] },
-      });
-
       const isIncreasing = nums[i] > nums[j];
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 9,
-        explanation: {
-          what: `Evaluate condition nums[${i}] (${nums[i]}) > nums[${j}] (${nums[j]})`,
-          why: isIncreasing
-            ? `Condition True (${nums[i]} > ${nums[j]}). Element nums[${i}] can extend LIS ending at index ${j}.`
-            : `Condition False (${nums[i]} <= ${nums[j]}). Element nums[${i}] cannot extend LIS ending at index ${j}.`,
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: dp.map((v, idx) => ({
-            id: `dp-${idx}`,
-            value: v,
-            state:
-              idx === i
-                ? ("active" as const)
-                : idx === j
-                  ? ("compare" as const)
-                  : idx < i
-                    ? ("visited" as const)
-                    : ("default" as const),
-            pointers: idx === i ? [`i (${nums[i]})`] : idx === j ? [`j (${nums[j]})`] : undefined,
-          })),
-        },
-        auxiliaryState: {
-          customState: { i, j, isIncreasing: isIncreasing ? "true" : "false" },
-        },
-        variables: { i, j, isIncreasing },
-      });
-
       if (isIncreasing) {
-        const prevDpI = dp[i];
+        const prevVal = dp[i];
         dp[i] = Math.max(dp[i], dp[j] + 1);
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 10,
-          explanation: {
-            what: `Update dp[${i}] = max(dp[${i}], dp[${j}] + 1) -> max(${prevDpI}, ${dp[j]} + 1 = ${dp[j] + 1}) = ${dp[i]}`,
-            why: `Extending LIS ending at j (${j}) of length ${dp[j]} yields candidate length ${dp[j] + 1} for index ${i}.`,
-          },
-          primarySnapshot: {
-            kind: "array",
-            elements: dp.map((v, idx) => ({
-              id: `dp-${idx}`,
-              value: v,
-              state:
-                idx === i
-                  ? ("active" as const)
-                  : idx === j
-                    ? ("compare" as const)
-                    : idx < i
-                      ? ("visited" as const)
-                      : ("default" as const),
-              pointers:
-                idx === i ? [`dp[${i}]=${dp[i]}`] : idx === j ? [`dp[${j}]=${dp[j]}`] : undefined,
-            })),
-          },
-          auxiliaryState: {
-            customState: {
-              i,
-              j,
-              "dp[i]": dp[i],
-              "dp[j]": dp[j],
-            },
-          },
-          variables: { i, j, "dp[i]": dp[i], "dp[j]": dp[j] },
-        });
+        addStep(
+          `Inspecting predecessor j = ${j} (nums[${j}] = ${nums[j]}): since ${nums[i]} > ${nums[j]}, element nums[${i}] can extend the LIS ending at j. Updating dp[${i}] = max(${prevVal}, dp[${j}] + 1) = ${dp[i]}.`,
+          makeSnapshot(i, j),
+        );
+      } else {
+        addStep(
+          `Inspecting predecessor j = ${j} (nums[${j}] = ${nums[j]}): since ${nums[i]} <= ${nums[j]}, strict monotonicity is violated so nums[${i}] cannot extend the LIS ending at j.`,
+          makeSnapshot(i, j),
+        );
       }
     }
   }
 
   const maxLis = Math.max(...dp);
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 12,
-    explanation: {
-      what: `Return max(dp) = ${maxLis}`,
-      why: `The length of the overall longest strictly increasing subsequence across all ending indices is ${maxLis}.`,
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: dp.map((v, idx) => ({
-        id: `dp-${idx}`,
-        value: v,
-        state: v === maxLis ? ("sorted" as const) : ("default" as const),
-        pointers: v === maxLis ? [`max: ${v}`] : undefined,
-      })),
-    },
-    auxiliaryState: {
-      customState: { maxLis },
-    },
-    variables: { result: maxLis },
-  });
+  addStep(
+    `Completed LIS computation across all indices: max(dp) = ${maxLis}. The length of the longest strictly increasing subsequence in nums is ${maxLis}.`,
+    makeSnapshot(n - 1, undefined, true),
+  );
 
   return steps;
 };
@@ -339,7 +383,7 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     topicIds: ["dp_1d"],
     difficulty: "Medium",
     description:
-      "<p>The <strong>Longest Increasing Subsequence (LIS)</strong> problem (LeetCode #300) asks for the length of the longest subsequence in an array where elements appear in strictly ascending order. Subsequences do not need to be contiguous.</p><p>Let <code>dp[i]</code> represent the length of the longest strictly increasing subsequence that ends at index <code>i</code>. We build the solution using the recurrence: <code>dp[i] = max(1, max(dp[j] + 1))</code> for <code>j &lt; i</code> and <code>nums[i] &gt; nums[j]</code>, with overall result <code>max(dp)</code>.</p>",
+      "<p>Given an integer array <code>nums</code>, return the length of the longest strictly increasing subsequence. A subsequence is a sequence derived by deleting zero or more elements without changing the relative order of the remaining elements.</p><p><strong>Input:</strong> An array of integers <code>nums</code>.</p><p><strong>Output:</strong> The length of the longest strictly increasing subsequence in <code>nums</code>.</p>",
     constraints: [
       "1 <= nums.length <= 2500",
       "-10^4 <= nums[i] <= 10^4",
@@ -348,27 +392,30 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     examples: [
       {
         kind: "basic",
+        scenario: "standard",
         inputDisplay: "nums = [10, 9, 2, 5, 3, 7, 101, 18]",
         outputDisplay: "4",
-        title: "Basic Example",
+        title: "Standard Case",
         input: { nums: [10, 9, 2, 5, 3, 7, 101, 18] },
         output: "4",
         explanation: "The longest strictly increasing subsequence is [2, 3, 7, 101] with length 4.",
       },
       {
         kind: "complex",
+        scenario: "adversarial",
         inputDisplay: "nums = [0, 1, 0, 3, 2, 3]",
         outputDisplay: "4",
-        title: "Complex Case",
+        title: "Adversarial Non-Monotonic Order",
         input: { nums: [0, 1, 0, 3, 2, 3] },
         output: "4",
         explanation: "The longest strictly increasing subsequence is [0, 1, 2, 3] with length 4.",
       },
       {
         kind: "negative",
+        scenario: "boundary",
         inputDisplay: "nums = [7, 7, 7, 7, 7]",
         outputDisplay: "1",
-        title: "Identical Elements",
+        title: "Identical Elements Boundary",
         input: { nums: [7, 7, 7, 7, 7] },
         output: "1",
         explanation:
@@ -379,7 +426,7 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     timeComplexity: { best: "O(N^2)", average: "O(N^2)", worst: "O(N^2)" },
     spaceComplexity: "O(N)",
     complexityAnalysis: {
-      time: "Nested loops compare every pair of indices (i, j) where j < i, performing N*(N-1)/2 iterations, yielding O(N^2) time. (An O(N log N) patience sorting algorithm with binary search also exists).",
+      time: "Nested loops compare every pair of indices (i, j) where j < i, performing N*(N-1)/2 iterations, yielding O(N^2) time.",
       space:
         "Requires a 1D DP table of size N to store the LIS length ending at each index, taking O(N) auxiliary space.",
     },
@@ -428,7 +475,7 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
         type: "book",
         kind: "book",
         bookTitle: "Competitive Programmer's Handbook",
-        chapter: "Ch 7",
+        chapter: 7,
         label: "Competitive Programmer's Handbook, Ch 7",
       },
     ],

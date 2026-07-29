@@ -4,8 +4,10 @@ import type {
   ElementState,
   GridCellNode,
   GridVisualSnapshot,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface CountingTilingsInput {
   n: number;
@@ -41,15 +43,168 @@ export const PYTHON_COUNTING_TILINGS_CODE = `def count_tilings(n: int, m: int) -
 
     return dp[0]`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Counting Tilings problem asks for the total number of ways to completely cover an N x M rectangular grid using non-overlapping 1x2 and 2x1 dominoes.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: Array.from({ length: 3 }, (_, r) =>
+        Array.from({ length: 4 }, (_, c) => ({
+          row: r,
+          col: c,
+          state: "default" as ElementState,
+        })),
+      ),
+    },
+  },
+  {
+    narrative:
+      "Each domino covers exactly 2 unit squares, so if the total grid area N x M is odd, a complete domino tiling is mathematically impossible (0 tilings).",
+    primarySnapshot: {
+      kind: "array",
+      name: "parity_check",
+      mode: "box",
+      elements: [
+        { id: "p1", value: "Even Area (N*M % 2 == 0): Valid", state: "sorted" },
+        { id: "p2", value: "Odd Area (N*M % 2 != 0): 0 Tilings", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Because dominoes placed horizontally cross column boundaries, independent row or column DP fails; we must track boundary overhangs between adjacent columns.",
+    primarySnapshot: {
+      kind: "array",
+      name: "boundary",
+      mode: "box",
+      elements: [
+        { id: "b1", value: "Horizontal Domino Overhang -> Column c+1", state: "compare" },
+        { id: "b2", value: "Requires Bitmask Profile State", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "In Broken Profile Bitmask DP, we traverse grid cells one by one in row-major order, maintaining an N-bit profile mask of boundary cells extending into the next column.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, state: "visited" },
+          { row: 0, col: 1, state: "active" },
+        ],
+        [
+          { row: 1, col: 0, state: "visited" },
+          { row: 1, col: 1, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "An N-bit integer mask represents profile occupancy: bit r = 1 if cell (r, c) is already covered by a horizontal domino extending from column c-1, and 0 if empty.",
+    primarySnapshot: {
+      kind: "bitmask",
+      name: "profile_mask",
+      value: 5,
+      bitWidth: 4,
+      label: "Profile Bitmask",
+      bits: [
+        { index: 0, value: 1, label: "r=0 (Covered)", state: "active" },
+        { index: 1, value: 0, label: "r=1 (Empty)", state: "default" },
+        { index: 2, value: 1, label: "r=2 (Covered)", state: "active" },
+        { index: 3, value: 0, label: "r=3 (Empty)", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Base case: dp[0] = 1 before column 0, representing 1 valid state with zero boundary overhangs (mask 0).",
+    primarySnapshot: {
+      kind: "array",
+      name: "dp",
+      mode: "box",
+      elements: [
+        { id: "d0", value: "dp[0] = 1", label: "mask 0", state: "sorted" },
+        { id: "d1", value: "dp[mask] = 0", label: "others", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "At cell (r, c), if bit r = 1, the cell is already covered by a horizontal domino; we clear bit r into the next mask state.",
+    primarySnapshot: {
+      kind: "bitmask",
+      name: "occupied_transition",
+      value: 1,
+      bitWidth: 4,
+      label: "Bit r=1 Transition",
+      bits: [
+        { index: 0, value: 1, label: "Covered -> Clear", state: "compare" },
+        { index: 1, value: 0, label: "r=1", state: "default" },
+        { index: 2, value: 0, label: "r=2", state: "default" },
+        { index: 3, value: 0, label: "r=3", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "If bit r = 0, cell (r, c) is empty: we can either place a 1x2 horizontal domino (setting bit r in next mask) or a 2x1 vertical domino covering (r, c) and (r+1, c).",
+    primarySnapshot: {
+      kind: "array",
+      name: "placements",
+      mode: "box",
+      elements: [
+        { id: "p_horiz", value: "Option A: 1x2 Horizontal (Set bit r)", state: "active" },
+        { id: "p_vert", value: "Option B: 2x1 Vertical (Cover r, r+1)", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "After processing all N x M cells, dp[0] contains the total number of valid tilings with zero boundary overhangs, computed in O(N * M * 2^N) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "result",
+      mode: "box",
+      elements: [
+        { id: "res", value: "dp[0] = Total Tilings", state: "sorted" },
+        { id: "comp", value: "O(N * M * 2^N) Time, O(2^N) Space", state: "default" },
+      ],
+    },
+  },
+];
+
 export const generateCountingTilingsSteps = (input: CountingTilingsInput): AlgorithmStep[] => {
   const n = Math.min(6, Math.max(1, input?.n ?? DEFAULT_COUNTING_TILINGS_INPUT.n));
   const m = Math.min(10, Math.max(1, input?.m ?? DEFAULT_COUNTING_TILINGS_INPUT.m));
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (input.n === DEFAULT_COUNTING_TILINGS_INPUT.n && input.m === DEFAULT_COUNTING_TILINGS_INPUT.m);
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   const createGridSnapshot = (
     activeCell?: { row: number; col: number },
-    highlightedCells?: { row: number; col: number; state: ElementState }[],
     allSorted = false,
   ): GridVisualSnapshot => {
     const gridNodes: GridCellNode[][] = [];
@@ -57,25 +212,13 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
       const rowNodes: GridCellNode[] = [];
       for (let c = 0; c < m; c++) {
         const isActive = activeCell && activeCell.row === r && activeCell.col === c;
-        const customHighlight = highlightedCells?.find((cell) => cell.row === r && cell.col === c);
-
-        let state: ElementState = "default";
-        if (allSorted) {
-          state = "sorted";
-        } else if (isActive) {
-          state = "active";
-        } else if (customHighlight) {
-          state = customHighlight.state;
-        } else if (activeCell) {
-          if (c < activeCell.col || (c === activeCell.col && r < activeCell.row)) {
-            state = "visited";
-          }
-        }
+        const isVisited =
+          activeCell && (c < activeCell.col || (c === activeCell.col && r < activeCell.row));
 
         rowNodes.push({
           row: r,
           col: c,
-          state,
+          state: allSorted ? "sorted" : isActive ? "active" : isVisited ? "visited" : "default",
         });
       }
       gridNodes.push(rowNodes);
@@ -83,135 +226,36 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
     return { kind: "grid", grid: gridNodes };
   };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Start Counting Tilings algorithm for ${n}x${m} grid`,
-      why: "The goal is to calculate the total number of valid domino tilings (1x2 and 2x1) that cover the grid without overlaps or gaps.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { n, m, totalArea: n * m } },
-    variables: { n, m, totalArea: n * m },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Check grid area parity: total area ${n} * ${m} = ${n * m}`,
-      why: "Each domino covers exactly 2 unit squares. If total grid area is odd, domino coverage is mathematically impossible.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { n, m, isOdd: (n * m) % 2 !== 0 ? "true" : "false" } },
-    variables: { n, m, isOdd: (n * m) % 2 !== 0 },
-  });
+  addStep(
+    `Initializing Counting Tilings algorithm for ${n}x${m} grid (total area ${n * m}).`,
+    createGridSnapshot(),
+  );
 
   if ((n * m) % 2 !== 0) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 3,
-      explanation: {
-        what: `Total area ${n * m} is odd. Returning 0 tilings.`,
-        why: "A grid with odd area cannot be covered by 1x2 dominoes of area 2.",
-      },
-      primarySnapshot: createGridSnapshot(),
-      auxiliaryState: { customState: { n, m, totalArea: n * m } },
-      variables: { result: 0 },
-    });
+    addStep(
+      `Total grid area ${n * m} is odd; since 1x2 dominoes have area 2, odd area cannot be tiled. Returning 0 tilings immediately.`,
+      createGridSnapshot(),
+    );
     return steps;
   }
 
   const numMasks = 1 << n;
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Calculate number of profile states num_masks = 2^${n} = ${numMasks}`,
-      why: "An n-bit bitmask captures all possible boundary overhang configurations between adjacent columns.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { n, m, numMasks } },
-    variables: { n, numMasks },
-  });
-
   let dp = new Array<number>(numMasks).fill(0);
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: `Allocate DP array of size ${numMasks} initialized with 0`,
-      why: "dp[mask] tracks the number of ways to reach the current profile boundary configuration.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { n, numMasks } },
-    variables: { numMasks },
-  });
-
   dp[0] = 1;
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: "Set base case dp[0] = 1",
-      why: "There is exactly 1 valid configuration with zero boundary overhangs before processing column 0.",
-    },
-    primarySnapshot: createGridSnapshot(undefined, [{ row: 0, col: 0, state: "active" }]),
-    auxiliaryState: { customState: { n, m, "dp[0]": 1 } },
-    variables: { n, m, "dp[0]": 1 },
-  });
+
+  addStep(
+    `Setting base case dp[0] = 1 for 2^${n} = ${numMasks} profile states, representing 1 valid configuration before column 0.`,
+    createGridSnapshot({ row: 0, col: 0 }),
+  );
 
   for (let col = 0; col < m; col++) {
-    const colHighlights = Array.from({ length: n }, (_, r) => ({
-      row: r,
-      col,
-      state: "pivot" as ElementState,
-    }));
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 9,
-      explanation: {
-        what: `Begin column col = ${col}`,
-        why: "Columns are processed left-to-right.",
-      },
-      primarySnapshot: createGridSnapshot(undefined, colHighlights),
-      auxiliaryState: { customState: { col, m, "dp[0]": dp[0] } },
-      variables: { col, m, "dp[0]": dp[0] },
-    });
-
     for (let row = 0; row < n; row++) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 10,
-        explanation: {
-          what: `Process cell (row ${row}, col ${col})`,
-          why: "Cell-by-cell profile updates transition bitmask states.",
-        },
-        primarySnapshot: createGridSnapshot({ row, col }),
-        auxiliaryState: { customState: { col, row, "dp[0]": dp[0] } },
-        variables: { col, row, "dp[0]": dp[0] },
-      });
-
       const nextDp = new Array<number>(numMasks).fill(0);
+      let activeMasks = 0;
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 11,
-        explanation: {
-          what: `Allocate next_dp array of size ${numMasks} for cell (${row}, ${col})`,
-          why: "Stores updated boundary profile counts resulting from domino placements at the current cell.",
-        },
-        primarySnapshot: createGridSnapshot({ row, col }),
-        auxiliaryState: { customState: { col, row, nextDpSize: numMasks, "dp[0]": dp[0] } },
-        variables: { col, row, numMasks, "dp[0]": dp[0] },
-      });
-
-      let transitionsCount = 0;
       for (let mask = 0; mask < numMasks; mask++) {
         if (!dp[mask]) continue;
-        transitionsCount++;
+        activeMasks++;
 
         if (mask & (1 << row)) {
           nextDp[mask ^ (1 << row)] += dp[mask];
@@ -225,34 +269,18 @@ export const generateCountingTilingsSteps = (input: CountingTilingsInput): Algor
 
       dp = nextDp;
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 21,
-        explanation: {
-          what: `Finished transitions for cell (row ${row}, col ${col}) across ${transitionsCount} active profile masks`,
-          why: `Profile transitions updated DP table for column ${col}, row ${row}. Current dp[0] = ${dp[0]}.`,
-        },
-        primarySnapshot: createGridSnapshot({ row, col }),
-        auxiliaryState: {
-          customState: { col, row, dp0: dp[0], activeMasks: transitionsCount },
-        },
-        variables: { col, row, "dp[0]": dp[0] },
-      });
+      addStep(
+        `Processed cell (row ${row}, col ${col}) across ${activeMasks} active boundary profile states. Current valid tilings count for zero overhang mask dp[0] = ${dp[0]}.`,
+        createGridSnapshot({ row, col }),
+      );
     }
   }
 
   const result = dp[0];
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 23,
-    explanation: {
-      what: `Final result dp[0] = ${result}`,
-      why: `The total number of valid domino tilings for a ${n}x${m} grid with zero boundary overhangs is ${result}.`,
-    },
-    primarySnapshot: createGridSnapshot(undefined, undefined, true),
-    auxiliaryState: { customState: { totalTilings: result } },
-    variables: { result },
-  });
+  addStep(
+    `Completed Bitmask DP profile traversal: dp[0] = ${result}. The total number of valid domino tilings for a ${n}x${m} grid is ${result}.`,
+    createGridSnapshot(undefined, true),
+  );
 
   return steps;
 };
@@ -291,7 +319,7 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
   topicIds: ["dp_2d"],
   difficulty: "Hard",
   description:
-    "<p>The <strong>Counting Tilings</strong> problem (CSES #2181) asks for the number of ways to completely tile an <code>N &times; M</code> grid using non-overlapping <code>1 &times; 2</code> and <code>2 &times; 1</code> dominoes.</p><p>If the total area <code>N &times; M</code> is odd, tiling is impossible, returning 0 immediately. For even area, <strong>Broken Profile Bitmask DP</strong> processes grid cells sequentially, maintaining an <code>N</code>-bit mask representing boundary cells extending into the next column. This yields an efficient state transition in <code>O(N &times; M &times; 2<sup>N</sup>)</code> time.</p>",
+    "<p>Given the dimensions <code>N</code> and <code>M</code> of a rectangular grid, calculate the number of ways to completely cover the grid using non-overlapping <code>1 &times; 2</code> and <code>2 &times; 1</code> dominoes.</p><p><strong>Input:</strong> Two integers <code>n</code> (rows) and <code>m</code> (columns).</p><p><strong>Output:</strong> The total number of valid domino tilings for the <code>n &times; m</code> grid.</p>",
   constraints: [
     "1 <= n <= 10",
     "1 <= m <= 10",
@@ -301,27 +329,30 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "n = 4, m = 3",
       outputDisplay: "11",
-      title: "Basic Case",
+      title: "Standard Case",
       input: { n: 4, m: 3 },
       output: "11",
       explanation: "A 4x3 grid can be tiled with 1x2 dominoes in exactly 11 distinct ways.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "n = 4, m = 4",
       outputDisplay: "36",
-      title: "4x4 Grid",
+      title: "Adversarial Symmetric 4x4 Grid",
       input: { n: 4, m: 4 },
       output: "36",
       explanation: "A 4x4 grid has 36 valid domino tilings.",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "n = 3, m = 3",
       outputDisplay: "0",
-      title: "Odd Area Grid",
+      title: "Odd Area Grid Boundary",
       input: { n: 3, m: 3 },
       output: "0",
       explanation: "Odd total area 9 cannot be covered by 1x2 dominoes, returning 0.",
@@ -379,7 +410,7 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
       type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 7",
+      chapter: 7,
       label: "Competitive Programmer's Handbook, Ch 7",
     },
   ],

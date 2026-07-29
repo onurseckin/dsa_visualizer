@@ -59,7 +59,6 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "n = 4",
       outputDisplay: "2 solutions",
@@ -69,7 +68,6 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
       explanation: "Standard 4x4 chessboard has 2 distinct non-attacking queen configurations.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: "n = 5",
@@ -81,7 +79,6 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
         "5x5 chessboard with deeper recursion and multiple diagonal constraint pruning steps.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "n = 3",

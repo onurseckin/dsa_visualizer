@@ -4,21 +4,22 @@
 
 DSA Visualizer is a local-first full-stack learning application. React 19,
 TypeScript, Vite, TanStack Router, Tailwind, and the token-based component system
-form the web client. The supported runtime packages that client behind Nginx and
-adds a Bun API, persistent SQLite state, browser Pyodide, and a bounded CPython
-runner.
+form the web client. The default runtime runs Vite in Docker watch mode alongside
+a Bun API, persistent SQLite state, browser Pyodide, and a bounded CPython runner.
 
 The monorepo boundary is:
 
 ```text
-web (Nginx + React) ──/api──► API (Bun + SQLite) ──runner network──► CPython
-        │
-        └──Web Worker──► Pyodide + NumPy
+web (Vite + React + HMR) ──/api──► API (Bun + SQLite) ──runner network──► CPython
+             │
+             └──Web Worker──► Pyodide + NumPy
 ```
 
-Only `web` publishes host port 5173. `api` is reachable from the web container
-on the application network. `python-runner` is reachable only from the API over
-the internal runner network. The Compose health checks gate service startup.
+Only `web` publishes host port 5173. Vite forwards API requests to `api` on the
+application network. `python-runner` is reachable only from the API over the
+internal runner network. Compose health checks gate service startup. Compose
+watch syncs web and API source into their services, and syncs then restarts the
+Python runner when its source changes.
 
 ## Authoritative data flow
 
@@ -148,10 +149,10 @@ runtime before forwarding a server run. The runner executes each authored
 request in a short-lived process group with bounded wall time, source/input
 size, output/result size, case count, and concurrency.
 
-The container runs as a non-root user with a read-only root filesystem, bounded
-temporary filesystems, dropped Linux capabilities, no-new-privileges, process
-and resource limits, and no published port. This is stability containment for
-a local educational playground, not a security claim that arbitrary hostile
+The container runs as a non-root user with bounded temporary filesystems,
+dropped Linux capabilities, no-new-privileges, process and resource limits, and
+no published port. This is stability containment for a local educational
+playground, not a security claim that arbitrary hostile
 Python is perfectly sandboxed.
 
 ## Key runtime areas
@@ -184,8 +185,9 @@ usage. It is a health report for the ongoing migration, not a source-line
 tutorial mechanism.
 
 `bun run check` is the final quality gate: typecheck, format, lint, Intent,
-Compose topology, catalog audit, and production build. Plans and implementation
-work do not include unit, component, integration, or end-to-end tests.
+the single Compose watch-stack topology, catalog audit, and standalone build.
+Plans and implementation work do not include unit, component, integration, or
+end-to-end tests.
 
 ## Codex workflow
 
@@ -193,5 +195,5 @@ Repository trust is granted from the user's Codex configuration, which then
 permits a project-local configuration layer; this repository does not attempt
 to grant itself trust or pin a model. Use a coordinator for cross-cutting
 integration, focused workers for disjoint implementation areas, and a reviewer
-for production behavior and contract validation. Select the model and reasoning effort per task
+for runtime behavior and contract validation. Select the model and reasoning effort per task
 rather than encoding a repository-wide default.

@@ -66,7 +66,6 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: 'text = "ABABDABACDABABCABAB", pattern = "ABABCABAB"',
       outputDisplay: "[10]",
@@ -78,7 +77,6 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'text = "AABAACAADAABAABA", pattern = "AABA"',
       outputDisplay: "[0, 9, 12]",
@@ -89,7 +87,6 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
         "Pattern appears at multiple indices including overlapping positions, efficiently using LPS fallback transitions.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'text = "AAAAABAAAAA", pattern = "AAAAAC"',

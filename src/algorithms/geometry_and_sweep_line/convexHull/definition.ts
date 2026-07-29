@@ -91,35 +91,33 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
-    "<p>Finds the minimal convex polygon enclosing a set of 2D points <code>S &subset; &mathbb;R&sup2;</code> using Andrew's Monotone Chain algorithm in <code>O(N log N)</code> time.</p><p><code>cross(o, a, b) = (a.x - o.x)(b.y - o.y) - (a.y - o.y)(b.x - o.x)</code></p><h3>Graph Snapshot Representation</h3><p>The point set and active hull boundary are rendered on a 2D graph coordinate plane, with active hull edges highlighted.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of 2D points with <code>x, y</code> coordinates.</li></ul><h3>Output</h3><ul><li><code>Point2D[]</code>: Vertices of the convex hull in counter-clockwise boundary order.</li></ul>",
+    "<p>Given a set of 2D points, find the minimal convex polygon that encloses all points using Andrew's Monotone Chain algorithm.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul>" +
+    "  <li><code>points</code>: An array of 2D point objects <code>{ x: number, y: number }</code> where <code>1 &le; N &le; 1000</code>.</li>" +
+    "</ul>" +
+    "<h3>Output Format</h3>" +
+    "<p>Returns an array of 2D points representing the vertices of the convex hull in counter-clockwise boundary order.</p>",
   constraints: ["1 <= points.length <= 1000", "-1000 <= x, y <= 1000"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
         "points = [(100,300), (150,150), (250,100), (300,250), (400,350), (200,400), (350,180)]",
       outputDisplay: "6 hull vertices",
-      title: "Basic Example",
-      input: {
-        points: [
-          { x: 100, y: 300, id: "P0", label: "P0" },
-          { x: 150, y: 150, id: "P1", label: "P1" },
-          { x: 250, y: 100, id: "P2", label: "P2" },
-          { x: 300, y: 250, id: "P3", label: "P3" },
-          { x: 400, y: 350, id: "P4", label: "P4" },
-          { x: 200, y: 400, id: "P5", label: "P5" },
-          { x: 350, y: 180, id: "P6", label: "P6" },
-        ],
-      },
+      title: "Standard 7-Point Set",
+      input: DEFAULT_CONVEX_HULL_INPUT,
       output: "6 hull vertices",
       explanation:
         "Andrew's monotone chain sweeps upper and lower chains, enclosing interior point P3 (300, 250).",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "points = [(50,50), (150,50), (250,50), (350,50), (200,250), (200,150)]",
       outputDisplay: "3 hull vertices",
-      title: "Complex Edge Case",
+      title: "Collinear Edge Points",
       input: {
         points: [
           { x: 50, y: 50, id: "P0", label: "P0" },
@@ -136,9 +134,10 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "points = [(100,100), (200,200)]",
       outputDisplay: "2 points (line segment)",
-      title: "Failing / Boundary Case",
+      title: "Boundary 2-Point Line Segment",
       input: {
         points: [
           { x: 100, y: 100, id: "P0", label: "P0" },
@@ -179,8 +178,8 @@ export const convexHull: AlgorithmDefinition<ConvexHullInput> = {
       kind: "book",
       label: "Competitive Programmer's Handbook, Ch 30",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: 30,
-      section: "30.3 Convex hull problem",
+      chapter: 29,
+      section: "29.4 Convex hull",
     },
   ],
   defaultInput: DEFAULT_CONVEX_HULL_INPUT,

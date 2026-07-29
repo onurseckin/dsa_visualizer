@@ -1,22 +1,22 @@
 import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 interface ComposeService {
   readonly build?: unknown;
   readonly cap_drop?: unknown;
+  readonly command?: unknown;
   readonly depends_on?: unknown;
+  readonly develop?: unknown;
   readonly environment?: unknown;
   readonly healthcheck?: unknown;
-  readonly image?: unknown;
   readonly networks?: unknown;
-  readonly network_mode?: unknown;
+  readonly pids_limit?: unknown;
   readonly ports?: unknown;
-  readonly read_only?: unknown;
   readonly security_opt?: unknown;
   readonly tmpfs?: unknown;
   readonly user?: unknown;
   readonly volumes?: unknown;
   readonly deploy?: unknown;
-  readonly pids_limit?: unknown;
 }
 
 interface ComposeConfig {
@@ -41,8 +41,8 @@ function objectValues(value: unknown): Readonly<Record<string, unknown>> {
     : {};
 }
 
-function requires(service: ComposeService, field: keyof ComposeService, label: string): void {
-  if (service[field] === undefined) fail(`${label} must define ${field}.`);
+function commandValue(value: unknown): string {
+  return typeof value === "string" ? value : stringValues(value).join(" ");
 }
 
 function healthcheckCommand(service: ComposeService): string {
@@ -63,8 +63,13 @@ function publishedPorts(
   if (!Array.isArray(value)) return [];
   return value.flatMap((entry) => {
     if (typeof entry === "string") {
-      const target = Number(entry.split(":").at(-1));
-      return Number.isFinite(target) ? [{ target }] : [];
+      const [hostIp, published, target] = entry.split(":");
+      if (target === undefined) {
+        const parsedTarget = Number(published);
+        return Number.isFinite(parsedTarget) ? [{ target: parsedTarget }] : [];
+      }
+      const parsedTarget = Number(target);
+      return Number.isFinite(parsedTarget) ? [{ target: parsedTarget, published, hostIp }] : [];
     }
     const port = objectValues(entry);
     return typeof port.target === "number"
@@ -92,6 +97,24 @@ function hasRequiredTmpfs(value: unknown, required: string): boolean {
   return stringValues(value).includes(required);
 }
 
+function hasWatchEntry(
+  service: ComposeService,
+  action: "sync" | "sync+restart",
+  path: string,
+  target: string,
+): boolean {
+  const watch = objectValues(service.develop).watch;
+  if (!Array.isArray(watch)) return false;
+  return watch.some((entry) => {
+    const rule = objectValues(entry);
+    return (
+      rule.action === action &&
+      (rule.path === path || rule.path === resolve(path)) &&
+      rule.target === target
+    );
+  });
+}
+
 export function verifyCompose(config: ComposeConfig): void {
   const services = config.services ?? {};
   const web = services.web;
@@ -100,49 +123,62 @@ export function verifyCompose(config: ComposeConfig): void {
   if (!web || !api || !runner) fail("web, api, and python-runner services are required.");
 
   for (const [name, service] of Object.entries({ web, api, "python-runner": runner })) {
-    requires(service, "build", name);
-    if (!healthcheckCommand(service)) fail(`${name} must define a healthcheck.`);
+    if (service.build === undefined) fail(`${name} must define build.`);
   }
-  if (!healthcheckCommand(web).includes("http://127.0.0.1/")) {
-    fail("web healthcheck must call the web root.");
+
+  if (commandValue(web.command) !== "bun run vite --host 0.0.0.0") {
+    fail("web must run Vite in Docker development mode.");
   }
+  if (objectValues(web.environment).VITE_USE_DOCKER_API !== "1") {
+    fail("web must enable the Docker API proxy.");
+  }
+  const webPorts = publishedPorts(web.ports);
+  if (
+    webPorts.length !== 1 ||
+    webPorts[0].target !== 5173 ||
+    webPorts[0].published !== "5173" ||
+    webPorts[0].hostIp !== undefined
+  ) {
+    fail("web must publish host port 5173 to container port 5173.");
+  }
+  if (!hasWatchEntry(web, "sync", ".", "/app")) {
+    fail("web must sync the workspace into /app.");
+  }
+
   if (!healthcheckCommand(api).includes("http://127.0.0.1:3000/api/health")) {
     fail("api healthcheck must call /api/health.");
+  }
+  if (publishedPorts(api.ports).length > 0) fail("api must not publish a host port.");
+  if (!hasVolumeMount(api, "api_data", "/data")) {
+    fail("api must mount api_data at /data.");
+  }
+  if (!hasWatchEntry(api, "sync", ".", "/app")) {
+    fail("api must sync the workspace into /app.");
+  }
+  const apiEnvironment = objectValues(api.environment);
+  if (apiEnvironment.PYTHON_RUNNER_URL !== "http://python-runner:8080") {
+    fail("api must point PYTHON_RUNNER_URL at the internal runner.");
+  }
+  const apiDependencies = objectValues(api.depends_on);
+  if (objectValues(apiDependencies["python-runner"]).condition !== "service_healthy") {
+    fail("api must wait for a healthy python-runner.");
+  }
+
+  if (commandValue(runner.command) !== "python dev_runner.py") {
+    fail("python-runner must run the development runner.");
   }
   if (!healthcheckCommand(runner).includes("http://127.0.0.1:8080/health")) {
     fail("python-runner healthcheck must call /health.");
   }
-
-  const webPorts = publishedPorts(web.ports);
-  if (
-    webPorts.length !== 1 ||
-    webPorts[0].target !== 80 ||
-    !webPorts[0].published ||
-    webPorts[0].hostIp !== undefined
-  ) {
-    fail("web must publish exactly one host port to container port 80.");
-  }
-  if (publishedPorts(api.ports).length > 0) fail("api must not publish a host port.");
   if (publishedPorts(runner.ports).length > 0) {
     fail("python-runner must not publish a host port.");
   }
-
-  const networks = config.networks ?? {};
-  if (networks.app?.internal === true) {
-    fail("app network must permit the web service's published host port.");
+  if (!hasWatchEntry(runner, "sync+restart", "apps/python-runner", "/app")) {
+    fail("python-runner must sync and restart when its source changes.");
   }
-  if (networks.runner?.internal !== true) fail("runner network must be internal.");
-  if (networkNames(runner.networks).join(",") !== "runner") {
-    fail("python-runner must only use the internal runner network.");
-  }
-  if (!networkNames(api.networks).includes("runner")) fail("api must connect to runner network.");
-
-  if (runner.read_only !== true) fail("python-runner must use a read-only root filesystem.");
-  if (runner.user === undefined || String(runner.user) === "0") {
-    fail("python-runner must run as a non-root user.");
-  }
-  if (!stringValues(runner.cap_drop).includes("ALL"))
+  if (!stringValues(runner.cap_drop).includes("ALL")) {
     fail("python-runner must drop all capabilities.");
+  }
   if (!stringValues(runner.security_opt).includes("no-new-privileges:true")) {
     fail("python-runner must set no-new-privileges.");
   }
@@ -153,24 +189,17 @@ export function verifyCompose(config: ComposeConfig): void {
     fail("python-runner must mount /run as an 8m noexec,nosuid tmpfs.");
   }
   if (runner.pids_limit === undefined) fail("python-runner must define pids_limit.");
-  const deploy = objectValues(runner.deploy);
-  const resources = objectValues(deploy.resources);
-  const limits = objectValues(resources.limits);
+  const limits = objectValues(objectValues(objectValues(runner.deploy).resources).limits);
   if (Number(limits.cpus) < 2 || Number(limits.memory) < 2_147_483_648) {
     fail("python-runner must define at least 2 CPUs and 2G memory.");
   }
 
-  const apiEnvironment = objectValues(api.environment);
-  if (apiEnvironment.PYTHON_RUNNER_URL !== "http://python-runner:8080") {
-    fail("api must point PYTHON_RUNNER_URL at the internal runner.");
+  const networks = config.networks ?? {};
+  if (networks.runner?.internal !== true) fail("runner network must be internal.");
+  if (networkNames(runner.networks).join(",") !== "runner") {
+    fail("python-runner must only use the internal runner network.");
   }
-  if (!hasVolumeMount(api, "api_data", "/data")) {
-    fail("api must mount api_data at /data.");
-  }
-  const apiDependencies = objectValues(api.depends_on);
-  if (objectValues(apiDependencies["python-runner"]).condition !== "service_healthy") {
-    fail("api must wait for a healthy python-runner.");
-  }
+  if (!networkNames(api.networks).includes("runner")) fail("api must connect to runner network.");
   const webDependencies = objectValues(web.depends_on);
   if (objectValues(webDependencies.api).condition !== "service_healthy") {
     fail("web must wait for a healthy api.");
@@ -227,37 +256,24 @@ export function verifyPinnedBuildFiles(): void {
     "docker/python-runner/requirements-linux-arm64.txt",
     "utf8",
   ).split("\n");
-  const nginx = readFileSync("docker/web/nginx.conf", "utf8");
   const requiredPins: readonly [string, string, string][] = [
     [
       "Dockerfile.web",
       webDockerfile,
-      "FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS build",
-    ],
-    [
-      "Dockerfile.web",
-      webDockerfile,
-      "FROM nginx:1.27.4-alpine@sha256:4ff102c5d78d254a6f0da062b3cf39eaf07f01eec0927fd21e219d0af8bc0591",
+      "FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0",
     ],
     [
       "Dockerfile.api",
       apiDockerfile,
       "FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0",
     ],
+    ["Dockerfile.api", apiDockerfile, 'CMD ["bun", "--watch", "apps/api/src/index.ts"]'],
     [
       "Dockerfile.runner",
       runnerDockerfile,
       "FROM python:3.12.10-slim-bookworm@sha256:fd95fa221297a88e1cf49c55ec1828edd7c5a428187e67b5d1805692d11588db",
     ],
     ["Dockerfile.runner", runnerDockerfile, "USER 10001:10001"],
-    ["docker/web/nginx.conf", nginx, "location /api/"],
-    ["docker/web/nginx.conf", nginx, "proxy_pass http://api:3000;"],
-    ["docker/web/nginx.conf", nginx, "application/wasm wasm;"],
-    ["docker/web/nginx.conf", nginx, "application/javascript mjs;"],
-    ["docker/web/nginx.conf", nginx, "immutable"],
-    ["docker/web/nginx.conf", nginx, "client_max_body_size 5m;"],
-    ["docker/web/nginx.conf", nginx, 'add_header Cache-Control "no-cache" always;'],
-    ["docker/web/nginx.conf", nginx, "try_files $uri $uri/ /index.html;"],
   ];
   for (const [file, contents, expected] of requiredPins) {
     if (!contents.includes(expected)) fail(`${file} must include ${expected}.`);
@@ -275,7 +291,6 @@ export function main(): void {
   ) {
     fail("all three Dockerfiles are required.");
   }
-  if (!existsSync("docker/web/nginx.conf")) fail("docker/web/nginx.conf is required.");
   if (
     !existsSync("docker/python-runner/requirements-linux-amd64.txt") ||
     !existsSync("docker/python-runner/requirements-linux-arm64.txt")

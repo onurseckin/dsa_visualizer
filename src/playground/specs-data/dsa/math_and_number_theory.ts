@@ -1,53 +1,86 @@
-import { cases, defineDsaExecution, input } from "./helpers";
+import { cases, defineDsaExecution, extraCases, input } from "./helpers";
 
 export const mathAndNumberTheoryExecutions = [
   defineDsaExecution({
     id: "sieve-primes",
-    entrypoint: "sieve_of_eratosthenes",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Primes through ten", input: 10, expected: [2, 3, 5, 7] },
-      { label: "Below first prime", input: 1, expected: [] },
-      {
-        label: "Primes through thirty",
-        input: 30,
-        expected: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29],
-      },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "countPrimes",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Primes less than ten", input: 10, expected: 4 },
+        { label: "Below first prime", input: 1, expected: 0 },
+        { label: "Primes less than thirty", input: 30, expected: 10 },
+      ),
+      ...extraCases(
+        { label: "Zero bound", input: 0, expected: 0 },
+        { label: "First prime excluded", input: 2, expected: 0 },
+        { label: "First prime included", input: 3, expected: 1 },
+        { label: "Hundred bound", input: 100, expected: 25 },
+        { label: "Thousand bound", input: 1000, expected: 168 },
+      ),
+    ],
     audit: {
-      signature: "sieve_of_eratosthenes(limit: int) -> list[int]",
+      signature: "Solution().countPrimes(n: int) -> int",
       defaultInputShape: "number",
-      argumentMapping: ["limit <- $"],
+      argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns all primes up to and including limit.",
+      returnBehavior: "Returns count of primes strictly less than n.",
     },
   }),
   defineDsaExecution({
     id: "euclid-gcd",
-    entrypoint: "gcd",
-    invocation: { kind: "function", arguments: [input("a"), input("b")] },
-    cases: cases(
-      { label: "Shared factor", input: { a: 48, b: 18 }, expected: 6 },
-      { label: "Zero operand", input: { a: 0, b: 7 }, expected: 7 },
-      { label: "Large Euclidean chain", input: { a: 1071, b: 462 }, expected: 21 },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "findGCD",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Array [2, 5, 6, 9, 10]", input: [2, 5, 6, 9, 10], expected: 2 },
+        { label: "Array [7, 5, 6, 8, 3]", input: [7, 5, 6, 8, 3], expected: 1 },
+        { label: "Array [3, 3]", input: [3, 3], expected: 3 },
+      ),
+      ...extraCases(
+        { label: "Unit and maximum", input: [1, 1000], expected: 1 },
+        { label: "Repeated multiples", input: [12, 24, 36, 60], expected: 12 },
+        { label: "Unsorted equal extremes", input: [24, 6, 12, 6, 24], expected: 6 },
+        { label: "All maximum values", input: [1000, 1000, 1000], expected: 1000 },
+        { label: "Prime extremes", input: [997, 499, 997], expected: 1 },
+      ),
+    ],
     audit: {
-      signature: "gcd(a: int, b: int) -> int",
-      defaultInputShape: "{ a: number; b: number }",
-      argumentMapping: ["a <- $.a", "b <- $.b"],
-      mutation: "Only local scalar rebinding.",
-      returnBehavior: "Returns the greatest common divisor.",
+      signature: "Solution().findGCD(nums: list[int]) -> int",
+      defaultInputShape: "number[]",
+      argumentMapping: ["nums <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns GCD of min and max elements.",
     },
   }),
   defineDsaExecution({
     id: "modular-exponentiation-inverse",
     entrypoint: "mod_inverse",
     invocation: { kind: "function", arguments: [input("a"), input("mod")] },
-    cases: cases(
-      { label: "Inverse modulo eleven", input: { a: 3, mod: 11 }, expected: 4 },
-      { label: "Unit modulo two", input: { a: 1, mod: 2 }, expected: 1 },
-      { label: "Inverse modulo forty-three", input: { a: 17, mod: 43 }, expected: 38 },
-    ),
+    cases: [
+      ...cases(
+        { label: "Inverse modulo eleven", input: { a: 3, mod: 11 }, expected: 4 },
+        { label: "Unit modulo two", input: { a: 1, mod: 2 }, expected: 1 },
+        { label: "Inverse modulo forty-three", input: { a: 17, mod: 43 }, expected: 38 },
+      ),
+      ...extraCases(
+        { label: "Inverse of two modulo three", input: { a: 2, mod: 3 }, expected: 2 },
+        { label: "Self inverse modulo eleven", input: { a: 10, mod: 11 }, expected: 10 },
+        { label: "Inverse modulo five", input: { a: 2, mod: 5 }, expected: 3 },
+        { label: "Inverse modulo thirteen", input: { a: 6, mod: 13 }, expected: 11 },
+        { label: "Larger prime modulus", input: { a: 37, mod: 101 }, expected: 71 },
+      ),
+    ],
     audit: {
       signature: "mod_inverse(a: int, m: int) -> int",
       defaultInputShape:
@@ -61,11 +94,20 @@ export const mathAndNumberTheoryExecutions = [
     id: "extended-euclidean-algorithm",
     entrypoint: "extended_gcd",
     invocation: { kind: "function", arguments: [input("a"), input("b")] },
-    cases: cases(
-      { label: "Two common factors", input: { a: 30, b: 20 }, expected: [10, 1, -1] },
-      { label: "Base case", input: { a: 7, b: 0 }, expected: [7, 1, 0] },
-      { label: "Long recursive chain", input: { a: 240, b: 46 }, expected: [2, -9, 47] },
-    ),
+    cases: [
+      ...cases(
+        { label: "Two common factors", input: { a: 30, b: 20 }, expected: [10, 1, -1] },
+        { label: "Base case", input: { a: 7, b: 0 }, expected: [7, 1, 0] },
+        { label: "Long recursive chain", input: { a: 240, b: 46 }, expected: [2, -9, 47] },
+      ),
+      ...extraCases(
+        { label: "Unit pair", input: { a: 1, b: 1 }, expected: [1, 0, 1] },
+        { label: "Coprime pair", input: { a: 99, b: 78 }, expected: [3, -11, 14] },
+        { label: "Several quotient steps", input: { a: 270, b: 192 }, expected: [6, 5, -7] },
+        { label: "First operand smaller", input: { a: 46, b: 240 }, expected: [2, 47, -9] },
+        { label: "Equal operands", input: { a: 42, b: 42 }, expected: [42, 0, 1] },
+      ),
+    ],
     audit: {
       signature: "extended_gcd(a: int, b: int) -> tuple[int, int, int]",
       defaultInputShape: "{ a: number; b: number }",
@@ -79,23 +121,44 @@ export const mathAndNumberTheoryExecutions = [
     id: "chinese-remainder-theorem",
     entrypoint: "chinese_remainder",
     invocation: { kind: "function", arguments: [input("moduli"), input("remainders")] },
-    cases: cases(
-      {
-        label: "Three congruences",
-        input: { moduli: [3, 5, 7], remainders: [2, 3, 2] },
-        expected: 23,
-      },
-      {
-        label: "Single congruence",
-        input: { moduli: [5], remainders: [4] },
-        expected: 4,
-      },
-      {
-        label: "Larger prime moduli",
-        input: { moduli: [5, 7, 11], remainders: [1, 3, 7] },
-        expected: 381,
-      },
-    ),
+    cases: [
+      ...cases(
+        {
+          label: "Three congruences",
+          input: { moduli: [3, 5, 7], remainders: [2, 3, 2] },
+          expected: 23,
+        },
+        { label: "Single congruence", input: { moduli: [5], remainders: [4] }, expected: 4 },
+        {
+          label: "Larger prime moduli",
+          input: { moduli: [5, 7, 11], remainders: [1, 3, 7] },
+          expected: 381,
+        },
+      ),
+      ...extraCases(
+        {
+          label: "All zero remainders",
+          input: { moduli: [3, 5, 7], remainders: [0, 0, 0] },
+          expected: 0,
+        },
+        { label: "Two moduli", input: { moduli: [2, 3], remainders: [1, 2] }, expected: 5 },
+        {
+          label: "All remainders one",
+          input: { moduli: [2, 3, 5], remainders: [1, 1, 1] },
+          expected: 1,
+        },
+        {
+          label: "Two larger prime moduli",
+          input: { moduli: [5, 7], remainders: [4, 6] },
+          expected: 34,
+        },
+        {
+          label: "Four congruences",
+          input: { moduli: [2, 3, 5, 7], remainders: [1, 2, 3, 4] },
+          expected: 53,
+        },
+      ),
+    ],
     audit: {
       signature: "chinese_remainder(num: list[int], rem: list[int]) -> int",
       defaultInputShape: "{ moduli: number[]; remainders: number[] }",
@@ -108,11 +171,20 @@ export const mathAndNumberTheoryExecutions = [
     id: "euler-totient-function",
     entrypoint: "euler_totient",
     invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Prime-power factors", input: 9, expected: 6 },
-      { label: "Unit boundary", input: 1, expected: 1 },
-      { label: "Several prime factors", input: 36, expected: 12 },
-    ),
+    cases: [
+      ...cases(
+        { label: "Prime-power factors", input: 9, expected: 6 },
+        { label: "Unit boundary", input: 1, expected: 1 },
+        { label: "Several prime factors", input: 36, expected: 12 },
+      ),
+      ...extraCases(
+        { label: "Smallest prime", input: 2, expected: 1 },
+        { label: "Power of two", input: 64, expected: 32 },
+        { label: "Prime input", input: 97, expected: 96 },
+        { label: "Three distinct prime factors", input: 210, expected: 48 },
+        { label: "Large prime", input: 997, expected: 996 },
+      ),
+    ],
     audit: {
       signature: "euler_totient(n: int) -> int",
       defaultInputShape: "number",
@@ -123,8 +195,8 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "binomial-coefficients-pascal",
-    entrypoint: "binomial_coefficient",
-    invocation: { kind: "function", arguments: [input("n"), input("k")] },
+    entrypoint: "Solution",
+    invocation: { kind: "class-method", constructor: [], method: "generate", arguments: [input()] },
     cases: cases(
       { label: "Five choose two", input: { n: 5, k: 2 }, expected: 10 },
       { label: "Zero choose zero", input: { n: 0, k: 0 }, expected: 1 },
@@ -140,8 +212,8 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "catalan-numbers",
-    entrypoint: "catalan_number",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: { kind: "class-method", constructor: [], method: "numTrees", arguments: [input()] },
     cases: cases(
       { label: "Third Catalan number", input: 3, expected: 5 },
       { label: "Zeroth Catalan number", input: 0, expected: 1 },
@@ -157,8 +229,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "inclusion-exclusion-principle",
-    entrypoint: "inclusion_exclusion",
-    invocation: { kind: "function", arguments: [input("n"), input("primes")] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "nthUglyNumber",
+      arguments: [input("n"), input("a"), input("b"), input("c")],
+    },
     cases: cases(
       { label: "Multiples of two or five", input: { n: 10, primes: [2, 5] }, expected: 6 },
       { label: "No divisors", input: { n: 50, primes: [] }, expected: 0 },
@@ -178,8 +255,8 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "matrix-exponentiation",
-    entrypoint: "fibonacci_matrix_pow",
-    invocation: { kind: "function", arguments: [input("n"), input("mod")] },
+    entrypoint: "Solution",
+    invocation: { kind: "class-method", constructor: [], method: "fib", arguments: [input()] },
     cases: cases(
       { label: "Tenth Fibonacci", input: { n: 10, mod: 1_000_000_007 }, expected: 55 },
       { label: "Zeroth Fibonacci", input: { n: 0, mod: 97 }, expected: 0 },
@@ -195,10 +272,12 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "markov-chains",
-    entrypoint: "markov_chain",
+    entrypoint: "Solution",
     invocation: {
-      kind: "function",
-      arguments: [input("transition"), input("initial"), input("steps")],
+      kind: "class-method",
+      constructor: [],
+      method: "knightProbability",
+      arguments: [input("n"), input("k"), input("row"), input("column")],
     },
     cases: cases(
       {
@@ -248,132 +327,234 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "trial-division-primality",
-    entrypoint: "factorize",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Composite number", input: 24, expected: [2, 2, 2, 3] },
-      { label: "Prime number", input: 29, expected: [29] },
-      { label: "Smallest non-prime", input: 4, expected: [2, 2] },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "distinctPrimeFactors",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Array of 5 numbers", input: [2, 4, 3, 7, 10], expected: 4 },
+        { label: "Powers of two", input: [2, 4, 8, 16], expected: 1 },
+        { label: "Single number 12", input: [12], expected: 2 },
+      ),
+      ...extraCases(
+        { label: "Repeated prime", input: [97, 97, 97], expected: 1 },
+        { label: "Five distinct primes", input: [2, 3, 5, 7, 11], expected: 5 },
+        { label: "Mixed prime powers", input: [64, 81, 125, 49], expected: 4 },
+        { label: "Large prime and composite", input: [997, 996], expected: 4 },
+        { label: "Many repeated factors", input: [12, 18, 27, 50], expected: 3 },
+      ),
+    ],
     audit: {
-      signature: "factorize(n: int) -> list[int]",
-      defaultInputShape: "number",
-      argumentMapping: ["n <- $"],
+      signature: "Solution().distinctPrimeFactors(nums: list[int]) -> int",
+      defaultInputShape: "number[]",
+      argumentMapping: ["nums <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns prime factors of n.",
+      returnBehavior: "Returns count of distinct prime factors of product.",
     },
   }),
   defineDsaExecution({
     id: "divisor-functions",
-    entrypoint: "sum_of_divisors",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Perfect number", input: 28, expected: 56 },
-      { label: "Prime number", input: 13, expected: 14 },
-      { label: "Small number", input: 6, expected: 12 },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "checkPerfectNumber",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Perfect number 28", input: 28, expected: true },
+        { label: "Non-perfect number 7", input: 7, expected: false },
+        { label: "Perfect number 6", input: 6, expected: true },
+      ),
+      ...extraCases(
+        { label: "One is not perfect", input: 1, expected: false },
+        { label: "Smallest prime", input: 2, expected: false },
+        { label: "Abundant composite", input: 12, expected: false },
+        { label: "Third perfect number", input: 496, expected: true },
+        { label: "Fourth perfect number", input: 8128, expected: true },
+      ),
+    ],
     audit: {
-      signature: "sum_of_divisors(n: int) -> int",
+      signature: "Solution().checkPerfectNumber(num: int) -> bool",
       defaultInputShape: "number",
-      argumentMapping: ["n <- $"],
+      argumentMapping: ["num <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns sum of divisors.",
+      returnBehavior: "Returns True if num is a perfect number.",
     },
   }),
   defineDsaExecution({
     id: "goldbach-conjecture",
-    entrypoint: "goldbach",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Even number 28", input: 28, expected: [5, 23] },
-      { label: "Even number 4", input: 4, expected: [2, 2] },
-      { label: "Even number 100", input: 100, expected: [3, 97] },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "findPrimePairs",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        {
+          label: "Number 10",
+          input: 10,
+          expected: [
+            [3, 7],
+            [5, 5],
+          ],
+        },
+        { label: "Number 4", input: 4, expected: [[2, 2]] },
+        { label: "Number 2", input: 2, expected: [] },
+      ),
+      ...extraCases(
+        { label: "Odd target with one pair", input: 5, expected: [[2, 3]] },
+        { label: "Odd target without pairs", input: 3, expected: [] },
+        {
+          label: "Several pairs",
+          input: 26,
+          expected: [
+            [3, 23],
+            [7, 19],
+            [13, 13],
+          ],
+        },
+        {
+          label: "Many pairs",
+          input: 100,
+          expected: [
+            [3, 97],
+            [11, 89],
+            [17, 83],
+            [29, 71],
+            [41, 59],
+            [47, 53],
+          ],
+        },
+        { label: "Prime target", input: 31, expected: [[2, 29]] },
+      ),
+    ],
     audit: {
-      signature: "goldbach(n: int) -> list[int]",
+      signature: "Solution().findPrimePairs(n: int) -> list[list[int]]",
       defaultInputShape: "number",
       argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns pair of primes summing to n.",
+      returnBehavior: "Returns 2D array of prime pairs summing to n.",
     },
   }),
   defineDsaExecution({
     id: "zeckendorf-theorem",
-    entrypoint: "zeckendorf",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Value 74", input: 74, expected: [55, 13, 5, 1] },
-      { label: "Value 10", input: 10, expected: [8, 2] },
-      { label: "Value 1", input: 1, expected: [1] },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "findMinFibonacciNumbers",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Value 7", input: 7, expected: 2 },
+        { label: "Value 10", input: 10, expected: 2 },
+        { label: "Value 19", input: 19, expected: 3 },
+      ),
+      ...extraCases(
+        { label: "Smallest target", input: 1, expected: 1 },
+        { label: "Fibonacci target", input: 2, expected: 1 },
+        { label: "Two-term target", input: 123, expected: 2 },
+        { label: "Three-term target", input: 100, expected: 3 },
+        { label: "Large Fibonacci-neighbor target", input: 1000, expected: 2 },
+      ),
+    ],
     audit: {
-      signature: "zeckendorf(n: int) -> list[int]",
+      signature: "Solution().findMinFibonacciNumbers(k: int) -> int",
       defaultInputShape: "number",
-      argumentMapping: ["n <- $"],
+      argumentMapping: ["k <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns non-consecutive Fibonacci terms.",
+      returnBehavior: "Returns minimum count of Fibonacci numbers summing to k.",
     },
   }),
   defineDsaExecution({
     id: "lagrange-four-square",
-    entrypoint: "lagrange_four_square",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Value 123", input: 123, expected: [9, 5, 5, 2] },
-      { label: "Value 7", input: 7, expected: [2, 1, 1, 1] },
-      { label: "Value 1", input: 1, expected: [1, 0, 0, 0] },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "numSquares",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Value 12", input: 12, expected: 3 },
+        { label: "Value 13", input: 13, expected: 2 },
+        { label: "Value 1", input: 1, expected: 1 },
+      ),
+      ...extraCases(
+        { label: "Two squares", input: 2, expected: 2 },
+        { label: "Three squares", input: 3, expected: 3 },
+        { label: "Perfect square", input: 4, expected: 1 },
+        { label: "Four-square form", input: 7, expected: 4 },
+        { label: "Large four-square form", input: 9999, expected: 4 },
+      ),
+    ],
     audit: {
-      signature: "lagrange_four_square(n: int) -> list[int]",
+      signature: "Solution().numSquares(n: int) -> int",
       defaultInputShape: "number",
       argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns 4 squares summing to n.",
+      returnBehavior: "Returns minimum count of perfect squares summing to n.",
     },
   }),
   defineDsaExecution({
     id: "pythagorean-triples",
-    entrypoint: "pythagorean_triples",
-    invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      {
-        label: "Limit 20",
-        input: 20,
-        expected: [
-          [3, 4, 5],
-          [5, 12, 13],
-          [8, 15, 17],
-          [12, 16, 20],
-        ],
-      },
-      { label: "Limit 5", input: 5, expected: [[3, 4, 5]] },
-      {
-        label: "Limit 15",
-        input: 15,
-        expected: [
-          [3, 4, 5],
-          [5, 12, 13],
-          [9, 12, 15],
-        ],
-      },
-    ),
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "countTriples",
+      arguments: [input()],
+    },
+    cases: [
+      ...cases(
+        { label: "Limit 5", input: 5, expected: 2 },
+        { label: "Limit 10", input: 10, expected: 4 },
+        { label: "Limit 15", input: 15, expected: 8 },
+      ),
+      ...extraCases(
+        { label: "No possible triple", input: 1, expected: 0 },
+        { label: "Below the first hypotenuse", input: 4, expected: 0 },
+        { label: "Three hypotenuse bound", input: 13, expected: 6 },
+        { label: "Multiple primitive and scaled triples", input: 20, expected: 12 },
+        { label: "Twenty-five bound", input: 25, expected: 16 },
+      ),
+    ],
     audit: {
-      signature: "pythagorean_triples(limit: int) -> list[list[int]]",
+      signature: "Solution().countTriples(n: int) -> int",
       defaultInputShape: "number",
-      argumentMapping: ["limit <- $"],
+      argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns triples up to limit.",
+      returnBehavior: "Returns count of square sum triples up to n.",
     },
   }),
   defineDsaExecution({
     id: "wilson-theorem",
     entrypoint: "wilson_prime",
     invocation: { kind: "function", arguments: [input()] },
-    cases: cases(
-      { label: "Prime 7", input: 7, expected: true },
-      { label: "Composite 6", input: 6, expected: false },
-      { label: "Prime 11", input: 11, expected: true },
-    ),
+    cases: [
+      ...cases(
+        { label: "Prime 7", input: 7, expected: true },
+        { label: "Composite 6", input: 6, expected: false },
+        { label: "Prime 5", input: 5, expected: true },
+      ),
+      ...extraCases(
+        { label: "Smallest prime", input: 2, expected: true },
+        { label: "Next prime", input: 3, expected: true },
+        { label: "Smallest composite", input: 4, expected: false },
+        { label: "Larger prime", input: 19, expected: true },
+        { label: "Larger composite", input: 20, expected: false },
+      ),
+    ],
     audit: {
       signature: "wilson_prime(n: int) -> bool",
       defaultInputShape: "number",
@@ -384,8 +565,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "derangements",
-    entrypoint: "count_derangements",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "findDerangement",
+      arguments: [input()],
+    },
     cases: cases(
       { label: "N=4", input: 4, expected: 9 },
       { label: "N=1", input: 1, expected: 0 },
@@ -401,19 +587,24 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "burnside-lemma",
-    entrypoint: "burnside_lemma",
-    invocation: { kind: "function", arguments: [input("n"), input("k")] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "largestMultipleOfThree",
+      arguments: [input()],
+    },
     cases: cases(
-      { label: "4 beads 2 colors", input: { n: 4, k: 2 }, expected: 6 },
-      { label: "1 bead 3 colors", input: { n: 1, k: 3 }, expected: 3 },
-      { label: "6 beads 2 colors", input: { n: 6, k: 2 }, expected: 14 },
+      { label: "Digits [8, 1, 9]", input: [8, 1, 9], expected: "981" },
+      { label: "Digits [8, 6, 7, 1, 0]", input: [8, 6, 7, 1, 0], expected: "8760" },
+      { label: "Digits [1]", input: [1], expected: "" },
     ),
     audit: {
-      signature: "burnside_lemma(n: int, k: int) -> int",
-      defaultInputShape: "{ n: number; k: number }",
-      argumentMapping: ["n <- $.n", "k <- $.k"],
+      signature: "Solution().largestMultipleOfThree(digits: list[int]) -> str",
+      defaultInputShape: "number[]",
+      argumentMapping: ["digits <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns necklace colorings under rotation.",
+      returnBehavior: "Returns largest multiple of three as string.",
     },
   }),
   defineDsaExecution({
@@ -467,8 +658,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "stirling-numbers-second",
-    entrypoint: "stirling_second",
-    invocation: { kind: "function", arguments: [input("n"), input("k")] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "rearrangeSticks",
+      arguments: [input("n"), input("k")],
+    },
     cases: cases(
       { label: "S(4,2)", input: { n: 4, k: 2 }, expected: 7 },
       { label: "S(5,5)", input: { n: 5, k: 5 }, expected: 1 },
@@ -484,8 +680,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "tribonacci-matrix",
-    entrypoint: "tribonacci",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "tribonacci",
+      arguments: [input()],
+    },
     cases: cases(
       { label: "T(4)", input: 4, expected: 4 },
       { label: "T(0)", input: 0, expected: 0 },
@@ -501,8 +702,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "path-counting-matrix",
-    entrypoint: "path_counting",
-    invocation: { kind: "function", arguments: [input("n"), input("adj"), input("k")] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "checkRecord",
+      arguments: [input()],
+    },
     cases: cases(
       {
         label: "K=2 steps",
@@ -566,8 +772,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "min-plus-matrix-multiplication",
-    entrypoint: "min_plus",
-    invocation: { kind: "function", arguments: [input("n"), input("adj"), input("k")] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "findTheCity",
+      arguments: [input("n"), input("edges"), input("distanceThreshold")],
+    },
     cases: cases(
       {
         label: "K=2 steps",
@@ -631,8 +842,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "kirchhoff-matrix-tree",
-    entrypoint: "kirchhoff_matrix_tree",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "numOfWays",
+      arguments: [input()],
+    },
     cases: cases(
       {
         label: "Complete graph K3",
@@ -681,8 +897,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "probability-dp-expectation",
-    entrypoint: "probability_dp_expectation",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "new21Game",
+      arguments: [input("n"), input("k"), input("maxPts")],
+    },
     cases: cases(
       { label: "Standard game", input: { k: 17, maxPts: 10 }, expected: 0.7328 },
       { label: "Boundary 0", input: { k: 0, maxPts: 10 }, expected: 1.0 },
@@ -698,8 +919,13 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "toss-strange-coins",
-    entrypoint: "toss_strange_coins",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "probabilityOfHeads",
+      arguments: [input("prob"), input("target")],
+    },
     cases: cases(
       { label: "3 coins target 2", input: { prob: [0.5, 0.5, 0.5], target: 2 }, expected: 0.375 },
       { label: "Target 0", input: { prob: [0.5, 0.5], target: 0 }, expected: 0.25 },
@@ -715,34 +941,54 @@ export const mathAndNumberTheoryExecutions = [
   }),
   defineDsaExecution({
     id: "miller-rabin-primality",
-    entrypoint: "miller_rabin_primality",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "primePalindrome",
+      arguments: [input()],
+    },
     cases: cases(
-      { label: "Prime 997", input: { n: 997 }, expected: true },
-      { label: "Composite 561", input: { n: 561 }, expected: false },
-      { label: "Prime 2", input: { n: 2 }, expected: true },
+      { label: "Number 6", input: 6, expected: 7 },
+      { label: "Number 8", input: 8, expected: 11 },
+      { label: "Number 13", input: 13, expected: 101 },
     ),
     audit: {
-      signature: "solve(input: dict) -> bool",
-      defaultInputShape: "{ n: number }",
-      argumentMapping: ["input <- $"],
+      signature: "Solution().primePalindrome(n: int) -> int",
+      defaultInputShape: "number",
+      argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Checks primality using Miller-Rabin.",
+      returnBehavior: "Returns smallest prime palindrome >= n.",
     },
   }),
   defineDsaExecution({
     id: "fisher-yates-shuffle",
-    entrypoint: "fisher_yates_shuffle",
-    invocation: { kind: "function", arguments: [input()] },
+    entrypoint: "Solution",
+    invocation: {
+      kind: "class-method",
+      constructor: [],
+      method: "shuffle",
+      arguments: [input()],
+    },
     cases: cases(
-      { label: "Array of 5 elements", input: { nums: [1, 2, 3, 4, 5] }, expected: [1, 2, 3, 4, 5] },
-      { label: "Array of 1 element", input: { nums: [42] }, expected: [42] },
-      { label: "Array of 3 elements", input: { nums: [10, 20, 30] }, expected: [10, 20, 30] },
+      {
+        label: "Array of 5 elements",
+        input: [1, 2, 3, 4, 5],
+        expected: [1, 2, 3, 4, 5],
+        comparison: "unordered",
+      },
+      { label: "Array of 1 element", input: [42], expected: [42] },
+      {
+        label: "Array of 3 elements",
+        input: [10, 20, 30],
+        expected: [10, 20, 30],
+        comparison: "unordered",
+      },
     ),
     audit: {
-      signature: "solve(input: dict) -> list",
-      defaultInputShape: "{ nums: number[] }",
-      argumentMapping: ["input <- $"],
+      signature: "Solution().shuffle(nums: list[int]) -> list[int]",
+      defaultInputShape: "number[]",
+      argumentMapping: ["nums <- $"],
       mutation: "No input mutation.",
       returnBehavior: "Returns shuffled array.",
     },

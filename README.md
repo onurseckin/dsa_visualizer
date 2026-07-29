@@ -20,49 +20,54 @@ not contribute active learning items or assessments.
 - A Bun HTTP API with persistent SQLite state
 - A hybrid Python runner: Pyodide in a Web Worker for browser-compatible NumPy
   exercises and an isolated CPython 3.12 container for server/PyTorch exercises
-- Nginx and Docker Compose as the supported full-stack local runtime
+- Docker Compose as the default full-stack local development runtime
 
-## Local full-stack runtime
+## Docker-first local runtime
 
-Docker Compose is the supported way to use the complete application. It starts
-an Nginx web server, a Bun API with persistent SQLite state, and an internal-only
-CPython 3.12 runner with pinned NumPy and CPU PyTorch. Base images are pinned by
-immutable digest; Python wheels are version-pinned and hash-locked for the
-supported local CPU architectures.
+Docker Compose is the default way to run the complete application. It starts a
+Vite web server with HMR, a Bun API with persistent SQLite state, and an
+internal-only CPython 3.12 runner with pinned NumPy and CPU PyTorch. Source
+changes are watched: Vite updates the web app, Bun restarts the API, and runner
+source changes restart the Python service. Base images are pinned by immutable
+digest; Python wheels are version-pinned and hash-locked for the supported local
+CPU architectures.
 
 ```bash
-bun run dup
+bun run start
 ```
 
-Open `http://localhost:5173`. Only the web service publishes a host port. It
-proxies `/api` to the API container, and the API reaches the runner over a
+`bun run dev` is an equivalent Docker-watch command. Open
+`http://localhost:5173`. Only the web service publishes a host port. Vite
+forwards `/api` to the API container, and the API reaches the runner over a
 separate internal network. The API and Python runner have no host ports.
 
-Stop the stack with `bun run ddown`. This preserves the `api_data` named volume.
-Use `bun run dclean` only when you intentionally want to delete saved layouts,
-drafts, trivia sessions, and learning progress.
+Use `bun run stop` to stop the stack. It preserves the Docker images and the
+`api_data` named volume, so saved layouts, drafts, trivia sessions, and learning
+progress remain. `bun run restart` stops and starts the same watch stack.
+Use `bun run clean` only when you intentionally want to delete that persisted
+volume.
 
-For frontend-focused development, `bun run dev` still serves the app on port
-5173 and exposes the same persistence API through the Vite development adapter.
-Server-only Python exercises require the Compose stack.
+### Dependency and image refreshes
 
-### Docker development with live updates
+Stopping the stack does not remove its images or reinstall packages. On the next
+`start`, Docker reuses cached build layers when the manifests and `bun.lock` are
+unchanged. If a workspace `package.json` or the lockfile changes, the next
+`start` or `restart` rebuild reaches the `bun install --frozen-lockfile` layer
+and refreshes the container dependencies. Ordinary source changes are synced by
+Compose watch and do not reinstall dependencies automatically.
 
-Use the dedicated development stack when you want all services inside Docker and
-need source changes to update automatically:
+### Run Vite directly on the host
+
+Use the explicit local alias when you want only the Vite application on your
+computer instead of Docker:
 
 ```bash
-bun run ddev
+bun run dev:local
 ```
 
-It runs Vite with HMR for the web app, Bun watch mode for the API, and restarts
-the Python runner when its source changes. Open `http://localhost:5173` and keep
-the command running while developing. `api_data` stays in its named Docker volume,
-so stopping the development stack does not erase saved work.
-
-Use `bun run ddev:down` to stop it, `bun run ddev:logs` to follow service logs,
-and `bun run ddev:ps` to inspect service status. `bun run dup` remains the
-production-style static Nginx stack and does not live-reload.
+`bun run start:local` is the same command. It uses the Vite persistence adapter,
+not the Docker API or SQLite service, so server-only CPython exercises are not
+available. Use the Docker default for the complete application.
 
 ## Workspace and assessments
 
@@ -99,26 +104,24 @@ the 88 canonical DSA definitions.
 
 | Command | Purpose |
 | --- | --- |
-| `bun run ddev` | Start the Docker development stack with web HMR and backend source watchers |
-| `bun run ddev:down` | Stop the Docker development stack while preserving persisted data |
-| `bun run ddev:logs` | Follow development-stack service logs |
-| `bun run ddev:ps` | Show development-stack service status |
-| `bun run dup` | Build and start the Docker Compose stack, waiting for healthy services |
-| `bun run ddown` | Stop the Docker Compose stack and preserve persisted data |
-| `bun run drestart` | Rebuild and restart the Docker Compose stack |
-| `bun run dbuild` | Build Docker Compose images without starting services |
-| `bun run dlogs` | Follow Docker Compose logs for all services |
-| `bun run dps` | Show Docker Compose service status |
-| `bun run dclean` | Stop the stack and delete persisted Docker volumes (destructive) |
+| `bun run start` / `bun run dev` | Build and start the Docker watch stack with live updates |
+| `bun run stop` | Stop the Docker stack while preserving images and `api_data` |
+| `bun run restart` | Restart the Docker watch stack, rebuilding as needed |
+| `bun run logs` | Follow Docker service logs |
+| `bun run ps` | Show Docker service status |
+| `bun run shell:web` | Open a shell in the Vite web container |
+| `bun run shell:api` | Open a shell in the Bun API container |
+| `bun run shell:runner` | Open a shell in the CPython runner container |
+| `bun run clean` | Stop the Docker stack and delete named volumes (destructive) |
+| `bun run dev:local` / `bun run start:local` | Run Vite directly on the host with the Vite persistence adapter |
 | `bun run typecheck` | TypeScript check |
 | `bun run format:check` | Formatting check |
 | `bun run lint` | Lint with zero warnings |
-| `bun run build` | Production build |
+| `bun run build` | Typecheck and create the standalone `dist/` quality artifact |
 | `bun run compose:check` | Validate Compose topology and runner hardening |
-| `bun run compose:dev:check` | Validate the Docker development Compose configuration |
 | `bun run audit:catalog` | Verify the 88 active DSA catalog, retired ML content, Python assets, sources, and retirement ledger |
 | `bun run audit:visualizers` | Report tutorial detachment, narrative, scenario, transition, and primitive usage health |
-| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog, and build |
+| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog, and standalone build |
 
 Use Bun for every command in this repository. Do not add npm, pnpm, or yarn lockfiles.
 

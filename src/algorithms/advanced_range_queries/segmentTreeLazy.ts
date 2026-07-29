@@ -16,11 +16,12 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "<p>A <strong>Segment Tree with Lazy Propagation</strong> supports both range updates and range sum queries in <code>O(log N)</code> time per operation. By deferring updates to child subtrees via pending lazy tags and pushing them down strictly on demand, it avoids touching individual leaves during range modifications.</p><h3>State Representation</h3><p>The state maintains two parallel <code>4N</code> structures: an aggregate sum array <code>tree[v]</code> and a deferred tag array <code>lazy[v]</code> storing pending updates owed to descendants.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial numerical sequence.</li><li><code>operations</code>: Array of range update and range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Range query answers and updated node/tag state.</li></ul>",
+    "<p>A <strong>Segment Tree with Lazy Propagation</strong> supports both range updates and range sum queries in <code>O(log N)</code> time per operation. By deferring updates to child subtrees via pending lazy tags and pushing them down strictly on demand, it avoids touching individual leaves during range modifications.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial numerical sequence.</li><li><code>operations</code>: Array of range update and range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Range query answers and updated node/tag state.</li></ul>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= val <= 10^9"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
         "arr = [1, 2, 3, 4, 5], queries = [sum(1..3), rangeUpdate(1..3, +5), sum(1..3)]",
       outputDisplay: "Query 1: 9, Query 2: 24",
@@ -39,6 +40,7 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay:
         "arr = [10, 20, 30, 40, 50, 60, 70, 80], queries = [rangeUpdate(0..7, +10), rangeUpdate(2..5, +5), sum(0..7)]",
       outputDisplay: "Query: 460",
@@ -57,6 +59,7 @@ export const segmentTreeLazy: AlgorithmDefinition<SegmentTreeLazyInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "arr = [7], queries = [rangeUpdate(0..0, +3), sum(0..0)]",
       outputDisplay: "Query: 10",
       title: "Failing / Boundary Case",

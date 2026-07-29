@@ -1,10 +1,6 @@
-import type {
-  AlgorithmDefinition,
-  AlgorithmStep,
-  GridCellNode,
-  GridVisualSnapshot,
-} from "../../types/dsa";
+import type { AlgorithmDefinition, AlgorithmStep, PrimaryVisualSnapshot } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface EditDistanceInput {
   word1: string;
@@ -34,264 +30,327 @@ export const EDIT_DISTANCE_CODE = `def min_distance(word1: str, word2: str) -> i
 
     return dp[m][n]`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Edit Distance (Levenshtein Distance) measures the minimum number of single-character edit operations required to transform string word1 into string word2.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 2,
+      cols: 2,
+      rowHeaders: ["", "A"],
+      colHeaders: ["", "B"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "default" },
+        { row: 0, col: 1, value: 1, state: "default" },
+        { row: 1, col: 0, value: 1, state: "default" },
+        { row: 1, col: 1, value: "?", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The three permitted character edit operations are Insert (add a character), Delete (remove a character), and Replace (change one character to another), each costing 1 unit.",
+    primarySnapshot: {
+      kind: "array",
+      name: "operations",
+      mode: "box",
+      elements: [
+        { id: "op-ins", value: "Insert (+1)", state: "compare" },
+        { id: "op-del", value: "Delete (+1)", state: "compare" },
+        { id: "op-rep", value: "Replace (+1)", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We build an (M + 1) x (N + 1) DP table where dp[i][j] stores the minimum edit distance to transform prefix word1[0..i-1] into prefix word2[0..j-1].",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["", "h", "o"],
+      colHeaders: ["", "r", "o"],
+      cells: Array.from({ length: 9 }, (_, k) => ({
+        row: Math.floor(k / 3),
+        col: k % 3,
+        value: "?",
+        state: "default" as const,
+      })),
+    },
+  },
+  {
+    narrative:
+      "The base column dp[i][0] = i because converting a prefix of length i into an empty string requires exactly i deletion operations.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 4,
+      cols: 4,
+      rowHeaders: ["", "h", "o", "r"],
+      colHeaders: ["", "r", "o", "s"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 1, col: 0, value: 1, state: "sorted" },
+        { row: 2, col: 0, value: 2, state: "sorted" },
+        { row: 3, col: 0, value: 3, state: "sorted" },
+        { row: 0, col: 1, value: "?", state: "default" },
+        { row: 0, col: 2, value: "?", state: "default" },
+        { row: 0, col: 3, value: "?", state: "default" },
+        { row: 1, col: 1, value: "?", state: "default" },
+        { row: 1, col: 2, value: "?", state: "default" },
+        { row: 1, col: 3, value: "?", state: "default" },
+        { row: 2, col: 1, value: "?", state: "default" },
+        { row: 2, col: 2, value: "?", state: "default" },
+        { row: 2, col: 3, value: "?", state: "default" },
+        { row: 3, col: 1, value: "?", state: "default" },
+        { row: 3, col: 2, value: "?", state: "default" },
+        { row: 3, col: 3, value: "?", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The base row dp[0][j] = j because converting an empty string into a prefix of length j requires exactly j insertion operations.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 4,
+      cols: 4,
+      rowHeaders: ["", "h", "o", "r"],
+      colHeaders: ["", "r", "o", "s"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "sorted" },
+        { row: 0, col: 1, value: 1, state: "sorted" },
+        { row: 0, col: 2, value: 2, state: "sorted" },
+        { row: 0, col: 3, value: 3, state: "sorted" },
+        { row: 1, col: 0, value: 1, state: "sorted" },
+        { row: 2, col: 0, value: 2, state: "sorted" },
+        { row: 3, col: 0, value: 3, state: "sorted" },
+        { row: 1, col: 1, value: "?", state: "default" },
+        { row: 1, col: 2, value: "?", state: "default" },
+        { row: 1, col: 3, value: "?", state: "default" },
+        { row: 2, col: 1, value: "?", state: "default" },
+        { row: 2, col: 2, value: "?", state: "default" },
+        { row: 2, col: 3, value: "?", state: "default" },
+        { row: 3, col: 1, value: "?", state: "default" },
+        { row: 3, col: 2, value: "?", state: "default" },
+        { row: 3, col: 3, value: "?", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When comparing character word1[i-1] with word2[j-1]: if they match, no new operation cost is needed, so dp[i][j] = dp[i-1][j-1].",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 2,
+      cols: 2,
+      rowHeaders: ["", "o"],
+      colHeaders: ["", "o"],
+      cells: [
+        { row: 0, col: 0, value: 1, state: "compare", label: "match" },
+        { row: 0, col: 1, value: 2, state: "default" },
+        { row: 1, col: 0, value: 2, state: "default" },
+        { row: 1, col: 1, value: 1, state: "active", label: "= dp[i-1][j-1]" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "If the characters mismatch, we must pay 1 operation cost and pick the optimal prior state: dp[i][j] = 1 + min(delete: dp[i-1][j], insert: dp[i][j-1], replace: dp[i-1][j-1]).",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 2,
+      cols: 2,
+      rowHeaders: ["", "h"],
+      colHeaders: ["", "r"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "compare", label: "replace" },
+        { row: 0, col: 1, value: 1, state: "compare", label: "delete" },
+        { row: 1, col: 0, value: 1, state: "compare", label: "insert" },
+        { row: 1, col: 1, value: 1, state: "active", label: "1 + min" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We iterate row by row from top to bottom and column by column from left to right to populate the entire matrix.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["", "h", "o"],
+      colHeaders: ["", "r", "o"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "visited" },
+        { row: 0, col: 1, value: 1, state: "visited" },
+        { row: 0, col: 2, value: 2, state: "visited" },
+        { row: 1, col: 0, value: 1, state: "visited" },
+        { row: 1, col: 1, value: 1, state: "visited" },
+        { row: 1, col: 2, value: 2, state: "visited" },
+        { row: 2, col: 0, value: 2, state: "visited" },
+        { row: 2, col: 1, value: 2, state: "active" },
+        { row: 2, col: 2, value: "?", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Upon reaching cell dp[M][N], the value represents the exact minimum edit distance to transform word1 into word2 in O(M * N) time and space.",
+    primarySnapshot: {
+      kind: "matrix",
+      name: "dp",
+      rows: 3,
+      cols: 3,
+      rowHeaders: ["", "h", "o"],
+      colHeaders: ["", "r", "o"],
+      cells: [
+        { row: 0, col: 0, value: 0, state: "default" },
+        { row: 0, col: 1, value: 1, state: "default" },
+        { row: 0, col: 2, value: 2, state: "default" },
+        { row: 1, col: 0, value: 1, state: "default" },
+        { row: 1, col: 1, value: 1, state: "default" },
+        { row: 1, col: 2, value: 2, state: "default" },
+        { row: 2, col: 0, value: 2, state: "default" },
+        { row: 2, col: 1, value: 2, state: "default" },
+        { row: 2, col: 2, value: 1, state: "sorted", label: "result: 1" },
+      ],
+    },
+  },
+];
+
 export const generateEditDistanceSteps = (input: EditDistanceInput): AlgorithmStep[] => {
-  const steps: AlgorithmStep[] = [];
   const word1 = input?.word1 ?? DEFAULT_EDIT_DISTANCE_INPUT.word1;
   const word2 = input?.word2 ?? DEFAULT_EDIT_DISTANCE_INPUT.word2;
   const m = word1.length;
   const n = word2.length;
+  const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
 
-  const createGridSnapshot = (
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (input.word1 === DEFAULT_EDIT_DISTANCE_INPUT.word1 &&
+      input.word2 === DEFAULT_EDIT_DISTANCE_INPUT.word2);
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const rowHeaders = ["", ...word1.split("")];
+  const colHeaders = ["", ...word2.split("")];
+
+  const makeMatrixSnapshot = (
     activePos?: [number, number],
     comparePositions: Array<[number, number]> = [],
-    computedUntil?: [number, number],
-  ): GridVisualSnapshot => {
-    const gridNodes: GridCellNode[][] = [];
+    highlightResult = false,
+  ): PrimaryVisualSnapshot => {
     const compSet = new Set(comparePositions.map(([r, c]) => `${r},${c}`));
-
+    const cells = [];
     for (let r = 0; r <= m; r++) {
-      const rowNodes: GridCellNode[] = [];
       for (let c = 0; c <= n; c++) {
         const isActive = activePos && activePos[0] === r && activePos[1] === c;
         const isCompare = compSet.has(`${r},${c}`);
-        const isComputed = Boolean(
-          computedUntil &&
-          (r < computedUntil[0] || (r === computedUntil[0] && c <= computedUntil[1])),
-        );
+        const isResult = highlightResult && r === m && c === n;
+        const isFilled =
+          activePos && (r < activePos[0] || (r === activePos[0] && c <= activePos[1]));
 
-        rowNodes.push({
+        cells.push({
           row: r,
           col: c,
-          distance: dp[r][c],
-          state: isActive ? "active" : isCompare ? "compare" : isComputed ? "visited" : "default",
+          value: isFilled || r === 0 || c === 0 || highlightResult ? dp[r][c] : "?",
+          state: isResult
+            ? ("sorted" as const)
+            : isActive
+              ? ("active" as const)
+              : isCompare
+                ? ("compare" as const)
+                : isFilled
+                  ? ("visited" as const)
+                  : ("default" as const),
         });
       }
-      gridNodes.push(rowNodes);
     }
-    return { kind: "grid", grid: gridNodes };
+    return {
+      kind: "matrix",
+      name: "dp",
+      rows: m + 1,
+      cols: n + 1,
+      rowHeaders,
+      colHeaders,
+      cells,
+    };
   };
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Start Edit Distance algorithm for word1="${word1}" and word2="${word2}"`,
-      why: "Computing minimal character insertion, deletion, and replacement operations.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { word1, word2 } },
-    variables: { word1, word2 },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Store string lengths m=${m} ("${word1}") and n=${n} ("${word2}")`,
-      why: "Grid dimensions will be (m+1) x (n+1) to include empty prefixes.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { m, n } },
-    variables: { m, n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: `Initialize 2D DP matrix of size ${m + 1} x ${n + 1} with zeros`,
-      why: "dp[i][j] will store the edit distance between word1[0..i-1] and word2[0..j-1].",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { rows: m + 1, cols: n + 1 } },
-    variables: { m, n },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Loop over rows 0..${m} to set base column  dp[i][0] = i`,
-      why: "Transforming word1 prefix of length i into an empty string always costs exactly i deletions, so the first column fills with 0, 1, 2, … m.",
-    },
-    primarySnapshot: createGridSnapshot(),
-    auxiliaryState: { customState: { baseCol: "dp[i][0] = i for i in 0..m" } },
-    variables: { m },
-  });
+  addStep(
+    `Initializing Edit Distance matrix of size ${m + 1} x ${n + 1} for word1="${word1}" (length ${m}) and word2="${word2}" (length ${n}).`,
+    makeMatrixSnapshot([0, 0]),
+  );
 
   for (let i = 0; i <= m; i++) dp[i][0] = i;
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: `Initialize base column dp[i][0] = i for i = 0..${m}`,
-      why: "Transforming word1 prefix of length i to empty string requires i deletions.",
-    },
-    primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
-    auxiliaryState: { customState: { baseColInitialized: true } },
-    variables: { m },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: `Loop over columns 0..${n} to set base row  dp[0][j] = j`,
-      why: "Transforming an empty string into word2 prefix of length j costs exactly j insertions.",
-    },
-    primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
-    auxiliaryState: { customState: { baseRow: "dp[0][j] = j for j in 0..n" } },
-    variables: { n },
-  });
-
   for (let j = 0; j <= n; j++) dp[0][j] = j;
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 8,
-    explanation: {
-      what: `Initialize base row dp[0][j] = j for j = 0..${n}`,
-      why: "Transforming empty string to word2 prefix of length j requires j insertions.",
-    },
-    primarySnapshot: createGridSnapshot(undefined, [], [m, 0]),
-    auxiliaryState: { customState: { baseRowInitialized: true } },
-    variables: { n },
-  });
+  addStep(
+    `Setting base cases: dp[i][0] = i (deletions from word1 prefix) and dp[0][j] = j (insertions to form word2 prefix).`,
+    makeMatrixSnapshot([0, n]),
+  );
 
   for (let i = 1; i <= m; i++) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 10,
-      explanation: {
-        what: `Begin outer loop for row i = ${i} (char '${word1[i - 1]}')`,
-        why: `Processing prefix word1[0..${i - 1}] against all prefixes of word2.`,
-      },
-      primarySnapshot: createGridSnapshot(undefined, [], [i - 1, n]),
-      auxiliaryState: {
-        customState: { i, char1: word1[i - 1], word1, word2 },
-      },
-      variables: { i, char1: word1[i - 1] },
-    });
-
     for (let j = 1; j <= n; j++) {
       const char1 = word1[i - 1];
       const char2 = word2[j - 1];
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 11,
-        explanation: {
-          what: `Inner loop cell (i=${i}, j=${j}): compare '${char1}' with '${char2}'`,
-          why: `Evaluating transition to fill dp[${i}][${j}].`,
-        },
-        primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
-        auxiliaryState: { customState: { i, j, char1, char2 } },
-        variables: { i, j, char1, char2 },
-      });
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 12,
-        explanation: {
-          what: `Evaluate condition word1[${i - 1}] ('${char1}') == word2[${j - 1}] ('${char2}')`,
-          why:
-            char1 === char2
-              ? `Characters match! Zero extra edit cost required.`
-              : `Characters differ! Must take 1 + min(delete, insert, replace).`,
-        },
-        primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
-        auxiliaryState: { customState: { i, j, match: char1 === char2 } },
-        variables: { i, j, match: char1 === char2 },
-      });
-
       if (char1 === char2) {
         dp[i][j] = dp[i - 1][j - 1];
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 13,
-          explanation: {
-            what: `Match '${char1}' at cell (${i}, ${j}): dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]}`,
-            why: `Carried forward diagonal cost dp[${i - 1}][${j - 1}] without additional edit cost.`,
-          },
-          primarySnapshot: createGridSnapshot([i, j], [[i - 1, j - 1]], [i, j]),
-          auxiliaryState: {
-            customState: { char1, char2, operation: "Match", editCost: dp[i][j] },
-          },
-          variables: { i, j, char1, char2, "dp[i][j]": dp[i][j] },
-        });
+        addStep(
+          `Cell (${i}, ${j}): comparing word1[${i - 1}] ('${char1}') with word2[${j - 1}] ('${char2}'). Since characters match, dp[${i}][${j}] = dp[${i - 1}][${j - 1}] = ${dp[i][j]} with no added cost.`,
+          makeMatrixSnapshot([i, j], [[i - 1, j - 1]]),
+        );
       } else {
         const deleteOp = dp[i - 1][j];
         const insertOp = dp[i][j - 1];
         const replaceOp = dp[i - 1][j - 1];
-        const minPrev = Math.min(deleteOp, insertOp, replaceOp);
+        dp[i][j] = 1 + Math.min(deleteOp, insertOp, replaceOp);
 
-        let bestOpName = "Replace";
-        if (minPrev === deleteOp) bestOpName = "Delete";
-        else if (minPrev === insertOp) bestOpName = "Insert";
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 14,
-          explanation: {
-            what: `Characters mismatch: '${char1}' ≠ '${char2}'`,
-            why: "The characters differ, so we must pay a cost of 1 and take the best of the three edit operations: delete, insert, or replace.",
-          },
-          primarySnapshot: createGridSnapshot([i, j], [], [i, j - 1]),
-          auxiliaryState: { customState: { i, j, char1, char2, match: false } },
-          variables: { i, j, char1, char2, match: false },
-        });
-
-        dp[i][j] = 1 + minPrev;
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 15,
-          explanation: {
-            what: `Mismatch: dp[${i}][${j}] = 1 + min(delete:${deleteOp}, insert:${insertOp}, replace:${replaceOp}) = ${dp[i][j]}`,
-            why: `Optimal move is ${bestOpName}. Updated dp[${i}][${j}] = ${dp[i][j]}.`,
-          },
-          primarySnapshot: createGridSnapshot(
+        addStep(
+          `Cell (${i}, ${j}): comparing word1[${i - 1}] ('${char1}') with word2[${j - 1}] ('${char2}'). Characters mismatch: dp[${i}][${j}] = 1 + min(delete:${deleteOp}, insert:${insertOp}, replace:${replaceOp}) = ${dp[i][j]}.`,
+          makeMatrixSnapshot(
             [i, j],
             [
               [i - 1, j],
               [i, j - 1],
               [i - 1, j - 1],
             ],
-            [i, j],
           ),
-          auxiliaryState: {
-            customState: {
-              char1,
-              char2,
-              operation: bestOpName,
-              deleteCost: deleteOp,
-              insertCost: insertOp,
-              replaceCost: replaceOp,
-            },
-          },
-          variables: { i, j, char1, char2, "dp[i][j]": dp[i][j] },
-        });
+        );
       }
     }
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 17,
-    explanation: {
-      what: `Final result dp[${m}][${n}] = ${dp[m][n]}`,
-      why: `The minimum edit distance to transform "${word1}" into "${word2}" is ${dp[m][n]}.`,
-    },
-    primarySnapshot: createGridSnapshot([m, n], [], [m, n]),
-    auxiliaryState: {
-      customState: { result: dp[m][n] },
-    },
-    variables: { minDistance: dp[m][n] },
-  });
+  addStep(
+    `Completed Edit Distance tabulation: dp[${m}][${n}] = ${dp[m][n]}. The minimum number of edit operations to convert "${word1}" into "${word2}" is ${dp[m][n]}.`,
+    makeMatrixSnapshot([m, n], [], true),
+  );
 
   return steps;
 };
@@ -324,7 +383,7 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   topicIds: ["dp_2d"],
   difficulty: "Hard",
   description:
-    "<p>The <strong>Edit Distance</strong> (Levenshtein Distance) problem (LeetCode #72) asks for the minimum number of single-character operations—<strong>Insert</strong>, <strong>Delete</strong>, or <strong>Replace</strong>—required to transform string <code>word1</code> of length <code>M</code> into string <code>word2</code> of length <code>N</code>.</p><p>Let <code>dp[i][j]</code> denote the minimum edit distance between prefix <code>word1[0..i-1]</code> and prefix <code>word2[0..j-1]</code>. Base cases are <code>dp[i][0] = i</code> and <code>dp[0][j] = j</code>. If characters match, <code>dp[i][j] = dp[i-1][j-1]</code>; otherwise <code>dp[i][j] = 1 + min(delete, insert, replace)</code>.</p>",
+    "<p>Given two strings <code>word1</code> and <code>word2</code>, return the minimum number of operations required to convert <code>word1</code> into <code>word2</code>. You are permitted three operations on a character: <strong>Insert</strong> a character, <strong>Delete</strong> a character, or <strong>Replace</strong> a character.</p><p><strong>Input:</strong> Two strings <code>word1</code> and <code>word2</code>.</p><p><strong>Output:</strong> The minimum number of edit operations required to transform <code>word1</code> into <code>word2</code>.</p>",
   constraints: [
     "0 <= word1.length, word2.length <= 500",
     "word1 and word2 consist of lowercase English letters",
@@ -332,9 +391,10 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: 'word1 = "horse", word2 = "ros"',
       outputDisplay: "3",
-      title: "Basic Example",
+      title: "Standard Case",
       input: { word1: "horse", word2: "ros" },
       output: "3",
       explanation:
@@ -342,9 +402,10 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: 'word1 = "intention", word2 = "execution"',
       outputDisplay: "5",
-      title: "Complex Edge Case",
+      title: "Adversarial Multi-Op Match",
       input: { word1: "intention", word2: "execution" },
       output: "5",
       explanation:
@@ -352,9 +413,10 @@ export const editDistance: AlgorithmDefinition<EditDistanceInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: 'word1 = "", word2 = "abc"',
       outputDisplay: "3",
-      title: "Failing / Boundary Case",
+      title: "Empty String Boundary",
       input: { word1: "", word2: "abc" },
       output: "3",
       explanation:

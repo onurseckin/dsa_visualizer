@@ -97,7 +97,6 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: 'graph = {A: [B, C], B: [D, E], C: [F]}, start = "A"',
       outputDisplay: '["A", "B", "C", "D", "E", "F"]',
@@ -108,7 +107,6 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
         "Starting at A, BFS visits distance-1 neighbors (B, C), then distance-2 (D, E), and finally distance-3 (F).",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'graph = {A: [B], B: [C, D], C: [A, E]}, start = "A"',
@@ -138,7 +136,6 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
         "The graph contains back-edges and cycles (A-B-C-A, B-D-E-B). The visited set prevents infinite loops, visiting every reachable node once.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'graph = {A: [B], C: [D]}, start = "A"',

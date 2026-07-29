@@ -47,7 +47,6 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [3, 2, 1, 5, 6, 4], k = 2",
       outputDisplay: "5",
@@ -59,7 +58,6 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4",
       outputDisplay: "4",
@@ -70,7 +68,6 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
         "Handles duplicate elements correctly. Min-heap of size 4 retains [4, 5, 5, 6] with root 4.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [7], k = 1",

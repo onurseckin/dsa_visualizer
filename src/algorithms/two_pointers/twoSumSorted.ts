@@ -384,7 +384,6 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [1, 3, 4, 6, 8, 10, 13], target = 11",
       outputDisplay: "[0, 5]",
@@ -395,7 +394,6 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [2, 7, 11, 15], target = 9",
       outputDisplay: "[0, 1]",
@@ -405,7 +403,6 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
       explanation: "First pair 2 + 7 equals 9, returning [0, 1].",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [-8, -3, 0, 4, 7], target = -11",

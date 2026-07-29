@@ -1,10 +1,199 @@
-import type { AlgorithmStep, ElementState, TreeNodeItem } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  ElementState,
+  PrimaryVisualSnapshot,
+  TreeNodeItem,
+} from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 import type { SegmentTreeLazyInput, InternalNode } from "./types";
 import { DEFAULT_SEGMENT_TREE_LAZY_INPUT } from "./types";
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Point updates in a standard Segment Tree take logarithmic time, but updating every element across an arbitrary subsegment [L, R] naively touches up to O(N) leaves, degrading performance.",
+    primarySnapshot: {
+      kind: "array",
+      name: "rawArray",
+      elements: [
+        { id: "e0", value: 1, state: "active" },
+        { id: "e1", value: 2, state: "active" },
+        { id: "e2", value: 3, state: "active" },
+        { id: "e3", value: 4, state: "active" },
+        { id: "e4", value: 5, state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Updating individual leaf nodes one by one forces repeated O(log N) traversals, making range updates take linear O(N log N) time in total.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 15, leftId: "n2", rightId: "n3", state: "active" },
+        { id: "n2", val: 6, leftId: "n4", rightId: "n5", state: "active" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "active" },
+        { id: "n4", val: 3, state: "active" },
+        { id: "n5", val: 3, state: "active" },
+        { id: "n6", val: 4, state: "active" },
+        { id: "n7", val: 5, state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Lazy Propagation resolves this bottleneck by deferring updates to child subtrees until those specific descendants are accessed by subsequent queries or updates.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 15, leftId: "n2", rightId: "n3", state: "default" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "swap" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 3, state: "default" },
+        { id: "n5", val: 3, state: "default" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When a node's range [start..end] is fully enclosed inside update interval [L, R], we update the node's cached sum immediately by adding (count * delta).",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 30, leftId: "n2", rightId: "n3", state: "visited" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "active" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 3, state: "default" },
+        { id: "n5", val: 3, state: "default" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Instead of descending into its children, we record a deferred tag lazy[node] += delta at the node and prune recursion immediately in O(1) time.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 30, leftId: "n2", rightId: "n3", state: "default" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "swap" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 3, state: "default" },
+        { id: "n5", val: 3, state: "default" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Lazy tags represent promised updates owed to descendants: child nodes retain older values until a future traversal explicitly visits them.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 30, leftId: "n2", rightId: "n3", state: "default" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "active" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 3, state: "compare" },
+        { id: "n5", val: 3, state: "compare" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Whenever a future query or update visits a node holding a non-zero lazy tag, a pushdown operation transfers the pending delta down to its direct left and right children.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 30, leftId: "n2", rightId: "n3", state: "default" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "visited" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 13, state: "swap" },
+        { id: "n5", val: 8, state: "swap" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "During pushdown, child cached sums are updated instantly, child lazy tags inherit the delta, and the parent node's lazy tag is cleared back to zero.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 30, leftId: "n2", rightId: "n3", state: "default" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "default" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 13, state: "visited" },
+        { id: "n5", val: 8, state: "visited" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Lazy pushdown guarantees that no node ever serves incorrect query answers or stale updates when visited.",
+    primarySnapshot: {
+      kind: "tree",
+      rootId: "n1",
+      nodes: [
+        { id: "n1", val: 30, leftId: "n2", rightId: "n3", state: "active" },
+        { id: "n2", val: 21, leftId: "n4", rightId: "n5", state: "active" },
+        { id: "n3", val: 9, leftId: "n6", rightId: "n7", state: "default" },
+        { id: "n4", val: 13, state: "active" },
+        { id: "n5", val: 8, state: "default" },
+        { id: "n6", val: 4, state: "default" },
+        { id: "n7", val: 5, state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "With lazy propagation, both range updates and range queries execute in optimal O(log N) time per operation while using linear O(N) auxiliary space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "lazyArray",
+      elements: [
+        { id: "l1", value: 0, label: "root lazy", state: "default" },
+        { id: "l2", value: 0, label: "left lazy", state: "default" },
+        { id: "l3", value: 0, label: "right lazy", state: "default" },
+        { id: "l4", value: 5, label: "node 4 lazy", state: "active" },
+        { id: "l5", value: 5, label: "node 5 lazy", state: "active" },
+      ],
+    },
+  },
+];
 
 export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
+
+  for (const intro of createIntroSnapshots()) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "intro",
+        narrative: intro.narrative,
+        primarySnapshot: intro.primarySnapshot,
+      }),
+    );
+  }
 
   const safeInput = input ?? DEFAULT_SEGMENT_TREE_LAZY_INPUT;
   const rawArray = Array.isArray(safeInput?.array)
@@ -13,20 +202,15 @@ export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): Algo
   const n = rawArray.length;
 
   if (n === 0) {
-    steps.push({
-      stepIndex: 0,
-      codeLine: 1,
-      explanation: {
-        what: "Checking input array length.",
-        why: "The input array is empty, so there is no tree to build.",
-      },
-      primarySnapshot: {
-        kind: "tree",
-        nodes: [],
-      },
-      auxiliaryState: {},
-      variables: { n: 0 },
-    });
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative:
+          "The input array is empty, so no Segment Tree with Lazy Propagation can be built.",
+        primarySnapshot: { kind: "tree", nodes: [] },
+      }),
+    );
     return steps;
   }
 
@@ -62,68 +246,34 @@ export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): Algo
     return nodes;
   };
 
-  const getAuxiliaryState = (currentOp: string) => {
-    const lazyTable: Record<string, string | number> = {};
-    activeNodeMap.forEach((meta, nodeIdx) => {
-      lazyTable[`Node ${nodeIdx} [${meta.start}..${meta.end}] Lazy`] = lazyValues[nodeIdx];
-    });
-
-    return {
-      hashMap: lazyTable,
-      customState: {
-        operation: currentOp,
-        array: rawArray.join(", "),
-      },
-    };
+  const addWalkthroughStep = (narrative: string, stateMap?: Record<number, ElementState>) => {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative,
+        primarySnapshot: {
+          kind: "tree",
+          nodes: getTreeSnapshot(stateMap),
+          rootId: "node-1",
+        },
+      }),
+    );
   };
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    stateMap?: Record<number, ElementState>,
-    currentOp: string = "Building",
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "tree",
-        nodes: getTreeSnapshot(stateMap),
-        rootId: "node-1",
-      },
-      auxiliaryState: getAuxiliaryState(currentOp),
-      variables,
-    });
-  };
-
-  addStep(
-    4,
-    `Initializing Segment Tree with Lazy Propagation for ${n} elements.`,
-    `Allocated 4N slots for interval sums alongside a parallel lazy tag array to defer range updates until needed.`,
-    { n },
+  addWalkthroughStep(
+    `Initializing Segment Tree with Lazy Propagation for array [${rawArray.join(", ")}] of size ${n}.`,
   );
 
   const buildTree = (node: number, start: number, end: number) => {
-    addStep(
-      8,
-      `Visiting node ${node} for interval [${start}..${end}].`,
-      start === end
-        ? `Single-element range reached leaf node holding arr[${start}] = ${rawArray[start]}.`
-        : `Multi-element interval requires splitting at mid = Math.floor((${start} + ${end}) / 2) to build subtrees first.`,
-      { node, start, end },
-      { [node]: "compare" },
-    );
+    addWalkthroughStep(`Visiting node ${node} covering interval [${start}..${end}].`, {
+      [node]: "compare",
+    });
 
     if (start === end) {
       treeValues[node] = rawArray[start];
-      addStep(
-        10,
-        `Stored ${treeValues[node]} in leaf node ${node}.`,
-        `Leaf ${node} directly serves point queries for index ${start}; lazy slot remains 0.`,
-        { node, start, end, val: treeValues[node] },
+      addWalkthroughStep(
+        `Leaf node ${node} at index ${start} assigned initial value ${treeValues[node]}.`,
         { [node]: "sorted" },
       );
       return;
@@ -135,58 +285,28 @@ export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): Algo
 
     treeValues[node] = treeValues[2 * node] + treeValues[2 * node + 1];
 
-    addStep(
-      15,
-      `Merging child sums into node ${node}: ${treeValues[2 * node]} + ${treeValues[2 * node + 1]} = ${treeValues[node]}.`,
-      `Node ${node} caches interval sum for [${start}..${end}].`,
-      { node, start, end, val: treeValues[node] },
+    addWalkthroughStep(
+      `Computed node ${node} sum: left child sum (${treeValues[2 * node]}) + right child sum (${treeValues[2 * node + 1]}) = ${treeValues[node]}.`,
       { [node]: "active", [2 * node]: "sorted", [2 * node + 1]: "sorted" },
     );
   };
 
   buildTree(1, 0, n - 1);
 
-  addStep(
-    15,
-    "Completed Segment Tree construction.",
-    `The root holds full-array sum ${treeValues[1]}, and all lazy tags are initialized to 0.`,
-    { rootSum: treeValues[1] },
-    undefined,
-    "Build Complete",
-  );
-
   const pushLazy = (node: number, start: number, end: number) => {
-    if (lazyValues[node] !== 0 && start !== end) {
-      const mid = Math.floor((start + end) / 2);
+    if (lazyValues[node] !== 0) {
       const val = lazyValues[node];
+      treeValues[node] += (end - start + 1) * val;
 
-      const leftNode = 2 * node;
-      const rightNode = 2 * node + 1;
-      const leftCount = mid - start + 1;
-      const rightCount = end - mid;
-
-      lazyValues[leftNode] += val;
-      treeValues[leftNode] += val * leftCount;
-
-      lazyValues[rightNode] += val;
-      treeValues[rightNode] += val * rightCount;
-
+      if (start !== end) {
+        lazyValues[2 * node] += val;
+        lazyValues[2 * node + 1] += val;
+      }
       lazyValues[node] = 0;
 
-      addStep(
-        18,
-        `Pushing pending lazy tag ${val} down from node ${node}.`,
-        `Propagating deferred update: left child sum increases by ${val * leftCount} and right child by ${val * rightCount}, pushing tags to children and clearing parent debt.`,
-        {
-          node,
-          val,
-          leftNode,
-          rightNode,
-          newLeftSum: treeValues[leftNode],
-          newRightSum: treeValues[rightNode],
-        },
-        { [node]: "active", [leftNode]: "swap", [rightNode]: "swap" },
-        "Propagating Lazy Tag",
+      addWalkthroughStep(
+        `Pushed down pending lazy tag (${val}) from node ${node} [${start}..${end}]. New node sum = ${treeValues[node]}.`,
+        { [node]: "swap", [2 * node]: "active", [2 * node + 1]: "active" },
       );
     }
   };
@@ -202,44 +322,31 @@ export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): Algo
     pushLazy(node, start, end);
 
     if (r < start || end < l) {
-      addStep(
-        30,
-        `Skipping node ${node} (interval [${start}..${end}] is disjoint from update [${l}..${r}]).`,
-        `Since [${start}..${end}] does not overlap [${l}..${r}], no modifications are needed in this branch.`,
-        { node, start, end, l, r },
+      addWalkthroughStep(
+        `Node ${node} [${start}..${end}] does not overlap update range [${l}..${r}]. Pruning branch.`,
         { [node]: "visited" },
-        `Range Update [${l}..${r}] += ${val}`,
       );
       return;
     }
 
     if (l <= start && end <= r) {
-      const count = end - start + 1;
-      const addTotal = count * val;
-      treeValues[node] += addTotal;
+      treeValues[node] += (end - start + 1) * val;
       if (start !== end) {
-        lazyValues[node] += val;
+        lazyValues[2 * node] += val;
+        lazyValues[2 * node + 1] += val;
       }
 
-      addStep(
-        34,
-        `Applying range update lazily at node ${node} (interval [${start}..${end}]).`,
-        `Complete interval coverage allows updating node sum by ${count} * ${val} = ${addTotal} and storing pending lazy tag without descending further.`,
-        { node, start, end, count, val, newSum: treeValues[node], lazyVal: lazyValues[node] },
+      addWalkthroughStep(
+        `Node ${node} [${start}..${end}] fully inside update range [${l}..${r}]. Applied delta +${val} (new sum = ${treeValues[node]}) and set lazy tags on children.`,
         { [node]: "sorted" },
-        `Range Update [${l}..${r}] += ${val}`,
       );
       return;
     }
 
     const mid = Math.floor((start + end) / 2);
-    addStep(
-      39,
-      `Splitting range update at node ${node} (interval [${start}..${end}] partially overlaps [${l}..${r}]).`,
-      `Recursing into left half [${start}..${mid}] and right half [${mid + 1}..${end}].`,
-      { node, start, end, l, r, mid },
+    addWalkthroughStep(
+      `Node ${node} [${start}..${end}] partially overlaps update range [${l}..${r}]. Splitting update at mid = ${mid}.`,
       { [node]: "compare" },
-      `Range Update [${l}..${r}] += ${val}`,
     );
 
     updateRange(2 * node, start, mid, l, r, val);
@@ -247,125 +354,90 @@ export const generateSegmentTreeLazySteps = (input?: SegmentTreeLazyInput): Algo
 
     treeValues[node] = treeValues[2 * node] + treeValues[2 * node + 1];
 
-    addStep(
-      42,
-      `Refreshed node ${node}'s cached sum to ${treeValues[node]} for range [${start}..${end}].`,
-      `Recomputed parent node sum after updating child subtrees.`,
-      { node, start, end, newSum: treeValues[node] },
+    addWalkthroughStep(
+      `Recalculated node ${node} [${start}..${end}] aggregate sum after child updates: ${treeValues[node]}.`,
       { [node]: "active" },
-      `Range Update [${l}..${r}] += ${val}`,
     );
   };
 
   const queryRange = (node: number, start: number, end: number, l: number, r: number): number => {
+    pushLazy(node, start, end);
+
     if (r < start || end < l) {
-      addStep(
-        45,
-        `Skipping node ${node} (interval [${start}..${end}] is disjoint from query [${l}..${r}]).`,
-        `Non-overlapping interval returns identity sum 0.`,
-        { node, start, end, l, r },
+      addWalkthroughStep(
+        `Node ${node} [${start}..${end}] outside query range [${l}..${r}]. Returning identity sum 0.`,
         { [node]: "visited" },
-        `Range Query [${l}..${r}]`,
       );
       return 0;
     }
 
-    pushLazy(node, start, end);
-
     if (l <= start && end <= r) {
-      addStep(
-        52,
-        `Taking cached sum ${treeValues[node]} from node ${node} (range [${start}..${end}] is fully inside [${l}..${r}]).`,
-        `Interval is completely covered and all pending lazy tags on the path have been flushed, returning up-to-date sum immediately.`,
-        { node, start, end, l, r, sum: treeValues[node] },
+      addWalkthroughStep(
+        `Node ${node} [${start}..${end}] fully contained inside query range [${l}..${r}]. Returning cached sum ${treeValues[node]}.`,
         { [node]: "sorted" },
-        `Range Query [${l}..${r}]`,
       );
       return treeValues[node];
     }
 
     const mid = Math.floor((start + end) / 2);
-    addStep(
-      54,
-      `Splitting query at node ${node} (range [${start}..${end}] partially overlaps [${l}..${r}]).`,
-      `Recursing into left child [${start}..${mid}] and right child [${mid + 1}..${end}] to collect partial contributions.`,
-      { node, start, end, l, r, mid },
+    addWalkthroughStep(
+      `Node ${node} [${start}..${end}] partially overlaps query range [${l}..${r}]. Descending to left and right children.`,
       { [node]: "compare" },
-      `Range Query [${l}..${r}]`,
     );
 
     const leftSum = queryRange(2 * node, start, mid, l, r);
     const rightSum = queryRange(2 * node + 1, mid + 1, end, l, r);
-    const result = leftSum + rightSum;
+    const total = leftSum + rightSum;
 
-    addStep(
-      57,
-      `Combining partial sums at node ${node}: ${leftSum} + ${rightSum} = ${result}.`,
-      `Merging left branch sum ${leftSum} and right branch sum ${rightSum} yields total contribution for range query.`,
-      { node, start, end, leftSum, rightSum, result },
+    addWalkthroughStep(
+      `Merged query responses at node ${node} [${start}..${end}]: left sum (${leftSum}) + right sum (${rightSum}) = ${total}.`,
       { [node]: "active" },
-      `Range Query [${l}..${r}]`,
     );
 
-    return result;
+    return total;
   };
 
   const ops = safeInput.operations ?? [];
   for (const op of ops) {
-    const isUpdate = op.type === "rangeUpdate" || op.type === "update";
-    const isQuery = op.type === "rangeQuery" || op.type === "query";
+    if (op.type === "rangeQuery" && op.left !== undefined && op.right !== undefined) {
+      addWalkthroughStep(`Starting range query for interval [${op.left}..${op.right}].`, {
+        1: "active",
+      });
 
-    if (isUpdate) {
-      const val = op.value ?? 1;
-      addStep(
-        26,
-        `Start range update [${op.left}..${op.right}] += ${val}`,
-        `Rather than visiting all ${op.right - op.left + 1} elements one by one, we descend only until an interval fits entirely inside the range and record the addition lazily there.`,
-        { op: "rangeUpdate", left: op.left, right: op.right, value: val },
-        undefined,
-        `Range Update [${op.left}..${op.right}] += ${val}`,
+      const rangeResult = queryRange(1, 0, n - 1, op.left, op.right);
+
+      addWalkthroughStep(
+        `Completed range query for interval [${op.left}..${op.right}], obtaining sum ${rangeResult}.`,
+        { 1: "visited" },
+      );
+    } else if (
+      op.type === "rangeUpdate" &&
+      op.left !== undefined &&
+      op.right !== undefined &&
+      op.value !== undefined
+    ) {
+      addWalkthroughStep(
+        `Starting range update: adding +${op.value} to all elements in range [${op.left}..${op.right}].`,
+        { 1: "active" },
       );
 
-      updateRange(1, 0, n - 1, op.left, op.right, val);
+      updateRange(1, 0, n - 1, op.left, op.right, op.value);
 
-      addStep(
-        42,
-        `Finish range update [${op.left}..${op.right}]`,
-        `The additions are all accounted for — some applied directly, some parked in lazy tags — and the root's total now reads ${treeValues[1]}.`,
-        { newRootSum: treeValues[1] },
-        undefined,
-        "Update Complete",
-      );
-    } else if (isQuery) {
-      addStep(
-        44,
-        `Start range query [${op.left}..${op.right}]`,
-        `We descend toward the covered intervals, pushing any pending lazy tags down as we pass so every sum we read is current.`,
-        { op: "rangeQuery", left: op.left, right: op.right },
-        undefined,
-        `Range Query [${op.left}..${op.right}]`,
-      );
-
-      const totalSum = queryRange(1, 0, n - 1, op.left, op.right);
-
-      addStep(
-        57,
-        `Range query [${op.left}..${op.right}] equals ${totalSum}`,
-        `The covered intervals sum to ${totalSum}, and lazy work was only performed along the paths we actually walked.`,
-        { left: op.left, right: op.right, totalSum },
-        undefined,
-        "Query Complete",
+      addWalkthroughStep(
+        `Finished range update for interval [${op.left}..${op.right}]. Updated root sum is now ${treeValues[1]}.`,
+        { 1: "visited" },
       );
     }
   }
 
-  addStep(
-    57,
-    "All operations complete",
-    "Every range update and query finished in O(log n) node visits — deferring work with lazy tags is what made whole-range updates that cheap.",
-    { finalRootSum: treeValues[1] },
-    undefined,
-    "All Done",
+  const finalState: Record<number, ElementState> = {};
+  activeNodeMap.forEach((_, nodeIdx) => {
+    finalState[nodeIdx] = "sorted";
+  });
+
+  addWalkthroughStep(
+    "All Segment Tree Lazy Propagation operations completed successfully. Range updates and range queries executed in O(log N) time per operation.",
+    finalState,
   );
 
   return steps;

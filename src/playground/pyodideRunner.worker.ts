@@ -31,6 +31,8 @@ export interface BrowserPyodide {
     code: string,
     options: { readonly globals: PythonGlobals },
   ): Promise<PythonResultProxy | string>;
+  // Sets a SharedArrayBuffer that Pyodide polls; writing 2 raises KeyboardInterrupt.
+  setInterruptBuffer(buffer: Uint8Array | null): void;
 }
 
 interface WorkerRunMessage {
@@ -900,7 +902,7 @@ const loadedPackages = new Set<string>();
 export async function executePythonRequestInPyodide(
   request: PythonRunRequest,
   pyodide: BrowserPyodide,
-  onReady: () => void = () => undefined,
+  onReady: (interruptBuffer: Uint8Array | null) => void = () => undefined,
 ): Promise<PythonRunResult> {
   for (const packageName of request.spec.packages) {
     if (packageName !== "numpy") {
@@ -911,7 +913,22 @@ export async function executePythonRequestInPyodide(
       loadedPackages.add(packageName);
     }
   }
-  onReady();
+
+  // Create a 1-byte SharedArrayBuffer interrupt buffer if available. Writing 2
+  // into it causes Pyodide to raise KeyboardInterrupt inside Python, interrupting
+  // infinite loops without having to terminate the entire worker.
+  let interruptBuffer: Uint8Array | null = null;
+  try {
+    if (typeof SharedArrayBuffer !== "undefined") {
+      interruptBuffer = new Uint8Array(new SharedArrayBuffer(1));
+      interruptBuffer[0] = 0;
+      pyodide.setInterruptBuffer(interruptBuffer);
+    }
+  } catch {
+    interruptBuffer = null;
+  }
+
+  onReady(interruptBuffer);
 
   const globalsFactory = pyodide.globals.get("dict");
   const globals = globalsFactory();
@@ -926,6 +943,12 @@ export async function executePythonRequestInPyodide(
   } finally {
     if (typeof rawResult !== "string") rawResult?.destroy();
     globals.destroy();
+    // Clear the interrupt buffer so it doesn't linger for the next run.
+    try {
+      pyodide.setInterruptBuffer(null);
+    } catch {
+      // ignore — older Pyodide or SAB unavailable
+    }
   }
 }
 
@@ -999,11 +1022,13 @@ if (
     }
     void getPyodide()
       .then((pyodide) =>
-        executePythonRequestInPyodide(validation.value, pyodide, () => {
+        executePythonRequestInPyodide(validation.value, pyodide, (interruptBuffer) => {
           workerScope.postMessage?.({
             type: "ready",
             runId: validation.value.runId,
             token,
+            // SharedArrayBuffer is shared memory — no transfer needed.
+            interruptBuffer,
           });
         }),
       )

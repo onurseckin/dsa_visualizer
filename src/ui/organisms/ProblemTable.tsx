@@ -1,5 +1,6 @@
 import React from "react";
-import { ArrowRight, ArrowUpDown, ClipboardCheck, Code2, Play } from "lucide-react";
+import { ArrowRight, ArrowUpDown, ClipboardCheck, Code2, ExternalLink, Play } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { LearningItem } from "../../learning/types";
 import { isAlgorithmLearningItem, isRubricLearningItem } from "../../learning/types";
 
@@ -17,6 +18,7 @@ interface ProblemTableProps {
   sortBy: ProblemListSortField;
   onToggleSort: (field: ProblemListSortField) => void;
   onSelectAlgorithm: (algorithmId: string) => void;
+  onSelectTag?: (tag: string) => void;
 }
 
 export const ProblemTable: React.FC<ProblemTableProps> = ({
@@ -29,14 +31,17 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
   sortBy,
   onToggleSort,
   onSelectAlgorithm,
+  onSelectTag,
 }) => {
   const displayAlgorithms = paginatedAlgorithms || filteredAlgorithms;
   const totalCount = filteredAlgorithms.length;
   const startIndex = (currentPage - 1) * itemsPerPage + 1;
   const endIndex = Math.min(currentPage * itemsPerPage, totalCount);
 
-  const sortableHeader = (label: string, field: ProblemListSortField) => (
-    <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)]">
+  const sortableHeader = (label: string, field: ProblemListSortField, className: string = "") => (
+    <th
+      className={`bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)] ${className}`}
+    >
       <button
         onClick={() => onToggleSort(field)}
         aria-label={`Sort by ${label.toLowerCase()}`}
@@ -44,7 +49,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
         className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] bg-transparent border-none p-0 w-full text-left font-[inherit]"
       >
         {label}
-        {sortBy === field && <ArrowUpDown size={14} className="ml-1" />}
+        {sortBy === field && <ArrowUpDown size={14} className="ml-1 shrink-0" />}
       </button>
     </th>
   );
@@ -58,16 +63,16 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
               <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)] w-[60px]">
                 #
               </th>
-              {sortableHeader("Problem title", "title")}
-              {sortableHeader("Topic", "topic")}
-              {sortableHeader("Difficulty", "difficulty")}
-              <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)]">
+              {sortableHeader("Problem title", "title", "w-[42%]")}
+              {sortableHeader("Topic", "topic", "w-[16%]")}
+              {sortableHeader("Difficulty", "difficulty", "w-[120px]")}
+              <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)] w-[140px]">
                 Time complexity
               </th>
-              <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)]">
+              <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)] w-[140px]">
                 Space complexity
               </th>
-              <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)] text-center">
+              <th className="bg-[var(--bg-surface)] text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] py-4.5 px-6 border-b border-[var(--border-default)] text-center w-[120px]">
                 Action
               </th>
             </tr>
@@ -125,8 +130,40 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                           size={16}
                           className="text-[var(--text-muted)] shrink-0"
                         />
-                        <span>{alg.title}</span>
-                        <SourceBadgeList sources={alg.sources} size="sm" />
+                        <Link
+                          to="/workspace/$algorithmId"
+                          params={{ algorithmId: alg.id }}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Open ${alg.title} in a new tab`}
+                          aria-label={`Open ${alg.title} in a new tab`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors inline-flex items-center justify-center p-0.5 rounded no-underline shrink-0"
+                          style={{ textDecoration: "none" }}
+                        >
+                          <ExternalLink size={14} aria-hidden="true" />
+                        </Link>
+                        <Link
+                          to="/workspace/$algorithmId"
+                          params={{ algorithmId: alg.id }}
+                          className="no-underline text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors"
+                          style={{ textDecoration: "none" }}
+                          onClick={(e) => {
+                            if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                              e.preventDefault();
+                              onSelectAlgorithm(alg.id);
+                            }
+                          }}
+                        >
+                          {alg.title}
+                        </Link>
+                        <SourceBadgeList
+                          sources={alg.sources}
+                          size="sm"
+                          onSelectTag={onSelectTag}
+                        />
                       </span>
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">

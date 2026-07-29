@@ -33,15 +33,34 @@ export function ExecutionOutput({
 
   return (
     <div className="code-workspace__output">
-      <div className="code-workspace__output-summary">
+      <div
+        className={`code-workspace__output-summary code-workspace__output-summary--${result.status}`}
+      >
         <strong>{statusLabel(result.status)}</strong>
         <span>{result.durationMs} ms</span>
         <span>{result.runtime === "browser" ? "Browser runtime" : "Docker runtime"}</span>
       </div>
-      <section aria-label="Standard output" className="code-workspace__output-well">
-        <h4>stdout</h4>
-        <pre>{visibleOutput(result.stdout, "No stdout.")}</pre>
-      </section>
+
+      {result.status === "timeout" && (
+        <div className="code-workspace__output-banner code-workspace__output-banner--timeout">
+          <strong>Execution timed out.</strong> Your code ran for more than the allowed time limit.
+          Check for infinite loops, deeply recursive calls, or algorithms with exponential
+          complexity on the given inputs.
+        </div>
+      )}
+
+      {result.status === "error" && result.stderr && (
+        <div className="code-workspace__output-banner code-workspace__output-banner--error">
+          <strong>Runtime error.</strong> See stderr below for details.
+        </div>
+      )}
+
+      {result.stdout && (
+        <section aria-label="Standard output" className="code-workspace__output-well">
+          <h4>stdout</h4>
+          <pre>{visibleOutput(result.stdout, "No stdout.")}</pre>
+        </section>
+      )}
       <section aria-label="Standard error" className="code-workspace__output-well">
         <h4>stderr</h4>
         <pre>{visibleOutput(result.stderr, "No stderr.")}</pre>
@@ -60,12 +79,12 @@ function visibleOutput(value: string, fallback: string): string {
 function statusLabel(status: PythonExecutionStatus): string {
   switch (status) {
     case "passed":
-      return "Passed";
+      return "✓ All tests passed";
     case "failed":
-      return "Failed";
+      return "✗ Tests failed";
     case "timeout":
-      return "Timed out";
+      return "⏱ Timed out";
     case "error":
-      return "Error";
+      return "⚠ Error";
   }
 }

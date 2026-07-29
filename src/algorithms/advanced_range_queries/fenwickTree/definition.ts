@@ -88,11 +88,12 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "<p>A <strong>Binary Indexed Tree (Fenwick Tree)</strong> is a compact array-based data structure that answers prefix sum queries and executes point updates in <code>O(log N)</code> time. Each 1-based index <code>i</code> stores the sum of a subsegment whose length equals its lowest set bit <code>lowbit(i) = i &amp; -i</code>, allowing queries and updates to hop through the tree in logarithmic steps without pointer overhead.</p><h3>State Representation</h3><p>The state is stored as a 1D array <code>tree[1 ... N]</code> where cell <code>tree[i]</code> holds the precomputed sum of a range of length <code>i &amp; -i</code> ending at index <code>i</code>.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial array of numbers.</li><li><code>operations</code>: Array of point update or range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Results of range queries and final tree state.</li></ul>",
+    "<p>A <strong>Binary Indexed Tree (Fenwick Tree)</strong> is a compact array-based data structure that answers prefix sum queries and executes point updates in <code>O(log N)</code> time. Each 1-based index <code>i</code> stores the sum of a subsegment whose length equals its lowest set bit <code>lowbit(i) = i &amp; -i</code>, allowing queries and updates to hop through the tree in logarithmic steps without pointer overhead.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial array of numbers.</li><li><code>operations</code>: Array of point update or range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Results of range queries and final tree state.</li></ul>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
         "arr = [3, 2, -1, 6, 5, 4, -3, 37], queries = [sum(1..5), update(3, +5), sum(1..5)]",
       outputDisplay: "Query 1: 15, Query 2: 20",
@@ -111,6 +112,7 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "arr = [1, 2, ..., 16], queries = [sum(1..16), update(8, +10), sum(1..16)]",
       outputDisplay: "Query 1: 136, Query 2: 146",
       title: "Complex Edge Case",
@@ -128,6 +130,7 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "arr = [42], queries = [sum(1..1)]",
       outputDisplay: "Query: 42",
       title: "Failing / Boundary Case",

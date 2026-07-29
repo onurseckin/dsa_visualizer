@@ -313,7 +313,6 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       title: "Standard 6-Node List",
       input: DEFAULT_REVERSE_LINKED_LIST_INPUT,
@@ -324,7 +323,6 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     },
     {
       kind: "complex",
-      kind: "complex",
       scenario: "adversarial",
       title: "Adversarial 2-Node List",
       input: { nodes: [1, 2] },
@@ -334,7 +332,6 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
       explanation: "Reverses two-node linked list.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       title: "Boundary Empty List Case",

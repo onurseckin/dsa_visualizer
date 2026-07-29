@@ -83,24 +83,24 @@ const BELLMAN_FORD_TOPIC_GUIDE: TopicGuide = {
 
 const BELLMAN_FORD_TRIVIA: TriviaMeta = {
   lineExplanations: {
-    1: "Entry point: takes the vertex list, the raw (u, v, weight) edge list, and the source, and tolerates negative edge weights unlike Dijkstra.",
-    2: "Every vertex starts at infinity — unknown — until some sequence of relaxations proves a finite distance to it.",
-    3: "The one certain distance before any work begins: the source is zero away from itself.",
+    1: "Entry point: takes the vertex list, raw edge list, and source vertex, handling negative weights unlike Dijkstra.",
+    2: "Every vertex starts at infinity until relaxations prove a finite distance to it.",
+    3: "The source node is initialized to distance 0 from itself.",
     4: "Blank line separating distance table initialization from outer iteration sweeps.",
-    5: "Runs one full sweep per possible path length, since after k sweeps every shortest path using at most k edges is already proven correct.",
-    6: "Each sweep walks every single edge, because unlike Dijkstra there's no priority order to trust — every edge must be re-examined on every pass.",
-    7: "Only relaxes through u if u is actually reachable, guarding against adding a weight to infinity, which negative weights could otherwise turn into a bogus finite number.",
-    8: "Takes the cheaper route the instant this sweep discovers one — the update is visible to later edges in the same pass, which is why a lucky ordering can converge early.",
-    9: "Blank line separating edge relaxation passes from negative cycle detection pass.",
-    10: "Starts the detection flag optimistic; only a genuinely still-relaxable edge will flip it.",
-    11: "One more full pass over every edge, run only after the V - 1 sweeps that should already have settled every true shortest path.",
-    12: "If any edge can still be relaxed after V - 1 passes, no ordinary simple path explains it — the only remaining explanation is a negative-weight cycle.",
-    13: "Records that the graph is unsafe: some reachable cycle can be looped forever to drive a distance toward negative infinity.",
-    14: "Stops immediately once one negative cycle is confirmed — a single one is enough to invalidate the shortest-path question for the vertices it touches.",
-    15: "Blank line separating negative cycle loop from return statement.",
-    16: "Branches on the negative-cycle flag so an untrustworthy distance table is never exposed as an answer.",
-    17: "Returns the stable (None, True) sentinel because no finite shortest-distance map exists.",
-    18: "Returns the settled distance table with False when no reachable negative cycle exists.",
+    5: "Runs up to |V| - 1 passes, guaranteeing paths of up to |V| - 1 edges are correctly computed.",
+    6: "Each pass scans every edge in the graph.",
+    7: "Guards against relaxing from an unreachable vertex.",
+    8: "Updates the distance to node v if a shorter path through u is found.",
+    9: "Blank line separating main relaxation loop from negative cycle detection.",
+    10: "Initializes negative cycle flag.",
+    11: "Runs an extra pass to test if any distance can still be relaxed.",
+    12: "If an edge can still be relaxed after |V| - 1 passes, a negative cycle exists.",
+    13: "Sets negative cycle flag to true.",
+    14: "Terminates cycle detection early upon finding the first negative cycle.",
+    15: "Blank line before return statement.",
+    16: "Checks whether a negative cycle was detected.",
+    17: "Returns sentinel indicating undefined distances due to negative cycle.",
+    18: "Returns the finalized distance map.",
   },
 };
 
@@ -110,7 +110,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "<p>The <strong>Bellman-Ford algorithm</strong> computes Single-Source Shortest Paths (SSSP) from a source vertex to every other vertex in a directed weighted graph <code>G = (V, E)</code>. Unlike Dijkstra's algorithm, Bellman-Ford supports negative edge weights (<code>w(u, v) ∈ ℝ</code>) and detects negative-weight cycles.</p><p>It repeatedly relaxes all <code>|E|</code> edges over <code>|V| - 1</code> passes in <code>O(|V| · |E|)</code> time and <code>O(|V|)</code> space.</p>",
+    "<p>Given a directed weighted graph <code>G = (V, E)</code> and a starting node, compute the shortest path distance from the starting node to every reachable vertex, or detect if the graph contains a reachable negative-weight cycle.</p><h3>Problem Statement</h3><p>Compute single-source shortest path distances for all vertices in a graph that may contain negative edge weights. If a negative-weight cycle is reachable from the start node, indicate that shortest path distances are undefined.</p><h3>Input Parameters</h3><ul><li><code>nodes</code>: List of node identifiers in the graph.</li><li><code>edges</code>: List of directed edges with numeric weights <code>(from, to, weight)</code>.</li><li><code>startNode</code>: The source vertex ID from which shortest path distances are calculated.</li></ul><h3>Output</h3><p>Returns a dictionary mapping each node to its shortest distance from <code>startNode</code>, or a sentinel indicating a negative cycle was detected.</p>",
   constraints: [
     "1 <= Vertices V <= 250",
     "0 <= Edges E <= 2500",
@@ -121,51 +121,39 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay:
-        'graph = {S-A:6, S-B:7, A-B:8, A-C:5, A-D:-4, B-C:-3, B-E:9, C-A:-2, D-C:7, D-S:2}, start = "S"',
-      outputDisplay: "{S: 0, A: 2, B: 7, C: 4, D: -2}",
-      title: "Basic Example",
-      input: {
-        startNode: "S",
-        nodes: ["S", "A", "B", "C", "D"],
-        edges: [
-          { from: "S", to: "A", weight: 4 },
-          { from: "S", to: "B", weight: 2 },
-          { from: "B", to: "A", weight: 1 },
-          { from: "A", to: "C", weight: 3 },
-          { from: "B", to: "C", weight: 5 },
-          { from: "B", to: "D", weight: 4 },
-          { from: "C", to: "D", weight: -2 },
-        ],
-      },
+      scenario: "standard",
+      inputDisplay: 'graph = {S-A:4, S-B:2, B-A:1, A-C:3, B-C:5, B-D:4, C-D:-2}, start = "S"',
+      outputDisplay: "{S: 0, A: 3, B: 2, C: 6, D: 4}",
+      title: "Standard Directed Graph with Negative Weight",
+      input: DEFAULT_BELLMAN_FORD_INPUT,
       output: "Distances: S:0, A:3, B:2, C:6, D:4",
       explanation:
-        "Iterative edge relaxation handles the negative edge C->D (-2) gracefully. Final shortest distances are computed with no negative cycles.",
+        "Iterative edge relaxation handles the negative edge C->D (-2) gracefully, converging to shortest distances without negative cycles.",
     },
     {
       kind: "complex",
-      inputDisplay: 'graph = {S-A:1, A-B:3, B-C:-2, C-A:-2}, start = "S"',
-      outputDisplay: "Negative Cycle Detected",
-      title: "Complex Edge Case",
+      scenario: "boundary",
+      inputDisplay: 'graph = {S-A:5, B-C:3}, start = "S"',
+      outputDisplay: "{S: 0, A: 5, B: ∞, C: ∞}",
+      title: "Boundary Disconnected Graph",
       input: {
         startNode: "S",
-        nodes: ["S", "A", "B", "C", "D"],
+        nodes: ["S", "A", "B", "C"],
         edges: [
           { from: "S", to: "A", weight: 5 },
-          { from: "A", to: "B", weight: 2 },
-          { from: "B", to: "C", weight: -4 },
-          { from: "C", to: "D", weight: 1 },
+          { from: "B", to: "C", weight: 3 },
         ],
       },
-      output: "Distances: S:0, A:5, B:7, C:3, D:4",
+      output: "Distances: S:0, A:5, B:∞, C:∞",
       explanation:
-        "Relaxation propagates across 4 edges in sequence. The negative edge B->C (-4) lowers distances for both C and downstream node D.",
+        "Unreachable vertices B and C remain at distance ∞ throughout all relaxation passes.",
     },
     {
       kind: "negative",
-      inputDisplay: 'graph = {S-A:5, B-C:3}, start = "S"',
-      outputDisplay: "{S: 0, A: 5, B: ∞, C: ∞}",
-      title: "Failing / Boundary Case",
+      scenario: "adversarial",
+      inputDisplay: 'graph = {A-B:1, B-C:-2, C-A:-1}, start = "A"',
+      outputDisplay: "Negative Cycle Detected",
+      title: "Adversarial Negative Cycle",
       input: {
         startNode: "A",
         nodes: ["A", "B", "C"],
@@ -177,7 +165,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
       },
       output: "Negative Cycle Detected: True",
       explanation:
-        "Cycle A -> B -> C -> A has total weight 1 + (-2) + (-1) = -2. Detection returns the stable (None, True) sentinel instead of schedule-dependent finite distances.",
+        "Cycle A -> B -> C -> A has total weight 1 + (-2) + (-1) = -2. The algorithm detects that distances can be infinitely reduced.",
     },
   ],
   code: BELLMAN_FORD_CODE,
@@ -209,3 +197,5 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   defaultInput: DEFAULT_BELLMAN_FORD_INPUT,
   generateSteps: generateBellmanFordSteps,
 };
+
+export default bellmanFord;

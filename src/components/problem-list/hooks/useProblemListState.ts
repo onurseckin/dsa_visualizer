@@ -11,6 +11,9 @@ import {
   ProblemListSource,
   ProblemListSortField,
   ProblemListSortOrder,
+  getAllCatalogDisplayTags,
+  getItemDisplayTags,
+  getItemSearchTokens,
   isProblemListDifficulty,
   isProblemListSource,
   isProblemListSortField,
@@ -22,11 +25,15 @@ import {
 interface UseProblemListStateProps {
   topic?: TopicId | "All";
   onTopicChange?: (topic: TopicId | "All") => void;
+  tag?: string | "All";
+  onTagChange?: (tag: string | "All") => void;
 }
 
 export function useProblemListState({
   topic = "All",
   onTopicChange,
+  tag = "All",
+  onTagChange,
 }: UseProblemListStateProps = {}) {
   const [selectedDifficulty, setSelectedDifficultyState] = useState<ProblemListDifficulty>(() =>
     readStoredProblemListValue("difficulty", "All", isProblemListDifficulty),
@@ -54,6 +61,15 @@ export function useProblemListState({
     }
   };
 
+  const [internalTag, setInternalTag] = useState<string>(tag ?? "All");
+  const selectedTag = onTagChange ? (tag ?? "All") : internalTag;
+  const setSelectedTag = (next: string) => {
+    setInternalTag(next);
+    if (onTagChange) {
+      onTagChange(next);
+    }
+  };
+
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortByState] = useState<ProblemListSortField>(() =>
     readStoredProblemListValue("sort_by", "title", isProblemListSortField),
@@ -73,6 +89,7 @@ export function useProblemListState({
   };
 
   const learningItems = useMemo(() => getAllLearningItems(), []);
+  const availableTags = useMemo(() => getAllCatalogDisplayTags(learningItems), [learningItems]);
 
   const stats = useMemo(() => {
     let easy = 0;
@@ -117,10 +134,16 @@ export function useProblemListState({
         if (!matchesSource && !matchesMlSource) return false;
       }
 
+      if (selectedTag !== "All") {
+        const itemTags = getItemDisplayTags(item);
+        if (!itemTags.includes(selectedTag)) return false;
+      }
+
       if (!q) return true;
       if (item.title.toLowerCase().includes(q)) return true;
       if (getLearningItemTopicLabels(item).some((label) => label.toLowerCase().includes(q)))
         return true;
+      if (getItemSearchTokens(item).some((token) => token.includes(q))) return true;
       return item.description.toLowerCase().includes(q);
     });
 
@@ -144,6 +167,7 @@ export function useProblemListState({
     selectedDifficulty,
     selectedTopic,
     selectedSource,
+    selectedTag,
     sortBy,
     sortOrder,
   ]);
@@ -167,6 +191,11 @@ export function useProblemListState({
 
   const handleSourceChange = (next: ProblemListSource) => {
     setSelectedSource(next);
+    setCurrentPageState(1);
+  };
+
+  const handleTagChange = (next: string) => {
+    setSelectedTag(next);
     setCurrentPageState(1);
   };
 
@@ -203,6 +232,9 @@ export function useProblemListState({
     setSelectedDifficulty: handleDifficultyChange,
     selectedSource,
     setSelectedSource: handleSourceChange,
+    selectedTag,
+    setSelectedTag: handleTagChange,
+    availableTags,
     sortBy,
     setSortBy,
     sortOrder,

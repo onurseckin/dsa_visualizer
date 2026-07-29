@@ -1,5 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, GridCellNode } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  GridCellNode,
+  GridVisualSnapshot,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface KnightsTourInput {
   size: number;
@@ -23,6 +30,277 @@ const KNIGHT_MOVES = [
   [-1, -2],
   [-2, -1],
 ] as const;
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "A Knight's Tour is a sequence of moves by a chess knight on an N x N board such that the knight visits every square on the board exactly once.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: Array.from({ length: 4 }, (_, r) =>
+        Array.from({ length: 4 }, (_, c) => ({
+          row: r,
+          col: c,
+          state: r === 0 && c === 0 ? "active" : "default",
+          distance: r === 0 && c === 0 ? 1 : undefined,
+        })),
+      ),
+    },
+  },
+  {
+    narrative:
+      "A chess knight moves in an L-shape: 2 squares horizontally and 1 square vertically, or 1 square horizontally and 2 squares vertically (up to 8 candidate moves).",
+    primarySnapshot: {
+      kind: "array",
+      name: "moves",
+      mode: "box",
+      elements: [
+        { id: "m1", value: "(-2, +1)", state: "default" },
+        { id: "m2", value: "(-1, +2)", state: "default" },
+        { id: "m3", value: "(+1, +2)", state: "default" },
+        { id: "m4", value: "(+2, +1)", state: "default" },
+        { id: "m5", value: "(+2, -1)", state: "default" },
+        { id: "m6", value: "(+1, -2)", state: "default" },
+        { id: "m7", value: "(-1, -2)", state: "default" },
+        { id: "m8", value: "(-2, -1)", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Brute-force depth-first search faces an exponential search tree of O(8^(N^2)) states and suffers severe backtracking bottlenecks on larger boards.",
+    primarySnapshot: {
+      kind: "array",
+      name: "complexity_contrast",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "Brute-Force DFS: O(8^(N^2)) Exponential", state: "compare" },
+        { id: "c2", value: "Warnsdorff Greedy: O(N^2) Polynomial", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Warnsdorff's heuristic solves the tour greedily by always moving the knight to the unvisited square that has the FEWEST valid onward unvisited neighbors.",
+    primarySnapshot: {
+      kind: "array",
+      name: "heuristic_rule",
+      mode: "box",
+      elements: [
+        { id: "h1", value: "Calculate Onward Degrees", state: "active" },
+        { id: "h2", value: "Pick Minimum Degree Square", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Prioritizing low-degree squares (such as corners and edges) early prevents them from becoming isolated, unreachable dead ends later in the tour.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, state: "active", distance: 1 },
+          { row: 0, col: 1, state: "default" },
+        ],
+        [
+          { row: 1, col: 0, state: "default" },
+          { row: 1, col: 1, state: "compare" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "At each step, we evaluate all valid unvisited knight move candidates and count their respective onward unvisited neighbor counts (onward degree).",
+    primarySnapshot: {
+      kind: "array",
+      name: "candidate_degrees",
+      mode: "box",
+      elements: [
+        { id: "cd1", value: "Candidate (1, 2): deg 2", state: "sorted" },
+        { id: "cd2", value: "Candidate (2, 1): deg 4", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We select the candidate square with the minimum onward degree, mark it with the current step index, and advance the knight to that new position.",
+    primarySnapshot: {
+      kind: "grid",
+      grid: [
+        [
+          { row: 0, col: 0, state: "visited", distance: 1 },
+          { row: 0, col: 1, state: "default" },
+        ],
+        [
+          { row: 1, col: 2, state: "active", distance: 2 },
+          { row: 2, col: 1, state: "default" },
+        ],
+      ],
+    },
+  },
+  {
+    narrative:
+      "On standard valid boards (N >= 5), Warnsdorff's rule successfully completes all N^2 steps in O(N^2) time without needing any recursive backtracking.",
+    primarySnapshot: {
+      kind: "array",
+      name: "summary",
+      mode: "box",
+      elements: [
+        { id: "s1", value: "Tour Complete: N^2 / N^2 Squares Visited", state: "sorted" },
+        { id: "s2", value: "Time: O(N^2), Space: O(N^2)", state: "default" },
+      ],
+    },
+  },
+];
+
+export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): AlgorithmStep[] => {
+  const safeInput = input ?? DEFAULT_KNIGHTS_TOUR_INPUT;
+  const rawSize = safeInput.size ?? DEFAULT_KNIGHTS_TOUR_INPUT.size;
+  const n = Math.max(3, Math.min(8, rawSize));
+  const rawStartRow = safeInput.startRow ?? DEFAULT_KNIGHTS_TOUR_INPUT.startRow;
+  const rawStartCol = safeInput.startCol ?? DEFAULT_KNIGHTS_TOUR_INPUT.startCol;
+  const startR = Math.max(0, Math.min(n - 1, rawStartRow));
+  const startC = Math.max(0, Math.min(n - 1, rawStartCol));
+
+  const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
+
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (input.size === DEFAULT_KNIGHTS_TOUR_INPUT.size &&
+      input.startRow === DEFAULT_KNIGHTS_TOUR_INPUT.startRow &&
+      input.startCol === DEFAULT_KNIGHTS_TOUR_INPUT.startCol);
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const board: number[][] = Array.from({ length: n }, () => Array(n).fill(-1));
+
+  const buildGridSnapshot = (
+    activeR: number,
+    activeC: number,
+    candidateSet: Set<string> = new Set(),
+    allSorted = false,
+  ): GridVisualSnapshot => {
+    const gridNodes: GridCellNode[][] = [];
+    for (let r = 0; r < n; r++) {
+      const rowNodes: GridCellNode[] = [];
+      for (let c = 0; c < n; c++) {
+        const isCandidate = candidateSet.has(`${r},${c}`);
+        const moveNum = board[r][c];
+        const isVisited = moveNum !== -1;
+        const isActive = r === activeR && c === activeC;
+
+        rowNodes.push({
+          row: r,
+          col: c,
+          isVisited,
+          distance: moveNum !== -1 ? moveNum + 1 : undefined,
+          state: allSorted
+            ? "sorted"
+            : isActive
+              ? "active"
+              : isCandidate
+                ? "compare"
+                : isVisited
+                  ? "visited"
+                  : "default",
+        });
+      }
+      gridNodes.push(rowNodes);
+    }
+    return { kind: "grid", grid: gridNodes };
+  };
+
+  const countOnwardMoves = (r: number, c: number): number => {
+    let count = 0;
+    for (const [dr, dc] of KNIGHT_MOVES) {
+      const nr = r + dr;
+      const nc = c + dc;
+      if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === -1) {
+        count++;
+      }
+    }
+    return count;
+  };
+
+  board[startR][startC] = 0;
+  let currR = startR;
+  let currC = startC;
+
+  addStep(
+    `Initializing Knight's Tour on ${n}x${n} board. Placed knight at starting square (${startR}, ${startC}) as Move 1.`,
+    buildGridSnapshot(currR, currC),
+  );
+
+  const totalSquares = n * n;
+  let tourSuccess = true;
+
+  for (let moveIdx = 1; moveIdx < totalSquares; moveIdx++) {
+    const candidates: [number, number, number][] = [];
+    const candidateSet = new Set<string>();
+
+    for (const [dr, dc] of KNIGHT_MOVES) {
+      const nr = currR + dr;
+      const nc = currC + dc;
+      if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === -1) {
+        const deg = countOnwardMoves(nr, nc);
+        candidates.push([deg, nr, nc]);
+        candidateSet.add(`${nr},${nc}`);
+      }
+    }
+
+    if (candidates.length === 0) {
+      addStep(
+        `Dead end encountered at square (${currR}, ${currC}) on move ${moveIdx}: no unvisited knight moves remain. Incomplete tour.`,
+        buildGridSnapshot(currR, currC),
+      );
+      tourSuccess = false;
+      break;
+    }
+
+    candidates.sort((a, b) => a[0] - b[0]);
+    const [minDeg, nextR, nextC] = candidates[0];
+
+    addStep(
+      `Evaluating ${candidates.length} candidate moves from (${currR}, ${currC}): Warnsdorff degrees are [${candidates.map(([d, r, c]) => `(${r},${c}):${d}`).join(", ")}]. Selecting minimum degree square (${nextR}, ${nextC}) with degree ${minDeg}.`,
+      buildGridSnapshot(currR, currC, candidateSet),
+    );
+
+    board[nextR][nextC] = moveIdx;
+    currR = nextR;
+    currC = nextC;
+
+    addStep(
+      `Moved knight to (${currR}, ${currC}) (Move ${moveIdx + 1} of ${totalSquares}).`,
+      buildGridSnapshot(currR, currC),
+    );
+  }
+
+  if (tourSuccess) {
+    addStep(
+      `Completed Knight's Tour! All ${totalSquares} squares visited successfully using Warnsdorff's minimum degree heuristic.`,
+      buildGridSnapshot(currR, currC, new Set(), true),
+    );
+  }
+
+  return steps;
+};
 
 const WARNSDORFF_TRIVIA: TriviaMeta = {
   lineExplanations: {
@@ -59,258 +337,41 @@ const WARNSDORFF_TRIVIA: TriviaMeta = {
   },
 };
 
-export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): AlgorithmStep[] => {
-  const safeInput = input ?? DEFAULT_KNIGHTS_TOUR_INPUT;
-  const rawSize = safeInput.size ?? DEFAULT_KNIGHTS_TOUR_INPUT.size;
-  const n = Math.max(3, Math.min(8, rawSize));
-  const rawStartRow = safeInput.startRow ?? DEFAULT_KNIGHTS_TOUR_INPUT.startRow;
-  const rawStartCol = safeInput.startCol ?? DEFAULT_KNIGHTS_TOUR_INPUT.startCol;
-  const startR = Math.max(0, Math.min(n - 1, rawStartRow));
-  const startC = Math.max(0, Math.min(n - 1, rawStartCol));
-
-  const steps: AlgorithmStep[] = [];
-  let stepCount = 0;
-
-  const board: number[][] = Array.from({ length: n }, () => Array(n).fill(-1));
-
-  const buildGrid = (
-    activeR: number,
-    activeC: number,
-    candidates: [number, number, number][] = [],
-  ): GridCellNode[][] => {
-    return Array.from({ length: n }, (_, r) =>
-      Array.from({ length: n }, (__, c) => {
-        const isCandidate = candidates.some(([, cr, cc]) => cr === r && cc === c);
-        const moveNum = board[r][c];
-        const isVisited = moveNum !== -1;
-        const isActive = r === activeR && c === activeC;
-
-        let state: GridCellNode["state"] = "default";
-        if (isActive) state = "active";
-        else if (isCandidate) state = "compare";
-        else if (isVisited) state = "visited";
-
-        return {
-          row: r,
-          col: c,
-          isVisited,
-          state,
-          distance: moveNum !== -1 ? moveNum + 1 : undefined,
-        };
-      }),
-    );
-  };
-
-  const countOnwardMoves = (r: number, c: number): number => {
-    let count = 0;
-    for (const [dr, dc] of KNIGHT_MOVES) {
-      const nr = r + dr;
-      const nc = c + dc;
-      if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === -1) {
-        count++;
-      }
-    }
-    return count;
-  };
-
-  // Step 1: Init
-  board[startR][startC] = 0;
-  let currR = startR;
-  let currC = startC;
-  const visitedList: string[] = [`(${startR},${startC})`];
-
-  steps.push({
-    stepIndex: stepCount++,
-    codeLine: 13,
-    explanation: {
-      what: `Place knight at initial starting square (${startR}, ${startC}).`,
-      why: "The starting position is marked as move 1 of the tour.",
-    },
-    primarySnapshot: {
-      kind: "grid",
-      grid: buildGrid(currR, currC),
-    },
-    auxiliaryState: {
-      visited: [...visitedList],
-      customState: {
-        "Current Position": `(${currR}, ${currC})`,
-        "Moves Completed": 1,
-        "Total Squares": n * n,
-      },
-    },
-    variables: {
-      currR,
-      currC,
-      visitedCount: 1,
-      totalSquares: n * n,
-    },
-  });
-
-  const totalSquares = n * n;
-  let tourSuccess = true;
-
-  for (let moveIdx = 1; moveIdx < totalSquares; moveIdx++) {
-    const candidates: [number, number, number][] = []; // [degree, r, c]
-    for (const [dr, dc] of KNIGHT_MOVES) {
-      const nr = currR + dr;
-      const nc = currC + dc;
-      if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === -1) {
-        const deg = countOnwardMoves(nr, nc);
-        candidates.push([deg, nr, nc]);
-      }
-    }
-
-    if (candidates.length === 0) {
-      steps.push({
-        stepIndex: stepCount++,
-        codeLine: 24,
-        explanation: {
-          what: `No valid unvisited moves remaining from (${currR}, ${currC}).`,
-          why: "The knight encountered a dead end before visiting all board squares.",
-        },
-        primarySnapshot: {
-          kind: "grid",
-          grid: buildGrid(currR, currC),
-        },
-        auxiliaryState: {
-          visited: [...visitedList],
-          customState: {
-            Status: "Dead End / Incomplete Tour",
-            "Visited Squares": moveIdx,
-          },
-        },
-        variables: {
-          currR,
-          currC,
-          completed: false,
-        },
-      });
-      tourSuccess = false;
-      break;
-    }
-
-    // Step evaluating candidate degrees
-    steps.push({
-      stepIndex: stepCount++,
-      codeLine: 21,
-      explanation: {
-        what: `Evaluate ${candidates.length} candidate moves from (${currR}, ${currC}) using Warnsdorff onward degrees.`,
-        why: "Warnsdorff's heuristic prioritizes candidate squares with the fewest onward unvisited neighbors to avoid isolation.",
-      },
-      primarySnapshot: {
-        kind: "grid",
-        grid: buildGrid(currR, currC, candidates),
-      },
-      auxiliaryState: {
-        visited: [...visitedList],
-        customState: {
-          "Candidates Evaluated": candidates
-            .map(([deg, r, c]) => `(${r},${c}):deg=${deg}`)
-            .join(", "),
-        },
-      },
-      variables: {
-        candidateCount: candidates.length,
-        minDegree: Math.min(...candidates.map((c) => c[0])),
-      },
-    });
-
-    candidates.sort((a, b) => a[0] - b[0]);
-    const [, nextR, nextC] = candidates[0];
-
-    board[nextR][nextC] = moveIdx;
-    currR = nextR;
-    currC = nextC;
-    visitedList.push(`(${currR},${currC})`);
-
-    steps.push({
-      stepIndex: stepCount++,
-      codeLine: 27,
-      explanation: {
-        what: `Advance knight to (${currR}, ${currC}) (move ${moveIdx + 1}).`,
-        why: "Selected the candidate square with the minimum onward degree.",
-      },
-      primarySnapshot: {
-        kind: "grid",
-        grid: buildGrid(currR, currC),
-      },
-      auxiliaryState: {
-        visited: [...visitedList],
-        customState: {
-          "Current Position": `(${currR}, ${currC})`,
-          "Moves Completed": moveIdx + 1,
-          "Total Squares": totalSquares,
-        },
-      },
-      variables: {
-        currR,
-        currC,
-        visitedCount: moveIdx + 1,
-      },
-    });
-  }
-
-  if (tourSuccess) {
-    steps.push({
-      stepIndex: stepCount++,
-      codeLine: 30,
-      explanation: {
-        what: `Knight's Tour complete! All ${totalSquares} board squares visited successfully.`,
-        why: "Warnsdorff's greedy heuristic guided the knight through a full space-filling Hamiltonian path without backtracking.",
-      },
-      primarySnapshot: {
-        kind: "grid",
-        grid: buildGrid(currR, currC),
-      },
-      auxiliaryState: {
-        visited: [...visitedList],
-        customState: {
-          Status: "Tour Complete!",
-          "Total Moves": totalSquares,
-        },
-      },
-      variables: {
-        completed: true,
-        totalSquares,
-      },
-    });
-  }
-
-  return steps;
-};
-
 export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   id: "knights-tour-warnsdorff",
   title: "Knight's Tour (Warnsdorff's Heuristic)",
   topicIds: ["backtracking"],
   difficulty: "Medium",
   description:
-    "<p>Construct a valid Knight's Tour visiting every square on an N&times;N chessboard exactly once using Warnsdorff's minimum-degree heuristic.</p><h3>Problem Statement</h3><p>Given an <code>N &times; N</code> chessboard and a starting coordinate <code>(startRow, startCol)</code>, construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.</p><p>While brute-force depth-first search exhibits exponential explosion <code>O(8^(N^2))</code>, Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial <code>O(N^2)</code> time without deep backtracking.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>size</code> (board dimension N), <code>startRow</code>, and <code>startCol</code>.</li><li><strong>Output:</strong> A 2D matrix containing step numbers (0 to <code>N^2 - 1</code>) for every board square.</li></ul>",
+    "<p>Given an <code>N &times; N</code> chessboard and a starting position <code>(startRow, startCol)</code>, construct a valid Knight's Tour that visits every square on the board exactly once using Warnsdorff's minimum-degree heuristic.</p><p><strong>Input:</strong> Board dimension <code>size</code> (N), <code>startRow</code>, and <code>startCol</code>.</p><p><strong>Output:</strong> An <code>N &times; N</code> 2D matrix where each cell contains the 1-indexed step number when the knight visited that square, or an incomplete board if no tour was found.</p>",
   constraints: ["3 <= size <= 8", "0 <= startRow, startCol < size"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "N = 5, start = (0, 0)",
       outputDisplay: "25/25 squares visited",
-      title: "5x5 Corner Start",
-      input: { size: 5, startRow: 0, startCol: 0 },
+      title: "Standard 5x5 Board Case",
+      input: DEFAULT_KNIGHTS_TOUR_INPUT,
       output: "Full tour completed in 25 moves",
       explanation: "Standard 5x5 board tour completing all 25 squares.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "N = 6, start = (2, 2)",
       outputDisplay: "36/36 squares visited",
-      title: "6x6 Center Start",
+      title: "Adversarial 6x6 Center Start",
       input: { size: 6, startRow: 2, startCol: 2 },
       output: "Full tour completed in 36 moves",
       explanation: "6x6 chessboard starting near center using Warnsdorff degrees.",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "N = 3, start = (0, 0)",
       outputDisplay: "Dead end after 8 moves",
-      title: "Impossible 3x3 Board",
+      title: "Impossible 3x3 Board Boundary",
       input: { size: 3, startRow: 0, startCol: 0 },
       output: "Incomplete tour (dead end)",
       explanation: "No complete knight tour exists on a 3x3 board due to topological bottlenecks.",
@@ -393,11 +454,6 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
         definition:
           "A problem-solving approach that makes locally optimal choices at each stage with the goal of finding a global solution.",
       },
-      {
-        term: "Re-entrant (Closed) Tour",
-        definition:
-          "A Knight's Tour where the final square is adjacent to the starting square, forming a closed cycle.",
-      },
     ],
   },
   trivia: WARNSDORFF_TRIVIA,
@@ -407,7 +463,7 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
       type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
-      chapter: "Ch 19",
+      chapter: 19,
       label: "Competitive Programmer's Handbook, Ch 19",
     },
   ],

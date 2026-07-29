@@ -154,7 +154,6 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   examples: [
     {
       kind: "basic",
-      kind: "basic",
       scenario: "standard",
       inputDisplay:
         "vertices = [A, B, C, D, E, F], edges = [(A,B,1), (B,C,2), (C,E,3), (A,C,4), (B,D,5), (D,E,6), (D,F,7), (E,F,8), (C,D,9)]",
@@ -166,7 +165,6 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
         "Edges are sorted by weight: A-B(1), B-C(2), C-E(3), A-C(4), B-D(5), D-E(6), D-F(7), E-F(8), C-D(9). Kruskal accepts A-B, B-C, C-E, rejects A-C due to cycle A-B-C, accepts B-D, rejects D-E, and accepts D-F. With 5 = |V| - 1 accepted edges, it terminates early.",
     },
     {
-      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay:
@@ -195,7 +193,6 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
         "Sorted edges: C-D(1), A-B(2), B-C(3), A-C(4), D-E(5), C-E(8). After the first three edges form the path A-B-C-D, A-C is rejected because A and C already have a route through B; D-E then connects the last vertex, so Kruskal stops before C-E.",
     },
     {
-      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "vertices = [A, B, C, D], edges = [(A,B,1), (C,D,2)]",

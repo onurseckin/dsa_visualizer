@@ -3,8 +3,10 @@ import type {
   AlgorithmStep,
   GraphEdgeItem,
   GraphNodeItem,
+  PrimaryVisualSnapshot,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface TwoSatClause {
   u: string;
@@ -76,82 +78,6 @@ def kosaraju_scc(variables, graph):
 
     return components`;
 
-export const TWO_SAT_TRIVIA: TriviaMeta = {
-  skipLines: [6, 9, 13, 15, 19],
-  distractors: [
-    "if scc_ids[v] != scc_ids[f'~{v}']: return 'UNSATISFIABLE'",
-    "adj[u].append(v)",
-    "assignment[v] = True",
-    "scc_ids = topological_sort(adj)",
-  ],
-  hints: [
-    {
-      line: 10,
-      hint: "A clause (A or B) is logically equivalent to (~A -> B) and (~B -> A).",
-    },
-    {
-      line: 14,
-      hint: "Kosaraju's SCC decomposition identifies cycles of implications.",
-    },
-    {
-      line: 17,
-      hint: "If a variable and its negation belong to the same SCC, a contradiction exists (x => ~x and ~x => x), making the formula UNSATISFIABLE.",
-    },
-    {
-      line: 20,
-      hint: "If all variables reside in distinct SCCs from their negations, set x = true if SCC(x) comes after SCC(~x) topologically.",
-    },
-  ],
-  lineExplanations: {
-    1: "Defines the 2-SAT solver function via implication graph and SCC decomposition.",
-    2: "Initializes graph adjacency dictionary for variables and negations.",
-    3: "Iterates through all variables to set up empty adjacency lists.",
-    4: "Initializes adjacency list for the positive literal.",
-    5: "Initializes adjacency list for the negated literal.",
-    7: "Defines helper function to return logical negation of a literal.",
-    8: "Strips ~ if literal is negated, otherwise prepends ~.",
-    10: "Iterates through each clause disjunction (A or B).",
-    11: "Adds implication edge ~A -> B to the adjacency list.",
-    12: "Adds implication edge ~B -> A to the adjacency list.",
-    14: "Decomposes the implication graph into Strongly Connected Components (SCCs) via Kosaraju's algorithm.",
-    16: "Iterates over variables to check for unsatisfiable contradiction cycles.",
-    17: "If x and ~x belong to the same SCC, returns False (UNSATISFIABLE).",
-    18: "Returns False and empty dict when formula is unsatisfiable.",
-    20: "Assigns boolean values based on topological order of SCC indices.",
-    21: "Returns True and the satisfying boolean truth assignment.",
-    23: "Defines the SCC helper used by the 2-SAT implication graph.",
-    24: "Captures literals in deterministic graph insertion order.",
-    25: "Initializes visitation state for the first DFS pass.",
-    26: "Initializes the literal finish-order stack.",
-    28: "Defines the first DFS pass over implication edges.",
-    29: "Marks the current literal visited.",
-    30: "Explores each outgoing implication.",
-    31: "Checks whether the implication target is new.",
-    32: "Recurses into an unseen implication target.",
-    33: "Records the literal after all descendants finish.",
-    35: "Sweeps every literal, including disconnected implication components.",
-    36: "Starts a first-pass DFS only for an unseen literal.",
-    37: "Runs the first-pass DFS.",
-    39: "Allocates the reversed implication graph.",
-    40: "Walks every original adjacency list.",
-    41: "Walks every outgoing implication edge.",
-    42: "Adds its reversed edge.",
-    44: "Initializes the literal-to-component map.",
-    46: "Defines the second DFS pass on the reversed graph.",
-    47: "Assigns the current literal to its SCC.",
-    48: "Explores reversed implication edges.",
-    49: "Checks whether the neighbor already belongs to an SCC.",
-    50: "Recurses within the current SCC.",
-    52: "Starts component numbering in reverse finish order.",
-    53: "Processes every literal on the finish stack.",
-    54: "Pops the latest-finishing literal.",
-    55: "Checks whether a prior second-pass DFS already claimed it.",
-    56: "Collects a newly discovered SCC.",
-    57: "Advances the SCC topological rank.",
-    59: "Returns component ranks for every positive and negative literal.",
-  },
-};
-
 export const DEFAULT_TWO_SAT_INPUT: TwoSatSolverInput = {
   variables: ["x1", "x2", "x3"],
   clauses: [
@@ -166,8 +92,189 @@ function negateLiteral(lit: string): string {
   return lit.startsWith("~") ? lit.slice(1) : `~${lit}`;
 }
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The 2-Satisfiability (2-SAT) problem determines whether a boolean formula in 2-CNF format (clauses of 2 literals) has a satisfying truth assignment.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "x1", state: "active" },
+        { id: "~x1", label: "~x1", state: "default" },
+        { id: "x2", label: "x2", state: "active" },
+        { id: "~x2", label: "~x2", state: "default" },
+      ],
+      edges: [
+        { from: "~x1", to: "x2" },
+        { from: "~x2", to: "x1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Every clause disjunction (A or B) translates into two equivalent implication rules: (~A -> B) and (~B -> A).",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "~A", label: "~A", state: "visited" },
+        { id: "B", label: "B", state: "visited" },
+        { id: "~B", label: "~B", state: "visited" },
+        { id: "A", label: "A", state: "visited" },
+      ],
+      edges: [
+        { from: "~A", to: "B", isTraversed: true },
+        { from: "~B", to: "A", isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "An Implication Graph G is constructed where nodes represent all positive and negated literals, and directed edges represent implication rules.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "x1", state: "default" },
+        { id: "~x1", label: "~x1", state: "default" },
+        { id: "x2", label: "x2", state: "default" },
+        { id: "~x2", label: "~x2", state: "default" },
+      ],
+      edges: [
+        { from: "~x1", to: "x2" },
+        { from: "~x2", to: "x1" },
+        { from: "x1", to: "~x2" },
+        { from: "x2", to: "~x1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Directed paths in the implication graph represent transitive logical consequences: if literal A is true, then target literal B must also be true.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "True x1", state: "active" },
+        { id: "x2", label: "True x2", state: "swap" },
+        { id: "x3", label: "True x3", state: "swap" },
+      ],
+      edges: [
+        { from: "x1", to: "x2", isPath: true },
+        { from: "x2", to: "x3", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Strongly Connected Components (SCCs) group literals that mutually imply each other into unified equivalence classes.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "SCC 1", state: "visited" },
+        { id: "~x2", label: "SCC 1", state: "visited" },
+        { id: "~x1", label: "SCC 2", state: "compare" },
+        { id: "x2", label: "SCC 2", state: "compare" },
+      ],
+      edges: [
+        { from: "x1", to: "~x2", isPath: true },
+        { from: "~x2", to: "x1", isPath: true },
+        { from: "~x1", to: "x2", isPath: true },
+        { from: "x2", to: "~x1", isPath: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Contradiction Rule: If any variable x and its negation ~x fall into the exact same SCC, the formula is UNSATISFIABLE.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "x1 (Same SCC!)", state: "swap" },
+        { id: "~x1", label: "~x1 (Same SCC!)", state: "swap" },
+      ],
+      edges: [
+        { from: "x1", to: "~x1", isTraversed: true },
+        { from: "~x1", to: "x1", isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When every variable x and ~x belong to distinct SCCs, a topological ordering of component ranks exists without implication cycles.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "SCC 2 (Rank 2)", state: "sorted" },
+        { id: "~x1", label: "SCC 1 (Rank 1)", state: "default" },
+      ],
+      edges: [{ from: "~x1", to: "x1" }],
+    },
+  },
+  {
+    narrative:
+      "A valid satisfying boolean assignment is constructed by setting x = true if SCC(x) > SCC(~x), ensuring no implication arrow flows from true to false.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "x1 = TRUE", state: "sorted" },
+        { id: "~x1", label: "~x1 = FALSE", state: "default" },
+        { id: "x2", label: "x2 = TRUE", state: "sorted" },
+        { id: "~x2", label: "~x2 = FALSE", state: "default" },
+      ],
+      edges: [
+        { from: "~x1", to: "x2" },
+        { from: "~x2", to: "x1" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Using Kosaraju's SCC algorithm, 2-SAT is solved in linear O(V + E) time and O(V + E) auxiliary space.",
+    primarySnapshot: {
+      kind: "graph",
+      directed: true,
+      nodes: [
+        { id: "x1", label: "SATISFIABLE", state: "sorted" },
+        { id: "x2", label: "x1=true", state: "sorted" },
+        { id: "x3", label: "x2=true", state: "sorted" },
+        { id: "x4", label: "x3=true", state: "sorted" },
+      ],
+      edges: [
+        { from: "x1", to: "x2", isPath: true },
+        { from: "x2", to: "x3", isPath: true },
+        { from: "x3", to: "x4", isPath: true },
+      ],
+    },
+  },
+];
+
 export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  let stepIdx = 0;
+
+  // Intro Phase (9 snapshots)
+  const intro = createIntroSnapshots();
+  for (const item of intro) {
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "intro",
+        narrative: item.narrative,
+        primarySnapshot: item.primarySnapshot,
+      }),
+    );
+  }
+
+  // Walkthrough Phase
   const safeInput = input && typeof input === "object" ? input : DEFAULT_TWO_SAT_INPUT;
   const variables =
     Array.isArray(safeInput.variables) && safeInput.variables.length > 0
@@ -202,25 +309,25 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
     adj[lit] = [];
   }
 
-  let stepIdx = 0;
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Initialized implication graph with ${literals.length} literal nodes: [${literals.join(", ")}].`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, state: "active" })),
+        edges: [],
+      },
+      auxiliaryState: {
+        stack: [],
+        visited: [],
+      },
+      variables: { totalVars: variables.length, totalClauses: clauses.length },
+    }),
+  );
 
-  // Step 1: Initialize graph
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 2,
-    explanation: {
-      what: `Initialized implication graph with ${literals.length} literal nodes: [${literals.join(", ")}].`,
-      why: "Each boolean variable x yields two nodes in the implication graph: x and ~x.",
-    },
-    primarySnapshot: { kind: "graph", nodes: nodes.map((n) => ({ ...n })), edges: [] },
-    auxiliaryState: {
-      visited: [],
-      customState: { Clauses: clauses.map((c) => `(${c.u} v ${c.v})`).join(" ^ ") },
-    },
-    variables: { totalVars: variables.length, totalClauses: clauses.length },
-  });
-
-  // Step 2: Build implication edges for each clause
   for (const clause of clauses) {
     const notU = negateLiteral(clause.u);
     const notV = negateLiteral(clause.v);
@@ -231,31 +338,31 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
     edges.push({ from: notU, to: clause.v });
     edges.push({ from: notV, to: clause.u });
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 10,
-      explanation: {
-        what: `Added implication edges: ${notU} -> ${clause.v} and ${notV} -> ${clause.u} for clause (${clause.u} v ${clause.v}).`,
-        why: "Disjunction clause (A v B) is logically equivalent to (~A -> B) and (~B -> A).",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({ ...n })),
-        edges: edges.map((e) => ({
-          ...e,
-          isTraversed:
-            (e.from === notU && e.to === clause.v) || (e.from === notV && e.to === clause.u),
-        })),
-      },
-      auxiliaryState: {
-        visited: [],
-        customState: {
-          Clause: `(${clause.u} v ${clause.v})`,
-          "Added Edges": `${notU}->${clause.v}, ${notV}->${clause.u}`,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Added implication edges: ${notU} -> ${clause.v} and ${notV} -> ${clause.u} for clause (${clause.u} v ${clause.v}).`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            state: n.id === clause.u || n.id === clause.v ? "compare" : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            isTraversed:
+              (e.from === notU && e.to === clause.v) || (e.from === notV && e.to === clause.u),
+          })),
         },
-      },
-      variables: { clauseU: clause.u, clauseV: clause.v, totalEdges: edges.length },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: [],
+        },
+        variables: { clauseU: clause.u, clauseV: clause.v, totalEdges: edges.length },
+      }),
+    );
   }
 
   // Kosaraju Pass 1: DFS order
@@ -278,24 +385,24 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
     }
   }
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 14,
-    explanation: {
-      what: `Completed Kosaraju Pass 1: compute finish order stack [${finishStack.join(", ")}].`,
-      why: "Post-order finish stack determines top-down order for SCC processing in Pass 2.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({ ...n, state: "visited" })),
-      edges: edges.map((e) => ({ ...e, isTraversed: false })),
-    },
-    auxiliaryState: {
-      stack: [...finishStack],
-      customState: { "Finish Order": finishStack.join(", ") },
-    },
-    variables: { finishStackLength: finishStack.length },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Completed Kosaraju Pass 1 DFS: computed finish order stack [${[...finishStack].reverse().join(", ")}].`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({ ...n, state: "visited" })),
+        edges: edges.map((e) => ({ ...e, isTraversed: false })),
+      },
+      auxiliaryState: {
+        stack: [...finishStack],
+        visited: Array.from(visited),
+      },
+      variables: { finishStackLength: finishStack.length },
+    }),
+  );
 
   // Kosaraju Pass 2: Transpose graph DFS to compute SCCs
   const radj: Record<string, string[]> = {};
@@ -327,35 +434,32 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
     }
   }
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 14,
-    explanation: {
-      what: `Identified ${currentScc} Strongly Connected Components (SCCs).`,
-      why: "Nodes in the same SCC form mutually reachable implication loops.",
-    },
-    primarySnapshot: {
-      kind: "graph",
-      nodes: nodes.map((n) => ({
-        ...n,
-        group: sccId[n.id],
-        state: "default",
-      })),
-      edges: edges.map((e) => ({
-        ...e,
-        isTraversed: false,
-        group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
-      })),
-    },
-    auxiliaryState: {
-      customState: {
-        "SCC Map": Object.entries(sccId)
-          .map(([k, v]) => `${k}:${v}`)
-          .join(", "),
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIdx++,
+      phase: "walkthrough",
+      narrative: `Completed Kosaraju Pass 2: identified ${currentScc} Strongly Connected Component(s).`,
+      primarySnapshot: {
+        kind: "graph",
+        directed: true,
+        nodes: nodes.map((n) => ({
+          ...n,
+          group: sccId[n.id],
+          state: "default",
+        })),
+        edges: edges.map((e) => ({
+          ...e,
+          isTraversed: false,
+          group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
+        })),
       },
-    },
-    variables: { totalSCCs: currentScc },
-  });
+      auxiliaryState: {
+        stack: [],
+        visited: Array.from(visited),
+      },
+      variables: { totalSCCs: currentScc },
+    }),
+  );
 
   // Check satisfiability for each variable
   let isSat = true;
@@ -365,84 +469,59 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
     const posScc = sccId[v];
     const negScc = sccId[negateLiteral(v)];
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 16,
-      explanation: {
-        what: `Checking variable '${v}': scc[${v}] = ${posScc}, scc[~${v}] = ${negScc}.`,
-        why: "If variable x and ~x belong to the same SCC, an unsatisfiable contradiction exists.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          group: sccId[n.id],
-          state: n.id === v || n.id === negateLiteral(v) ? "compare" : "default",
-        })),
-        edges: edges.map((e) => ({
-          ...e,
-          group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          Checking: `${v} (SCC ${posScc}) vs ~${v} (SCC ${negScc})`,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Checking variable '${v}': scc[${v}] = ${posScc}, scc[~${v}] = ${negScc}.`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            group: sccId[n.id],
+            state: n.id === v || n.id === negateLiteral(v) ? "compare" : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
+          })),
         },
-      },
-      variables: { currentVar: v, posScc, negScc },
-    });
+        auxiliaryState: {
+          stack: [],
+          visited: Array.from(visited),
+        },
+        variables: { currentVar: v, posScc, negScc },
+      }),
+    );
 
     if (posScc === negScc) {
       isSat = false;
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 17,
-        explanation: {
-          what: `Contradiction detected: '${v}' and '~${v}' are both in SCC ${posScc}!`,
-          why: `Both ${v} => ~${v} and ~${v} => ${v} hold, making the formula UNSATISFIABLE.`,
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({
-            ...n,
-            group: sccId[n.id],
-            state: n.id === v || n.id === negateLiteral(v) ? "swap" : "default",
-          })),
-          edges: edges.map((e) => ({
-            ...e,
-            group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
-          })),
-        },
-        auxiliaryState: {
-          customState: { Result: "UNSATISFIABLE", Contradiction: `${v} === ~${v}` },
-        },
-        variables: { isSatisfiable: false, failingVar: v },
-      });
-
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 18,
-        explanation: {
-          what: "Returned False and empty assignment dictionary.",
-          why: "Formula cannot be satisfied due to contradiction cycle in implication graph.",
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: nodes.map((n) => ({
-            ...n,
-            group: sccId[n.id],
-            state: n.id === v || n.id === negateLiteral(v) ? "swap" : "default",
-          })),
-          edges: edges.map((e) => ({
-            ...e,
-            group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
-          })),
-        },
-        auxiliaryState: {
-          customState: { Result: "UNSATISFIABLE" },
-        },
-        variables: { isSatisfiable: false },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIdx++,
+          phase: "walkthrough",
+          narrative: `Contradiction detected: '${v}' and '~${v}' both belong to SCC ${posScc}! Formula is UNSATISFIABLE.`,
+          primarySnapshot: {
+            kind: "graph",
+            directed: true,
+            nodes: nodes.map((n) => ({
+              ...n,
+              group: sccId[n.id],
+              state: n.id === v || n.id === negateLiteral(v) ? "swap" : "default",
+            })),
+            edges: edges.map((e) => ({
+              ...e,
+              group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
+            })),
+          },
+          auxiliaryState: {
+            stack: [],
+            visited: Array.from(visited),
+          },
+          variables: { isSatisfiable: false, failingVar: v },
+        }),
+      );
       break;
     }
 
@@ -454,79 +533,61 @@ export function generateTwoSatSteps(input: TwoSatSolverInput): AlgorithmStep[] {
       .map(([k, val]) => `${k}=${val}`)
       .join(", ");
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 20,
-      explanation: {
-        what: `Derived boolean truth assignment: ${assignmentStr}.`,
-        why: "Setting x = true if scc[x] > scc[~x] respects topological rank without implication violations.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          group: sccId[n.id],
-          state: assignment[n.id.replace("~", "")]
-            ? n.id.startsWith("~")
-              ? "default"
-              : "sorted"
-            : n.id.startsWith("~")
-              ? "sorted"
-              : "default",
-        })),
-        edges: edges.map((e) => ({
-          ...e,
-          group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          Assignment: assignmentStr,
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIdx++,
+        phase: "walkthrough",
+        narrative: `Formula is SATISFIABLE. Valid truth assignment derived from SCC topological ranks: [${assignmentStr}].`,
+        primarySnapshot: {
+          kind: "graph",
+          directed: true,
+          nodes: nodes.map((n) => ({
+            ...n,
+            group: sccId[n.id],
+            state: assignment[n.id.replace("~", "")]
+              ? n.id.startsWith("~")
+                ? "default"
+                : "sorted"
+              : n.id.startsWith("~")
+                ? "sorted"
+                : "default",
+          })),
+          edges: edges.map((e) => ({
+            ...e,
+            group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
+          })),
         },
-      },
-      variables: { assignment: assignmentStr },
-    });
-
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 21,
-      explanation: {
-        what: `Formula is SATISFIABLE with assignment: ${assignmentStr}.`,
-        why: "All variables were evaluated without contradiction; SCC topological order provides a valid assignment.",
-      },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({
-          ...n,
-          group: sccId[n.id],
-          state: assignment[n.id.replace("~", "")]
-            ? n.id.startsWith("~")
-              ? "default"
-              : "sorted"
-            : n.id.startsWith("~")
-              ? "sorted"
-              : "default",
-        })),
-        edges: edges.map((e) => ({
-          ...e,
-          group: sccId[e.from] === sccId[e.to] ? sccId[e.from] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          Result: "SATISFIABLE",
-          Assignment: assignmentStr,
+        auxiliaryState: {
+          stack: [],
+          visited: Array.from(visited),
         },
-      },
-      variables: {
-        isSatisfiable: true,
-        assignment: assignmentStr,
-      },
-    });
+        variables: { isSatisfiable: true, assignment: assignmentStr },
+      }),
+    );
   }
 
   return steps;
 }
+
+export const TWO_SAT_TRIVIA: TriviaMeta = {
+  lineExplanations: {
+    1: "Defines 2-SAT solver function via implication graph and SCC decomposition.",
+    2: "Initializes graph adjacency dictionary.",
+    3: "Iterates through variables.",
+    4: "Initializes positive literal list.",
+    5: "Initializes negated literal list.",
+    7: "Defines helper function to negate literal.",
+    10: "Iterates through clauses.",
+    11: "Adds ~A -> B edge.",
+    12: "Adds ~B -> A edge.",
+    14: "Runs Kosaraju SCC decomposition.",
+    16: "Iterates over variables to check for contradiction cycles.",
+    17: "If x and ~x share SCC, returns UNSATISFIABLE.",
+    18: "Returns False.",
+    20: "Assigns boolean values based on topological order.",
+    21: "Returns True and truth assignment.",
+  },
+};
 
 export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   id: "two-sat-solver",
@@ -534,7 +595,7 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "<p>Solves the 2-Satisfiability (2-SAT) problem in linear <code>O(V + E)</code> time. Given a 2-CNF boolean formula with N variables and M clauses (where each clause contains 2 literals), 2-SAT is solved by constructing a directed implication graph (<code>~u &rarr; v</code> and <code>~v &rarr; u</code>). Kosaraju's algorithm computes the Strongly Connected Components (SCCs). If any variable <code>x</code> and its negation <code>~x</code> belong to the same SCC, the formula is UNSATISFIABLE. Otherwise, a valid truth assignment is derived from the topological rank of SCCs.</p>",
+    "<p>Given a 2-CNF boolean formula with <code>N</code> variables and <code>M</code> clauses, determine whether a satisfying boolean assignment exists and construct a valid assignment in linear time.</p><h3>Problem Statement</h3><p>Build a directed implication graph (<code>~u &rarr; v</code> and <code>~v &rarr; u</code> for each clause <code>(u v v)</code>) and compute Strongly Connected Components (SCCs). If any variable <code>x</code> and its negation <code>~x</code> belong to the same SCC, return UNSATISFIABLE. Otherwise, output a valid truth assignment setting <code>x = true</code> if <code>SCC(x) > SCC(~x)</code>.</p><h3>Input Parameters</h3><ul><li><code>variables</code>: Array of boolean variable identifiers (e.g. ['x1', 'x2']).</li><li><code>clauses</code>: Array of clause objects <code>{ u, v }</code> containing positive or negated literals.</li></ul><h3>Output</h3><p>Returns boolean satisfiability status and the derived truth assignment dictionary.</p>",
   constraints: [
     "1 <= Variables <= 500",
     "1 <= Clauses <= 2000",
@@ -544,20 +605,22 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
         "variables = [x1, x2, x3], clauses = (x1 v x2) ^ (~x1 v x2) ^ (x1 v ~x2) ^ (x2 v x3)",
       outputDisplay: "SATISFIABLE {x1: true, x2: true, x3: true}",
-      title: "Satisfiable 2-SAT Formula",
+      title: "Standard Satisfiable 2-SAT Formula",
       input: DEFAULT_TWO_SAT_INPUT,
       output: "SATISFIABLE: x1=true, x2=true, x3=true",
       explanation: "All 4 clauses are satisfied under the boolean assignment.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay:
         "variables = [x1, x2], clauses = (x1 v x2) ^ (~x1 v x2) ^ (x1 v ~x2) ^ (~x1 v ~x2)",
       outputDisplay: "UNSATISFIABLE",
-      title: "Unsatisfiable 4-Clause Contradiction",
+      title: "Adversarial Unsatisfiable 4-Clause Contradiction",
       input: {
         variables: ["x1", "x2"],
         clauses: [
@@ -573,9 +636,10 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "variables = [x1], clauses = (x1 v x1) ^ (~x1 v ~x1)",
       outputDisplay: "UNSATISFIABLE",
-      title: "Direct Self-Contradiction",
+      title: "Boundary Direct Self-Contradiction",
       input: {
         variables: ["x1"],
         clauses: [
@@ -621,7 +685,7 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
       },
       {
         heading: "Complexity Analysis",
-        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Time:</strong> Graph construction, Kosaraju SCC decomposition, and topological rank assignments run in linear <code>O(V + E)</code> time.</li><li><strong>Space:</strong> Adjacency lists and SCC maps take <code>O(V + E)</code> memory.</li></ul>",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code><br/>Graph construction, Kosaraju SCC decomposition, and topological rank assignments run in linear <code>O(V + E)</code> time. Adjacency lists and SCC maps take <code>O(V + E)</code> memory.</p>",
       },
     ],
     keyTerms: [
@@ -664,3 +728,5 @@ export const twoSatSolver: AlgorithmDefinition<TwoSatSolverInput> = {
   defaultInput: DEFAULT_TWO_SAT_INPUT,
   generateSteps: generateTwoSatSteps,
 };
+
+export default twoSatSolver;
