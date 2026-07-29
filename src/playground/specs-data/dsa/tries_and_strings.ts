@@ -178,50 +178,57 @@ export const triesAndStringsExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "findWords",
-      arguments: [input("board"), input("words")],
+      method: "findMatches",
+      arguments: [input("text"), input("patterns")],
     },
-    cases: cases(
-      {
-        label: "Standard word search",
-        input: {
-          board: [
-            ["o", "a", "a", "n"],
-            ["e", "t", "a", "e"],
-            ["i", "h", "k", "r"],
-            ["i", "f", "l", "v"],
-          ],
-          words: ["oath", "pea", "eat", "rain"],
+    cases: [
+      ...cases(
+        {
+          label: "Shared suffix matches",
+          input: { text: "ushers", patterns: ["he", "she", "his", "hers"] },
+          expected: ["he", "she", "hers"],
         },
-        expected: ["eat", "oath"],
-        comparison: "unordered",
-      },
-      {
-        label: "No words found",
-        input: {
-          board: [
-            ["a", "b"],
-            ["c", "d"],
-          ],
-          words: ["abcb"],
+        {
+          label: "No pattern occurs",
+          input: { text: "xyz", patterns: ["ab", "bc"] },
+          expected: [],
         },
-        expected: [],
-      },
-      {
-        label: "Single cell",
-        input: {
-          board: [["a"]],
-          words: ["a"],
+        {
+          label: "Overlapping prefixes",
+          input: { text: "aaaa", patterns: ["a", "aa", "aaa"] },
+          expected: ["a", "aa", "aaa"],
         },
-        expected: ["a"],
-      },
-    ),
+      ),
+      ...extraCases(
+        { label: "Empty text", input: { text: "", patterns: ["a"] }, expected: [] },
+        {
+          label: "Pattern equals text",
+          input: { text: "needle", patterns: ["needle"] },
+          expected: ["needle"],
+        },
+        {
+          label: "Failure-link fallback",
+          input: { text: "abccab", patterns: ["abc", "bcc", "cab", "ccc"] },
+          expected: ["abc", "bcc", "cab"],
+        },
+        {
+          label: "Input order is preserved",
+          input: { text: "mississippi", patterns: ["ppi", "iss", "sip", "xyz"] },
+          expected: ["ppi", "iss", "sip"],
+        },
+        {
+          label: "Repeated dictionary entry",
+          input: { text: "banana", patterns: ["ana", "ana", "na"] },
+          expected: ["ana", "ana", "na"],
+        },
+      ),
+    ],
     audit: {
-      signature: "Solution().findWords(board: list[list[str]], words: list[str]) -> list[str]",
-      defaultInputShape: "{ board: string[][]; words: string[] }",
-      argumentMapping: ["board <- $.board", "words <- $.words"],
-      mutation: "Board is temporarily mutated during DFS, restored after.",
-      returnBehavior: "Returns all words found in the board.",
+      signature: "Solution().findMatches(text: str, patterns: list[str]) -> list[str]",
+      defaultInputShape: "{ text: string; patterns: string[] }",
+      argumentMapping: ["text <- $.text", "patterns <- $.patterns"],
+      mutation: "Does not mutate inputs.",
+      returnBehavior: "Returns every dictionary pattern that occurs in text, in input order.",
     },
   }),
   defineDsaExecution({

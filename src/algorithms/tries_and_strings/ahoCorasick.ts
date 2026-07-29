@@ -15,42 +15,45 @@ export const PYTHON_AHO_CORASICK_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def findWords(self, board: list[list[str]], words: list[str]) -> list[str]:
-        from collections import defaultdict
+    def findMatches(self, text: str, patterns: list[str]) -> list[str]:
+        """Return each dictionary pattern that occurs in text, in input order."""
+        from collections import deque
 
-        def build_trie(words):
-            trie = {}
-            for word in words:
-                node = trie
-                for ch in word:
-                    node = node.setdefault(ch, {})
-                node['#'] = word
-            return trie
+        transitions = [{}]
+        failure = [0]
+        outputs = [[]]
 
-        root = build_trie(words)
-        rows, cols = len(board), len(board[0])
-        result = []
+        for pattern in patterns:
+            node = 0
+            for char in pattern:
+                if char not in transitions[node]:
+                    transitions[node][char] = len(transitions)
+                    transitions.append({})
+                    failure.append(0)
+                    outputs.append([])
+                node = transitions[node][char]
+            outputs[node].append(pattern)
 
-        def dfs(node, r, c):
-            ch = board[r][c]
-            if ch not in node:
-                return
-            next_node = node[ch]
-            if '#' in next_node:
-                result.append(next_node['#'])
-                del next_node['#']
-            board[r][c] = '#'
-            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < rows and 0 <= nc < cols:
-                    dfs(next_node, nr, nc)
-            board[r][c] = ch
+        queue = deque(transitions[0].values())
+        while queue:
+            node = queue.popleft()
+            for char, next_node in transitions[node].items():
+                fallback = failure[node]
+                while fallback and char not in transitions[fallback]:
+                    fallback = failure[fallback]
+                failure[next_node] = transitions[fallback].get(char, 0)
+                outputs[next_node].extend(outputs[failure[next_node]])
+                queue.append(next_node)
 
-        for r in range(rows):
-            for c in range(cols):
-                dfs(root, r, c)
+        found = set()
+        node = 0
+        for char in text:
+            while node and char not in transitions[node]:
+                node = failure[node]
+            node = transitions[node].get(char, 0)
+            found.update(outputs[node])
 
-        return result`;
+        return [pattern for pattern in patterns if pattern in found]`;
 
 export const DEFAULT_AHO_CORASICK_INPUT: AhoCorasickInput = {
   text: "ushers",
@@ -386,11 +389,8 @@ export const ahoCorasick: AlgorithmDefinition<AhoCorasickInput> = {
   },
   sources: [
     {
-      kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 26",
-      bookTitle: "Competitive Programmer's Handbook",
-      chapter: 26,
-      section: "26.2 Trie structure",
+      kind: "standard",
+      label: "Aho-Corasick algorithm",
     },
   ],
   defaultInput: DEFAULT_AHO_CORASICK_INPUT,
