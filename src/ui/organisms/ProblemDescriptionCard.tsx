@@ -52,14 +52,14 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
     <Card
       data-testid="problem-description-card"
       className={cx(
-        "bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-xl",
+        "bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl shadow-xl w-full max-w-none",
         className,
       )}
       style={style}
     >
-      <Card.Body className="p-4 md:p-5 flex flex-col gap-4">
+      <Card.Body className="p-4 md:p-5 flex flex-col gap-4 w-full max-w-none">
         {showHeader && (
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center justify-between flex-wrap gap-3 w-full">
             <ProblemHeader
               title={title}
               topicIds={topicIds}
@@ -91,22 +91,22 @@ export const ProblemDescriptionCard: React.FC<ProblemDescriptionCardProps> = ({
             id="problem-description-details"
             data-testid="problem-description-details"
             className={cx(
-              "flex flex-col gap-6",
+              "flex flex-col gap-6 w-full max-w-none",
               showHeader && "pt-2 border-t border-[var(--border-default)]",
             )}
           >
-            <section>
+            <section className="w-full max-w-none">
               <FieldLabel label="Problem" />
-              <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
-                <MarkdownRenderer content={description} />
+              <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-4 shadow-inner text-[var(--text-secondary)] w-full max-w-none">
+                <MarkdownRenderer content={description} className="text-sm w-full max-w-none" />
               </Well>
             </section>
 
             {constraints && constraints.length > 0 && (
-              <section>
+              <section className="w-full max-w-none">
                 <FieldLabel label="Constraints" />
-                <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
-                  <ul className="m-0 pl-4 font-mono text-sm leading-relaxed text-[var(--text-secondary)]">
+                <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-4 shadow-inner text-[var(--text-secondary)] w-full max-w-none">
+                  <ul className="m-0 pl-4 font-mono text-sm leading-relaxed text-[var(--text-secondary)] w-full max-w-none">
                     {constraints.map((constraint, idx) => (
                       <li key={`constraint-${idx}`}>{constraint}</li>
                     ))}
