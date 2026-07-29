@@ -10,6 +10,11 @@ import type {
   StepExplanation,
   TopicGuide,
 } from "../../types/dsa";
+import { getPythonStarterCode } from "../../playground/executionSpecs";
+
+const codeWorkspaceCapture = vi.hoisted(() => ({
+  starterCode: undefined as string | undefined,
+}));
 
 vi.mock("../primitives/ProblemDescriptionCard", () => ({
   ProblemDescriptionCard: () => <div data-testid="problem-description-card" />,
@@ -72,6 +77,25 @@ vi.mock("../primitives/CodeBlockViewer", () => ({
       {code}
     </pre>
   ),
+}));
+
+vi.mock("../../ui/organisms/code-workspace/CodeWorkspace", () => ({
+  CodeWorkspace: ({
+    activeLine,
+    referenceCode,
+    starterCode,
+  }: {
+    activeLine: number;
+    referenceCode: string;
+    starterCode?: string;
+  }) => {
+    codeWorkspaceCapture.starterCode = starterCode;
+    return (
+      <pre data-testid="code-viewer" data-active-line={activeLine}>
+        {referenceCode}
+      </pre>
+    );
+  },
 }));
 
 vi.mock("../ComplexityCard", () => ({
@@ -182,6 +206,13 @@ describe("MainLayoutPanelsContent Component Spec", () => {
     const card = screen.getByTestId("complexity-card");
     expect(card).toHaveTextContent(dummyAlgorithm.complexityAnalysis.time);
     expect(card).toHaveTextContent(dummyAlgorithm.complexityAnalysis.space);
+  });
+
+  it("passes the authored Python starter from MainStage to CodeWorkspace", () => {
+    renderLayout();
+
+    expect(codeWorkspaceCapture.starterCode).toBe(getPythonStarterCode(dummyAlgorithm.id));
+    expect(codeWorkspaceCapture.starterCode).toContain("def bubble_sort(arr):");
   });
 
   it("omits playback controls when neither controlProps nor playback callbacks are provided", () => {
