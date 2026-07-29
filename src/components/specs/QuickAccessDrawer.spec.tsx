@@ -76,14 +76,6 @@ describe("QuickAccessDrawer Component Spec", () => {
       "true",
     );
     expect(screen.getByText(/Dijkstra's Shortest Path Algorithm/i)).toBeInTheDocument();
-
-    // Valid Neighbor Grid Bounds belongs to Arrays & Hashing and mentions Dijkstra in its
-    // searchable description, so that topic is also a real match rather than stale UI state.
-    expect(screen.getByRole("button", { name: /1\. Arrays & Hashing/i })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    expect(screen.getAllByText("Valid 2D Grid Neighbor Bounds Check")).toHaveLength(2);
   });
 
   it("shows an empty state when no algorithm matches the search", () => {

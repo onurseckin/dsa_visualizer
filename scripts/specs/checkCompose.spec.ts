@@ -6,7 +6,7 @@ const validConfig = {
   services: {
     web: {
       build: {},
-      ports: [{ target: 80, published: "5173", host_ip: "127.0.0.1" }],
+      ports: [{ target: 80, published: "5173" }],
       depends_on: { api: { condition: "service_healthy" } },
       networks: { app: null },
       healthcheck: { test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"] },
@@ -46,18 +46,18 @@ const validConfig = {
       },
     },
   },
-  networks: { app: { internal: true }, runner: { internal: true } },
+  networks: { app: { internal: false }, runner: { internal: true } },
   volumes: { api_data: {} },
 } as const;
 
 describe("verifyCompose", () => {
-  it("rejects an externally reachable app network", () => {
+  it("rejects an internal app network that prevents the published web port", () => {
     expect(() =>
       verifyCompose({
         ...validConfig,
-        networks: { ...validConfig.networks, app: { internal: false } },
+        networks: { ...validConfig.networks, app: { internal: true } },
       }),
-    ).toThrow("app network must be internal");
+    ).toThrow("app network must permit the web service's published host port");
   });
 
   it("rejects a runner health check that does not call the health endpoint", () => {

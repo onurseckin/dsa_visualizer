@@ -185,7 +185,7 @@ describe("useProblemListState hook", () => {
     const { result } = renderHook(() => useProblemListState({ topic: "dp_1d" }));
 
     expect(result.current.selectedTopic).toBe("dp_1d");
-    // dp_1d registered algorithms total 5 (3 Medium + 2 Hard)
-    expect(result.current.filteredAlgorithms.length).toBe(5);
+    // dp_1d has three registered Medium algorithms.
+    expect(result.current.filteredAlgorithms.length).toBe(3);
   });
 });

@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
+import { configDefaults } from "vitest/config";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sqliteVitePlugin } from "./src/server/sqliteVitePlugin";
@@ -51,6 +52,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/test/setup.ts",
     testTimeout: 15000,
+    exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       provider: "v8",
       all: true,
