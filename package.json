@@ -17,6 +17,8 @@
     "intent:check": "bun run scripts/checkIntentSkills.ts",
     "compose:check": "bun run scripts/checkCompose.ts",
     "audit:catalog": "bun run scripts/auditCatalog.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:docker": "E2E_DOCKER=1 E2E_BASE_URL=http://127.0.0.1:5173 playwright test",
     "test": "vitest run --maxConcurrency 8",
     "test:coverage": "vitest run --coverage --maxConcurrency 8 && bun run scripts/checkCoverageFiles.ts",
     "build": "tsc && vite build",
@@ -43,6 +45,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/router-cli": "^1.167.21",
     "@tanstack/router-plugin": "^1.168.23",

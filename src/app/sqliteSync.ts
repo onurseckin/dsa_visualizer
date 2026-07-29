@@ -13,7 +13,9 @@ export async function initSqliteSync(): Promise<void> {
       for (const [key, value] of Object.entries(data)) {
         if (typeof value === "string") {
           try {
-            window.localStorage.setItem(key, value);
+            if (window.localStorage.getItem(key) === null) {
+              window.localStorage.setItem(key, value);
+            }
           } catch {
             // best effort
           }

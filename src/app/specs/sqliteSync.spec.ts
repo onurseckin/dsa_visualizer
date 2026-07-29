@@ -20,6 +20,19 @@ describe("sqliteSync client adapter", () => {
     expect(localStorage.getItem("k2")).toBe("v2");
   });
 
+  it("does not overwrite newer browser state with a stale SQLite snapshot", async () => {
+    localStorage.setItem("draft", "newer-local-value");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ draft: "stale-server-value", serverOnly: "hydrated" }),
+    } as Response);
+
+    await initSqliteSync();
+
+    expect(localStorage.getItem("draft")).toBe("newer-local-value");
+    expect(localStorage.getItem("serverOnly")).toBe("hydrated");
+  });
+
   it("handles fetch failure gracefully in initSqliteSync", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
 
