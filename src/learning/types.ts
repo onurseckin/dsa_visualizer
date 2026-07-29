@@ -100,6 +100,8 @@ export interface RubricCriterion {
   readonly label: string;
   readonly description: string;
   readonly points: number;
+  /** Critical criteria require an explicit repair; aggregate points cannot offset them. */
+  readonly critical?: boolean;
 }
 
 export interface RubricDefinition {

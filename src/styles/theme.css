@@ -135,6 +135,8 @@
   --code-workspace-toolbar-h: 48px;
   --code-workspace-editor-min-h: 180px;
   --code-workspace-output-min-h: 72px;
+  --assessment-response-min-h: 120px;
+  --assessment-code-max-h: 260px;
 
   /* Radius */
   --radius-sm: 6px;

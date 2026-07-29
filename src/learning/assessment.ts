@@ -12,6 +12,70 @@ export const ASSESSMENT_RENDERER_BY_KIND = Object.freeze({
 export type AssessmentRenderer =
   (typeof ASSESSMENT_RENDERER_BY_KIND)[keyof typeof ASSESSMENT_RENDERER_BY_KIND];
 
+export interface CodeCompletionPayload {
+  readonly prompt: string;
+  readonly context: string;
+  readonly requiredConcepts: readonly [string, ...string[]];
+  readonly consequencePrompt: string;
+}
+
+export interface TraceAssessmentPayload {
+  readonly prompt: string;
+  readonly currentState: string;
+  readonly referenceNextState?: string;
+  readonly completion?: CodeCompletionPayload;
+}
+
+export interface CalculatorInputDefinition {
+  readonly id: string;
+  readonly label: string;
+  readonly unit?: string;
+  readonly defaultValue?: string;
+}
+
+export interface CalculatorAssessmentPayload {
+  readonly prompt: string;
+  readonly inputs: readonly CalculatorInputDefinition[];
+  readonly result: {
+    readonly value: number;
+    readonly unit: string;
+    readonly tolerance: number;
+  };
+}
+
+export interface DebuggingEvidence {
+  readonly label: string;
+  readonly content: string;
+}
+
+export interface DebuggingAssessmentPayload {
+  readonly faultyStarter: string;
+  readonly evidence: readonly DebuggingEvidence[];
+  readonly failingTests: readonly string[];
+  readonly hints: readonly string[];
+  readonly completion?: CodeCompletionPayload;
+}
+
+export interface ScenarioAssessmentPayload {
+  readonly choices?: readonly [string, ...string[]];
+  readonly consequences?: string;
+}
+
+export interface CapstoneChecklistItem {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface CapstoneTimelinePrompt {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface CapstoneAssessmentPayload {
+  readonly checklist: readonly CapstoneChecklistItem[];
+  readonly incidentTimeline: readonly CapstoneTimelinePrompt[];
+}
+
 interface AssessmentDefinitionBase<Kind extends LearningItemKind> {
   readonly kind: Kind;
   readonly renderer: (typeof ASSESSMENT_RENDERER_BY_KIND)[Kind];
@@ -22,16 +86,26 @@ export type AlgorithmAssessmentDefinition = AssessmentDefinitionBase<"algorithm"
   readonly triviaEligible: true;
 };
 
-export type TraceAssessmentDefinition = AssessmentDefinitionBase<"trace">;
-export type CalculatorAssessmentDefinition = AssessmentDefinitionBase<"calculator">;
-export type DebuggingAssessmentDefinition = AssessmentDefinitionBase<"debugging">;
+export type TraceAssessmentDefinition = AssessmentDefinitionBase<"trace"> & {
+  readonly payload?: TraceAssessmentPayload;
+};
+
+export type CalculatorAssessmentDefinition = AssessmentDefinitionBase<"calculator"> & {
+  readonly payload?: CalculatorAssessmentPayload;
+};
+
+export type DebuggingAssessmentDefinition = AssessmentDefinitionBase<"debugging"> & {
+  readonly payload?: DebuggingAssessmentPayload;
+};
 
 export type ScenarioAssessmentDefinition = AssessmentDefinitionBase<"scenario"> & {
   readonly triviaEligible: false;
+  readonly payload?: ScenarioAssessmentPayload;
 };
 
 export type CapstoneAssessmentDefinition = AssessmentDefinitionBase<"capstone"> & {
   readonly triviaEligible: false;
+  readonly payload?: CapstoneAssessmentPayload;
 };
 
 export type AssessmentDefinition =
