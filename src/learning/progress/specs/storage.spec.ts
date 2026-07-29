@@ -9,12 +9,14 @@ const record = (overrides: Record<string, unknown> = {}) =>
     mode: "trace",
     variant: "default",
     response: { prediction: "A" },
+    gradingStatus: "graded",
     score: 0.9,
     rubric: [{ id: "prediction", score: 0.9, maxScore: 1 }],
     criticalFailures: [],
     confidence: 4,
     misconceptionCodes: [],
     repairedMisconceptionCodes: [],
+    isomorphicRetest: false,
     changedContext: false,
     invariantEvidence: "FIFO order is preserved.",
     tradeoffEvidence: "Fairness costs a small scheduling delay.",
@@ -38,7 +40,7 @@ describe("assessment attempt storage", () => {
     const sync = vi.fn();
     const attempts = createAttemptStorage({ sync, now: () => 100 });
 
-    attempts.save(record());
+    expect(attempts.save(record())).toBe(true);
 
     expect(attempts.load()).toEqual([record()]);
     expect(Object.isFrozen(attempts.load()[0])).toBe(true);
@@ -128,6 +130,16 @@ describe("assessment attempt storage", () => {
       attempts: [expect.objectContaining({ response: { prediction: "latest" } })],
     });
     latestSave.resolve();
+  });
+
+  it("honors a configured 300-attempt bound while loading record 251", () => {
+    const attempts = createAttemptStorage({ maxAttempts: 300, sync: vi.fn() });
+
+    for (let index = 0; index < 251; index += 1) {
+      attempts.save(record({ createdAt: index + 100, updatedAt: index + 100 }));
+    }
+
+    expect(attempts.load()).toHaveLength(251);
   });
 });
 

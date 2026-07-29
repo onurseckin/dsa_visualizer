@@ -1,18 +1,27 @@
 import { useState } from "react";
 
 import type { CalculatorAssessmentPayload } from "../../../learning/assessment";
+import type {
+  AssessmentSubmissionContext,
+  AssessmentSubmissionHandler,
+} from "../../../learning/progress/types";
 import { Button } from "../../atoms/Button";
 import { Well } from "../../atoms/Well";
+import { createAssessmentSubmission } from "./submission";
 import { Unavailable } from "./TraceAssessment";
 
 export interface CalculatorAssessmentProps {
   readonly title: string;
   readonly payload?: CalculatorAssessmentPayload;
+  readonly submissionContext: AssessmentSubmissionContext;
+  readonly onSubmit: AssessmentSubmissionHandler;
 }
 
 export function CalculatorAssessment({
   title,
   payload,
+  submissionContext,
+  onSubmit,
 }: CalculatorAssessmentProps): React.ReactElement {
   const [estimate, setEstimate] = useState("");
   const [exact, setExact] = useState("");
@@ -32,15 +41,43 @@ export function CalculatorAssessment({
       setMessage("Provide a numeric exact result to check it against the authored tolerance.");
       return;
     }
-    if (unit.trim() !== payload.result.unit) {
-      setMessage(`Use the authored result unit: ${payload.result.unit}.`);
-      return;
-    }
-    const withinTolerance = Math.abs(exactValue - payload.result.value) <= payload.result.tolerance;
+    const unitMatches = unit.trim() === payload.result.unit;
+    const withinTolerance =
+      unitMatches && Math.abs(exactValue - payload.result.value) <= payload.result.tolerance;
+    const saved = onSubmit(
+      createAssessmentSubmission({
+        mode: "calculator",
+        metadata: payload,
+        context: submissionContext,
+        response: {
+          inputs: Object.fromEntries(
+            payload.inputs.map((input) => [input.id, input.defaultValue ?? ""]),
+          ),
+          estimate: estimateValue,
+          exact: exactValue,
+          unit: unit.trim(),
+        },
+        gradingStatus: "graded",
+        score: withinTolerance ? 1 : 0,
+        rubric: [
+          {
+            id: "calculation",
+            score: withinTolerance ? 1 : 0,
+            maxScore: 1,
+            feedback: withinTolerance
+              ? "Within the authored tolerance."
+              : "Outside the authored tolerance or unit.",
+          },
+        ],
+      }),
+    );
+    const saveMessage = saved ? " Attempt saved." : " The attempt could not be saved.";
     setMessage(
       withinTolerance
-        ? "Your result is within the authored tolerance."
-        : "Your result is outside the authored tolerance. Recheck the inputs and units.",
+        ? `Your result is within the authored tolerance.${saveMessage}`
+        : unitMatches
+          ? `Your result is outside the authored tolerance. Recheck the inputs and units.${saveMessage}`
+          : `Use the authored result unit: ${payload.result.unit}.${saveMessage}`,
     );
   };
 
@@ -48,6 +85,7 @@ export function CalculatorAssessment({
     <section className="assessment-panel" aria-label={`${title} calculator assessment`}>
       <h2>Estimate, then calculate</h2>
       <p>{payload.prompt}</p>
+      <p>The following values are fixed authored variant inputs.</p>
       <div className="assessment-input-grid">
         {payload.inputs.map((input) => (
           <label className="assessment-field" key={input.id}>
@@ -57,7 +95,8 @@ export function CalculatorAssessment({
             </span>
             <input
               aria-label={`Calculator input: ${input.label}`}
-              defaultValue={input.defaultValue}
+              value={input.defaultValue ?? ""}
+              readOnly
               type="text"
             />
           </label>
@@ -99,13 +138,19 @@ export function CalculatorAssessment({
       {message ? (
         <p
           className="assessment-status"
-          role={message.startsWith("Provide") || message.startsWith("Use") ? "alert" : "status"}
+          role={
+            message.startsWith("Provide") ||
+            message.startsWith("Use") ||
+            message.includes("could not")
+              ? "alert"
+              : "status"
+          }
           aria-live="polite"
         >
           {message}
         </p>
       ) : null}
-      {message && !message.startsWith("Provide") && !message.startsWith("Use") ? (
+      {message && !message.startsWith("Provide") ? (
         <p className="assessment-reference">
           Reference: {payload.result.value} {payload.result.unit} ± {payload.result.tolerance}
         </p>

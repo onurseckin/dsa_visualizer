@@ -32,7 +32,7 @@ function WorkspacePage(): React.ReactElement {
   if (!item) {
     return <main aria-label="Learning item unavailable">This learning item is unavailable.</main>;
   }
-  if (!isAlgorithmLearningItem(item)) return <AssessmentWorkspace item={item} />;
+  if (!isAlgorithmLearningItem(item)) return <AssessmentWorkspace key={item.id} item={item} />;
 
   return <AlgorithmWorkspacePage item={item} />;
 }

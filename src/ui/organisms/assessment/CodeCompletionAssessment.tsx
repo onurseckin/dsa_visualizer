@@ -1,15 +1,24 @@
 import { useState } from "react";
 
 import type { CodeCompletionPayload } from "../../../learning/assessment";
+import type {
+  AssessmentSubmissionContext,
+  AssessmentSubmissionHandler,
+} from "../../../learning/progress/types";
 import { Button } from "../../atoms/Button";
 import { Well } from "../../atoms/Well";
+import { createAssessmentSubmission, pendingRubric } from "./submission";
 
 export interface CodeCompletionAssessmentProps {
   readonly payload: CodeCompletionPayload;
+  readonly submissionContext: AssessmentSubmissionContext;
+  readonly onSubmit: AssessmentSubmissionHandler;
 }
 
 export function CodeCompletionAssessment({
   payload,
+  submissionContext,
+  onSubmit,
 }: CodeCompletionAssessmentProps): React.ReactElement {
   const [completion, setCompletion] = useState("");
   const [why, setWhy] = useState("");
@@ -20,7 +29,22 @@ export function CodeCompletionAssessment({
       setMessage("Provide both a completion and an invariant explanation before submitting.");
       return;
     }
-    setMessage("Completion submitted for semantic review with its consequence explanation.");
+    const saved = onSubmit(
+      createAssessmentSubmission({
+        mode: "code-completion",
+        metadata: payload,
+        context: submissionContext,
+        response: { completion: completion.trim(), explanation: why.trim() },
+        gradingStatus: "pending",
+        score: 0,
+        rubric: pendingRubric("semantic-completion"),
+      }),
+    );
+    setMessage(
+      saved
+        ? "Completion submitted for semantic review and saved with its consequence explanation."
+        : "Completion submitted for semantic review, but it could not be saved.",
+    );
   };
 
   return (
@@ -57,7 +81,10 @@ export function CodeCompletionAssessment({
       <p className="assessment-consequence">{payload.consequencePrompt}</p>
       <Button onClick={submit}>Submit completion</Button>
       {message ? (
-        <p className="assessment-status" role={message.startsWith("Provide") ? "alert" : "status"}>
+        <p
+          className="assessment-status"
+          role={message.startsWith("Provide") || message.includes("could not") ? "alert" : "status"}
+        >
           {message}
         </p>
       ) : null}

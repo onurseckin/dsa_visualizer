@@ -1,24 +1,34 @@
 import { useState } from "react";
 
 import type { DebuggingAssessmentPayload } from "../../../learning/assessment";
+import type {
+  AssessmentSubmissionContext,
+  AssessmentSubmissionHandler,
+} from "../../../learning/progress/types";
 import { Button } from "../../atoms/Button";
 import { Well } from "../../atoms/Well";
 import { CodeCompletionAssessment } from "./CodeCompletionAssessment";
+import { createAssessmentSubmission, pendingRubric } from "./submission";
 import { Unavailable } from "./TraceAssessment";
 
 export interface DebuggingAssessmentProps {
   readonly title: string;
   readonly payload?: DebuggingAssessmentPayload;
   readonly correctedReference?: string;
+  readonly submissionContext: AssessmentSubmissionContext;
+  readonly onSubmit: AssessmentSubmissionHandler;
 }
 
 export function DebuggingAssessment({
   title,
   payload,
   correctedReference,
+  submissionContext,
+  onSubmit,
 }: DebuggingAssessmentProps): React.ReactElement {
   const [diagnosis, setDiagnosis] = useState("");
   const [revealed, setRevealed] = useState(false);
+  const [message, setMessage] = useState("");
 
   if (!payload) return <Unavailable title={title} mode="debugging" />;
 
@@ -64,7 +74,27 @@ export function DebuggingAssessment({
       <Button
         variant="primary"
         onClick={() => {
-          if (diagnosis.trim()) setRevealed(true);
+          if (!diagnosis.trim()) {
+            setMessage("Provide a diagnosis before revealing the corrected reference.");
+            return;
+          }
+          const saved = onSubmit(
+            createAssessmentSubmission({
+              mode: "debugging",
+              metadata: payload,
+              context: submissionContext,
+              response: { diagnosis: diagnosis.trim() },
+              gradingStatus: "pending",
+              score: 0,
+              rubric: pendingRubric("diagnosis"),
+            }),
+          );
+          setRevealed(true);
+          setMessage(
+            saved
+              ? "Diagnosis saved for review."
+              : "The corrected reference is shown, but the diagnosis could not be saved.",
+          );
         }}
       >
         Reveal corrected reference
@@ -81,7 +111,21 @@ export function DebuggingAssessment({
           </p>
         )
       ) : null}
-      {payload.completion ? <CodeCompletionAssessment payload={payload.completion} /> : null}
+      {message ? (
+        <p
+          className="assessment-status"
+          role={message.startsWith("Provide") || message.includes("could not") ? "alert" : "status"}
+        >
+          {message}
+        </p>
+      ) : null}
+      {payload.completion ? (
+        <CodeCompletionAssessment
+          payload={payload.completion}
+          submissionContext={submissionContext}
+          onSubmit={onSubmit}
+        />
+      ) : null}
     </section>
   );
 }
