@@ -246,6 +246,15 @@ describe("DSA Python execution catalog", () => {
     for (const testCase of DSA_EXECUTION_SPECS.get("interval-scheduling")?.cases ?? []) {
       expect(countMaximumSchedules(testCase.input)).toBe(1);
     }
+    expect(DSA_OUTPUT_SEMANTICS_AUDIT["interval-scheduling"]).toMatchObject({
+      strategy: "unordered-outer",
+    });
+    expect(
+      DSA_EXECUTION_SPECS.get("interval-scheduling")?.cases.map((testCase) => testCase.comparison),
+    ).toEqual(["unordered-outer", "unordered-outer", "unordered-outer"]);
+    expect(DSA_EXECUTION_SPECS.get("interval-scheduling")?.outputContract).toMatch(
+      /order is not significant/i,
+    );
     for (const testCase of DSA_EXECUTION_SPECS.get("nim-game")?.cases ?? []) {
       expect([0, 1]).toContain(countWinningNimMoves(testCase.input));
     }

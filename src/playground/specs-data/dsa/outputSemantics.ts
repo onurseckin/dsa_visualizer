@@ -103,8 +103,8 @@ export const DSA_OUTPUT_SEMANTICS_AUDIT = {
   ),
   "inclusion-exclusion-principle": exact("The divisible-value count is unique."),
   "interval-scheduling": strategy(
-    "unique-fixtures",
-    "Every authored fixture has one maximum-cardinality compatible subset.",
+    "unordered-outer",
+    "The selected compatible intervals form a set, so outer order is irrelevant while each [start, end] pair remains ordered.",
   ),
   "kadane-max-subarray": exact("Only the maximum sum is returned, so tied ranges are equivalent."),
   "kmp-string-match": exact("All match-start indices form a unique ascending sequence."),
