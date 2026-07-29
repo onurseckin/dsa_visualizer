@@ -1,8 +1,4 @@
-import type {
-  AlgorithmStep,
-  ArrayElement,
-  PrimaryVisualSnapshot,
-} from "../../../types/dsa";
+import type { AlgorithmStep, ArrayElement, PrimaryVisualSnapshot } from "../../../types/dsa";
 import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 
 export const DEFAULT_QUICK_SORT_INPUT: number[] = [6, 2, 9, 3, 7, 1, 5];
@@ -161,8 +157,7 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawInput =
-    Array.isArray(input) && input.length > 0 ? input : DEFAULT_QUICK_SORT_INPUT;
+  const rawInput = Array.isArray(input) && input.length > 0 ? input : DEFAULT_QUICK_SORT_INPUT;
   const arr = [...rawInput];
   const n = arr.length;
   const sortedSet = new Set<number>();
@@ -210,7 +205,13 @@ export const generateQuickSortSteps = (input: number[]): AlgorithmStep[] => {
         state = "swap";
       } else if (idx === jIdx) {
         state = "compare";
-      } else if (iIdx !== undefined && iIdx >= 0 && low !== undefined && idx >= low && idx <= iIdx) {
+      } else if (
+        iIdx !== undefined &&
+        iIdx >= 0 &&
+        low !== undefined &&
+        idx >= low &&
+        idx <= iIdx
+      ) {
         state = "active";
       } else if (low !== undefined && high !== undefined && idx >= low && idx <= high) {
         state = "compare";

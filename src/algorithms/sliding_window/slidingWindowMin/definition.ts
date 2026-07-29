@@ -85,7 +85,24 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   title: "Sliding Window Minimum",
   topicIds: ["sliding_window"],
   difficulty: "Hard",
-  description: `<p>Finds the minimum element in every contiguous sliding window of size <code>k</code> in an array <code>nums</code> as the window slides from left to right.</p><p>By maintaining a monotonic increasing double-ended queue (deque) of candidate indices, the algorithm computes each window minimum in amortized <code>O(1)</code> time per element (<code>O(N)</code> total).</p><h3>Why It Exists &amp; Real-World Relevance</h3><p>Tracking rolling minimums or maximums over a fixed window is a fundamental requirement in time-series analysis and system monitoring. Naively checking all <code>K</code> elements in every window takes <code>O(N &middot; K)</code> time, while min-heaps take <code>O(N log K)</code> time. A monotonic deque achieves optimal linear <code>O(N)</code> time.</p><p>Real-world applications include:</p><ul><li><strong>Financial Risk &amp; Volatility:</strong> Computing rolling minimum asset prices over fixed time windows (e.g., 30-day low).</li><li><strong>Streaming Telemetry &amp; Rate Limiting:</strong> Monitoring minimum latency or throughput spikes across sliding time intervals.</li><li><strong>Signal &amp; Image Processing:</strong> 1D/2D max/min filter kernels in computer vision (e.g. morphological erosion and dilation).</li><li><strong>Network Packet Scheduling:</strong> TCP sliding window congestion control and buffer management.</li></ul><h3>How It Works (Step-by-Step Intuition)</h3><ul><li>Maintain a double-ended queue (<code>deque</code>) storing indices into <code>nums</code>.</li><li>Iterate index <code>i</code> from <code>0</code> to <code>N - 1</code>:<ul><li><strong>Expire Front:</strong> If <code>dq[0] &le; i - k</code>, pop it from the front via <code>popleft()</code>. It has slid past the left edge of the window.</li><li><strong>Pop Dominated Back:</strong> While the deque is non-empty and <code>nums[dq[-1]] &ge; nums[i]</code>, pop from the back. Since <code>nums[i]</code> is smaller (or equal) and sits further right, older larger elements can never be a minimum again.</li><li><strong>Push Current:</strong> Push index <code>i</code> to the back of the deque.</li><li><strong>Record Minimum:</strong> Once <code>i &ge; k - 1</code> (the window is full), record <code>nums[dq[0]]</code> as the minimum for the current window.</li></ul></li></ul><p><code>dq[0] &le; i - k &rArr; popleft()</code></p><p><code>nums[dq[-1]] &ge; nums[i] &rArr; pop()</code></p><h3>Input Parameters</h3><ul><li><code>nums</code>: An array of integers.</li><li><code>k</code>: An integer representing the sliding window size (<code>1 &le; k &le; N</code>).</li></ul><h3>Output</h3><p>Returns an array <code>result</code> containing <code>N - k + 1</code> integers representing the minimum of each sliding window of size <code>k</code>.</p><h3>Edge Cases &amp; Constraints</h3><ul><li><code>1 &le; nums.length &le; 10<sup>5</sup></code></li><li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code></li><li><code>1 &le; k &le; nums.length</code></li><li><code>k = 1</code>: Output array is identical to <code>nums</code>.</li><li><code>k = N</code>: Output array contains a single element (the global minimum of <code>nums</code>).</li><li>Duplicate values: Preserved correctly by non-strict popping (<code>&ge;</code>), replacing older equal values with newer ones.</li></ul>`,
+  description: `<p>Given an array of integers <code>nums</code> and a sliding window size <code>k</code>, return an array containing the minimum value in each contiguous window of size <code>k</code> as it slides from left to right.</p>
+<h3>Problem Statement</h3>
+<p>There is a sliding window of size <code>k</code> moving from the very left of the array <code>nums</code> to the very right. You can only see the <code>k</code> numbers in the window. Each time the sliding window moves right by one position, determine the minimum value within the current window.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: An array of integers.</li>
+  <li><code>k</code>: An integer representing the sliding window size (<code>1 &le; k &le; N</code>).</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an array <code>result</code> containing <code>N - k + 1</code> integers representing the minimum of each sliding window of size <code>k</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
+  <li><code>1 &le; k &le; nums.length</code>.</li>
+  <li><code>k = 1</code>: Output array is identical to <code>nums</code>.</li>
+  <li><code>k = N</code>: Output array contains a single element (the global minimum of <code>nums</code>).</li>
+</ul>`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4", "1 <= k <= nums.length"],
   examples: [
     {

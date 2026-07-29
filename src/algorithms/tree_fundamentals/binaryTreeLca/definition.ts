@@ -29,34 +29,24 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   title: "Lowest Common Ancestor of a Binary Tree",
   topicIds: ["tree_fundamentals"],
   difficulty: "Medium",
-  description: `<p>Find the Lowest Common Ancestor (LCA) node for two given target nodes <em>p</em> and <em>q</em> in a binary tree.</p>
+  description: `<p>Given the root of a binary tree and two nodes <em>p</em> and <em>q</em>, return their Lowest Common Ancestor (LCA).</p>
 <h3>Problem Statement</h3>
-<p>Given the root node <code>root</code> of a binary tree and two distinct target nodes <em>p</em> and <em>q</em> existing within the tree, find their Lowest Common Ancestor (LCA). The LCA is defined as the deepest node <em>T</em> in the tree that has both <em>p</em> and <em>q</em> as descendants (where a node is allowed to be a descendant of itself per standard tree graph theory conventions).</p>
-<h3>Why It Exists &amp; Real-World Applications</h3>
-<p>LCA resolution is a fundamental algorithmic pattern across software engineering and system architecture:</p>
+<p>Given the root node <code>root</code> of a binary tree and two distinct target nodes <em>p</em> and <em>q</em> existing within the tree, find their Lowest Common Ancestor (LCA). The LCA is defined as the deepest node <em>T</em> in the tree that has both <em>p</em> and <em>q</em> as descendants (where a node is allowed to be a descendant of itself per standard tree conventions).</p>
+<h3>Input Parameters</h3>
 <ul>
-  <li><strong>Version Control Systems (Git)</strong>: Git computes the LCA of two commits (<code>git merge-base</code>) to establish the shared base commit when performing a three-way merge.</li>
-  <li><strong>Compilers &amp; Static Analysis</strong>: Abstract Syntax Trees (ASTs) query LCA to determine the narrowest enclosing lexical scope containing two variable references or expressions.</li>
-  <li><strong>Distributed Systems &amp; Control Groups</strong>: Linux cgroups cgroup-v2 tree managers calculate common parent hierarchy nodes for memory and CPU quota enforcement.</li>
-  <li><strong>Autograd Engine Computation Graphs</strong>: PyTorch and TensorFlow execute post-order LCA queries to locate bifurcation points in DAGs for gradient tape propagation.</li>
+  <li><code>root</code>: Root node of the binary tree structure.</li>
+  <li><code>p</code>: ID/value of target node <em>p</em>.</li>
+  <li><code>q</code>: ID/value of target node <em>q</em>.</li>
 </ul>
-<h3>Algorithmic Approach &amp; DFS Intuition</h3>
-<p>The solution uses a bottom-up post-order Depth-First Search (DFS) traversal. The recursive contract relies on three conditions:</p>
+<h3>Output</h3>
+<p>Returns the node reference or node ID corresponding to the lowest common ancestor of <em>p</em> and <em>q</em>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
 <ul>
-  <li><strong>Base Case</strong>: If <code>root</code> is null or <code>root.val</code> equals either target <em>p</em> or <em>q</em>, return <code>root</code>.</li>
-  <li><strong>Subtree Traversal</strong>: Recursively search the left subtree (<code>left = LCA(root.left, p, q)</code>) and right subtree (<code>right = LCA(root.right, p, q)</code>).</li>
-  <li><strong>Decision &amp; Bubble Up</strong>:
-    <ul>
-      <li>If both <code>left</code> and <code>right</code> return non-null node references, target <em>p</em> lies in one subtree and target <em>q</em> lies in the other. Thus, <code>root</code> is the unique Lowest Common Ancestor!</li>
-      <li>If only one side returns non-null, forward that result upward to the parent caller.</li>
-      <li>If both return null, return null.</li>
-    </ul>
-  </li>
-</ul>
-<h3>Complexity Summary</h3>
-<ul>
-  <li><strong>Time Complexity</strong>: <em>O(N)</em> worst/average case, visiting every node at most once.</li>
-  <li><strong>Space Complexity</strong>: <em>O(H)</em> auxiliary call stack space, where <em>H</em> is tree height (<em>O(log N)</em> for balanced trees, <em>O(N)</em> for degenerate skewed chains).</li>
+  <li><code>2 &le; N &le; 10<sup>5</sup></code> (number of nodes).</li>
+  <li>All <code>Node.val</code> are unique.</li>
+  <li><code>p != q</code>.</li>
+  <li>Both nodes <em>p</em> and <em>q</em> are guaranteed to exist in the tree.</li>
+  <li>One node may be a direct ancestor of the other (e.g. <em>p</em> is ancestor of <em>q</em>).</li>
 </ul>`,
   constraints: [
     "2 <= Number of nodes N <= 10^5",

@@ -467,36 +467,21 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   topicIds: ["stack_and_queue"],
   difficulty: "Medium",
   description: `<p>Given an array of integers <code>nums</code>, find the nearest smaller element to the left for each element in the array.</p>
-<p>For each element at index <em>i</em> (0 &le; <em>i</em> &lt; <em>N</em>), locate the largest index <em>j</em> &lt; <em>i</em> such that <code>nums[j]</code> &lt; <code>nums[i]</code>. If no such element exists, output <code>-1</code> for index <em>i</em>. A monotonic stack algorithm computes the answer in linear <em>O(N)</em> time by maintaining an increasing stack of candidate elements.</p>
-<h3>Why It Exists &amp; Real-World Relevance</h3>
-<p>Finding nearest smaller or larger elements in an array is a fundamental pattern in algorithm design. A naive nested loop takes <em>O(N<sup>2</sup>)</em> time, which becomes prohibitively slow for large arrays. Monotonic stacks solve this class of problems in linear <em>O(N)</em> time.</p>
-<p>Real-world applications include:</p>
-<ul>
-  <li><strong>Histogram &amp; Layout Math</strong>: Computing the largest rectangle in a histogram relies on finding the nearest smaller element on both left and right sides to establish bar boundaries.</li>
-  <li><strong>Stock Span &amp; Financial Analytics</strong>: Calculating how many consecutive days prior to today a stock price was lower or equal.</li>
-  <li><strong>Tensor &amp; Memory Layout Compilers</strong>: PyTorch and TensorFlow compilers use monotonic bounds to find non-overlapping contiguous memory spans.</li>
-</ul>
-<h3>How It Works (Step-by-Step Intuition)</h3>
-<ul>
-  <li>Maintain an increasing monotonic stack storing candidate elements.</li>
-  <li>Iterate through each element <code>nums[i]</code> from left to right.</li>
-  <li><strong>Pop Phase</strong>: While the stack is non-empty and the top element is &ge; <code>nums[i]</code>, pop it because <code>nums[i]</code> is both smaller (or equal) and positioned further right, so any future element that could use the popped value can use <code>nums[i]</code> instead.</li>
-  <li><strong>Answer Phase</strong>: If the stack is non-empty after popping, the top element is the nearest smaller element to the left of <code>nums[i]</code>. If empty, record <code>-1</code>.</li>
-  <li><strong>Push Phase</strong>: Push <code>nums[i]</code> onto the stack.</li>
-</ul>
+<h3>Problem Statement</h3>
+<p>Given an array of integers <code>nums</code> of length <em>N</em>, for each element at index <em>i</em> (0 &le; <em>i</em> &lt; <em>N</em>), locate the largest index <em>j</em> &lt; <em>i</em> such that <code>nums[j]</code> &lt; <code>nums[i]</code>. If no such element exists, output <code>-1</code> for index <em>i</em>.</p>
 <h3>Input Parameters</h3>
 <ul>
   <li><code>nums</code>: An array of integers.</li>
 </ul>
 <h3>Output</h3>
 <p>Returns an array <code>result</code> of length <em>N</em> where <code>result[i]</code> is the nearest smaller element to the left of <code>nums[i]</code>, or <code>-1</code> if no smaller element exists to its left.</p>
-<h3>Edge Cases &amp; Constraints</h3>
+<h3>Constraints &amp; Edge Cases</h3>
 <ul>
-  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code></li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code></li>
-  <li><strong>Strictly increasing array</strong>: Each element's nearest smaller element is its immediate left neighbor.</li>
-  <li><strong>Strictly decreasing array</strong>: No element has a smaller element to its left; all entries in <code>result</code> are <code>-1</code>.</li>
-  <li><strong>Duplicate elements</strong>: Popping when the stack top is &ge; <code>nums[i]</code> ensures equal values are popped, preserving strict monotonicity.</li>
+  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
+  <li>Strictly increasing array: Each element's nearest smaller element is its immediate left neighbor.</li>
+  <li>Strictly decreasing array: All entries in <code>result</code> are <code>-1</code>.</li>
+  <li>Handles duplicate elements correctly.</li>
 </ul>`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [

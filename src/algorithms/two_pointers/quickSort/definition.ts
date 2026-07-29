@@ -80,8 +80,22 @@ export const quickSort: AlgorithmDefinition<number[]> = {
   title: "Quick Sort",
   topicIds: ["two_pointers"],
   difficulty: "Medium",
-  description:
-    "<p>Quick Sort is an efficient divide-and-conquer sorting algorithm that selects a pivot element, partitions the array so smaller elements sit to its left and larger ones to its right, and recursively sorts each half.</p><h3>Why It Exists &amp; What It Solves</h3><p>Developed by Tony Hoare, Quick Sort solves in-place array sorting without allocating auxiliary arrays (<code>O(1)</code> extra memory beyond call stack frames). It delivers superior CPU cache locality compared to Merge Sort and Heap Sort.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Pivot Selection:</strong> Choose a pivot element (typically <code>arr[high]</code>).</li><li><strong>Lomuto Partitioning:</strong> Maintain boundary pointer <code>i = low - 1</code>. Scan <code>j</code> from <code>low</code> to <code>high - 1</code>. If <code>arr[j] &le; pivot</code>, increment <code>i</code> and swap <code>arr[i]</code> with <code>arr[j]</code>.</li><li><strong>Pivot Placement:</strong> Swap <code>arr[i + 1]</code> with <code>arr[high]</code>. The pivot lands at <code>pivot_idx = i + 1</code>.</li><li><strong>Recursion:</strong> Recurse on <code>[low &hellip; pivot_idx - 1]</code> and <code>[pivot_idx + 1 &hellip; high]</code>.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>arr</code> (<code>list[int]</code>), unsorted array of numbers.</li><li><strong>Output:</strong> <code>list[int]</code>, sorted array in non-decreasing order.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> Average/Best <code>O(N log N)</code>, Worst <code>O(N<sup>2</sup>)</code> for unbalanced pivots.</li><li><strong>Space Complexity:</strong> <code>O(log N)</code> auxiliary space for call stack frames.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Cases:</strong> Subarrays with <code>N &le; 1</code> return immediately.</li><li><strong>Duplicates:</strong> Handled non-stably by Lomuto partitioning.</li></ul>",
+  description: `<p>Given an array of integers <code>nums</code>, sort the array in non-decreasing order.</p>
+<h3>Problem Statement</h3>
+<p>Given an unsorted array of integers <code>nums</code>, return the array sorted in ascending (non-decreasing) order.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: An unsorted array of integers.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns the array sorted in non-decreasing order.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>-10<sup>9</sup> &le; nums[i] &le; 10<sup>9</sup></code>.</li>
+  <li>Single element array returns array as-is.</li>
+  <li>Handles duplicate elements.</li>
+</ul>`,
   constraints: ["1 <= arr.length <= 10^5", "-10^9 <= arr[i] <= 10^9"],
   examples: [
     {

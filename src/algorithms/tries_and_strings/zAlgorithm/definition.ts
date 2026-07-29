@@ -37,10 +37,9 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   title: "Z-Algorithm String Matching",
   topicIds: ["tries_and_strings"],
   difficulty: "Hard",
-  description: `<p>Find all occurrences of a pattern in a text string in linear <em>O(N + M)</em> time by constructing <code>S = pattern + '$' + text</code> and computing its Z-array.</p>
+  description: `<p>Given a text string <code>text</code> and a pattern string <code>pattern</code>, find all starting indices in <code>text</code> where <code>pattern</code> occurs as a contiguous substring.</p>
 <h3>Problem Statement</h3>
-<p>Given a text string <code>text</code> of length <em>N</em> and a pattern string <code>pattern</code> of length <em>M</em>, find all starting indices in <code>text</code> where <code>pattern</code> occurs.</p>
-<p>The Z-algorithm constructs a combined string <code>S = pattern + '$' + text</code> (where <code>'$'</code> is a sentinel character present in neither string) and computes its Z-array. <code>Z[i]</code> stores the length of the longest substring starting at index <em>i</em> that matches the prefix of <em>S</em>. Any position <em>i &gt; M</em> with <code>Z[i] == M</code> corresponds to a complete match of <code>pattern</code> in <code>text</code> starting at index <em>i - M - 1</em>.</p>
+<p>Given a text string <code>text</code> of length <em>N</em> and a pattern string <code>pattern</code> of length <em>M</em>, locate all starting 0-based index positions in <code>text</code> where <code>pattern</code> appears. Overlapping matches must be included in the output list.</p>
 <h3>Input Parameters</h3>
 <ul>
   <li><code>text</code>: Search text string of length <em>N</em>.</li>
@@ -52,8 +51,8 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
 <ul>
   <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
   <li><code>1 &le; M &le; 10<sup>4</sup></code>.</li>
-  <li>Sentinel character <code>'$'</code> must not appear in either input string.</li>
-  <li>Overlapping matches are correctly reported.</li>
+  <li>Strings consist of printable ASCII characters.</li>
+  <li>Pattern longer than text (<em>M &gt; N</em>) returns an empty array <code>[]</code>.</li>
 </ul>`,
   constraints: [
     "1 <= text.length <= 10^5",

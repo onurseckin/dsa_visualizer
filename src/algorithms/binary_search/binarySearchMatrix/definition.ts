@@ -105,41 +105,27 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   title: "Search a 2D Matrix",
   topicIds: ["binary_search"],
   difficulty: "Medium",
-  description: `<p>Locate a target value in an <em>m</em> &times; <em>n</em> integer matrix with sorted rows and strictly increasing row transitions in <em>O(log(m &middot; n))</em> time.</p>
-<h3>Why It Exists &amp; What It Solves</h3>
-<p>Searching a 2D matrix element by element takes <em>O(m &middot; n)</em> linear time. When each row is sorted and the first element of each row is strictly greater than the last element of the previous row, the entire matrix forms one continuous sorted sequence. Instead of flattening the matrix into a new 1D array (which would require extra space and time), we can perform binary search on virtual 1D indices, calculating 2D coordinates on demand in <em>O(1)</em> space and <em>O(log(m &middot; n))</em> time.</p>
-<h3>Step-by-Step Intuition</h3>
+  description: `<p>Given an <em>m</em> &times; <em>n</em> integer matrix where each row is sorted in non-decreasing order and the first integer of each row is strictly greater than the last integer of the previous row, determine if a target value exists in the matrix.</p>
+<h3>Problem Statement</h3>
+<p>You are given an <em>m</em> &times; <em>n</em> 2D integer matrix <code>matrix</code> with the following two properties:</p>
 <ul>
-  <li><strong>Virtual Index Range</strong>: Map the <em>m</em> &times; <em>n</em> cells to flat indices 0 to <em>m &middot; n - 1</em>. Set <code>low = 0</code> and <code>high = m * n - 1</code>.</li>
-  <li><strong>Compute Midpoint</strong>: Calculate 1D midpoint <code>mid = (low + high) // 2</code>.</li>
-  <li><strong>Map to 2D Coordinates</strong>: Calculate <code>row = mid // n</code> and <code>col = mid % n</code>.</li>
-  <li><strong>Compare &amp; Branch</strong>:
-    <ul>
-      <li>If <code>matrix[row][col] == target</code>, return <code>True</code>.</li>
-      <li>If <code>matrix[row][col] &lt; target</code>, set <code>low = mid + 1</code>.</li>
-      <li>If <code>matrix[row][col] &gt; target</code>, set <code>high = mid - 1</code>.</li>
-    </ul>
-  </li>
+  <li>Each row is sorted in non-decreasing order.</li>
+  <li>The first integer of each row is greater than the last integer of the previous row.</li>
 </ul>
+<p>Given an integer <code>target</code>, return <code>true</code> if <code>target</code> is in <code>matrix</code>, or <code>false</code> otherwise.</p>
 <h3>Input Parameters</h3>
 <ul>
-  <li><code>matrix</code>: An <em>m</em> &times; <em>n</em> integer grid where each row is sorted and <code>matrix[i][0] &gt; matrix[i-1][n-1]</code>.</li>
+  <li><code>matrix</code>: An <em>m</em> &times; <em>n</em> integer grid.</li>
   <li><code>target</code>: The integer target value to locate.</li>
 </ul>
 <h3>Output</h3>
 <p>Returns boolean <code>true</code> if target exists in matrix, otherwise <code>false</code>.</p>
-<h3>Trade-offs &amp; Complexity</h3>
-<ul>
-  <li><strong>Time Complexity</strong>: <em>O(log(m &middot; n))</em> worst/average case, <em>O(1)</em> best case.</li>
-  <li><strong>Space Complexity</strong>: <em>O(1)</em> auxiliary space using virtual index mapping.</li>
-  <li><strong>Requirement</strong>: Matrix must have globally sorted row transitions.</li>
-</ul>
-<h3>Edge Cases &amp; Constraints</h3>
+<h3>Constraints &amp; Edge Cases</h3>
 <ul>
   <li><code>m == matrix.length</code>, <code>n == matrix[i].length</code></li>
   <li><code>1 &le; m, n &le; 100</code></li>
   <li><code>-10<sup>4</sup> &le; matrix[i][j], target &le; 10<sup>4</sup></code></li>
-  <li>Degenerate empty matrices (<code>m == 0</code> or <code>n == 0</code>).</li>
+  <li>Degenerate empty matrices (<code>m == 0</code> or <code>n == 0</code>) return <code>false</code>.</li>
   <li>Single element matrices (1 &times; 1).</li>
 </ul>`,
   constraints: [

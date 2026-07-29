@@ -390,8 +390,16 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     indexedEdges.push({ index, from: edge.from, to: edge.to, weight });
   }
 
-  for (const intro of createIntroSnapshots()) {
-    addStep(intro.narrative, intro.primarySnapshot, "intro");
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.nodes) &&
+      input.nodes.length === 6 &&
+      input.nodes.some((n) => n.id === "F"));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
   }
 
   const nodes = sourceNodes.map((node) => ({ ...node, state: "default" as const }));

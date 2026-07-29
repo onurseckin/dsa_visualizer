@@ -302,45 +302,21 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   title: "Reverse Linked List",
   topicIds: ["linked_list"],
   difficulty: "Easy",
-  description: `<p>Invert pointer directions of a singly linked list in-place in <em>O(N)</em> time and <em>O(1)</em> space.</p>
-<h3>Why It Exists &amp; What It Solves</h3>
-<p>Unlike arrays where elements can be accessed by index in <em>O(1)</em> time, a singly linked list only permits forward traversal via <code>.next</code> pointers. Reversing an array involves swapping elements from outside in. For a linked list, we cannot step backward from the tail; we must flip each <code>.next</code> pointer forward as we traverse. In-place reversal rearranges existing node references without instantiating new objects, avoiding heap allocations and memory fragmentation.</p>
-<h3>Step-by-Step Intuition</h3>
-<ul>
-  <li><strong>Three-Pointer Setup</strong>: Maintain three pointers:
-    <ul>
-      <li><code>prev</code>: Head of the already reversed portion (starts at <code>None</code>).</li>
-      <li><code>curr</code>: Node currently being processed (starts at <code>head</code>).</li>
-      <li><code>nxt</code>: Temporary handle to preserve forward connection (<code>curr.next</code>).</li>
-    </ul>
-  </li>
-  <li><strong>Four-Step Inversion Loop</strong>:
-    <ul>
-      <li><strong>Save</strong>: <code>nxt = curr.next</code> (stash next node before link breaks).</li>
-      <li><strong>Flip</strong>: <code>curr.next = prev</code> (redirect pointer backward).</li>
-      <li><strong>Advance Prev</strong>: <code>prev = curr</code> (move reversed boundary forward).</li>
-      <li><strong>Advance Curr</strong>: <code>curr = nxt</code> (hop to saved next node).</li>
-    </ul>
-  </li>
-  <li><strong>Completion</strong>: When <code>curr</code> becomes <code>None</code>, <code>prev</code> stands on the old tail, which is the new head!</li>
-</ul>
+  description: `<p>Given the <code>head</code> of a singly linked list, reverse the list, and return the reversed list.</p>
+<h3>Problem Statement</h3>
+<p>Given the head node of a singly linked list, reverse the directional links between nodes so that the tail node becomes the new head of the list.</p>
 <h3>Input Parameters</h3>
 <ul>
-  <li><code>head</code>: Pointer to the head node of a singly linked list.</li>
+  <li><code>head</code>: The head node of a singly linked list (represented as an array of node values).</li>
 </ul>
 <h3>Output</h3>
-<p>Returns pointer to the new head node of the reversed linked list.</p>
-<h3>Trade-offs &amp; Complexity</h3>
+<p>Returns the head of the reversed singly linked list.</p>
+<h3>Constraints &amp; Edge Cases</h3>
 <ul>
-  <li><strong>Time Complexity</strong>: <em>O(N)</em> worst/average case, making a single pass over <em>N</em> nodes.</li>
-  <li><strong>Space Complexity</strong>: <em>O(1)</em> auxiliary space using iterative pointer adjustments.</li>
-</ul>
-<h3>Edge Cases &amp; Constraints</h3>
-<ul>
-  <li><code>0 &le; N &le; 5000</code></li>
-  <li><code>-5000 &le; Node.val &le; 5000</code></li>
-  <li>Empty list (<code>head == null</code>): returns <code>null</code>.</li>
-  <li>Single-node list (<code>head.next == null</code>): returns <code>head</code> untouched.</li>
+  <li><code>0 &le; N &le; 5000</code>.</li>
+  <li><code>-5000 &le; Node.val &le; 5000</code>.</li>
+  <li>Empty list (<code>head == null</code>) returns <code>null</code>.</li>
+  <li>Single-node list returns <code>head</code> untouched.</li>
 </ul>`,
   constraints: ["0 <= number of nodes <= 5000", "-5000 <= Node.val <= 5000"],
   examples: [

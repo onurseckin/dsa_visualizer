@@ -118,8 +118,21 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   title: "Number of Islands",
   topicIds: ["graph_traversal"],
   difficulty: "Medium",
-  description:
-    "<p>Given an <code>m × n</code> 2D binary grid <code>grid</code> where <code>'1'</code> represents land and <code>'0'</code> represents water, return the total number of connected islands. An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional orthogonal adjacency).</p><p>The algorithm sweeps every cell <code>(r, c)</code> in <code>O(m × n)</code> time and triggers a BFS/DFS flood fill upon encountering an unvisited land cell, marking all connected land cells in that component as visited.</p>",
+  description: `<p>Given an <em>m</em> &times; <em>n</em> 2D binary grid <code>grid</code> where <code>'1'</code> represents land and <code>'0'</code> represents water, return the total number of connected islands.</p>
+<h3>Problem Statement</h3>
+<p>An island is surrounded by water and is formed by connecting adjacent land cells horizontally or vertically (4-directional orthogonal adjacency). You may assume all four edges of the grid are completely surrounded by water.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>grid</code>: An <em>m</em> &times; <em>n</em> 2D binary array of <code>'0'</code> and <code>'1'</code> strings.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an integer representing the total count of distinct connected islands.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; m, n &le; 300</code>.</li>
+  <li><code>grid[i][j]</code> is either <code>'0'</code> (water) or <code>'1'</code> (land).</li>
+  <li>Grid containing only water (<code>'0'</code>) returns 0.</li>
+</ul>`,
   constraints: [
     "1 <= m, n <= 300",
     'grid[i][j] is either "0" (water) or "1" (land)',

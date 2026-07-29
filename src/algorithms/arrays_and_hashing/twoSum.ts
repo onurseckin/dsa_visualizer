@@ -445,8 +445,24 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   title: "Two Sum",
   topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
-  description:
-    "<p>Two Sum determines the 0-indexed positions of two distinct numbers in an array that add up to a specified target value.</p><h3>Why It Exists &amp; What It Solves</h3><p>The naive brute-force approach tests all <code>O(N<sup>2</sup>)</code> pairs using nested loops. Two Sum optimizes this to <code>O(N)</code> time by replacing brute-force pair iteration with constant-time hash table lookups.</p><ul><li><strong>Complement Paradigm:</strong> For any element <code>x = nums[i]</code> and target <code>T</code>, the required partner value is <code>y = T - x</code>.</li><li><strong>Single-Pass Invariant:</strong> By querying the hash map <em>before</em> inserting <code>x</code>, we prevent an element from matching with itself while maintaining a single linear scan.</li></ul><h3>Step-by-Step Intuition</h3><ul><li><strong>Map Allocation:</strong> Initialize an empty hash table <code>seen</code> to store mapping <code>value &rarr; index</code>.</li><li><strong>Linear Probe:</strong> Read <code>num = nums[i]</code>.</li><li><strong>Complement Calculation:</strong> Compute required partner <code>complement = target - num</code>.</li><li><strong>Instant Lookup:</strong> Check <code>if complement in seen</code>. If present, return stored index pair.</li><li><strong>State Record:</strong> If absent, record <code>seen[num] = i</code> and proceed to the next element.</li></ul><h3>Mathematical Formulation &amp; Derivation</h3><p>Given input sequence <code>A = [a<sub>0</sub>, a<sub>1</sub>, &hellip;, a<sub>N-1</sub>]</code> and target <code>T</code>:</p><p><code>a<sub>i</sub> + a<sub>j</sub> = T &iff; a<sub>i</sub> = T - a<sub>j</sub></code></p><p>By storing pairs <code>(a<sub>k</sub>, k)</code> in hash map <code>S</code> as we iterate <code>j</code> from <code>0</code> to <code>N - 1</code>:</p><p><code>If (T - a<sub>j</sub>) &in; keys(S) &rArr; Result = [S[T - a<sub>j</sub>], j]</code></p><p>Since hash map operations operate in expected <code>O(1)</code> time, the loop terminates after at most <code>N</code> lookups.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>nums</code> (<code>list[int]</code>), array of integers where <code>2 &le; N &le; 10<sup>4</sup></code>; <code>target</code> (<code>int</code>), target integer sum.</li><li><strong>Output:</strong> <code>list[int]</code>, a 2-element array containing indices <code>[i, j]</code> such that <code>nums[i] + nums[j] == target</code>.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> <code>O(N)</code> expected time, as each insertion and lookup in the hash map takes <code>O(1)</code> average time.</li><li><strong>Space Complexity:</strong> <code>O(N)</code> auxiliary space for storing up to <code>N</code> elements in hash map <code>seen</code>.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Negative &amp; Zero Values:</strong> Handled seamlessly since arithmetic subtraction preserves sign equality.</li><li><strong>Duplicate Array Values:</strong> Handled correctly; if <code>nums = [3, 3]</code> and <code>target = 6</code>, the second <code>3</code> finds the first <code>3</code> already banked in <code>seen</code>.</li></ul>",
+  description: `<p>Given an array of integers <code>nums</code> and an integer <code>target</code>, return 0-based indices of the two numbers such that they add up to <code>target</code>.</p>
+<h3>Problem Statement</h3>
+<p>Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: Array of integers where <code>2 &le; N &le; 10<sup>4</sup></code>.</li>
+  <li><code>target</code>: Target integer sum.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns a 2-element array containing indices <code>[i, j]</code> such that <code>nums[i] + nums[j] == target</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>2 &le; nums.length &le; 10<sup>4</sup></code>.</li>
+  <li><code>-10<sup>9</sup> &le; nums[i] &le; 10<sup>9</sup></code>.</li>
+  <li><code>-10<sup>9</sup> &le; target &le; 10<sup>9</sup></code>.</li>
+  <li>Only one valid answer exists.</li>
+  <li>Cannot use the same element twice.</li>
+</ul>`,
   constraints: [
     "2 <= nums.length <= 10^4",
     "-10^9 <= nums[i] <= 10^9",
@@ -462,7 +478,8 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
       title: "Standard 7-Element Array",
       input: DEFAULT_TWO_SUM_INPUT,
       output: "[3, 6]",
-      explanation: "Looking up complement 15 - 7 = 8 in the hash map finds index 3 (value 8), returning [3, 6].",
+      explanation:
+        "Looking up complement 15 - 7 = 8 in the hash map finds index 3 (value 8), returning [3, 6].",
     },
     {
       kind: "complex",

@@ -803,8 +803,22 @@ export const prefixSum: AlgorithmDefinition<PrefixSumInput> = {
   id: "prefix-sum",
   title: "Prefix Sum",
   difficulty: "Easy",
-  description:
-    "<p>Prefix Sum is a precomputation technique that builds running totals across an array to answer arbitrary range sum queries in constant time.</p><h3>Why It Exists &amp; What It Solves</h3><p>Calculating range sums on-the-fly costs <code>O(N)</code> per query, resulting in <code>O(Q &middot; N)</code> total time for <code>Q</code> queries. Prefix Sum trades a one-time <code>O(N)</code> precomputation phase to create a cumulative array <code>prefix</code> of size <code>N + 1</code>. Subsequent range queries execute in <code>O(1)</code> time via scalar subtraction:</p><p><code>RangeSum(L, R) = prefix[R + 1] - prefix[L]</code></p><h3>Step-by-Step Intuition</h3><ul><li><strong>Sentinel Array Allocation:</strong> Allocate <code>prefix</code> of size <code>N + 1</code> initialized to <code>0</code>, setting <code>prefix[0] = 0</code>. This 1-based offset sentinel prevents off-by-one errors when <code>L = 0</code>.</li><li><strong>Linear Accumulation:</strong> Walk <code>i</code> from <code>0</code> to <code>N - 1</code>, setting <code>prefix[i + 1] = prefix[i] + nums[i]</code>.</li><li><strong>Constant Time Query:</strong> To sum <code>nums[L &hellip; R]</code>, take the cumulative total up to <code>R</code> (<code>prefix[R + 1]</code>) and subtract the cumulative total before <code>L</code> (<code>prefix[L]</code>).</li></ul><h3>Mathematical Formulation &amp; Derivation</h3><p>The prefix sum array definition is:</p><p><code>prefix[k] = 0 if k = 0, else sum(nums[0 &hellip; k-1])</code></p><p>By the fundamental property of finite differences:</p><p><code>prefix[R + 1] - prefix[L] = sum(nums[0 &hellip; R]) - sum(nums[0 &hellip; L-1]) = sum(nums[L &hellip; R])</code></p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>nums</code> (<code>list[int]</code>), an array of integers where <code>1 &le; N &le; 10<sup>5</sup></code>.</li><li><strong>Output:</strong> <code>list[int]</code>, prefix array of size <code>N + 1</code> where <code>prefix[i]</code> holds the sum of <code>nums[0 &hellip; i-1]</code>.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> Precomputation is <code>O(N)</code> linear time; each range sum query executes in <code>O(1)</code> constant time.</li><li><strong>Space Complexity:</strong> <code>O(N)</code> auxiliary space for the cumulative <code>prefix</code> array of size <code>N + 1</code>.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Full Range (0 &hellip; N-1):</strong> <code>prefix[N] - prefix[0] = prefix[N]</code>.</li><li><strong>Single Element Range (L = R):</strong> <code>prefix[L + 1] - prefix[L] = nums[L]</code>.</li><li><strong>Negative &amp; Zero Values:</strong> Handled seamlessly since signed addition preserves identity.</li></ul>",
+  description: `<p>Given an integer array <code>nums</code>, construct its prefix sum array to enable constant-time range sum queries.</p>
+<h3>Problem Statement</h3>
+<p>Given an integer array <code>nums</code>, compute a prefix sum array <code>prefix</code> of size <code>N + 1</code> where <code>prefix[0] = 0</code> and <code>prefix[i]</code> stores the sum of elements from <code>nums[0]</code> to <code>nums[i-1]</code> for <code>i &ge; 1</code>.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: An array of integers.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns a prefix sum array of size <code>nums.length + 1</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
+  <li>Handles positive, negative, and zero values.</li>
+  <li>Single element array returns <code>[0, nums[0]]</code>.</li>
+</ul>`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {

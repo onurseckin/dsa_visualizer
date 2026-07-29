@@ -28,23 +28,22 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   title: "Kth Largest Element in an Array",
   topicIds: ["heap_and_priority_queue"],
   difficulty: "Medium",
-  description: `<p>Find the <em>k</em>-th largest element in an unsorted array of numbers in <em>O(N log k)</em> time and <em>O(k)</em> memory using a min-heap of fixed capacity <em>k</em>.</p>
+  description: `<p>Given an unsorted array of integers <code>nums</code> and an integer <code>k</code>, return the <em>k</em>-th largest element in the array.</p>
 <h3>Problem Statement</h3>
 <p>Given an unsorted array of integers <code>nums</code> and an integer <code>k</code>, return the <em>k</em>-th largest element in the array. Note that it is the <em>k</em>-th largest element in sorted order, not the <em>k</em>-th distinct element (duplicate values are counted individually).</p>
-<p>The algorithm maintains a min-heap of capacity <em>k</em>. As elements are processed, each number is pushed into the min-heap. If the heap size exceeds <em>k</em>, the root element (the smallest candidate among the top <em>k+1</em>) is evicted via <code>heappop</code>. Once all <em>N</em> elements are processed, the root of the min-heap contains the smallest value among the <em>k</em> largest elements—which is precisely the <em>k</em>-th largest element.</p>
 <h3>Input Parameters</h3>
 <ul>
   <li><code>nums</code>: Unsorted array of <em>N</em> integers.</li>
-  <li><code>k</code>: Rank position integer (1 &le; <em>k</em> &le; <em>N</em>).</li>
+  <li><code>k</code>: Target rank integer (1 &le; <em>k</em> &le; <em>N</em>).</li>
 </ul>
 <h3>Output</h3>
-<p>Returns the integer value corresponding to the <em>k</em>-th largest element.</p>
+<p>Returns the integer value corresponding to the <em>k</em>-th largest element in sorted order.</p>
 <h3>Constraints &amp; Edge Cases</h3>
 <ul>
   <li><code>1 &le; k &le; nums.length &le; 10<sup>5</sup></code>.</li>
   <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li>Single element array (<em>N = 1, k = 1</em>): Returns <code>nums[0]</code>.</li>
-  <li>Duplicates present: Handled correctly by maintaining element frequency count implicitly.</li>
+  <li>Single element array (<em>N = 1, k = 1</em>) returns <code>nums[0]</code>.</li>
+  <li>Duplicate elements are counted as distinct occurrences.</li>
 </ul>`,
   constraints: [
     "1 <= k <= nums.length <= 10^5",
