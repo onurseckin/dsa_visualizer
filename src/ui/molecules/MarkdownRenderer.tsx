@@ -124,13 +124,14 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   if (!content) return null;
 
   const trimmedContent = content.trim();
+  const baseClasses = `markdown-body flex flex-col gap-2.5 text-sm leading-relaxed text-[var(--text-secondary)] w-full max-w-none [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-[var(--text-primary)] [&_h3]:mt-3 [&_h3]:mb-1 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-[var(--text-primary)] [&_h4]:mt-2 [&_h4]:mb-1 [&_p]:m-0 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:w-full [&_p]:max-w-none [&_ul]:m-0 [&_ul]:pl-5 [&_ul]:w-full [&_ul]:max-w-none [&_ol]:m-0 [&_ol]:pl-5 [&_ol]:w-full [&_ol]:max-w-none [&_li]:text-sm [&_li]:leading-relaxed ${className}`;
 
   // If content is clean React HTML markup, render directly
   if (trimmedContent.startsWith("<")) {
     return (
       <div
         data-testid="markdown-container"
-        className={`markdown-body flex flex-col gap-2.5 text-base leading-relaxed text-[var(--text-secondary)] ${className}`}
+        className={baseClasses}
         style={style}
         dangerouslySetInnerHTML={{ __html: content }}
       />
@@ -141,11 +142,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   const blocks = content.split(/\n\s*\n/);
 
   return (
-    <div
-      data-testid="markdown-container"
-      className={`markdown-body flex flex-col gap-2.5 text-base leading-relaxed text-[var(--text-secondary)] ${className}`}
-      style={style}
-    >
+    <div data-testid="markdown-container" className={baseClasses} style={style}>
       {blocks.map((block, bIdx) => {
         const trimmed = block.trim();
         if (!trimmed || trimmed === "---" || trimmed === "***" || trimmed === "___") return null;
