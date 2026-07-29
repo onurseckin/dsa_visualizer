@@ -1,5 +1,11 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export const BUBBLE_SORT_CODE = `def bubble_sort(arr: list[int]) -> list[int]:
     n = len(arr)
@@ -9,151 +15,316 @@ export const BUBBLE_SORT_CODE = `def bubble_sort(arr: list[int]) -> list[int]:
                 arr[j], arr[j + 1] = arr[j + 1], arr[j]
     return arr`;
 
+export const DEFAULT_BUBBLE_SORT_INPUT: number[] = [5, 2, 8, 1, 4];
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Sorting rearranges an array into non-decreasing order; Bubble Sort achieves this by repeatedly sweeping across the array and swapping adjacent out-of-order elements.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 5, label: "[0]", state: "default" },
+        { id: "c2", value: 2, label: "[1]", state: "default" },
+        { id: "c3", value: 8, label: "[2]", state: "default" },
+        { id: "c4", value: 1, label: "[3]", state: "default" },
+        { id: "c5", value: 4, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "An inversion is any pair of positions where a larger number precedes a smaller number; Bubble Sort systematically repairs these adjacent inversions one step at a time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 5, label: "[0]", state: "compare", pointers: ["j"] },
+        { id: "c2", value: 2, label: "[1]", state: "compare", pointers: ["j+1"] },
+        { id: "c3", value: 8, label: "[2]", state: "default" },
+        { id: "c4", value: 1, label: "[3]", state: "default" },
+        { id: "c5", value: 4, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When adjacent elements are inverted (arr[j] > arr[j + 1]), swapping them moves the larger element one position rightward toward its correct destination.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 2, label: "[0]", state: "swap", pointers: ["j"] },
+        { id: "c2", value: 5, label: "[1]", state: "swap", pointers: ["j+1"] },
+        { id: "c3", value: 8, label: "[2]", state: "default" },
+        { id: "c4", value: 1, label: "[3]", state: "default" },
+        { id: "c5", value: 4, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Each adjacent swap resolves exactly one inversion without disturbing the relative positions of elements outside the pair.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 2, label: "[0]", state: "default" },
+        { id: "c2", value: 5, label: "[1]", state: "compare", pointers: ["j"] },
+        { id: "c3", value: 8, label: "[2]", state: "compare", pointers: ["j+1"] },
+        { id: "c4", value: 1, label: "[3]", state: "default" },
+        { id: "c5", value: 4, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A core invariant of Bubble Sort is that after pass 1, the largest element in the array is guaranteed to have bubbled all the way into its final tail position.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 2, label: "[0]", state: "default" },
+        { id: "c2", value: 5, label: "[1]", state: "default" },
+        { id: "c3", value: 1, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "default" },
+        { id: "c5", value: 8, label: "[4]", state: "sorted", pointers: ["tail"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Subsequent passes only need to scan the unsorted prefix arr[0 ... N - 1 - i], shrinking the active search window by one element after every pass.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 2, label: "[0]", state: "compare", pointers: ["j"] },
+        { id: "c2", value: 5, label: "[1]", state: "compare", pointers: ["j+1"] },
+        { id: "c3", value: 1, label: "[2]", state: "default" },
+        { id: "c4", value: 4, label: "[3]", state: "sorted", pointers: ["tail"] },
+        { id: "c5", value: 8, label: "[4]", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Bubble Sort is a stable sort because equal adjacent elements (arr[j] == arr[j + 1]) are never swapped, preserving their original relative input order.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 3, label: "[0]", state: "compare", pointers: ["j"] },
+        { id: "c2", value: 3, label: "[1]", state: "compare", pointers: ["j+1"] },
+        { id: "c3", value: 7, label: "[2]", state: "default" },
+        { id: "c4", value: 9, label: "[3]", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "After executing at most N - 1 passes, all inversions are resolved and the array completes fully sorted in O(N²) worst-case time using O(1) auxiliary space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 1, label: "[0]", state: "sorted" },
+        { id: "c2", value: 2, label: "[1]", state: "sorted" },
+        { id: "c3", value: 4, label: "[2]", state: "sorted" },
+        { id: "c4", value: 5, label: "[3]", state: "sorted" },
+        { id: "c5", value: 8, label: "[4]", state: "sorted" },
+      ],
+    },
+  },
+];
+
 export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawInput = Array.isArray(input) ? input : [5, 2, 8, 1, 4];
-  const workingElements: ArrayElement[] = rawInput.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const rawInput =
+    Array.isArray(input) && input.length > 0 ? input : DEFAULT_BUBBLE_SORT_INPUT;
+  const arr = [...rawInput];
+  const n = arr.length;
 
   const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
   ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: workingElements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {},
-      variables,
-    });
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  const n = workingElements.length;
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input) &&
+      input.length === DEFAULT_BUBBLE_SORT_INPUT.length &&
+      input.every((val, idx) => val === DEFAULT_BUBBLE_SORT_INPUT[idx]));
 
-  addStep(
-    1,
-    "Initialize Bubble Sort",
-    `We repeatedly sweep across the array of ${n} elements, comparing adjacent pairs and bubbling out-of-order elements rightward so each pass locks the largest remaining unsorted element into its final tail position.`,
-    { n },
-  );
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const makeSnapshot = (
+    compA?: number,
+    compB?: number,
+    isSwapping?: boolean,
+    sortedUpToCount: number = 0,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = arr.map((val, idx) => {
+      const ptrs: string[] = [];
+      if (idx === compA) ptrs.push("j");
+      if (idx === compB) ptrs.push("j+1");
+
+      let state: ArrayElement["state"] = "default";
+      if (idx >= n - sortedUpToCount) {
+        state = "sorted";
+      } else if (idx === compA || idx === compB) {
+        state = isSwapping ? "swap" : "compare";
+      }
+
+      return {
+        id: `el-${idx}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
+    });
+
+    return {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements,
+    };
+  };
 
   if (n <= 1) {
-    if (n === 1) {
-      workingElements[0].state = "sorted";
-    }
-    // Pad steps for trivial inputs to guarantee >= 20 steps
-    addStep(1, "Check input size", `Array size is ${n}, which requires no sorting sweeps.`, { n });
-    addStep(2, "Cache array length", `n = ${n}. Loop bounds resolve to 0 passes.`, { n });
-    for (let k = 0; k < 18; k++) {
-      addStep(
-        7,
-        `Trivial pass verification step ${k + 1}`,
-        `Verifying that element at index 0 is already in its final sorted position.`,
-        { verifiedIndex: 0 },
-      );
-    }
+    addStep(
+      `The input array has ${n} element${n === 1 ? "" : "s"}, which requires 0 passes; the array is trivially sorted.`,
+      {
+        kind: "array",
+        name: "arr",
+        mode: "box",
+        elements: arr.map((val, idx) => ({
+          id: `el-${idx}`,
+          value: val,
+          label: `[${idx}]`,
+          state: "sorted",
+        })),
+      },
+    );
     return steps;
   }
 
   addStep(
-    2,
-    "Cache Array Dimensions",
-    `Knowing the array length n = ${n} bounds the maximum required passes to at most ${n - 1}, after which all elements are guaranteed to be in non-decreasing order.`,
-    { n },
+    `Having established the mental model, let's now transition to our selected input array of ${n} elements: [${arr.join(", ")}].`,
+    makeSnapshot(undefined, undefined, false, 0),
   );
 
-  for (let i = 0; i < n - 1; i++) {
-    addStep(
-      3,
-      `Begin pass ${i + 1} of ${n - 1}`,
-      `We compare adjacent neighbors from index 0 up to ${n - 2 - i}; elements at index ${n - i} and beyond are already locked in their sorted tail positions.`,
-      { i, n, remainingUnsorted: n - i },
-    );
+  const makePassStartSnapshot = (
+    passNum: number,
+    sortedUpToCount: number,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = arr.map((val, idx) => {
+      let state: ArrayElement["state"] = "default";
+      let ptrs: string[] | undefined = undefined;
 
-    for (let j = 0; j < n - i - 1; j++) {
-      workingElements[j].state = "compare";
-      workingElements[j].pointers = ["j"];
-      workingElements[j + 1].state = "compare";
-      workingElements[j + 1].pointers = ["j+1"];
-
-      const valJ = workingElements[j].value;
-      const valJNext = workingElements[j + 1].value;
-
-      addStep(
-        4,
-        `Inspect Adjacent Pair at ${j} and ${j + 1}`,
-        `Evaluating adjacent elements arr[${j}] = ${valJ} and arr[${j + 1}] = ${valJNext} to check for an inversion.`,
-        { i, j, "arr[j]": valJ, "arr[j+1]": valJNext },
-      );
-
-      addStep(
-        5,
-        `Evaluate Order of ${valJ} and ${valJNext}`,
-        valJ > valJNext
-          ? `Element ${valJ} is strictly greater than neighbor ${valJNext}, violating non-decreasing order and requiring an adjacent swap.`
-          : `Element ${valJ} is less than or equal to neighbor ${valJNext}, maintaining correct relative order without a swap.`,
-        { i, j, "arr[j]": valJ, "arr[j+1]": valJNext, needsSwap: valJ > valJNext },
-      );
-
-      if (valJ > valJNext) {
-        workingElements[j].state = "swap";
-        workingElements[j + 1].state = "swap";
-
-        const temp = workingElements[j];
-        workingElements[j] = workingElements[j + 1];
-        workingElements[j + 1] = temp;
-
-        workingElements[j].pointers = ["j"];
-        workingElements[j + 1].pointers = ["j+1"];
-
-        addStep(
-          6,
-          `Swap Inverted Elements ${valJ} and ${valJNext}`,
-          `Swapping positions ${j} and ${j + 1} moves the larger element one step closer to its final resting position at the end of the unsorted subarray.`,
-          { i, j, "arr[j]": workingElements[j].value, "arr[j+1]": workingElements[j + 1].value },
-        );
+      if (idx >= n - sortedUpToCount) {
+        state = "sorted";
+      } else if (idx === 0) {
+        state = "active";
+        ptrs = [`pass ${passNum}`];
       }
 
-      workingElements[j].state = "default";
-      workingElements[j].pointers = undefined;
-      workingElements[j + 1].state = "default";
-      workingElements[j + 1].pointers = undefined;
+      return {
+        id: `el-${idx}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs,
+      };
+    });
+
+    return {
+      kind: "array",
+      name: "arr",
+      mode: "box",
+      elements,
+    };
+  };
+
+  let sortedCount = 0;
+  for (let i = 0; i < n - 1; i++) {
+    addStep(
+      `Begin pass ${i + 1} of ${n - 1}: we will scan adjacent pairs from index 0 to ${n - 2 - i}, bubbling the largest remaining element to index ${n - 1 - i}.`,
+      makePassStartSnapshot(i + 1, sortedCount),
+    );
+
+    let swappedInPass = false;
+    for (let j = 0; j < n - i - 1; j++) {
+      const valJ = arr[j];
+      const valJNext = arr[j + 1];
+
+      if (valJ > valJNext) {
+        addStep(
+          `Compare arr[${j}] = ${valJ} and arr[${j + 1}] = ${valJNext}: because ${valJ} > ${valJNext}, the pair is out of order and must be swapped.`,
+          makeSnapshot(j, j + 1, false, sortedCount),
+        );
+
+        arr[j] = valJNext;
+        arr[j + 1] = valJ;
+        swappedInPass = true;
+
+        addStep(
+          `Swap arr[${j}] and arr[${j + 1}]: element ${valJ} moves rightward to index ${j + 1}, shifting the larger value closer to the end of the array.`,
+          makeSnapshot(j, j + 1, true, sortedCount),
+        );
+      } else {
+        addStep(
+          `Compare arr[${j}] = ${valJ} and arr[${j + 1}] = ${valJNext}: because ${valJ} ≤ ${valJNext}, the pair is already in correct order, so no swap is needed.`,
+          makeSnapshot(j, j + 1, false, sortedCount),
+        );
+      }
     }
 
-    const sortedIdx = n - 1 - i;
-    workingElements[sortedIdx].state = "sorted";
+    sortedCount += 1;
+    if (!swappedInPass) {
+      sortedCount = n;
+      addStep(
+        `Zero swaps occurred during pass ${i + 1}, proving that all remaining elements are already sorted. Early exit triggered! Bubble Sort complete: [${arr.join(", ")}].`,
+        makeSnapshot(undefined, undefined, false, n),
+      );
+      break;
+    } else if (i < n - 2) {
+      addStep(
+        `Pass ${i + 1} complete! Element ${arr[n - sortedCount]} has bubbled into its final position at index ${n - sortedCount} and is now locked as sorted.`,
+        makeSnapshot(undefined, undefined, false, sortedCount),
+      );
+    }
+  }
+
+  if (sortedCount < n) {
     addStep(
-      3,
-      `Lock In Sorted Tail Index ${sortedIdx}`,
-      `Pass ${i + 1} completed. Element ${workingElements[sortedIdx].value} has bubbled to index ${sortedIdx} and is permanently sorted.`,
-      { i, sortedIdx, sortedValue: workingElements[sortedIdx].value },
+      `Bubble Sort complete! All passes finished and all ${n} elements are locked in non-decreasing order: [${arr.join(", ")}].`,
+      makeSnapshot(undefined, undefined, false, n),
     );
   }
-
-  for (let k = 0; k < n; k++) {
-    workingElements[k].state = "sorted";
-  }
-
-  addStep(
-    7,
-    "Bubble Sort complete",
-    "All passes completed successfully. Every adjacent inversion has been resolved, leaving the array fully sorted in non-decreasing order.",
-    { n },
-  );
 
   return steps;
 };
@@ -207,30 +378,33 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: "nums = [5, 1, 4, 2, 8]",
+      scenario: "standard",
+      inputDisplay: "nums = [5, 2, 8, 1, 4]",
       outputDisplay: "[1, 2, 4, 5, 8]",
-      title: "Basic Example",
-      input: [5, 1, 4, 2, 8],
+      title: "Standard 5-Element Unsorted Array",
+      input: DEFAULT_BUBBLE_SORT_INPUT,
       output: "[1, 2, 4, 5, 8]",
       explanation: "Sorts an unsorted array of positive integers into ascending order.",
     },
     {
       kind: "complex",
-      inputDisplay: "nums = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]",
-      outputDisplay: "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      inputDisplay: "nums = [64, 34, 25, 12, 22, 11, 90]",
+      outputDisplay: "[11, 12, 22, 25, 34, 64, 90]",
+      title: "Adversarial 7-Element Unsorted Array",
       input: [64, 34, 25, 12, 22, 11, 90],
       output: "[11, 12, 22, 25, 34, 64, 90]",
       explanation: "A larger array demonstrating repeated adjacent swaps until fully sorted.",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "nums = [1, 2, 3, 4, 5]",
       outputDisplay: "[1, 2, 3, 4, 5]",
-      title: "Failing / Boundary Case",
+      title: "Boundary Already Sorted Array",
       input: [1, 2, 3, 4, 5],
       output: "[1, 2, 3, 4, 5]",
-      explanation: "Already sorted array; verifies no unnecessary swaps are made.",
+      explanation: "Already sorted array; verifies early exit after 0 swaps are made.",
     },
   ],
   code: BUBBLE_SORT_CODE,
@@ -298,6 +472,8 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
       section: "3.1 Sorting theory",
     },
   ],
-  defaultInput: [5, 2, 8, 1, 4],
+  defaultInput: DEFAULT_BUBBLE_SORT_INPUT,
   generateSteps: generateBubbleSortSteps,
 };
+
+export default bubbleSort;
