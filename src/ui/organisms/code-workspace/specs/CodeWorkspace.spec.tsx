@@ -151,6 +151,66 @@ describe("CodeWorkspace", () => {
     expect(screen.getByRole("tab", { name: "Output" })).toHaveAttribute("tabindex", "-1");
   });
 
+  it("keeps every controlled panel mounted while lazily rendering only the active contents", () => {
+    render(<CodeWorkspace {...baseProps} draftStorage={createDrafts()} />);
+
+    const tabs = screen.getAllByRole("tab");
+    const panels = screen.getAllByRole("tabpanel", { hidden: true });
+    expect(panels).toHaveLength(3);
+
+    for (const tab of tabs) {
+      const panelId = tab.getAttribute("aria-controls");
+      expect(panelId).toBeTruthy();
+      const panel = document.getElementById(panelId ?? "");
+      expect(panel).toHaveAttribute("role", "tabpanel");
+      expect(panel).toHaveAttribute("aria-labelledby", tab.id);
+    }
+
+    const referencePanel = document.getElementById("code-workspace-binary-search-reference-panel");
+    const playgroundPanel = document.getElementById(
+      "code-workspace-binary-search-playground-panel",
+    );
+    const outputPanel = document.getElementById("code-workspace-binary-search-output-panel");
+
+    expect(referencePanel).not.toHaveAttribute("hidden");
+    expect(referencePanel).toHaveAttribute("tabindex", "0");
+    expect(playgroundPanel).toHaveAttribute("hidden");
+    expect(playgroundPanel).not.toHaveAttribute("tabindex");
+    expect(outputPanel).toHaveAttribute("hidden");
+    expect(outputPanel).toHaveAttribute("tabindex", "0");
+    expect(screen.getByTestId("code-viewer")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Python playground editor" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Playground" }));
+
+    expect(referencePanel).toHaveAttribute("hidden");
+    expect(playgroundPanel).not.toHaveAttribute("hidden");
+    expect(outputPanel).toHaveAttribute("hidden");
+    expect(screen.queryByTestId("code-viewer")).toBeNull();
+    expect(screen.getByRole("textbox", { name: "Python playground editor" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Output" }));
+
+    expect(referencePanel).toHaveAttribute("hidden");
+    expect(playgroundPanel).toHaveAttribute("hidden");
+    expect(outputPanel).not.toHaveAttribute("hidden");
+    expect(screen.queryByRole("textbox", { name: "Python playground editor" })).toBeNull();
+    expect(screen.getByText(/run your code to see output/i)).toBeInTheDocument();
+  });
+
+  it("lets keyboard users focus the scrollable Reference and Output panels", () => {
+    render(<CodeWorkspace {...baseProps} draftStorage={createDrafts()} />);
+
+    const referencePanel = screen.getByRole("tabpanel");
+    referencePanel.focus();
+    expect(referencePanel).toHaveFocus();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Output" }));
+    const outputPanel = screen.getByRole("tabpanel");
+    outputPanel.focus();
+    expect(outputPanel).toHaveFocus();
+  });
+
   it("provides roving tab focus with ArrowLeft/Right and Home/End", () => {
     render(<CodeWorkspace {...baseProps} draftStorage={createDrafts()} />);
     const reference = screen.getByRole("tab", { name: "Reference" });
