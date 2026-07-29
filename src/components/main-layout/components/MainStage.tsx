@@ -6,7 +6,7 @@ import { ComplexityCard } from "../../../ui/organisms/ComplexityCard";
 import { CodeWorkspace } from "../../../ui/organisms/code-workspace/CodeWorkspace";
 import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { DragHandle, ResizableLayout, ResizableRow, ResizableRows } from "../../../ui";
-import { getPythonExecutionSpec } from "../../../playground/executionSpecs";
+import { getPythonExecutionSpec, getPythonStarterCode } from "../../../playground/executionSpecs";
 import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
@@ -108,6 +108,7 @@ export const MainStage: React.FC<MainStageProps> = ({
             variables={currentStep?.variables}
             lineExplanations={algorithm.trivia?.lineExplanations}
             executionSpec={getPythonExecutionSpec(algorithm.id)}
+            starterCode={getPythonStarterCode(algorithm.id)}
           />
         </div>
       ),

@@ -5,6 +5,8 @@ import type {
   PythonTestCase,
   ValueBinding,
 } from "@dsa-visualizer/execution-contracts";
+import { ALGORITHM_REGISTRY } from "../../../algorithms/registry";
+import { createDsaStarterCode } from "./starterCode";
 import type { DsaCaseFixture, DsaExecutionAuditSeed, DsaExecutionEntry } from "./types";
 
 export const input = (...path: readonly (number | string)[]): ValueBinding => ({
@@ -60,6 +62,11 @@ export const defineDsaExecution = (definition: {
   readonly cases: readonly PythonTestCase[];
   readonly audit: DsaExecutionAuditSeed;
 }): DsaExecutionEntry => {
+  const algorithm = ALGORITHM_REGISTRY[definition.id];
+  if (!algorithm) {
+    throw new Error(`DSA execution spec references unknown algorithm: ${definition.id}`);
+  }
+
   const spec: PythonExecutionSpec = {
     runtime: "browser",
     entrypoint: definition.entrypoint,
@@ -70,7 +77,7 @@ export const defineDsaExecution = (definition: {
 
   return {
     id: definition.id,
-    starterCode: starterCodeFor(definition.entrypoint, definition.invocation),
+    starterCode: createDsaStarterCode(algorithm.code, definition.entrypoint, definition.invocation),
     audit: {
       ...definition.audit,
       symbol: definition.entrypoint,
@@ -79,44 +86,4 @@ export const defineDsaExecution = (definition: {
     },
     spec,
   };
-};
-
-const starterCodeFor = (entrypoint: string, invocation: PythonInvocation): string => {
-  if (invocation.kind === "stdin") {
-    return [
-      "# Read the authored input from standard input.",
-      'raise NotImplementedError("Implement the stdin solution")',
-    ].join("\n");
-  }
-  if (invocation.kind === "function") {
-    return [
-      `def ${entrypoint}(${parameters(invocation.arguments.length)}):`,
-      '    raise NotImplementedError("Implement this function")',
-    ].join("\n");
-  }
-
-  const methods = new Map<string, number>();
-  for (const setup of invocation.setup ?? []) methods.set(setup.method, setup.arguments.length);
-  methods.set(invocation.method, invocation.arguments.length);
-  const lines = [
-    `class ${entrypoint}:`,
-    `    def __init__(self${prefixedParameters(invocation.constructor.length)}):`,
-    "        pass",
-  ];
-  for (const [method, count] of methods) {
-    lines.push(
-      "",
-      `    def ${method}(self${prefixedParameters(count)}):`,
-      '        raise NotImplementedError("Implement this method")',
-    );
-  }
-  return lines.join("\n");
-};
-
-const parameters = (count: number): string =>
-  Array.from({ length: count }, (_, index) => `arg${index + 1}`).join(", ");
-
-const prefixedParameters = (count: number): string => {
-  const value = parameters(count);
-  return value.length === 0 ? "" : `, ${value}`;
 };
