@@ -10,12 +10,15 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nodes: GraphNodeItem[] = input.nodes.map((node) => ({
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
+
+  const nodes: GraphNodeItem[] = rawNodes.map((node) => ({
     ...node,
     state: "default",
   }));
 
-  const edges: GraphEdgeItem[] = input.edges.map((edge) => ({
+  const edges: GraphEdgeItem[] = rawEdges.map((edge) => ({
     ...edge,
     isTraversed: false,
   }));
@@ -46,7 +49,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
     });
   };
 
-  const startId = input.startNodeId;
+  const startId =
+    typeof input?.startNodeId === "string" ? input.startNodeId : (nodes[0]?.id ?? "A");
   const startNodeExists = nodes.some((n) => n.id === startId);
 
   addStep(

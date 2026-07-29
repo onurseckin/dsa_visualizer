@@ -1,16 +1,20 @@
 import type { AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../../types/dsa";
 import type { KosarajuSccInput } from "./types";
+import { DEFAULT_KOSARAJU_INPUT } from "./types";
 
 export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const currentNodes: GraphNodeItem[] = input.nodes.map((n) => ({
+  const safeNodes = Array.isArray(input?.nodes) ? input.nodes : DEFAULT_KOSARAJU_INPUT.nodes;
+  const safeEdges = Array.isArray(input?.edges) ? input.edges : DEFAULT_KOSARAJU_INPUT.edges;
+
+  const currentNodes: GraphNodeItem[] = safeNodes.map((n) => ({
     ...n,
     state: "default",
   }));
 
-  let currentEdges: GraphEdgeItem[] = input.edges.map((e) => ({
+  let currentEdges: GraphEdgeItem[] = safeEdges.map((e) => ({
     ...e,
     isTraversed: false,
     isPath: false,

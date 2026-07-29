@@ -23,7 +23,9 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nodes = input.nodes;
+  const nodes = Array.isArray(input?.nodes)
+    ? [...input.nodes]
+    : DEFAULT_REVERSE_LINKED_LIST_INPUT.nodes;
   const n = nodes.length;
 
   const elements: ArrayElement[] = nodes.map((val, idx) => ({
@@ -63,19 +65,19 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
   addStep(
     1,
-    "Start reversing the linked list",
-    `Reversing singly linked list [${nodes.join(" -> ")}] in-place in $O(N)$ time and $O(1)$ space.`,
+    "Initialize linked list pointer inversion",
+    `Preparing to reverse link directions in-place for singly linked list sequence [${nodes.join(" -> ")}] in O(N) time.`,
     { head: n > 0 ? nodes[0] : "None", length: n },
   );
 
   if (n === 0) {
     addStep(
       2,
-      "Set prev to None",
-      "The list is empty, so there are no links to flip — we set prev to None.",
+      "Set prev pointer to null (terminator)",
+      "The list is empty, so there are no pointers to invert.",
       { prev: "None", curr: "None" },
     );
-    addStep(9, "Return None", "An empty list reversed is still an empty list, so we return None.", {
+    addStep(9, "Return null", "Reversing an empty list produces an empty list; returning null.", {
       newHead: "None",
     });
     return steps;
@@ -83,8 +85,8 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
   addStep(
     2,
-    "Initialize prev = None",
-    `prev marks the head of the reversed portion. It starts at None because original head node ${nodes[0]} becomes the tail pointing to None.`,
+    "Set prev pointer to null (terminator)",
+    `prev marks the head of the reversed prefix. It begins at null because original head node ${nodes[0]} will become the new tail pointing to null.`,
     { prev: "None" },
   );
 
@@ -93,8 +95,8 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
   addStep(
     3,
-    `Initialize curr = head (node ${nodes[0]})`,
-    `curr marks the active node being processed. It begins at head node ${nodes[0]}.`,
+    "Set curr pointer to list head",
+    `Establishes curr as the active traversal pointer starting at head node ${nodes[0]}.`,
     { prev: "None", curr: nodes[0] },
   );
 
@@ -118,23 +120,23 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
     addStep(
       4,
-      `Evaluate loop condition: while curr (node ${currentVal})`,
-      `curr is valid (node ${currentVal}), so untouched nodes remain in forward list.`,
+      `Evaluate traversal condition: active node exists (${currentVal})`,
+      `curr is valid (node ${currentVal}), indicating un-reversed nodes remain in the forward sequence.`,
       { i, prev: prevVal, curr: currentVal },
     );
 
     addStep(
       5,
-      `Stash next reference: nxt = curr.next (${nextVal})`,
-      `Saving reference to node ${nextVal} in nxt before overwriting curr.next pointer.`,
+      `Stash next node reference (${nextVal})`,
+      `Preserves pointer reference to downstream node ${nextVal} in nxt before breaking and redirecting curr's link.`,
       { i, prev: prevVal, curr: currentVal, nxt: nextVal },
     );
 
     elements[i].state = "swap";
     addStep(
       6,
-      `Flip link: curr.next = prev (point node ${currentVal} to ${prevVal})`,
-      `Reversing pointer direction: node ${currentVal} now points backward to ${prevVal}.`,
+      `Invert pointer direction for node ${currentVal}`,
+      `Redirects curr.next backward to point to prev (node ${prevVal}), reversing link direction in O(1) time.`,
       { i, "curr.next": prevVal, prev: prevVal, curr: currentVal },
     );
 
@@ -149,15 +151,15 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
     addStep(
       7,
-      `Advance prev = curr (prev now points to node ${currentVal})`,
-      `Node ${currentVal} is now the head of the reversed portion so far.`,
+      `Advance prev pointer to node ${currentVal}`,
+      `Updates prev to mark node ${currentVal} as the new head of the reversed prefix so far.`,
       { i, prev: currentVal, curr: currentVal },
     );
 
     addStep(
       8,
-      `Advance curr = nxt (curr now points to node ${nextVal})`,
-      `Moving curr forward to stashed node ${nextVal} to process next link.`,
+      `Advance curr pointer to stashed node ${nextVal}`,
+      `Moves curr forward to stashed node ${nextVal} to continue reversing remaining links.`,
       { i, prev: currentVal, curr: nextVal },
     );
   }
@@ -170,15 +172,15 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
 
   addStep(
     4,
-    "Evaluate loop condition: curr is None",
-    "curr has reached end of list (None) — all pointers reversed.",
+    "Evaluate traversal condition: curr is null",
+    "curr has reached null — all pointer directions are successfully reversed.",
     { prev: nodes[n - 1], curr: "None" },
   );
 
   addStep(
     9,
-    `Return prev (new head node ${nodes[n - 1]})`,
-    `prev points at old tail node ${nodes[n - 1]}, which is the new head of the reversed list.`,
+    `Return new head node (${nodes[n - 1]})`,
+    `prev points to original tail node ${nodes[n - 1]}, which now serves as the head of the reversed linked list.`,
     { newHead: nodes[n - 1] },
   );
 
@@ -224,38 +226,46 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
   title: "Reverse Linked List",
   topicIds: ["linked_list"],
   difficulty: "Easy",
-  description: `Master Reverse Linked List: invert pointer directions of a singly linked list in-place in $O(N)$ time and $O(1)$ space.
-
-### Why It Exists & What It Solves
-Unlike arrays where elements can be accessed by index in $O(1)$ time, a singly linked list only permits forward traversal via \`.next\` pointers. Reversing an array involves swapping elements from outside in. For a linked list, we cannot step backward from the tail; we must flip each \`.next\` pointer forward as we traverse. In-place reversal rearranges existing node references without instantiating new objects, avoiding heap allocations and memory fragmentation.
-
-### Step-by-Step Intuition
-1. **Three-Pointer Setup**: Maintain three pointers:
-   - \`prev\`: Head of the already reversed portion (starts at \`None\`).
-   - \`curr\`: Node currently being processed (starts at \`head\`).
-   - \`nxt\`: Temporary handle to preserve forward connection (\`curr.next\`).
-2. **Four-Step Inversion Loop**:
-   - **Save**: \`nxt = curr.next\` (stash next node before link breaks).
-   - **Flip**: \`curr.next = prev\` (redirect pointer backward).
-   - **Advance Prev**: \`prev = curr\` (move reversed boundary forward).
-   - **Advance Curr**: \`curr = nxt\` (hop to saved next node).
-3. **Completion**: When \`curr\` becomes \`None\`, \`prev\` stands on the old tail, which is the new head!
-
-### Input Parameters
-- \`head\`: Pointer to the head node of a singly linked list.
-
-### Output
-- Returns pointer to the new head node of the reversed linked list.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(N)$ worst/average case, making a single pass over $N$ nodes.
-- **Space Complexity**: $O(1)$ auxiliary space using iterative pointer adjustments.
-
-### Edge Cases & Constraints
-- \`0 <= N <= 5000\`
-- \`-5000 <= Node.val <= 5000\`
-- Empty list (\`head == null\`): returns \`null\`.
-- Single-node list (\`head.next == null\`): returns \`head\` untouched.`,
+  description: `<p>Invert pointer directions of a singly linked list in-place in <em>O(N)</em> time and <em>O(1)</em> space.</p>
+<h3>Why It Exists &amp; What It Solves</h3>
+<p>Unlike arrays where elements can be accessed by index in <em>O(1)</em> time, a singly linked list only permits forward traversal via <code>.next</code> pointers. Reversing an array involves swapping elements from outside in. For a linked list, we cannot step backward from the tail; we must flip each <code>.next</code> pointer forward as we traverse. In-place reversal rearranges existing node references without instantiating new objects, avoiding heap allocations and memory fragmentation.</p>
+<h3>Step-by-Step Intuition</h3>
+<ul>
+  <li><strong>Three-Pointer Setup</strong>: Maintain three pointers:
+    <ul>
+      <li><code>prev</code>: Head of the already reversed portion (starts at <code>None</code>).</li>
+      <li><code>curr</code>: Node currently being processed (starts at <code>head</code>).</li>
+      <li><code>nxt</code>: Temporary handle to preserve forward connection (<code>curr.next</code>).</li>
+    </ul>
+  </li>
+  <li><strong>Four-Step Inversion Loop</strong>:
+    <ul>
+      <li><strong>Save</strong>: <code>nxt = curr.next</code> (stash next node before link breaks).</li>
+      <li><strong>Flip</strong>: <code>curr.next = prev</code> (redirect pointer backward).</li>
+      <li><strong>Advance Prev</strong>: <code>prev = curr</code> (move reversed boundary forward).</li>
+      <li><strong>Advance Curr</strong>: <code>curr = nxt</code> (hop to saved next node).</li>
+    </ul>
+  </li>
+  <li><strong>Completion</strong>: When <code>curr</code> becomes <code>None</code>, <code>prev</code> stands on the old tail, which is the new head!</li>
+</ul>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>head</code>: Pointer to the head node of a singly linked list.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns pointer to the new head node of the reversed linked list.</p>
+<h3>Trade-offs &amp; Complexity</h3>
+<ul>
+  <li><strong>Time Complexity</strong>: <em>O(N)</em> worst/average case, making a single pass over <em>N</em> nodes.</li>
+  <li><strong>Space Complexity</strong>: <em>O(1)</em> auxiliary space using iterative pointer adjustments.</li>
+</ul>
+<h3>Edge Cases &amp; Constraints</h3>
+<ul>
+  <li><code>0 &le; N &le; 5000</code></li>
+  <li><code>-5000 &le; Node.val &le; 5000</code></li>
+  <li>Empty list (<code>head == null</code>): returns <code>null</code>.</li>
+  <li>Single-node list (<code>head.next == null</code>): returns <code>head</code> untouched.</li>
+</ul>`,
   constraints: ["0 <= number of nodes <= 5000", "-5000 <= Node.val <= 5000"],
   examples: [
     {
@@ -299,19 +309,19 @@ Unlike arrays where elements can be accessed by index in $O(1)$ time, a singly l
   },
   topicGuide: {
     overview:
-      "A singly linked list is a linear data structure consisting of nodes with data payloads and single forward pointers. In-place reversal is the canonical pointer manipulation algorithm. By re-aiming each next pointer during a single linear traversal, the algorithm reverses the entire list in O(N) time and O(1) space. Reversal patterns underpin LRU caches, lock-free queues, and memory allocator free-lists.",
+      "<p>A singly linked list is a linear data structure consisting of nodes with data payloads and single forward pointers. In-place reversal is the canonical pointer manipulation algorithm. By re-aiming each next pointer during a single linear traversal, the algorithm reverses the entire list in <em>O(N)</em> time and <em>O(1)</em> space. Reversal patterns underpin LRU caches, lock-free queues, and memory allocator free-lists.</p>",
     sections: [
       {
         heading: "Why Pointer Loss Must Be Avoided",
-        body: "In a singly linked list, `curr.next` is the only link to subsequent nodes. Overwriting `curr.next = prev` without saving `curr.next` first instantly destroys access to all remaining nodes, causing a memory leak / lost pointer bug. Stashing `nxt = curr.next` before flipping is mandatory.",
+        body: "<p>In a singly linked list, <code>curr.next</code> is the only link to subsequent nodes. Overwriting <code>curr.next = prev</code> without saving <code>curr.next</code> first instantly destroys access to all remaining nodes, causing a memory leak / lost pointer bug. Stashing <code>nxt = curr.next</code> before flipping is mandatory.</p>",
       },
       {
         heading: "The Four-Step Pointer Dance",
-        body: "Inside the `while curr:` loop, execution follows a strict 4-step sequence: `nxt = curr.next`, `curr.next = prev`, `prev = curr`, `curr = nxt`. This maintains the invariant that `prev` always points to the head of the inverted prefix while `curr` points to the remaining forward suffix.",
+        body: "<p>Inside the loop, execution follows a strict 4-step sequence: <code>nxt = curr.next</code>, <code>curr.next = prev</code>, <code>prev = curr</code>, <code>curr = nxt</code>. This maintains the invariant that <code>prev</code> always points to the head of the inverted prefix while <code>curr</code> points to the remaining forward suffix.</p>",
       },
       {
         heading: "Systems Performance & Memory Locality",
-        body: "Linked list nodes scattered across heap memory can cause CPU L1/L2 cache misses during traversal. Reversing in-place avoids heap allocations or garbage collection overhead, preserving cache footprint.",
+        body: "<p>Linked list nodes scattered across heap memory can cause CPU L1/L2 cache misses during traversal. Reversing in-place avoids heap allocations or garbage collection overhead, preserving cache footprint.</p>",
       },
     ],
     keyTerms: [

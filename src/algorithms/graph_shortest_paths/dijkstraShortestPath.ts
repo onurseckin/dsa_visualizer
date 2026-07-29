@@ -50,9 +50,9 @@ export const DEFAULT_DIJKSTRA_INPUT: DijkstraInput = {
 };
 
 export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => {
-  const rawNodes = input.nodes || ["A", "B", "C", "D", "E"];
-  const rawEdges = input.edges || [];
-  const startNode = input.startNode || "A";
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : ["A", "B", "C", "D", "E"];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
+  const startNode = typeof input?.startNode === "string" ? input.startNode : (rawNodes[0] ?? "A");
 
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
@@ -402,36 +402,36 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
 
 const DIJKSTRA_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Dijkstra's algorithm solves the Single-Source Shortest Path (SSSP) problem on weighted graphs $G = (V, E)$ with non-negative edge weights ($w(u,v) \\ge 0$). By prioritizing vertices by tentative distance in a min-priority queue $Q$, Dijkstra guarantees that when vertex $u$ is extracted from $Q$, its computed distance $d[u]$ is optimal.",
+    "<p>Dijkstra's algorithm solves the Single-Source Shortest Path (SSSP) problem on weighted graphs <code>G = (V, E)</code> with non-negative edge weights (<code>w(u, v) ≥ 0</code>). By prioritizing vertices by tentative distance in a min-priority queue <code>Q</code>, Dijkstra guarantees that when vertex <code>u</code> is extracted from <code>Q</code>, its computed distance <code>dist[u]</code> is optimal.</p>",
   sections: [
     {
       heading: "The greedy frontier",
-      body: "At each step, Dijkstra extracts the unvisited vertex $u$ minimizing $d[u]$. Because all edge weights satisfy $w(x, y) \\ge 0$, no subsequent path through unvisited vertices can produce a shorter distance to $u$:\n\n$$d[v] = d[u] + w(u, v) \\ge d[u]$$\n\nThis monotonic distance non-decreasing property ensures that extracted vertices are permanently finalized.",
+      body: "<p>At each step, Dijkstra extracts the unvisited vertex <code>u</code> minimizing <code>dist[u]</code>. Because all edge weights satisfy <code>w(x, y) ≥ 0</code>, no subsequent path through unvisited vertices can produce a shorter distance to <code>u</code>:</p><p><code>dist[v] = dist[u] + w(u, v) ≥ dist[u]</code></p><p>This monotonic non-decreasing distance property ensures that extracted vertices are permanently finalized.</p>",
     },
     {
       heading: "Edge Relaxation Mechanics",
-      body: "Relaxing edge $(u, v)$ checks if routing to $v$ via $u$ improves the recorded distance $d[v]$:\n\n$$\\text{if } d[u] + w(u, v) < d[v] \\implies d[v] = d[u] + w(u, v)$$\n\nIf updated, $(d[v], v)$ is pushed onto the min-heap.",
+      body: "<p>Relaxing edge <code>(u, v)</code> checks if routing to <code>v</code> via <code>u</code> improves the recorded distance <code>dist[v]</code>:</p><p><code>if dist[u] + w(u, v) &lt; dist[v] ⇒ dist[v] = dist[u] + w(u, v)</code></p><p>If updated, <code>(dist[v], v)</code> is pushed onto the min-heap.</p>",
     },
     {
       heading: "Complexity Analysis",
-      body: "Using a binary min-heap priority queue, extracting the minimum takes $\\mathcal{O}(\\log |V|)$ time across $|V|$ extractions, and edge relaxations perform up to $|E|$ heap updates. The overall runtime complexity is $\\mathcal{O}((|V| + |E|) \\log |V|)$ with $\\mathcal{O}(|V| + |E|)$ auxiliary space.",
+      body: "<p>Using a binary min-heap priority queue, extracting the minimum takes <code>O(log V)</code> time across <code>V</code> extractions, and edge relaxations perform up to <code>E</code> heap updates. Overall runtime complexity is <code>O((V + E) log V)</code> with <code>O(V + E)</code> auxiliary space.</p>",
     },
   ],
   keyTerms: [
     {
       term: "Relaxation",
       definition:
-        "The operation $d[v] = \\min(d[v], d[u] + w(u,v))$ updating the shortest path distance to neighbor $v$.",
+        "The operation dist[v] = min(dist[v], dist[u] + w(u, v)) updating the shortest path distance to neighbor v.",
     },
     {
       term: "Min-Priority Queue",
       definition:
-        "A binary heap structure maintaining $Q$ ordered by current tentative distance $d[u]$.",
+        "A binary heap structure maintaining Q ordered by current tentative distance dist[u].",
     },
     {
       term: "Lazy Deletion",
       definition:
-        "Pushing updated $(d, v)$ pairs without deleting outdated heap entries, skipping duplicate node pops upon extraction.",
+        "Pushing updated (d, v) pairs without deleting outdated heap entries, skipping duplicate node pops upon extraction.",
     },
   ],
 };
@@ -468,7 +468,7 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "Dijkstra's algorithm computes the Single-Source Shortest Path (SSSP) from a source vertex $s \\in V$ to all other vertices in a directed or undirected graph $G=(V, E)$ with non-negative edge weights ($w(u,v) \\ge 0$). Using a min-priority queue $Q$, it greedily extracts the vertex $u$ with the minimum tentative distance $d[u]$ and relaxes its incident edges. It runs in $\\mathcal{O}((|V| + |E|) \\log |V|)$ time using a binary min-heap and $\\mathcal{O}(|V| + |E|)$ space.",
+    "<p><strong>Dijkstra's algorithm</strong> computes the Single-Source Shortest Path (SSSP) from a source vertex <code>s</code> to all other vertices in a directed or undirected graph <code>G = (V, E)</code> with non-negative edge weights (<code>w(u, v) ≥ 0</code>).</p><p>Using a min-priority queue <code>Q</code>, it greedily extracts the vertex <code>u</code> with the minimum tentative distance <code>dist[u]</code> and relaxes its incident edges. It runs in <code>O((V + E) log V)</code> time using a binary min-heap and <code>O(V + E)</code> space.",
   constraints: [
     "1 <= Vertices V <= 10^4",
     "0 <= Edges E <= 10^5",

@@ -13,16 +13,16 @@ export const huffmanCoding: AlgorithmDefinition<HuffmanCodingInput> = {
   topicIds: ["heap_and_priority_queue", "greedy_algorithms"],
   difficulty: "Medium",
   description:
-    "Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.\n\n" +
-    "### Problem Overview\n" +
-    "Huffman Coding calculates character frequencies and constructs a binary tree with minimum total weighted path length $\\sum_{i=1}^K f_i \\cdot d_i$, where $f_i$ is the frequency of character $i$ and $d_i$ is its depth in the tree. High-frequency characters receive shorter binary codes, while rare characters receive longer ones.\n\n" +
-    "### Key Insights & Intuition\n" +
-    "- **Prefix-Free Property**: No code word is a prefix of any other code word, enabling unambiguous bit-by-bit decoding without separators.\n" +
-    "- **Greedy Choice**: Repeatedly merge the two nodes with the lowest frequency sum. By exchange argument, placing the two least frequent symbols at maximum depth is optimal.\n" +
-    "- **Shannon Entropy Bound**: Average code length $L$ satisfies $H(X) \\le L < H(X) + 1$, where $H(X) = -\\sum p_i \\log_2 p_i$.\n\n" +
-    "### Complexity\n" +
-    "- **Time**: $O(N \\log K)$ where $N$ is string length and $K$ is the number of unique characters.\n" +
-    "- **Space**: $O(K)$ auxiliary space for leaf and internal nodes in the min-heap.",
+    "<p>Given a text string consisting of ASCII characters, build an optimal prefix-free binary code using Huffman's greedy algorithm.</p>" +
+    "<h3>Problem Overview</h3>" +
+    "<p>Huffman Coding calculates character frequencies and constructs a binary tree with minimum total weighted path length <span>&sum; f_i &middot; d_i</span>, where <code>f_i</code> is the frequency of character <code>i</code> and <code>d_i</code> is its depth in the tree. High-frequency characters receive shorter binary codes, while rare characters receive longer ones.</p>" +
+    "<h3>Key Insights &amp; Intuition</h3>" +
+    "<ul><li><strong>Prefix-Free Property:</strong> No code word is a prefix of any other code word, enabling unambiguous bit-by-bit decoding without separators.</li>" +
+    "<li><strong>Greedy Choice:</strong> Repeatedly merge the two nodes with the lowest frequency sum. By exchange argument, placing the two least frequent symbols at maximum depth is optimal.</li>" +
+    "<li><strong>Shannon Entropy Bound:</strong> Average code length <code>L</code> satisfies <code>H(X) &le; L &lt; H(X) + 1</code>, where <code>H(X) = -&sum; p_i log₂ p_i</code>.</li></ul>" +
+    "<h3>Complexity</h3>" +
+    "<ul><li><strong>Time:</strong> <span>O(N log K)</span> where N is string length and K is the number of unique characters.</li>" +
+    "<li><strong>Space:</strong> <span>O(K)</span> auxiliary space for leaf and internal nodes in the min-heap.</li></ul>",
   constraints: ["1 <= text.length <= 10^4", "Text consists of ASCII characters"],
   examples: [
     {

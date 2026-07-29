@@ -21,58 +21,57 @@ export const DEFAULT_FLOYD_WARSHALL_INPUT: FloydWarshallInput = {
 
 const FLOYD_WARSHALL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Floyd-Warshall answers the all-pairs shortest path question in one shot: for every ordered pair of vertices, what is the cheapest way to get from the first to the second? Instead of running a source-by-source search, it treats the whole answer as a matrix and improves that matrix in place through dynamic programming. It tolerates negative edge weights, needs no priority queue, and is short enough to write from memory, which makes it the standard choice for small dense graphs and for any situation where you will query many pairs. It also happens to be a template: the same triple loop solves reachability, bottleneck, and closure problems by swapping the operation inside.",
+    "<p>Floyd-Warshall computes All-Pairs Shortest Paths (APSP) on a weighted graph using dynamic programming. Instead of running single-source algorithms from every vertex, it maintains a 2D distance matrix <code>D</code> and updates all cell values in place across <code>|V|</code> pivot stages.</p>",
   sections: [
     {
       heading: "One matrix, one question asked repeatedly",
-      body: "Start with a matrix whose entry for (i, j) is the weight of the direct edge from i to j, zero on the diagonal, and infinity where no edge exists. Now permit exactly one vertex — call it the pivot — to be used as an intermediate stop, and ask for every pair whether hopping through that pivot is cheaper than what you already have. Then permit two vertices as intermediates, then three, until every vertex has had its turn. The quantity you are computing at stage k is the shortest distance between each pair using only the first k vertices as intermediate stops, and once k reaches the total vertex count that restriction is no longer a restriction at all.",
+      body: "<p>Initialize matrix cell <code>dist[i][j]</code> with direct edge weight, 0 on the main diagonal, and ∞ where no edge exists. At pivot stage <code>k</code>, consider whether routing through vertex <code>k</code> shortens the path from <code>i</code> to <code>j</code>.</p>",
     },
     {
       heading: "How the triple loop implements that",
-      body: "The outer loop is the pivot k, and the two inner loops walk every source i and every target j, performing one comparison: if the distance from i to k plus the distance from k to j undercuts the distance from i to j, replace it. The ordering of those loops is not cosmetic — putting k anywhere but outermost computes something that is simply not the shortest-path recurrence, and it is the single most common way to get this algorithm wrong. Updating in place is nevertheless safe, because during pivot k the entries in row k and column k cannot change: improving them would require a path from k to itself with negative weight, which only happens if the graph has a negative cycle. That is why you need no second copy of the matrix even though every cell may be rewritten.",
+      body: "<p>The outer loop iterates pivot <code>k</code> from 0 to <code>|V|-1</code>. Two inner loops iterate source <code>i</code> and target <code>j</code>, applying the relaxation check: <code>dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])</code>.</p>",
     },
     {
       heading: "Why the pivot ordering is correct",
-      body: "Look at any shortest path between two vertices and find the highest-numbered vertex it passes through in the middle. That path splits at that vertex into two shorter paths whose own intermediate vertices are all lower numbered, so both halves were already computed correctly at an earlier stage. When the pivot loop reaches that highest-numbered vertex, the comparison joins the two halves and records the full path. Every shortest path has such a highest intermediate vertex, so every shortest path is discovered at exactly the stage where its pivot comes up, and none is missed.",
+      body: "<p>Any shortest path between <code>i</code> and <code>j</code> has a highest-indexed intermediate vertex. When pivot <code>k</code> reaches that index, both sub-paths <code>i → k</code> and <code>k → j</code> have already been computed, combining into the optimal overall path.</p>",
     },
     {
       heading: "Negative weights and negative cycles",
-      body: "Negative edges are perfectly welcome here, because nothing in the recurrence assumes that adding an edge makes a path worse. Negative cycles are a different matter: they make shortest paths undefined, and the algorithm exposes them cleanly, since a diagonal entry dropping below zero means some vertex reaches itself at a negative total cost. Once you see that, treat every distance whose path can touch the offending cycle as meaningless rather than merely inaccurate. If you need reliable answers on such a graph, you must first decide what question you are actually asking — for instance shortest simple path, which is a much harder problem, or shortest walk of bounded length.",
+      body: "<p>Floyd-Warshall handles negative edge weights. If a diagonal entry <code>dist[i][i]</code> drops below 0 after execution, the graph contains a reachable negative-weight cycle.</p>",
     },
     {
       heading: "When to prefer it over running a single-source algorithm many times",
-      body: "Floyd-Warshall wins when the vertex count is modest and the graph is dense, because its cost depends only on the number of vertices and it has almost no constant-factor overhead — no heap, no adjacency traversal, just tight array arithmetic. On a large sparse graph, running Dijkstra from every vertex is dramatically faster, and when such a graph also has negative edges, Johnson's algorithm reweights it first so that repeated Dijkstra becomes legal. Also consider what you actually need: if you only ever query one source, computing the entire matrix is wasted effort, whereas if you will answer thousands of arbitrary pair queries, the matrix is exactly the lookup table you want. The other practical constraint is memory, since storing a cell per ordered pair grows quadratically and becomes the binding limit well before running time does.",
+      body: "<p>Floyd-Warshall is optimal for small or dense graphs (<code>V ≤ 200</code>) due to its simple <code>O(V³)</code> structure with low constant overhead. For large sparse graphs, running Dijkstra from all sources is faster.</p>",
     },
     {
       heading: "The same loop, other problems",
-      body: 'Replace addition with logical AND and the minimum with logical OR, and the identical triple loop computes the transitive closure of a graph, telling you which vertices can reach which — that variant is known as the Warshall algorithm. Replace the sum with "the larger of the two" and you get minimum-bottleneck paths, the route whose heaviest edge is as light as possible, which is what you want for maximum-capacity routing. To recover actual routes rather than costs, keep a parallel matrix recording the next hop for each pair and update it whenever you improve a distance, then follow those hops to walk the path out. Recognizing this family — a closed semiring with a combine operation and a select operation — is what lets you reuse the pattern on problems that have nothing to do with distance.',
+      body: "<p>By replacing addition with logical AND and minimum with logical OR, the same triple-nested loop computes transitive closure (Warshall's algorithm).</p>",
     },
   ],
   keyTerms: [
     {
-      term: "Pivot (intermediate vertex)",
+      term: "Pivot Vertex (k)",
       definition:
-        "The vertex the outer loop is currently allowing paths to route through. Each pivot round asks, for every pair, whether stopping at that vertex on the way is cheaper than the route already known.",
+        "The intermediate vertex evaluated in the outer loop to check for shorter paths between all pairs (i, j).",
     },
     {
-      term: "Distance matrix",
-      definition:
-        "The table holding one cell per ordered pair of vertices, seeded with direct edge weights and refined in place until each cell holds a true shortest distance.",
+      term: "Distance Matrix",
+      definition: "A 2D array storing shortest path distances between all ordered vertex pairs.",
     },
     {
-      term: "In-place update",
+      term: "In-place Update",
       definition:
-        "Overwriting the same matrix during a pivot round instead of writing into a fresh copy. It is safe because the row and column belonging to the pivot cannot change during that round.",
+        "Modifying the distance matrix directly without secondary arrays, valid because pivot row k and column k remain unchanged during stage k.",
     },
     {
-      term: "Transitive closure",
+      term: "Transitive Closure",
       definition:
-        "The yes-or-no version of the same computation: for every pair, can the first vertex reach the second at all? You get it by swapping the arithmetic for boolean operations.",
+        "A boolean matrix determining reachability between all pairs of vertices in a directed graph.",
     },
     {
-      term: "Next-hop matrix",
+      term: "All-Pairs Shortest Path (APSP)",
       definition:
-        "An optional companion table storing, for each pair, the first vertex to move to along the best route. Following those entries reconstructs the path itself rather than just its cost.",
+        "The problem of finding shortest paths between every pair of vertices in a graph.",
     },
   ],
 };
@@ -107,7 +106,7 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "The Floyd-Warshall algorithm computes the shortest path between every pair of vertices in a weighted directed graph $G = (V, E)$ using dynamic programming over a distance matrix $\\mathbf{D} \\in \\mathbb{R}^{|V| \\times |V|}$. For each pivot vertex $k \\in V$, it relaxes every pair $(i, j)$ using the dynamic programming recurrence: $$d_{i,j}^{(k)} = \\min\\left(d_{i,j}^{(k-1)}, d_{i,k}^{(k-1)} + d_{k,j}^{(k-1)}\\right)$$ It runs in $\\mathcal{O}(|V|^3)$ time and $\\mathcal{O}(|V|^2)$ space, supporting negative edge weights.",
+    "<p>The <strong>Floyd-Warshall algorithm</strong> computes the shortest path between every pair of vertices in a weighted directed graph <code>G = (V, E)</code> using dynamic programming over a 2D distance matrix <code>D</code>. For each pivot vertex <code>k</code>, it relaxes every pair <code>(i, j)</code> using the recurrence:</p><p><code>dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])</code></p><p>It runs in <code>O(|V|³)</code> time and <code>O(|V|²)</code> space, supporting negative edge weights.</p>",
   constraints: [
     "1 <= Vertices V <= 200",
     "0 <= Edges E <= V * (V - 1)",
@@ -180,8 +179,8 @@ export const floydWarshall: AlgorithmDefinition<FloydWarshallInput> = {
   },
   spaceComplexity: "O(V^2)",
   complexityAnalysis: {
-    time: "Three nested loops sweep all $|V|$ pivot vertices, $|V|$ source vertices, and $|V|$ target vertices, taking strictly $\\mathcal{O}(|V|^3)$ operations.",
-    space: "The $|V| \\times |V|$ distance matrix requires $\\mathcal{O}(|V|^2)$ memory.",
+    time: "Three nested loops sweep all |V| pivot vertices, |V| source vertices, and |V| target vertices, taking strictly O(|V|³) operations.",
+    space: "The |V| × |V| distance matrix requires O(|V|²) memory.",
   },
   topicGuide: FLOYD_WARSHALL_TOPIC_GUIDE,
   trivia: FLOYD_WARSHALL_TRIVIA,

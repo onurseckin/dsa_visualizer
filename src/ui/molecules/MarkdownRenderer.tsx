@@ -23,7 +23,7 @@ function renderInlineMath(text: string): React.ReactNode[] {
       return (
         <span
           key={`math-${index}`}
-          className="inline-math font-mono text-[0.95em] px-1 py-0.5 rounded bg-[var(--bg-inset)] border border-[var(--border-default)] text-[var(--accent-text,var(--text-primary))] font-semibold"
+          className="inline-math font-mono text-[0.9em] px-1.5 py-0.5 rounded bg-[var(--bg-inset)] border border-[var(--border-default)] text-[var(--text-primary)] font-semibold"
           title={rawMath}
         >
           {formatMathSymbol(rawMath)}
@@ -123,18 +123,32 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
 }) => {
   if (!content) return null;
 
+  const trimmedContent = content.trim();
+
+  // If content is clean React HTML markup, render directly
+  if (trimmedContent.startsWith("<")) {
+    return (
+      <div
+        data-testid="markdown-container"
+        className={`markdown-body flex flex-col gap-2.5 text-base leading-relaxed text-[var(--text-secondary)] ${className}`}
+        style={style}
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    );
+  }
+
   // Split by double newline or block quotes / headers / math blocks
   const blocks = content.split(/\n\s*\n/);
 
   return (
     <div
       data-testid="markdown-container"
-      className={`markdown-body flex flex-col gap-4 text-base leading-relaxed text-[var(--text-secondary)] ${className}`}
+      className={`markdown-body flex flex-col gap-2.5 text-base leading-relaxed text-[var(--text-secondary)] ${className}`}
       style={style}
     >
       {blocks.map((block, bIdx) => {
         const trimmed = block.trim();
-        if (!trimmed) return null;
+        if (!trimmed || trimmed === "---" || trimmed === "***" || trimmed === "___") return null;
 
         // Display Math Block $$...$$ or \[...\]
         if (
@@ -148,7 +162,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
             <div
               key={`block-${bIdx}`}
               data-testid="math-block"
-              className="my-2 p-4 rounded-xl bg-[var(--bg-inset)] border border-[var(--border-default)] text-center font-mono text-base text-[var(--text-primary)] overflow-x-auto"
+              className="my-1.5 p-3 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-default)] text-center font-mono text-base text-[var(--text-primary)] overflow-x-auto"
             >
               {formatMathSymbol(rawMath)}
             </div>
@@ -160,7 +174,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           return (
             <h3
               key={`block-${bIdx}`}
-              className="m-0 mt-3 text-base font-semibold text-[var(--text-primary)] border-b border-[var(--border-default)] pb-1"
+              className="m-0 mt-2 text-base font-semibold text-[var(--text-primary)]"
             >
               {renderInlineMath(trimmed.slice(4))}
             </h3>
@@ -170,7 +184,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           return (
             <h2
               key={`block-${bIdx}`}
-              className="m-0 mt-4 text-lg font-semibold text-[var(--text-primary)] border-b border-[var(--border-default)] pb-1"
+              className="m-0 mt-3 text-lg font-semibold text-[var(--text-primary)]"
             >
               {renderInlineMath(trimmed.slice(3))}
             </h2>
@@ -180,7 +194,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           return (
             <h1
               key={`block-${bIdx}`}
-              className="m-0 mt-4 text-xl font-bold text-[var(--text-primary)] border-b border-[var(--border-default)] pb-1.5"
+              className="m-0 mt-3 text-xl font-bold text-[var(--text-primary)]"
             >
               {renderInlineMath(trimmed.slice(2))}
             </h1>
@@ -207,7 +221,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           return (
             <ListTag
               key={`block-${bIdx}`}
-              className={`m-0 pl-5 space-y-1.5 ${isOrdered ? "list-decimal" : "list-disc"}`}
+              className={`m-0 pl-5 space-y-1 ${isOrdered ? "list-decimal" : "list-disc"}`}
             >
               {lines.map((line, lIdx) => {
                 const cleanLine = line.trim().replace(/^(-\s*|\*\s*|\d+\.\s*)/, "");

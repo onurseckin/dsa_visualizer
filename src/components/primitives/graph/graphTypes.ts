@@ -1,4 +1,10 @@
-import { GraphNodeItem, GraphEdgeItem, ElementState } from "../../../types/dsa";
+import {
+  GraphNodeItem,
+  GraphEdgeItem,
+  ElementState,
+  AuxiliaryState,
+  DisplayValue,
+} from "../../../types/dsa";
 
 export interface GraphVisualizerProps {
   nodes: GraphNodeItem[];
@@ -6,7 +12,11 @@ export interface GraphVisualizerProps {
   width?: number;
   height?: number;
   isDirected?: boolean;
+  name?: string;
+  /** @deprecated Use `name` for primitive identity. */
   title?: string;
+  auxiliaryState?: AuxiliaryState;
+  variables?: Record<string, DisplayValue>;
 }
 
 export interface NodePosition {

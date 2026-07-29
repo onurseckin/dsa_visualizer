@@ -7,10 +7,33 @@ export interface BinaryTreeLcaInput {
   qVal: number;
 }
 
+export const DEFAULT_BINARY_TREE_LCA_INPUT: BinaryTreeLcaInput = {
+  rootId: "3",
+  pVal: 5,
+  qVal: 1,
+  nodes: [
+    { id: "3", val: 3, leftId: "5", rightId: "1", state: "default" },
+    { id: "5", val: 5, leftId: "6", rightId: "2", state: "default" },
+    { id: "1", val: 1, leftId: "0", rightId: "8", state: "default" },
+    { id: "6", val: 6, state: "default" },
+    { id: "2", val: 2, leftId: "7", rightId: "4", state: "default" },
+    { id: "0", val: 0, state: "default" },
+    { id: "8", val: 8, state: "default" },
+    { id: "7", val: 7, state: "default" },
+    { id: "4", val: 4, state: "default" },
+  ],
+};
+
 export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const { nodes, rootId, pVal, qVal } = input;
+  const nodes =
+    Array.isArray(input?.nodes) && input.nodes.length > 0
+      ? input.nodes
+      : DEFAULT_BINARY_TREE_LCA_INPUT.nodes;
+  const rootId = input?.rootId ?? DEFAULT_BINARY_TREE_LCA_INPUT.rootId;
+  const pVal = typeof input?.pVal === "number" ? input.pVal : DEFAULT_BINARY_TREE_LCA_INPUT.pVal;
+  const qVal = typeof input?.qVal === "number" ? input.qVal : DEFAULT_BINARY_TREE_LCA_INPUT.qVal;
 
   const nodeMap = new Map<string, TreeNodeItem>();
   nodes.forEach((n) => nodeMap.set(n.id, n));
@@ -55,7 +78,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
   addStep(
     1,
-    "Initialize LCA search",
+    "Initialize Lowest Common Ancestor search",
     `Searching for the Lowest Common Ancestor of target nodes p=${pVal} and q=${qVal} using post-order DFS.`,
     undefined,
     undefined,
@@ -66,15 +89,15 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
     addStep(
       2,
       "Evaluate root null check",
-      "Tree root is missing or empty. Base case condition 'not root' evaluated to True.",
+      "Tree root is missing or empty. Base case condition evaluated to True.",
       undefined,
       undefined,
       { root: "None", result: "None" },
     );
     addStep(
       3,
-      "Return None for empty tree",
-      "Root is null, returning None immediately as no LCA exists.",
+      "Return null for empty tree",
+      "Root is null, returning null immediately as no LCA exists.",
       undefined,
       undefined,
       { root: "None", lcaVal: "None" },
@@ -85,7 +108,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
         addStep(
           1,
           "Enter call frame for null child",
-          "lowest_common_ancestor(root=None, p, q) called.",
+          "Subtree traversal reached a null leaf pointer.",
           undefined,
           undefined,
           { current: "None" },
@@ -93,15 +116,15 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
         addStep(
           2,
           "Evaluate null base case check",
-          "Subtree root is null. Condition 'not root' evaluated to True.",
+          "Subtree root is null. Returning null upward to parent frame.",
           undefined,
           undefined,
           { current: "None", isNull: true },
         );
         addStep(
           3,
-          "Return None for empty subtree",
-          "Base case return executed: passing None upward to parent frame.",
+          "Return null for empty subtree",
+          "Base case return executed: passing null upward to parent frame.",
           undefined,
           undefined,
           { current: "None", result: "None" },
@@ -116,8 +139,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         1,
-        `Enter call frame for ${label}`,
-        `Calling lowest_common_ancestor(root=${label}, p=${pVal}, q=${qVal}). Stack depth: ${callStack.length}.`,
+        `Traverse node ${label}`,
+        `Executing post-order DFS to search ${label}'s subtrees for targets p=${pVal} and q=${qVal}. Stack depth: ${callStack.length}.`,
         currentId,
         undefined,
         { current: currentNode.val, depth: callStack.length },
@@ -125,7 +148,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         2,
-        `Evaluate base cases for ${label}`,
+        `Evaluate target presence at node ${label}`,
         `Checking if ${label} is null or if its value matches target p=${pVal} or target q=${qVal}.`,
         currentId,
         undefined,
@@ -136,8 +159,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
         const matchType = currentNode.val === pVal ? "p" : "q";
         addStep(
           2,
-          `Base case condition matched: found target ${matchType} at ${label}`,
-          `${label} equals target ${matchType} (${currentNode.val}). Skipping subtree traversal.`,
+          `Target node found at ${label}`,
+          `${label} equals target ${matchType} (${currentNode.val}). By ancestor-as-self convention, we return ${label} upward.`,
           currentId,
           undefined,
           { current: currentNode.val, match: matchType },
@@ -167,8 +190,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         5,
-        `Prepare left subtree traversal from ${label}`,
-        `Evaluating root.left (${leftNode ? `Node(${leftNode.val})` : "None"}) for recursive LCA search.`,
+        `Initiate left subtree search from ${label}`,
+        `Evaluating left child (${leftNode ? `Node(${leftNode.val})` : "null"}) for recursive LCA search.`,
         currentId,
         undefined,
         { current: currentNode.val, leftChild: leftNode ? leftNode.val : "None" },
@@ -177,7 +200,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
       addStep(
         5,
         `Recurse into left child of ${label}`,
-        `Executing left = lowest_common_ancestor(root.left=${leftNode ? `Node(${leftNode.val})` : "None"}, p=${pVal}, q=${qVal}).`,
+        `Searching left subtree beneath ${label} for targets p=${pVal} and q=${qVal}.`,
         currentId,
         undefined,
         { current: currentNode.val, leftChild: leftNode ? leftNode.val : "None" },
@@ -188,8 +211,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         5,
-        `Left call from ${label} returned ${leftResNode ? `Node(${leftResNode.val})` : "None"}`,
-        `Left subtree search complete. Stored left = ${leftResNode ? leftResNode.val : "None"}.`,
+        `Left subtree search from ${label} complete`,
+        `Left subtree search returned ${leftResNode ? `Node(${leftResNode.val})` : "null"}.`,
         currentId,
         undefined,
         { current: currentNode.val, leftResult: leftResNode ? leftResNode.val : "None" },
@@ -197,8 +220,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         6,
-        `Prepare right subtree traversal from ${label}`,
-        `Evaluating root.right (${rightNode ? `Node(${rightNode.val})` : "None"}) for recursive LCA search.`,
+        `Initiate right subtree search from ${label}`,
+        `Evaluating right child (${rightNode ? `Node(${rightNode.val})` : "null"}) for recursive LCA search.`,
         currentId,
         undefined,
         { current: currentNode.val, rightChild: rightNode ? rightNode.val : "None" },
@@ -207,7 +230,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
       addStep(
         6,
         `Recurse into right child of ${label}`,
-        `Executing right = lowest_common_ancestor(root.right=${rightNode ? `Node(${rightNode.val})` : "None"}, p=${pVal}, q=${qVal}).`,
+        `Searching right subtree beneath ${label} for targets p=${pVal} and q=${qVal}.`,
         currentId,
         undefined,
         { current: currentNode.val, rightChild: rightNode ? rightNode.val : "None" },
@@ -218,8 +241,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         6,
-        `Right call from ${label} returned ${rightResNode ? `Node(${rightResNode.val})` : "None"}`,
-        `Right subtree search complete. Stored right = ${rightResNode ? rightResNode.val : "None"}.`,
+        `Right subtree search from ${label} complete`,
+        `Right subtree search returned ${rightResNode ? `Node(${rightResNode.val})` : "null"}.`,
         currentId,
         undefined,
         { current: currentNode.val, rightResult: rightResNode ? rightResNode.val : "None" },
@@ -228,7 +251,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
       addStep(
         8,
         `Evaluate split condition at ${label}`,
-        `Checking 'if left and right:' with left=${leftResNode ? leftResNode.val : "None"} and right=${rightResNode ? rightResNode.val : "None"}.`,
+        `Checking if targets diverge across subtrees (left=${leftResNode ? leftResNode.val : "null"}, right=${rightResNode ? rightResNode.val : "null"}).`,
         currentId,
         leftResult && rightResult ? currentId : undefined,
         {
@@ -242,8 +265,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
       if (leftResult && rightResult) {
         addStep(
           8,
-          `Bifurcation confirmed: both subtrees returned target nodes!`,
-          `Target p=${pVal} and target q=${qVal} diverge at ${label}. Therefore, ${label} is the LCA.`,
+          `Branch divergence identified at ${label}`,
+          `Target p=${pVal} and target q=${qVal} reside in opposite subtrees of ${label}. Therefore, ${label} is the unique Lowest Common Ancestor.`,
           currentId,
           currentId,
           { current: currentNode.val, lcaFound: true, lcaVal: currentNode.val },
@@ -251,7 +274,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
         addStep(
           9,
           `Return ${label} as Lowest Common Ancestor`,
-          `Executing return root (${currentNode.val}).`,
+          `Returning ${label} (${currentNode.val}) as verified LCA.`,
           currentId,
           currentId,
           { current: currentNode.val, result: currentNode.val },
@@ -273,8 +296,8 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         10,
-        `Evaluate single subtree return at ${label}`,
-        `Executing 'return left if left else right'. Result to return: ${result ? `Node(${resNodeVal})` : "None"}.`,
+        `Propagate subtree result upward from ${label}`,
+        `One or neither subtree contained targets. Result to return: ${result ? `Node(${resNodeVal})` : "null"}.`,
         currentId,
         undefined,
         {
@@ -287,10 +310,10 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
 
       addStep(
         10,
-        `Return ${result ? `Node(${resNodeVal})` : "None"} upward from ${label}`,
+        `Return ${result ? `Node(${resNodeVal})` : "null"} upward from ${label}`,
         result
           ? `Forwarding target reference Node(${resNodeVal}) upward to parent.`
-          : `Neither subtree contains a target. Returning None upward.`,
+          : "Neither subtree contains a target. Returning null upward.",
         currentId,
         undefined,
         { current: currentNode.val, returned: resNodeVal },
@@ -300,7 +323,7 @@ export const generateBinaryTreeLcaSteps = (input: BinaryTreeLcaInput): Algorithm
       addStep(
         10,
         `Pop call stack frame for ${label}`,
-        `Finished call for ${label}. Stack depth: ${callStack.length}. Retuning ${resNodeVal} to parent caller.`,
+        `Finished call for ${label}. Stack depth: ${callStack.length}. Returning ${resNodeVal} to parent caller.`,
         currentId,
         undefined,
         { current: currentNode.val, returned: resNodeVal, depth: callStack.length },

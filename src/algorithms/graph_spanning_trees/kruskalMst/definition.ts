@@ -27,53 +27,53 @@ export const DEFAULT_KRUSKAL_INPUT: KruskalInput = {
 
 const KRUSKAL_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Kruskal's algorithm constructs a **Minimum Spanning Tree (MST)** for a connected, weighted, undirected graph $G = (V, E)$ by greedily processing edges in ascending order of weight $w(e)$. Using a **Disjoint-Set Union (DSU)** data structure with *path compression* and *union by rank*, Kruskal's algorithm connects components while discarding any edge that would form a cycle. It runs in $\\mathcal{O}(E \\log E)$ time, dominated by the initial edge sorting phase.",
+    "<p>Kruskal's algorithm constructs a <strong>Minimum Spanning Tree (MST)</strong> for a connected, weighted, undirected graph <code>G = (V, E)</code> by greedily processing edges in ascending order of weight. Using a <strong>Disjoint-Set Union (DSU)</strong> structure with path compression and union by rank, Kruskal's algorithm connects components while discarding any edge that would form a cycle. It runs in <code>O(E log E)</code> time.</p>",
   sections: [
     {
       heading: "Why It Exists & What It Solves",
-      body: "Network design problems—such as connecting servers, power grids, or transportation hubs at minimal total infrastructure cost—require connecting all $|V|$ vertices without redundancy. Kruskal's algorithm solves this by selecting the cheapest subset of $|V| - 1$ edges that spans all $|V|$ vertices while keeping total weight $\\sum_{e \\in T} w(e)$ minimal without creating cycles.",
+      body: "<p>Network design problems—such as laying fiber-optic cables or power grids at minimal total cost—require connecting all <code>|V|</code> vertices without redundancy. Kruskal's algorithm solves this by selecting the cheapest subset of <code>|V| - 1</code> edges that spans all vertices while minimizing total edge weight.</p>",
     },
     {
       heading: "Greedy Strategy & Cut Property",
-      body: "Kruskal's algorithm relies on the **Cut Property**: for any cut $(S, V \\setminus S)$ dividing graph vertices into two non-empty sets, the minimum-weight edge $e = (u, v)$ crossing the cut belongs to some MST. By sorting edges globally so $w(e_1) \\le w(e_2) \\le \\dots \\le w(e_m)$, Kruskal guarantees that every accepted edge is the lightest edge bridging two currently disconnected forest components.",
+      body: "<p>Kruskal's algorithm relies on the <strong>Cut Property</strong> of minimum spanning trees:</p><ul><li>For any cut dividing graph vertices into two disjoint sets, the minimum-weight edge crossing the cut belongs to an MST.</li><li>By sorting edges globally upfront, Kruskal guarantees that every accepted edge is the lightest edge bridging two disconnected forest components.</li></ul>",
     },
     {
-      heading: "Union-find is the engine",
-      body: "To determine if an edge $(u, v)$ creates a cycle, Kruskal queries the Union-Find structure: `find(u) == find(v)`. If `true`, $u$ and $v$ already share the same root representative, so adding $(u, v)$ would complete a simple cycle and the edge is rejected. If `false`, `union(u, v)` merges the two disjoint sets in amortized $\\mathcal{O}(\\alpha(|V|))$ time, where $\\alpha$ is the inverse Ackermann function.",
+      heading: "Union-Find is the Engine",
+      body: "<p>To determine if an edge <code>(u, v)</code> creates a cycle, Kruskal queries the DSU structure:</p><ul><li><code>find(u) === find(v)</code>: Both endpoints belong to the same component, so adding the edge forms a cycle and it is skipped.</li><li><code>union(u, v)</code>: Merges the two components in near-constant amortized time <code>O(α(V))</code> when endpoints belong to different sets.</li></ul>",
     },
     {
       heading: "Step-by-Step Intuition",
-      body: "1. **Sort Edges**: Sort all $E$ edges in non-decreasing order of weight: $w(e_1) \\le w(e_2) \\le \\dots \\le w(e_E)$.\n2. **Initialize DSU**: Create $|V|$ singleton sets where `parent[i] = i` and `rank[i] = 1`.\n3. **Iterate & Check**: For each edge $e = (u, v, w)$, check if `find(u) != find(v)`.\n4. **Accept & Merge**: If in distinct components, accept $e$ into the MST set $T$ and execute `union(u, v)`.\n5. **Terminate**: Stop when $|T| = |V| - 1$ edges are collected or all edges have been inspected.",
+      body: "<p>The algorithm executes in four clean phases:</p><ol><li><strong>Sort Edges:</strong> Sort all <code>E</code> edges in ascending order of weight.</li><li><strong>Initialize DSU:</strong> Place each vertex in its own singleton set (component root).</li><li><strong>Iterate & Join:</strong> Inspect each sorted edge; if endpoints belong to different sets, accept the edge into the MST and union their sets.</li><li><strong>Terminate:</strong> Stop when <code>|V| - 1</code> edges have been added or all edges have been inspected.</li></ol>",
     },
     {
       heading: "Trade-offs: Kruskal vs. Prim Algorithm",
-      body: "Kruskal's algorithm shines on **sparse graphs** ($E \\approx V$) and when edge lists are easily sorted, executing in $\\mathcal{O}(E \\log V)$ time. **Prim's algorithm** operates locally from a starting node and is preferable for **dense graphs** ($E \\approx V^2$) when paired with a Fibonacci heap $\\mathcal{O}(E + V \\log V)$. Kruskal also naturally processes disconnected graphs into a **Minimum Spanning Forest**.",
+      body: "<p>Choosing between Kruskal's and Prim's algorithms depends on graph density:</p><ul><li><strong>Sparse Graphs (<code>E ≈ V</code>):</strong> Kruskal excels because its runtime is dominated by edge sorting (<code>O(E log V)</code>) and edge iteration is lightweight.</li><li><strong>Dense Graphs (<code>E ≈ V²</code>):</strong> Prim's algorithm operating with an adjacency matrix or Fibonacci heap can outperform Kruskal's edge-sorting bottleneck.</li></ul>",
     },
     {
       heading: "Complexity Analysis",
-      body: "$$\\text{Time Complexity}: \\mathcal{O}(E \\log E) = \\mathcal{O}(E \\log V)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Edge sorting takes $\\mathcal{O}(E \\log E)$. DSU operations for $E$ edges require $\\mathcal{O}(E \\cdot \\alpha(V))$ time, which is effectively linear $\\mathcal{O}(E)$. Thus overall time is dominated by $\\mathcal{O}(E \\log E)$.\n- **Space**: The DSU arrays (`parent`, `rank`) consume $\\mathcal{O}(V)$ space, while storing the edge list and output MST consumes $\\mathcal{O}(E)$ space.",
+      body: "<p><strong>Time Complexity:</strong> <code>O(E log E) = O(E log V)</code><br/>Sorting <code>E</code> edges takes <code>O(E log E)</code> time. DSU operations for <code>E</code> edges take <code>O(E · α(V))</code> amortized linear time.</p><p><strong>Space Complexity:</strong> <code>O(V + E)</code> to store parent/rank arrays in DSU and the sorted edge list.</p>",
     },
   ],
   keyTerms: [
     {
       term: "Minimum Spanning Tree (MST)",
       definition:
-        "An acyclic subset $T \\subseteq E$ connecting all vertices $V$ with minimal total edge weight sum $\\sum_{e \\in T} w(e)$.",
+        "An acyclic subset of edges T ⊆ E connecting all vertices V with minimal total edge weight.",
     },
     {
       term: "Disjoint-Set Union (DSU)",
       definition:
-        "Data structure maintaining non-overlapping partitions of a set supporting near-constant time `find` and `union` operations.",
+        "A data structure maintaining non-overlapping partitions of a set supporting near-constant time find and union operations.",
     },
     {
-      term: "Cut property",
+      term: "Cut Property",
       definition:
-        "Theorem stating that the minimum-weight edge crossing any cut $(S, V \\setminus S)$ is guaranteed to be in an MST.",
+        "The theorem stating that the minimum-weight edge crossing any cut (S, V \\ S) is guaranteed to be in an MST.",
     },
     {
-      term: "Inverse Ackermann Function $\\alpha(n)$",
+      term: "Inverse Ackermann Function α(n)",
       definition:
-        "An extremely slow-growing function where $\\alpha(n) \\le 4$ for all practical universe sizes $n < 10^{80}$.",
+        "An extremely slow-growing function where α(n) ≤ 4 for all practical universe sizes n.",
     },
   ],
 };
@@ -128,21 +128,22 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   topicIds: ["graph_spanning_trees"],
   difficulty: "Medium",
   description:
-    "Kruskal's algorithm constructs the **Minimum Spanning Tree (MST)** of a connected, undirected weighted graph $G = (V, E)$—the cheapest subset of $|V| - 1$ edges connecting all vertices without any cycles. It operates greedily: sort all $E$ edges by weight from lightest to heaviest, then iterate through the list using a **Disjoint-Set Union (DSU)** structure to check whether adding each edge connects two distinct components. If distinct, the edge is added to the MST; if already connected, the edge is skipped to prevent cycles. Overall time complexity is $\\mathcal{O}(E \\log E)$.",
+    "<p><strong>Kruskal's algorithm</strong> constructs the Minimum Spanning Tree (MST) of a connected, undirected weighted graph <code>G = (V, E)</code>—the cheapest subset of <code>|V| - 1</code> edges connecting all vertices without any cycles.</p><p>It operates greedily: sort all <code>E</code> edges by weight from lightest to heaviest, then iterate through the list using a <strong>Disjoint-Set Union (DSU)</strong> structure to check whether adding each edge connects two distinct components. If distinct, the edge is added to the MST; if already connected, the edge is skipped to prevent cycles. Overall time complexity is <code>O(E log E)</code>.</p>",
   constraints: [
     "1 <= Vertices V <= 10^4",
     "0 <= Edges E <= 10^5",
     "-10^4 <= Edge Weight <= 10^4",
-    "Graph must be undirected and connected (to form a single spanning tree of V - 1 edges)",
-    "Duplicate edge weights are supported",
+    "Graph must be undirected; graph may be disconnected (yielding a Minimum Spanning Forest)",
+    "Duplicate edge weights and parallel edges are supported",
   ],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay:
-        "vertices = [A, B, C, D, E, F], edges = [(A,B,4), (A,C,2), (B,C,1), (B,D,5), (C,D,8), (C,E,10), (D,E,2)]",
-      outputDisplay: "MST Weight = 12",
-      title: "Basic Example",
+        "vertices = [A, B, C, D], edges = [(A,B,1), (B,C,2), (C,D,3), (A,C,4), (B,D,5)]",
+      outputDisplay: "MST Weight = 6 (Edges: A-B, B-C, C-D)",
+      title: "Basic 4-Node Graph",
       input: {
         nodes: [
           { id: "A", label: "A", x: 100, y: 100, state: "default" },
@@ -160,14 +161,15 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
       },
       output: "MST Weight: 6 (Edges: A-B, B-C, C-D)",
       explanation:
-        "Sorts edges by weight: A-B(1), B-C(2), C-D(3), A-C(4), B-D(5). Accepts A-B, B-C, C-D. Skips A-C and B-D as they form cycles.",
+        "Edges are sorted by weight: A-B(1), B-C(2), C-D(3), A-C(4), B-D(5). Kruskal accepts A-B, B-C, C-D to connect all 4 nodes, then skips A-C and B-D as cycle-forming edges.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay:
-        "vertices = [A, B, C, D, E, F], edges = [(A,B,1), (B,C,2), (C,A,3), (C,D,4), (D,E,5), (E,F,6), (F,D,7)]",
-      outputDisplay: "MST Weight = 18",
-      title: "Complex Edge Case",
+        "vertices = [A, B, C, D, E], edges = [(C,D,1), (A,B,2), (B,C,3), (D,E,4), (C,E,8), (A,C,10)]",
+      outputDisplay: "MST Weight = 10 (Edges: C-D, A-B, B-C, D-E)",
+      title: "Adversarial Cycle & Dense Cluster",
       input: {
         nodes: [
           { id: "A", label: "A", state: "default" },
@@ -187,13 +189,14 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
       },
       output: "MST Weight: 10 (Edges: C-D, A-B, B-C, D-E)",
       explanation:
-        "Edges C-D(1), A-B(2), B-C(3), D-E(4) are accepted in order (4 edges for 5 nodes). Heavy edges A-C(10) and C-E(8) are rejected as cycles.",
+        "Sorted edges: C-D(1), A-B(2), B-C(3), D-E(4), C-E(8), A-C(10). Light edges form the MST path A-B-C-D-E, while heavy edges C-E and A-C are skipped as redundant cycles.",
     },
     {
       kind: "negative",
-      inputDisplay: "vertices = [A, B, C], edges = [(A,B,3)]",
-      outputDisplay: "Disconnected Graph",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: "vertices = [A, B, C, D], edges = [(A,B,1), (C,D,2)]",
+      outputDisplay: "Spanning Forest Weight = 3 (2 Edges)",
+      title: "Boundary / Disconnected Graph",
       input: {
         nodes: [
           { id: "A", label: "A", state: "default" },
@@ -208,7 +211,7 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
       },
       output: "Spanning Forest Weight: 3 (2 Edges)",
       explanation:
-        "Graph has 2 disconnected components {A,B} and {C,D}. Kruskal builds a Minimum Spanning Forest of 2 edges, unable to form a single V-1 spanning tree.",
+        "The graph has 2 disconnected components {A, B} and {C, D}. Kruskal processes all available edges and forms a Minimum Spanning Forest of 2 edges, unable to construct a single connected V-1 spanning tree.",
     },
   ],
   code: KRUSKAL_CODE,

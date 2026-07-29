@@ -1,4 +1,9 @@
-import type { AlgorithmStep, ArrayElement } from "../../../types/dsa";
+import type { AlgorithmStep, ArrayElement, ElementState } from "../../../types/dsa";
+
+const DEFAULT_SLIDING_WINDOW_MIN_INPUT = {
+  nums: [1, 3, -1, -3, 5, 3, 6, 7],
+  k: 3,
+};
 
 export interface SlidingWindowMinInput {
   nums: number[];
@@ -9,9 +14,12 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nums = input.nums;
-  const k = input.k;
-  const n = nums.length;
+  const nums =
+    Array.isArray(input?.nums) && input.nums.length > 0
+      ? input.nums
+      : DEFAULT_SLIDING_WINDOW_MIN_INPUT.nums;
+  const k =
+    typeof input?.k === "number" && input.k > 0 ? input.k : DEFAULT_SLIDING_WINDOW_MIN_INPUT.k;
 
   const elements: ArrayElement[] = nums.map((val, idx) => ({
     id: `el-${idx}`,
@@ -27,153 +35,185 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
     what: string,
     why: string,
     variables: Record<string, string | number | boolean>,
+    windowRange?: { start: number; end: number },
   ) => {
+    const dequeValues = deque.map((idx) => nums[idx]);
+
     steps.push({
       stepIndex: stepIndex++,
       codeLine,
       explanation: { what, why },
       primarySnapshot: {
         kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
+        elements: elements.map((el, idx) => {
+          let st: ElementState = "default";
+          const ptrs: string[] = [];
+
+          if (windowRange && idx >= windowRange.start && idx <= windowRange.end) {
+            st = "active";
+          }
+          if (deque.includes(idx)) {
+            ptrs.push("deque");
+            if (deque[0] === idx && windowRange && idx >= windowRange.start) {
+              st = "sorted";
+              ptrs.push("MIN");
+            }
+          }
+          if (windowRange && idx === windowRange.end) {
+            ptrs.push("i");
+          }
+
+          return {
+            ...el,
+            state: st,
+            pointers: ptrs.length > 0 ? ptrs : undefined,
+          };
+        }),
       },
       auxiliaryState: {
         queue: deque.map((idx) => `idx:${idx}(val:${nums[idx]})`),
         visited: [...result],
         customState: {
-          windowSize: k,
+          windowSize: String(k),
           dequeIndices: deque.join(", "),
+          dequeValues: dequeValues.join(", "),
           result: result.join(", "),
         },
       },
-      variables,
+      variables: {
+        ...variables,
+        k,
+        deque: deque.join(", "),
+        result: result.join(", "),
+      },
     });
   };
 
   addStep(
     3,
     "Set up the sliding window minimum",
-    `We want the smallest value in every window of ${k} consecutive elements of [${nums.join(", ")}]. A deque of indices will let us answer each window without rescanning it.`,
-    { k, length: n },
+    `We track the minimum value in every window of ${k} consecutive elements using a monotonic double-ended queue (deque) of candidate indices to eliminate redundant re-scans.`,
+    { n: nums.length },
   );
 
   addStep(
     4,
     "Initialize result list",
-    "We start with an empty result list to collect the minimum element for each window.",
-    { resultSize: 0 },
+    "Allocating an array to collect the minimum value of each sliding window as the window slides rightward.",
+    { n: nums.length },
   );
 
   addStep(
     5,
     "Initialize monotonic deque",
-    "We create an empty deque. The deque will hold indices whose values stay in increasing order, so each window's minimum is always waiting at the front.",
-    { k, dequeSize: 0 },
+    "Creating an empty double-ended queue. The deque maintains candidate indices whose values strictly increase from front to back, guaranteeing that the current window minimum is always accessible at the front in O(1) time.",
+    { n: nums.length },
   );
 
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < nums.length; i++) {
     const currentVal = nums[i];
     const windowStart = Math.max(0, i - k + 1);
-
-    for (let idx = 0; idx < n; idx++) {
-      if (idx >= windowStart && idx <= i) {
-        elements[idx].state = idx === i ? "active" : "queued";
-      } else if (idx < windowStart) {
-        elements[idx].state = "visited";
-      } else {
-        elements[idx].state = "default";
-      }
-      elements[idx].pointers = undefined;
-    }
-
-    elements[i].pointers = ["i"];
-    if (i >= k - 1) {
-      elements[windowStart].pointers = elements[windowStart].pointers
-        ? ["L", ...elements[windowStart].pointers]
-        : ["L"];
-    }
+    const windowRange = { start: windowStart, end: i };
 
     addStep(
       7,
-      `Loop index i = ${i} (nums[${i}] = ${currentVal})`,
-      `We slide the right edge to index ${i}, so the window in play is [${windowStart}..${i}] holding [${nums.slice(windowStart, i + 1).join(", ")}].`,
-      { i, "nums[i]": currentVal, windowStart, k },
+      `Inspect Element at Index ${i}`,
+      `Sliding the right window edge to index ${i} (value ${currentVal}) covers the subsegment [${windowStart}..${i}].`,
+      { i, currentVal, windowStart },
+      windowRange,
     );
 
     addStep(
       8,
-      `Check window expiry (dq[0] <= ${i - k})`,
+      "Check Window Expiry Threshold",
       deque.length > 0
-        ? `Front index dq[0] = ${deque[0]}. Expiry threshold is i - k = ${i - k}. ${deque[0] <= i - k ? `Index ${deque[0]} is out of window bounds and must be popped.` : `Index ${deque[0]} is within window bounds.`}`
-        : "Deque is empty, no front element to expire.",
-      { i, dequeFront: deque.length > 0 ? deque[0] : "None", expiryThreshold: i - k },
+        ? `Evaluating whether front index ${deque[0]} has fallen out of the active window boundary (index <= ${i - k}).`
+        : "Deque is empty, no expired front index to remove.",
+      { i, currentVal, frontIdx: deque[0] ?? -1, expiredThreshold: i - k },
+      windowRange,
     );
 
-    while (deque.length > 0 && deque[0] <= i - k) {
-      const removedIdx = deque.shift();
-      if (removedIdx !== undefined) {
-        addStep(
-          9,
-          `Evict index ${removedIdx} (dq.popleft())`,
-          `Index ${removedIdx} now sits outside the window's left edge (<= ${i - k}), so its value can no longer be a candidate. We pop it off the front of the deque.`,
-          { i, removedIdx },
-        );
-      }
+    if (deque.length > 0 && deque[0] <= i - k) {
+      const removedIdx = deque.shift()!;
+      addStep(
+        9,
+        "Evict Expired Index from Front",
+        `Index ${removedIdx} has slid past the left edge of the window. It can no longer serve as a candidate minimum, so it is popped from the front of the deque.`,
+        { i, currentVal, removedIdx, removedVal: nums[removedIdx] },
+        windowRange,
+      );
     }
 
     addStep(
       11,
-      `Check domination of dq[-1] by nums[${i}] = ${currentVal}`,
+      "Check Domination Principle for New Element",
       deque.length > 0
-        ? `Comparing nums[dq[-1]] (nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]}) >= nums[${i}] (${currentVal}).`
-        : `Deque is empty, no domination check needed.`,
-      { i, "nums[i]": currentVal, dequeBack: deque.length > 0 ? deque[deque.length - 1] : "None" },
+        ? `Comparing back element nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]} against incoming value ${currentVal}.`
+        : "Deque is empty, no back element to check for domination.",
+      {
+        i,
+        currentVal,
+        backIdx: deque[deque.length - 1] ?? -1,
+        backVal: deque.length > 0 ? nums[deque[deque.length - 1]] : -1,
+      },
+      windowRange,
     );
 
     while (deque.length > 0 && nums[deque[deque.length - 1]] >= currentVal) {
-      const poppedIdx = deque.pop();
-      if (poppedIdx !== undefined) {
-        addStep(
-          12,
-          `Pop index ${poppedIdx} (dq.pop())`,
-          `nums[${poppedIdx}] = ${nums[poppedIdx]} is >= new value ${currentVal}, and ${currentVal} will outlive it in future windows. Discarding index ${poppedIdx}.`,
-          { i, poppedIdx, "nums[popped]": nums[poppedIdx] },
-        );
-      }
+      const poppedIdx = deque.pop()!;
+      addStep(
+        12,
+        "Pop Dominated Index from Back",
+        `The older element at index ${poppedIdx} (value ${nums[poppedIdx]}) is >= the new value ${currentVal}, and ${currentVal} will outlive it in future windows. The older element is permanently dominated and discarded.`,
+        { i, currentVal, poppedIdx, poppedVal: nums[poppedIdx] },
+        windowRange,
+      );
+
+      addStep(
+        11,
+        "Check Domination Principle for New Element",
+        deque.length > 0
+          ? `Comparing new back element nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]} against incoming value ${currentVal}.`
+          : "Deque is empty, no back element remaining.",
+        {
+          i,
+          currentVal,
+          backIdx: deque[deque.length - 1] ?? -1,
+          backVal: deque.length > 0 ? nums[deque[deque.length - 1]] : -1,
+        },
+        windowRange,
+      );
     }
 
     deque.push(i);
-
     addStep(
       14,
-      `Push index ${i} onto deque (dq.append(${i}))`,
-      `With everything bigger cleared out, index ${i} (value ${currentVal}) takes its place at the back. The deque's values now read [${deque.map((idx) => nums[idx]).join(", ")}].`,
-      { i, dequeState: deque.join(", ") },
+      `Push Index ${i} onto Monotonic Deque`,
+      `With all dominated larger elements evicted from the back, index ${i} (value ${currentVal}) is appended, preserving monotonic increasing order.`,
+      { i, currentVal },
+      windowRange,
     );
 
     addStep(
       16,
-      `Check if window is full (i >= k - 1: ${i} >= ${k - 1})`,
+      "Evaluate Window Maturity (i >= k - 1)",
       i >= k - 1
-        ? `Window size of ${k} is reached (i = ${i} >= ${k - 1}). Front index dq[0] holds the window minimum.`
-        : `Window is still forming (i = ${i} < ${k - 1}).`,
-      { i, k, isFull: i >= k - 1 },
+        ? `The window has reached full size ${k}, so the front of the deque holds the guaranteed minimum.`
+        : `The sliding window is still filling up (${i + 1}/${k} elements).`,
+      { i, k, isFullWindow: i >= k - 1 },
+      windowRange,
     );
 
     if (i >= k - 1) {
       const minIdx = deque[0];
       const minVal = nums[minIdx];
       result.push(minVal);
-
-      elements[minIdx].state = "sorted";
-
       addStep(
         17,
-        `Record ${minVal} in result (result.append(nums[dq[0]]))`,
-        `The window [${windowStart}..${i}] is full, and the deque's front — index ${minIdx} — holds its smallest value, ${minVal}. We append it to result.`,
-        { windowStart, windowEnd: i, minVal, result: result.join(", ") },
+        `Record Window Minimum = ${minVal}`,
+        `The front index ${minIdx} in the monotonic deque holds the smallest value ${minVal} in the current window [${windowStart}..${i}]. We bank it in the result list.`,
+        { i, minIdx, minVal },
+        windowRange,
       );
     }
   }
@@ -181,8 +221,8 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
   addStep(
     19,
     "Return the list of minimums",
-    `Every window of size ${k} has been answered: [${result.join(", ")}]. Each index entered and left the deque at most once, maintaining linear $O(N)$ runtime.`,
-    { result: result.join(", ") },
+    "Completed sliding window scan across all windows. Each index was pushed once and popped at most once, achieving optimal linear O(N) overall runtime.",
+    { totalWindows: result.length },
   );
 
   return steps;

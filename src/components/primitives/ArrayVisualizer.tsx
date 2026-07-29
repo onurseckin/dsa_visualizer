@@ -3,15 +3,23 @@ import { Size, boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
 import { ArrayVisualizerProps, FALLBACK_BAR_W, GAP, PAD_X } from "./array/arrayTypes";
 import { computeArrayLayout } from "./array/layoutEngine";
 import { ArrayItem } from "./array/ArrayItem";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
+import { resolvePrimitiveLabel } from "./primitiveLabels";
 
 export type { ArrayVisualizerProps };
+
+const trimLegacyTitle = (title?: string): string | undefined => title?.trim() || undefined;
 
 export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   elements,
   mode = "bar",
   maxHeight = 220,
-  title,
+  name,
+  title: rawTitle,
+  auxiliaryState,
+  variables,
 }) => {
+  const title = resolvePrimitiveLabel("array", name) ?? trimLegacyTitle(rawTitle);
   const count = Math.max(elements.length, 1);
 
   const fallbackBox: Size = {
@@ -20,7 +28,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   };
   const { ref, box } = useCanvasBox(fallbackBox);
 
-  const metrics = computeArrayLayout(elements, box, mode);
+  const metrics = computeArrayLayout(elements, box, mode, title);
 
   return (
     <div
@@ -35,19 +43,6 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
         minHeight: 0,
       }}
     >
-      {title && (
-        <div
-          style={{
-            fontSize: "var(--text-xs)",
-            fontWeight: 600,
-            color: "var(--text-muted)",
-            marginBottom: "var(--space-1)",
-            textAlign: "center",
-          }}
-        >
-          {title}
-        </div>
-      )}
       <div
         ref={ref}
         data-testid="canvas-container"
@@ -58,15 +53,31 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
-          padding: "32px",
         }}
       >
         <svg
           width="100%"
           height="100%"
           viewBox={viewBoxAttr(boxViewBox(box))}
+          role="img"
+          aria-label={title ? `Array visualization: ${title}` : "Array visualization"}
           style={{ display: "block" }}
         >
+          {title && (
+            <text
+              x={metrics.startX - 12}
+              y={metrics.isBoxMode ? metrics.boxY + metrics.boxSize / 2 : metrics.baselineY - 10}
+              textAnchor="end"
+              dominantBaseline="central"
+              fill="var(--text-muted)"
+              fontFamily="var(--font-code)"
+              fontSize="13px"
+              fontWeight="700"
+              letterSpacing="0.02em"
+            >
+              {title}
+            </text>
+          )}
           {elements.map((item, index) => (
             <ArrayItem
               key={item.id || `arr-node-${index}`}
@@ -75,6 +86,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
               metrics={metrics}
             />
           ))}
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
     </div>

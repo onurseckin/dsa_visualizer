@@ -93,8 +93,17 @@ export const DEFAULT_BIPARTITE_INPUT: BipartiteGraphCheckInput = {
 
 export function generateBipartiteCheckSteps(input: BipartiteGraphCheckInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const nodes = input.nodes.map((n) => ({ ...n }));
-  const edges = input.edges.map((e) => ({ ...e }));
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_BIPARTITE_INPUT;
+  const inputNodes =
+    Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
+      ? safeInput.nodes
+      : DEFAULT_BIPARTITE_INPUT.nodes;
+  const inputEdges = Array.isArray(safeInput.edges)
+    ? safeInput.edges
+    : DEFAULT_BIPARTITE_INPUT.edges;
+
+  const nodes = inputNodes.map((n) => ({ ...n }));
+  const edges = inputEdges.map((e) => ({ ...e }));
 
   const adj: Record<string, string[]> = {};
   for (const n of nodes) {
@@ -638,7 +647,7 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   topicIds: ["graph_traversal"],
   difficulty: "Medium",
   description:
-    "Determines whether an undirected graph $G = (V, E)$ is bipartite (2-colorable). A graph is bipartite if its vertex set $V$ can be partitioned into two disjoint independent sets $U$ and $W$ ($V = U \\cup W, U \\cap W = \\emptyset$) such that every edge $(u, v) \\in E$ satisfies $u \\in U$ and $v \\in W$. Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. We perform a 2-coloring traversal (assigning colors $c(v) \\in \\{0, 1\\}$) across all connected components in $\\mathcal{O}(|V| + |E|)$ time and $\\mathcal{O}(|V|)$ space.",
+    "<p>Determines whether an undirected graph is bipartite (2-colorable). A graph is bipartite if its vertex set V can be partitioned into two disjoint independent sets U and W (<code>V = U &cup; W, U &cap; W = &empty;</code>) such that every edge <code>(u, v)</code> satisfies <code>u &in; U</code> and <code>v &in; W</code>. Equivalently, a graph is bipartite if and only if it contains no odd-length cycles. We perform a 2-coloring traversal (assigning colors <code>c(v) &in; {0, 1}</code>) across all connected components in <code>O(V + E)</code> time and <code>O(V)</code> space.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 5000",
@@ -709,25 +718,24 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Each vertex and edge in graph $G=(V,E)$ is inspected once during BFS 2-coloring, taking $\\mathcal{O}(|V| + |E|)$ total time.",
-    space:
-      "The color assignment map and BFS queue store at most $|V|$ items, taking $\\mathcal{O}(|V|)$ space.",
+    time: "Each vertex and edge in graph G = (V, E) is inspected once during BFS 2-coloring, taking O(V + E) total time.",
+    space: "The color assignment map and BFS queue store at most V items, taking O(V) space.",
   },
   topicGuide: {
     overview:
-      "A graph $G=(V, E)$ is bipartite if and only if it is 2-colorable. This property is equivalent to $G$ containing no odd-length cycle $C_{2k+1}$. Bipartite verification is the foundation for Hopcroft-Karp maximum matching and network flow bipartite assignment problems.",
+      "<p>A graph <code>G = (V, E)</code> is bipartite if and only if it is 2-colorable. This property is equivalent to <code>G</code> containing no odd-length cycles. Bipartite verification is the foundation for Hopcroft-Karp maximum matching and network flow bipartite assignment problems.</p>",
     sections: [
       {
         heading: "Core Concept: 2-Coloring & Odd Cycle Theorem",
-        body: "Assigning $c(u) \\in \\{0, 1\\}$ and assigning $c(v) = 1 - c(u)$ across every edge $(u,v) \\in E$ creates an alternating parity. If any edge discovers $c(u) = c(v)$, a cycle of odd length is proven to exist:\n\n$$c(v) = c(u) \\iff G \\text{ contains an odd cycle } C_{2k+1}$$\n\nproving $G$ is not bipartite.",
+        body: "<p>Assigning <code>c(u) &in; {0, 1}</code> and assigning <code>c(v) = 1 - c(u)</code> across every edge <code>(u, v)</code> creates an alternating parity. If any edge discovers <code>c(u) = c(v)</code>, a cycle of odd length is proven to exist (<code>c(v) = c(u) &hArr; G contains an odd cycle</code>), proving <code>G</code> is not bipartite.</p>",
       },
       {
         heading: "Applications in Systems & Compilers",
-        body: "Bipartite graph testing is used in register allocation interference graph testing, task-processor bipartite scheduling, and recommendation engine user-item graphs.",
+        body: "<p>Bipartite graph testing is used in register allocation interference graph testing, task-processor bipartite scheduling, and recommendation engine user-item graphs.</p>",
       },
       {
         heading: "Component Sweeping",
-        body: "Graphs can contain disconnected components. We sweep all $v \\in V$ in an outer loop, initiating 2-coloring whenever an uncolored vertex is found.",
+        body: "<p>Graphs can contain disconnected components. We sweep all vertices in an outer loop, initiating 2-coloring whenever an uncolored vertex is found.</p>",
       },
     ],
     keyTerms: [
@@ -738,13 +746,11 @@ export const bipartiteGraphCheck: AlgorithmDefinition<BipartiteGraphCheckInput> 
       },
       {
         term: "2-Coloring",
-        definition:
-          "Assigning binary colors ${0, 1}$ such that $c(u) \\neq c(v)$ for all $(u,v) \\in E$.",
+        definition: "Assigning binary colors {0, 1} such that c(u) != c(v) for all (u,v) in E.",
       },
       {
         term: "Odd Cycle",
-        definition:
-          "A cycle with an odd number of edges $C_{2k+1}$, which violates 2-colorability.",
+        definition: "A cycle with an odd number of edges, which violates 2-colorability.",
       },
     ],
   },

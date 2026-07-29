@@ -14,44 +14,40 @@ export const DEFAULT_FENWICK_INPUT: FenwickTreeInput = {
 
 const FENWICK_TREE_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **Fenwick Tree** (also known as a **Binary Indexed Tree**, or **BIT**) is a remarkably space-efficient data structure for maintaining dynamic prefix sums of a sequence. It supports both point updates and prefix sum queries in $O(\\log N)$ time while requiring only $O(N)$ space stored in a single flat array without any pointer overhead. The key innovation relies on bitwise arithmetic—specifically the lowbit operation $i \\& -i$—to partition responsibility ranges and traverse an implicit tree structure.",
+    "<p>A <strong>Fenwick Tree</strong> (or <strong>Binary Indexed Tree / BIT</strong>) maintains dynamic prefix sums over a sequence of <code>N</code> elements in <code>O(log N)</code> time per operation while using only <code>O(N)</code> space in a flat array. Bitwise arithmetic—specifically the lowbit operation <code>i &amp; -i</code>—organizes element responsibilities into an implicit tree structure.</p>",
   sections: [
     {
-      heading: "1. The Range Query vs Point Update Dilemma",
-      body: "When dealing with dynamic range query problems over an array of size $N$:\n\n- **Naive Flat Array**: Point updates take $O(1)$ time, but range sum queries require iterating through elements in $O(N)$ time.\n- **Prefix Sum Array**: Range queries take $O(1)$ time via $P[R] - P[L-1]$, but a single point update requires recomputing all trailing prefix sums in $O(N)$ time.\n- **Fenwick Tree**: Achieves a balanced middle ground, executing both point updates and range queries in $O(\\log N)$ worst-case time with minimal memory overhead.",
+      heading: "Range Query vs Point Update Balance",
+      body: "<p>Fenwick Trees balance the trade-off between naive arrays and static prefix sum arrays:</p><ul><li><strong>Flat Array:</strong> <code>O(1)</code> updates, but <code>O(N)</code> range queries.</li><li><strong>Static Prefix Sum:</strong> <code>O(1)</code> range queries, but <code>O(N)</code> point updates.</li><li><strong>Fenwick Tree:</strong> Achieves <code>O(log N)</code> for both operations with minimal cache-friendly memory.</li></ul>",
     },
     {
-      heading: "2. Mathematical Foundation: The Lowbit Operator ($i \\& -i$)",
-      body: "In two's complement binary representation, $-i = \\sim i + 1$. The bitwise AND operation $i \\& -i$ isolates the lowest set bit (the least significant 1-bit) of index $i$.\n\n$$\\text{lowbit}(i) = i \\& -i$$\n\nEach 1-based index $i$ stores the sum of a contiguous subsegment of length $\\text{lowbit}(i)$ ending at index $i$, covering the index range:\n\n$$[i - \\text{lowbit}(i) + 1, \\, i]$$\n\nFor example:\n- Index $6$ (binary `110`, $\\text{lowbit}=2$) stores the sum of $2$ elements: $[5, 6]$.\n- Index $8$ (binary `1000`, $\\text{lowbit}=8$) stores the sum of $8$ elements: $[1, 8]$.",
+      heading: "Lowbit Mathematics",
+      body: "<p>In two's complement arithmetic, <code>-i = ~i + 1</code>. The bitwise operation <code>lowbit(i) = i &amp; -i</code> isolates the lowest set bit. Each 1-based index <code>i</code> stores the sum of the subsegment <code>[i - lowbit(i) + 1, i]</code>.</p>",
     },
     {
-      heading: "3. Traversal Mechanics: Queries and Updates",
-      body: "The tree structure is traversed implicitly through bitwise mutations:\n\n- **Prefix Query ($1 \\dots K$)**: Start at index $i = K$ and sum $\\text{tree}[i]$. Jump to the preceding non-overlapping responsibility block by stripping the lowest set bit: $i \\leftarrow i - (i \\& -i)$. Repeat until $i = 0$. This visits at most $\\lfloor \\log_2 K \\rfloor + 1$ cells.\n- **Point Update at Index $K$**: Add $\\delta$ to $\\text{tree}[K]$. Ascend to the parent responsibility block that covers position $K$ by adding the lowest set bit: $i \\leftarrow i + (i \\& -i)$. Repeat while $i \\le N$.",
+      heading: "Query and Update Mechanics",
+      body: "<p>Operations traverse the implicit tree structure via bitwise hops:</p><ul><li><strong>Prefix Query (1...K):</strong> Start at <code>i = K</code>, sum <code>tree[i]</code>, and jump to the preceding block via <code>i &minus;= i &amp; -i</code>.</li><li><strong>Point Update at K:</strong> Add delta to <code>tree[K]</code> and ascend to parent covering blocks via <code>i += i &amp; -i</code>.</li></ul>",
     },
     {
-      heading: "4. Trade-offs: Fenwick Tree vs Segment Tree",
-      body: "- **Memory**: Fenwick Trees require exactly $N+1$ integers vs $4N$ nodes for a Segment Tree.\n- **Cache Line Efficiency**: Iterating over a flat array using bitwise hops has low cache-miss rate and very small constant factor speed.\n- **Operations**: Fenwick Trees require the aggregate operation to be **invertible** (e.g., addition/subtraction or XOR) for range queries $[L \\dots R]$ using $\\text{query}(R) - \\text{query}(L-1)$. Non-invertible operations like Range Minimum Query (RMQ) require standard Segment Trees.",
-    },
-    {
-      heading: "5. Interview Pitfalls & Code Mechanics",
-      body: "- **1-Based Indexing Mandatory**: Index $0$ has $\\text{lowbit}(0) = 0 \\& 0 = 0$. Using 0-based indexing leads to infinite loops in $i \\pm (i \\& -i)$. Always offset 0-indexed inputs by $+1$.\n- **Range Updates**: A Fenwick Tree built over a difference array $D[i] = A[i] - A[i-1]$ allows $O(\\log N)$ range updates and $O(\\log N)$ point queries.",
+      heading: "Fenwick Tree vs Segment Tree",
+      body: "<p>Fenwick Trees require only <code>N+1</code> memory cells compared to <code>4N</code> for Segment Trees, featuring smaller constant-factor overhead. However, range queries <code>[L...R]</code> via <code>query(R) - query(L-1)</code> require invertible operations (such as addition or XOR). Non-invertible operations like Range Minimum Query require Segment Trees.</p>",
     },
   ],
   keyTerms: [
     {
       term: "Prefix Sum",
       definition:
-        "The aggregate sum of array elements from index 1 up to index $K$, computed in $O(\\log N)$ time.",
+        "The aggregate sum of array elements from index 1 up to index K, computed in O(log N) time.",
     },
     {
       term: "Lowbit (i & -i)",
       definition:
-        "The numerical value of the least significant 1-bit in integer $i$, computed via two's complement bitwise AND.",
+        "The numerical value of the least significant 1-bit in integer i, computed via two's complement bitwise AND.",
     },
     {
       term: "Responsibility Block",
       definition:
-        "The subsegment $[i - (i \\& -i) + 1, i]$ whose element sum is stored inside cell tree[i].",
+        "The subsegment [i - (i & -i) + 1, i] whose element sum is stored inside cell tree[i].",
     },
     {
       term: "Invertible Operation",
@@ -92,7 +88,7 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Hard",
   description:
-    "A Binary Indexed Tree (Fenwick Tree) is a compact array-based structure that answers prefix-sum queries and applies point updates in O(log N) time. Each index i is responsible for a block of elements whose length equals its lowest set bit (i & -i), so updates and queries move through the array in short bit-arithmetic hops.",
+    "<p>A <strong>Binary Indexed Tree (Fenwick Tree)</strong> is a compact array-based data structure that answers prefix sum queries and executes point updates in <code>O(log N)</code> time. Each 1-based index <code>i</code> stores the sum of a subsegment whose length equals its lowest set bit <code>lowbit(i) = i &amp; -i</code>, allowing queries and updates to hop through the tree in logarithmic steps without pointer overhead.</p><h3>State Representation</h3><p>The state is stored as a 1D array <code>tree[1 ... N]</code> where cell <code>tree[i]</code> holds the precomputed sum of a range of length <code>i &amp; -i</code> ending at index <code>i</code>.</p><h3>Input Parameters</h3><ul><li><code>array</code>: Initial array of numbers.</li><li><code>operations</code>: Array of point update or range query operations.</li></ul><h3>Output</h3><ul><li><code>int / Array</code>: Results of range queries and final tree state.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>1-Based Indexing:</strong> Index 0 is unused because <code>lowbit(0) = 0</code> causes infinite loops.</li><li><strong>Invertibility:</strong> Range queries <code>[L...R]</code> require an invertible operator like addition via <code>query(R) - query(L-1)</code>.</li></ul>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {
@@ -152,9 +148,9 @@ export const fenwickTree: AlgorithmDefinition<FenwickTreeInput> = {
   },
   spaceComplexity: "O(n)",
   complexityAnalysis: {
-    time: "Every update and prefix query walks the implicit tree by repeatedly adding or stripping the lowest set bit of the index, and an index below n has at most log n set bits to hop through. So each operation touches O(log n) cells regardless of the data — best and worst case are identical. Building the tree by inserting all n values as point updates costs O(n log n) up front.",
+    time: "Every update and prefix query walks the implicit tree by repeatedly adding or stripping the lowest set bit of the index, executing in O(log n) time per operation.",
     space:
-      "The whole structure is one flat array with a single cell per element (plus an unused slot 0), so extra memory grows linearly with the input — O(n).",
+      "The whole structure is one flat array with a single cell per element (plus unused slot 0), taking O(n) space.",
   },
   topicGuide: FENWICK_TREE_TOPIC_GUIDE,
   trivia: FENWICK_TREE_TRIVIA,

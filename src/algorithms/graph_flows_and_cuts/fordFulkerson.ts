@@ -13,7 +13,7 @@ export const fordFulkerson: AlgorithmDefinition<FordFulkersonInput> = {
   topicIds: ["graph_flows_and_cuts"],
   difficulty: "Hard",
   description:
-    "Computes the maximum flow from a source vertex S to a sink vertex T in a flow network by repeatedly finding augmenting paths in the residual graph. The algorithm terminates when no path with positive residual capacity exists, guaranteeing maximum throughput according to the Max-Flow Min-Cut Theorem in $\\mathcal{O}(E \\cdot |f^*|)$ time.",
+    "<p>Computes the maximum flow from a source vertex <code>S</code> to a sink vertex <code>T</code> in a flow network by repeatedly finding augmenting paths in the residual graph. The algorithm terminates when no path with positive residual capacity exists, guaranteeing maximum throughput according to the Max-Flow Min-Cut Theorem in <code>O(E &middot; |f*|)</code> time.</p>",
   constraints: [
     "2 <= V <= 50",
     "1 <= capacity <= 10^4",

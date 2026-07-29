@@ -254,23 +254,8 @@ export const coinChangeDp: AlgorithmDefinition<CoinChangeInput> = {
   title: "Coin Change Minimum Coins (Dynamic Programming)",
   topicIds: ["dp_1d"],
   difficulty: "Medium",
-  description: `The **Coin Change Problem** (LeetCode #322) asks for the minimum number of coins needed to make a target sum $A$ (amount) using a set of coin denominations $C = \\{c_1, c_2, \\dots, c_n\\}$ with an unlimited supply of each coin. If the amount cannot be formed, return $-1$.
-
-### Optimal Substructure & Recurrence
-Let $dp[i]$ represent the minimum number of coins needed to form amount $i$. We build the solution bottom-up using the recurrence:
-$$dp[i] = \\min_{c \\in C, c \\le i} (dp[i - c] + 1)$$
-with the base case:
-$$dp[0] = 0$$
-
-### Why Greedy Fails
-A greedy approach of picking the largest denomination first fails for arbitrary coin systems. For instance, with coins $\\{1, 3, 4\\}$ and amount $6$:
-- **Greedy choice**: $4 + 1 + 1 = 6$ (3 coins)
-- **Optimal DP choice**: $3 + 3 = 6$ (2 coins)
-
-### Key Interview Insights
-1. **Unbounded Knapsack Variant**: Each coin can be chosen infinitely many times, so we iterate forward over subproblems $i \\in [1, A]$.
-2. **Sentinel Values**: Use $\\infty$ (\`float('inf')\`) to denote unreachable amounts.
-3. **Space & Time Complexity**: Time complexity is $\\mathcal{O}(N \\times A)$ and auxiliary space is $\\mathcal{O}(A)$.`,
+  description:
+    "<p>The <strong>Coin Change Problem</strong> (LeetCode #322) asks for the minimum number of coins needed to make a target sum <code>A</code> (amount) using a set of coin denominations <code>C = {c<sub>1</sub>, c<sub>2</sub>, &hellip;, c<sub>n</sub>}</code> with an unlimited supply of each coin. If the amount cannot be formed, return <code>-1</code>.</p><p>We build the solution bottom-up using the recurrence: <code>dp[i] = min(dp[i - c] + 1)</code> for <code>c &le; i</code>, with base case <code>dp[0] = 0</code>.</p>",
   constraints: [
     "1 <= coins.length <= 12",
     "1 <= coins[i] <= 2^31 - 1",
@@ -318,23 +303,23 @@ A greedy approach of picking the largest denomination first fails for arbitrary 
   },
   topicGuide: {
     overview:
-      "The Coin Change problem (LeetCode #322) is the foundational benchmark for 1D dynamic programming and unbounded knapsack optimization. Given an array of coin denominations $C = \\{c_1, c_2, \\dots, c_n\\}$ and a target amount $A$, we determine the minimal count of coins required to achieve $A$. Because coin supply is infinite, the decision state for amount $i$ depends on all subproblems $i - c$ for $c \\in C$. A bottom-up tabulation approach populates a 1D DP table of size $A + 1$ in $\\mathcal{O}(N \\times A)$ time.",
+      "<p>The Coin Change problem (LeetCode #322) is the foundational benchmark for 1D dynamic programming and unbounded knapsack optimization. Given an array of coin denominations <code>C = {c<sub>1</sub>, c<sub>2</sub>, &hellip;, c<sub>n</sub>}</code> and a target amount <code>A</code>, we determine the minimal count of coins required to achieve <code>A</code>. Because coin supply is infinite, the decision state for amount <code>i</code> depends on all subproblems <code>i - c</code> for <code>c &isin; C</code>. A bottom-up tabulation approach populates a 1D DP table of size <code>A + 1</code> in <code>O(N &times; A)</code> time.</p>",
     sections: [
       {
         heading: "1. Mathematical Formulation & Recurrence",
-        body: "We define $dp[i]$ as the minimum number of coins needed to sum to amount $i$.\n\n- **Base Case**: $dp[0] = 0$ (zero coins yield an amount of 0).\n- **Initialization**: $dp[i] = \\infty$ for all $i > 0$.\n- **State Transition**:\n  $$dp[i] = \\min_{c \\in C, c \\le i} (dp[i - c] + 1)$$\n\nIf $dp[A] = \\infty$ after building the table, no valid coin combination exists, so we return $-1$.",
+        body: "<p>We define <code>dp[i]</code> as the minimum number of coins needed to sum to amount <code>i</code>.</p><ul><li><strong>Base Case:</strong> <code>dp[0] = 0</code> (zero coins yield an amount of 0).</li><li><strong>Initialization:</strong> <code>dp[i] = &infin;</code> for all <code>i &gt; 0</code>.</li><li><strong>State Transition:</strong> <code>dp[i] = min(dp[i - c] + 1)</code> for all <code>c &le; i</code>.</li></ul><p>If <code>dp[A] = &infin;</code> after building the table, no valid coin combination exists, so we return <code>-1</code>.</p>",
       },
       {
         heading: "2. Why Greedy Choice Fails",
-        body: "Canonical currency systems (e.g., US coins $\\{1, 5, 10, 25\\}$) possess the matroid property where the greedy strategy is optimal. However, for general coin sets, greedy fails.\n\n*Example*: Coins $C = \\{1, 3, 4\\}$, Target $A = 6$.\n- **Greedy**: Chooses $4$, remaining amount $2 \\implies 4 + 1 + 1$ ($3$ coins).\n- **Optimal (DP)**: Chooses $3$, remaining amount $3 \\implies 3 + 3$ ($2$ coins).\n\nDynamic programming guarantees optimal results by exhaustively evaluating all valid coin transitions.",
+        body: "<p>Canonical currency systems (e.g., US coins <code>{1, 5, 10, 25}</code>) possess the matroid property where the greedy strategy is optimal. However, for general coin sets, greedy fails.</p><p><em>Example:</em> Coins <code>C = {1, 3, 4}</code>, Target <code>A = 6</code>.</p><ul><li><strong>Greedy:</strong> Chooses 4, remaining amount 2 &rArr; 4 + 1 + 1 (3 coins).</li><li><strong>Optimal (DP):</strong> Chooses 3, remaining amount 3 &rArr; 3 + 3 (2 coins).</li></ul>",
       },
       {
         heading: "3. Systems Applications",
-        body: "The 1D unbounded knapsack pattern underpins core systems engineering problems:\n- **Memory Allocator Slabs**: Operating system allocators (such as `jemalloc` or `tcmalloc`) combine fixed slab sizes to fulfill allocation requests with minimal chunk overhead.\n- **Token Bucket Rate Limiting**: Distributed rate limiters pack token requests into fixed bucket capacities.\n- **Instruction Slot Packing**: Compilers pack VLIW instruction bundles under hardware register constraints.",
+        body: "<p>The 1D unbounded knapsack pattern underpins core systems engineering problems:</p><ul><li><strong>Memory Allocator Slabs:</strong> Operating system allocators (such as <code>jemalloc</code> or <code>tcmalloc</code>) combine fixed slab sizes to fulfill allocation requests with minimal chunk overhead.</li><li><strong>Token Bucket Rate Limiting:</strong> Distributed rate limiters pack token requests into fixed bucket capacities.</li><li><strong>Instruction Slot Packing:</strong> Compilers pack VLIW instruction bundles under hardware register constraints.</li></ul>",
       },
       {
         heading: "4. Complexity & Implementation Edge Cases",
-        body: "### Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N \\times A)$ where $N = |C|$ and $A = \\text{amount}$.\n- **Space Complexity**: $\\mathcal{O}(A)$ for the 1D DP table.\n\n### Edge Cases to Watch Out For\n- **Target $A = 0$**: Instantly returns $0$ without table sweeps.\n- **Unreachable Amounts**: If no combination sums to $A$ (e.g., coins $\\{2, 4\\}$, amount $7$), returns $-1$.\n- **Integer Overflow**: In C++/Java, initializing with `INT_MAX` requires care to prevent overflow when calculating `dp[i - c] + 1`. Using `amount + 1` as infinity avoids overflow safely.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(N &times; A)</code> where <code>N = |C|</code> and <code>A = amount</code>.<br/><strong>Space Complexity:</strong> <code>O(A)</code> for the 1D DP table.</p><ul><li><strong>Target A = 0:</strong> Instantly returns 0 without table sweeps.</li><li><strong>Unreachable Amounts:</strong> If no combination sums to <code>A</code>, returns -1.</li><li><strong>Integer Overflow:</strong> Initializing with infinity requires care to prevent overflow when calculating <code>dp[i - c] + 1</code>.</li></ul>",
       },
     ],
     keyTerms: [
@@ -346,12 +331,11 @@ A greedy approach of picking the largest denomination first fails for arbitrary 
       {
         term: "Optimal Substructure",
         definition:
-          "The property where an optimal solution to amount $i$ incorporates optimal solutions to subproblems $i - c$.",
+          "The property where an optimal solution to amount i incorporates optimal solutions to subproblems i - c.",
       },
       {
         term: "Sentinel Value",
-        definition:
-          "A placeholder such as $\\infty$ (`float('inf')`) used to denote impossible or unvisited states.",
+        definition: "A placeholder such as infinity used to denote impossible or unvisited states.",
       },
       {
         term: "1D Tabulation",

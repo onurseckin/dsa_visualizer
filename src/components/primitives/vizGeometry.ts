@@ -260,8 +260,8 @@ export const tidyTreeSlots = (
  * a guessed aspect ratio. The measured element must be the svg's own parent with
  * no padding, so its client box IS the svg viewport and `boxViewBox` stays exact.
  *
- * jsdom implements no ResizeObserver and reports zero-sized elements, so tests
- * keep `fallback` rather than collapsing the drawing to nothing.
+ * Some rendering environments provide no ResizeObserver or report a zero-sized
+ * container, so `fallback` prevents the drawing from collapsing to nothing.
  *
  * Layout effect, not effect: measuring after the browser has painted would show
  * one frame of the fallback box letterboxed inside the real one — a flash of

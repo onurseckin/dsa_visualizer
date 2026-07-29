@@ -37,7 +37,11 @@ const PERMUTATIONS_TRIVIA: TriviaMeta = {
 export const generateGeneratingPermutationsSteps = (
   input: GeneratingPermutationsInput,
 ): AlgorithmStep[] => {
-  const nums = input.elements && input.elements.length > 0 ? input.elements.slice(0, 5) : [1, 2, 3];
+  const safeInput = input ?? DEFAULT_GENERATING_PERMUTATIONS_INPUT;
+  const rawElements = Array.isArray(safeInput.elements)
+    ? safeInput.elements
+    : DEFAULT_GENERATING_PERMUTATIONS_INPUT.elements;
+  const nums = rawElements.length > 0 ? rawElements.slice(0, 5) : [1, 2, 3];
   const n = nums.length;
 
   const steps: AlgorithmStep[] = [];
@@ -66,8 +70,8 @@ export const generateGeneratingPermutationsSteps = (
     stepIndex: stepIdx++,
     codeLine: 3,
     explanation: {
-      what: `Initialized permutation generator for elements [${nums.join(", ")}].`,
-      why: `There are N! = ${n}! = ${factorial(n)} total permutations to generate. We maintain a boolean array 'used' to track which elements are active in the current path.`,
+      what: `Initialize permutation backtracking generator for elements [${nums.join(", ")}].`,
+      why: `Generating all N! = ${n}! = ${factorial(n)} permutations using a boolean availability mask ('used') and recursive state restoration.`,
     },
     primarySnapshot: buildArraySnapshot(-1),
     auxiliaryState: {
@@ -87,11 +91,11 @@ export const generateGeneratingPermutationsSteps = (
       stepIndex: stepIdx++,
       codeLine: 6,
       explanation: {
-        what: `Check base case: current perm length (${currPerm.length}) == N (${n})?`,
+        what: `Evaluate recursion base case: current permutation length (${currPerm.length}) == N (${n}).`,
         why:
           currPerm.length === n
-            ? `All ${n} positions filled — we reached a complete permutation.`
-            : `Permutation currently has ${currPerm.length} elements; need ${n} total elements to complete.`,
+            ? `All ${n} positions filled; reached a complete leaf permutation.`
+            : `Permutation contains ${currPerm.length} of ${n} elements; selecting next available candidate.`,
       },
       primarySnapshot: buildArraySnapshot(-1),
       auxiliaryState: {
@@ -112,8 +116,8 @@ export const generateGeneratingPermutationsSteps = (
         stepIndex: stepIdx++,
         codeLine: 7,
         explanation: {
-          what: `Found complete permutation #${allPermutations.length}: [${currPerm.join(", ")}].`,
-          why: "We save a copy of this completed arrangement to the results list.",
+          what: `Recorded complete permutation #${allPermutations.length}: [${currPerm.join(", ")}].`,
+          why: "A valid N-element linear arrangement is finalized and added to the output set.",
         },
         primarySnapshot: buildArraySnapshot(-1),
         auxiliaryState: {
@@ -136,10 +140,10 @@ export const generateGeneratingPermutationsSteps = (
         stepIndex: stepIdx++,
         codeLine: 11,
         explanation: {
-          what: `Inspect candidate nums[${i}] = ${nums[i]}: used[${i}] is ${used[i]}`,
+          what: `Inspect candidate element nums[${i}] = ${nums[i]} (used = ${used[i]}).`,
           why: used[i]
-            ? `Element ${nums[i]} is already placed in the current path, so we skip it to prevent duplicates.`
-            : `Element ${nums[i]} is available for selection.`,
+            ? `Element ${nums[i]} is already active in the current path; skipping to prevent duplicate selections.`
+            : `Element ${nums[i]} is available; testing this decision branch.`,
         },
         primarySnapshot: buildArraySnapshot(i),
         auxiliaryState: {
@@ -164,8 +168,8 @@ export const generateGeneratingPermutationsSteps = (
         stepIndex: stepIdx++,
         codeLine: 14,
         explanation: {
-          what: `Picked element ${nums[i]} at position ${currPerm.length - 1}.`,
-          why: `Element ${nums[i]} marked as used; updated current permutation to [${currPerm.join(", ")}].`,
+          what: `Select element ${nums[i]} at permutation index ${currPerm.length - 1}.`,
+          why: `Element ${nums[i]} is marked as used and appended to current sequence [${currPerm.join(", ")}].`,
         },
         primarySnapshot: buildArraySnapshot(i),
         auxiliaryState: {
@@ -189,8 +193,8 @@ export const generateGeneratingPermutationsSteps = (
         stepIndex: stepIdx++,
         codeLine: 16,
         explanation: {
-          what: `Backtracked: removed ${nums[i]} from position ${currPerm.length}.`,
-          why: `Un-choosing element ${nums[i]} and resetting used[${i}] = false to explore sibling decisions.`,
+          what: `Backtrack: remove ${nums[i]} from permutation index ${currPerm.length}.`,
+          why: `Un-choosing element ${nums[i]} and resetting used[${i}] = false restores state for sibling branches.`,
         },
         primarySnapshot: buildArraySnapshot(i),
         auxiliaryState: {
@@ -213,8 +217,8 @@ export const generateGeneratingPermutationsSteps = (
     stepIndex: stepIdx++,
     codeLine: 20,
     explanation: {
-      what: `Permutation generation complete! Generated all ${allPermutations.length} permutations.`,
-      why: "Systematically explored all decision paths of the permutation state space tree.",
+      what: `Permutation generation complete! Found all ${allPermutations.length} permutations.`,
+      why: "Exhaustive depth-first search of the permutation decision tree successfully completed.",
     },
     primarySnapshot: buildArraySnapshot(-1),
     auxiliaryState: {
@@ -246,7 +250,7 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   topicIds: ["backtracking"],
   difficulty: "Medium",
   description:
-    "Generate all $N!$ distinct permutations of an array of unique elements using recursive backtracking with state restoration.\n\n### Problem Statement\nGiven an array `nums` of $N$ distinct integers, return all possible permutations (distinct linear orderings) of the array elements in any order.\n\nA permutation represents a distinct ordering of all $N$ elements. The algorithm constructs each arrangement element by element from left to right using depth-first search. A boolean tracking array `used` prevents selecting an element multiple times in the same branch, and state restoration (pop + unmark) allows reusing a single buffer across all $N!$ recursive paths.\n\n### Input Parameters\n- `elements` (list[int]): An array of $N$ unique integers.\n\n### Output\n- list[list[int]]: A list containing all $N!$ unique permutations.\n\n### Constraints & Edge Cases\n- `1 <= elements.length <= 8`\n- `-10 <= elements[i] <= 10`\n- All elements of `elements` are unique.",
+    "<p>Generate all <code>N!</code> distinct permutations of an array of unique elements using recursive backtracking with state restoration.</p><h3>Problem Statement</h3><p>Given an array <code>nums</code> of <code>N</code> distinct integers, return all possible permutations (distinct linear orderings) of the array elements in any order.</p><p>A permutation represents a distinct ordering of all <code>N</code> elements. The algorithm constructs each arrangement element by element from left to right using depth-first search. A boolean tracking array <code>used</code> prevents selecting an element multiple times in the same branch, and state restoration (pop + unmark) allows reusing a single buffer across all <code>N!</code> recursive paths.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>elements</code> (array of <code>N</code> unique integers).</li><li><strong>Output:</strong> A list containing all <code>N!</code> unique permutations.</li></ul><h3>Constraints &amp; Edge Cases</h3><ul><li><code>1 &lt;= elements.length &lt;= 8</code></li><li><code>-10 &lt;= elements[i] &lt;= 10</code></li><li>All elements of <code>elements</code> are unique.</li></ul>",
   constraints: [
     "1 <= elements.length <= 8",
     "-10 <= elements[i] <= 10",
@@ -314,23 +318,23 @@ export const generatingPermutations: AlgorithmDefinition<GeneratingPermutationsI
   },
   topicGuide: {
     overview:
-      "Generating permutations is the fundamental model for decision-tree traversal over non-overlapping choices. The algorithm systematically constructs all $N!$ arrangements by picking available elements at each depth level.\n\nIn system architectures and software engineering, permutation generation drives critical subcomponents: SQL query optimizers explore table join order permutations; VLIW compiler backends schedule instruction order permutations to optimize CPU pipeline utilization; and hyperparameter grid search tools iterate through configuration space orderings.",
+      "<p>Generating permutations is the fundamental model for decision-tree traversal over non-overlapping choices. The algorithm systematically constructs all <code>N!</code> arrangements by picking available elements at each depth level.</p><p>In system architectures and software engineering, permutation generation drives critical subcomponents: SQL query optimizers explore table join order permutations; VLIW compiler backends schedule instruction order permutations to optimize CPU pipeline utilization; and hyperparameter grid search tools iterate through configuration space orderings.</p>",
     sections: [
       {
         heading: "Permutation Tree Geometry & Branching Factor",
-        body: "The search tree branches by N choices at root level 0, N-1 choices at level 1, down to 1 choice at level N-1. The tree has N! leaf nodes at depth N, representing all complete linear orderings.",
+        body: "<p>The search tree branches by <code>N</code> choices at root level 0, <code>N-1</code> choices at level 1, down to 1 choice at level <code>N-1</code>. The tree has <code>N!</code> leaf nodes at depth <code>N</code>, representing all complete linear orderings.</p>",
       },
       {
         heading: "State Management & Backtracking Invariants",
-        body: "Rather than copying intermediate lists at every recursive call, backtracking maintains a single mutable current_perm list and a boolean used array. Reversing state changes (pop and un-marking used[i]) during recursion unwinding ensures zero extra allocation during search tree traversal.",
+        body: "<p>Rather than copying intermediate lists at every recursive call, backtracking maintains a single mutable <code>current_perm</code> list and a boolean <code>used</code> array. Reversing state changes (pop and un-marking <code>used[i]</code>) during recursion unwinding ensures zero extra allocation during search tree traversal.</p>",
       },
       {
         heading: "Systems & Compiler Applications",
-        body: "Instruction schedulers in compilers evaluate localized basic block instruction permutations to minimize pipeline stalls and CPU register spill overhead. Similarly, query planners evaluate join-order permutations when cost-based optimizers search for minimal disk I/O query execution trees.",
+        body: "<p>Instruction schedulers in compilers evaluate localized basic block instruction permutations to minimize pipeline stalls and CPU register spill overhead. Similarly, query planners evaluate join-order permutations when cost-based optimizers search for minimal disk I/O query execution trees.</p>",
       },
       {
         heading: "Handling Duplicate Inputs (Permutations II)",
-        body: "When input elements contain duplicates, generating unique permutations requires sorting the array first and enforcing a skip guard: if nums[i] == nums[i-1] and not used[i-1], skip index i to avoid duplicate branch trees.",
+        body: "<p>When input elements contain duplicates, generating unique permutations requires sorting the array first and enforcing a skip guard: if <code>nums[i] == nums[i-1]</code> and <code>not used[i-1]</code>, skip index <code>i</code> to avoid duplicate branch trees.</p>",
       },
     ],
     keyTerms: [

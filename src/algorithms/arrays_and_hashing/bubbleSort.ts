@@ -13,7 +13,8 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const workingElements: ArrayElement[] = input.map((val, idx) => ({
+  const rawInput = Array.isArray(input) ? input : [5, 2, 8, 1, 4];
+  const workingElements: ArrayElement[] = rawInput.map((val, idx) => ({
     id: `el-${idx}`,
     value: val,
     state: "default",
@@ -46,7 +47,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     1,
     "Initialize Bubble Sort",
-    `We'll sweep across these ${n} values repeatedly, comparing adjacent pairs and bubbling out-of-order elements rightward. Each pass guarantees the largest remaining element settles into its correct tail position.`,
+    `We repeatedly sweep across the array of ${n} elements, comparing adjacent pairs and bubbling out-of-order elements rightward so each pass locks the largest remaining unsorted element into its final tail position.`,
     { n },
   );
 
@@ -70,8 +71,8 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
 
   addStep(
     2,
-    `Cache array length n = ${n}`,
-    `Knowing there are ${n} elements tells us at most ${n - 1} passes will be needed — after that many sweeps, every value is guaranteed to be in non-decreasing order.`,
+    "Cache Array Dimensions",
+    `Knowing the array length n = ${n} bounds the maximum required passes to at most ${n - 1}, after which all elements are guaranteed to be in non-decreasing order.`,
     { n },
   );
 
@@ -79,7 +80,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     addStep(
       3,
       `Begin pass ${i + 1} of ${n - 1}`,
-      `We compare neighbours from index 0 up to ${n - 2 - i}; elements at index ${n - i} and beyond are already locked in their sorted positions.`,
+      `We compare adjacent neighbors from index 0 up to ${n - 2 - i}; elements at index ${n - i} and beyond are already locked in their sorted tail positions.`,
       { i, n, remainingUnsorted: n - i },
     );
 
@@ -94,17 +95,17 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
 
       addStep(
         4,
-        `Inspect pair at indices ${j} and ${j + 1}`,
-        `Evaluating adjacent elements arr[${j}] = ${valJ} and arr[${j + 1}] = ${valJNext}.`,
+        `Inspect Adjacent Pair at ${j} and ${j + 1}`,
+        `Evaluating adjacent elements arr[${j}] = ${valJ} and arr[${j + 1}] = ${valJNext} to check for an inversion.`,
         { i, j, "arr[j]": valJ, "arr[j+1]": valJNext },
       );
 
       addStep(
         5,
-        `Compare ${valJ} with ${valJNext}`,
+        `Evaluate Order of ${valJ} and ${valJNext}`,
         valJ > valJNext
-          ? `${valJ} is greater than ${valJNext}, violating non-decreasing order. A swap is required to push ${valJ} rightward.`
-          : `${valJ} is <= ${valJNext}, so this pair is already in correct relative order. No swap needed.`,
+          ? `Element ${valJ} is strictly greater than neighbor ${valJNext}, violating non-decreasing order and requiring an adjacent swap.`
+          : `Element ${valJ} is less than or equal to neighbor ${valJNext}, maintaining correct relative order without a swap.`,
         { i, j, "arr[j]": valJ, "arr[j+1]": valJNext, needsSwap: valJ > valJNext },
       );
 
@@ -121,8 +122,8 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
 
         addStep(
           6,
-          `Swap ${valJ} and ${valJNext}`,
-          `Swapped positions ${j} and ${j + 1}. Element ${valJ} moves one step closer to its final resting position at the end of the unsorted sub-array.`,
+          `Swap Inverted Elements ${valJ} and ${valJNext}`,
+          `Swapping positions ${j} and ${j + 1} moves the larger element one step closer to its final resting position at the end of the unsorted subarray.`,
           { i, j, "arr[j]": workingElements[j].value, "arr[j+1]": workingElements[j + 1].value },
         );
       }
@@ -137,7 +138,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
     workingElements[sortedIdx].state = "sorted";
     addStep(
       3,
-      `Lock in index ${sortedIdx}`,
+      `Lock In Sorted Tail Index ${sortedIdx}`,
       `Pass ${i + 1} completed. Element ${workingElements[sortedIdx].value} has bubbled to index ${sortedIdx} and is permanently sorted.`,
       { i, sortedIdx, sortedValue: workingElements[sortedIdx].value },
     );
@@ -150,19 +151,9 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   addStep(
     7,
     "Bubble Sort complete",
-    `All passes completed successfully. The array is fully sorted in non-decreasing order.`,
+    "All passes completed successfully. Every adjacent inversion has been resolved, leaving the array fully sorted in non-decreasing order.",
     { n },
   );
-
-  // Guarantee step count >= 20 for short arrays
-  while (steps.length < 20) {
-    addStep(
-      7,
-      `Final state check step ${steps.length + 1}`,
-      `Verifying global array sorting invariant across all ${n} elements.`,
-      { totalElements: n },
-    );
-  }
 
   return steps;
 };
@@ -211,7 +202,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
   description:
-    "Bubble Sort is the quintessential comparison-based sorting algorithm that repeatedly sweeps across an array, comparing adjacent elements and swapping them whenever they are out of order.\n\n### Why It Exists & What It Solves\nBubble Sort provides a foundational model for understanding algorithm design, invariant propagation, and sorting stability. It solves the sequence ordering problem by iteratively reducing the total number of adjacent inversions.\n- **Inversion Elimination**: An inversion is a pair of indices $(i, j)$ such that $i < j$ and $\\text{arr}[i] > \\text{arr}[j]$. Every adjacent swap resolves exactly one inversion.\n- **Invariant Propagation**: After pass $k$, the $k$ largest elements are guaranteed to have bubbled into their final, permanent positions at the array's rightmost tail $\\text{arr}[N-k \\dots N-1]$.\n\n### Step-by-Step Intuition\n1. **Pass Boundary ($i$-loop)**: Execute up to $N - 1$ outer passes. Pass $i$ considers unsorted prefix $\\text{arr}[0 \\dots N - 1 - i]$.\n2. **Adjacent Probe ($j$-loop)**: Walk index $j$ from $0$ to $N - i - 2$. Compare neighbour pair $(\\text{arr}[j], \\text{arr}[j + 1])$.\n3. **Swap & Bubble**: If $\\text{arr}[j] > \\text{arr}[j + 1]$, swap them in-place. The larger value continues to bubble rightward toward the tail.\n4. **Tail Lock**: Upon completing pass $i$, index $N - 1 - i$ is locked as permanently sorted. Repeat for $i + 1$.\n\n### Mathematical Formulation & Derivation\nThe total number of comparisons in the unoptimized worst case (e.g. reverse-sorted array) forms an arithmetic progression:\n$$T(N) = \\sum_{i=0}^{N-2} (N - 1 - i) = (N - 1) + (N - 2) + \\dots + 1 = \\frac{N(N - 1)}{2} = \\frac{N^2 - N}{2} = \\mathcal{O}(N^2)$$\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), an unsorted sequence of integers where $1 \\le N \\le 10^3$.\n- **Output**: `list[int]`, the array sorted in non-decreasing order in-place.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**:\n  - **Best Case**: $\\mathcal{O}(N)$ when an early-exit flag detects $0$ swaps on pass $1$.\n  - **Average Case**: $\\mathcal{O}(N^2)$, requiring $\\frac{N(N-1)}{4}$ average swaps.\n  - **Worst Case**: $\\mathcal{O}(N^2)$, executing all $\\frac{N(N-1)}{2}$ comparisons and swaps for reverse-sorted inputs.\n- **Space Complexity**: $\\mathcal{O}(1)$ auxiliary space since all operations mutate `arr` in-place.\n\n### Edge Cases & Constraints\n- **Single Element / Empty Input ($N \\le 1$)**: No comparisons required; array is trivially sorted.\n- **Already Sorted Input**: Executes $N-1$ comparisons and $0$ swaps.\n- **Duplicate Values**: Stable sort guarantee—strict comparison $\\text{arr}[j] > \\text{arr}[j+1]$ prevents equal keys from swapping.",
+    "<p>Bubble Sort is the quintessential comparison-based sorting algorithm that repeatedly sweeps across an array, comparing adjacent elements and swapping them whenever they are out of order.</p><h3>Why It Exists &amp; What It Solves</h3><p>Bubble Sort provides a foundational model for understanding algorithm design, invariant propagation, and sorting stability. It solves the sequence ordering problem by iteratively reducing the total number of adjacent inversions.</p><ul><li><strong>Inversion Elimination:</strong> An inversion is a pair of indices <code>(i, j)</code> such that <code>i &lt; j</code> and <code>arr[i] &gt; arr[j]</code>. Every adjacent swap resolves exactly one inversion.</li><li><strong>Invariant Propagation:</strong> After pass <code>k</code>, the <code>k</code> largest elements are guaranteed to have bubbled into their final, permanent positions at the array's rightmost tail <code>arr[N-k &hellip; N-1]</code>.</li></ul><h3>Step-by-Step Intuition</h3><ul><li><strong>Pass Boundary:</strong> Execute up to <code>N - 1</code> outer passes. Pass <code>i</code> considers unsorted prefix <code>arr[0 &hellip; N - 1 - i]</code>.</li><li><strong>Adjacent Probe:</strong> Walk index <code>j</code> from <code>0</code> to <code>N - i - 2</code>. Compare neighbour pair <code>(arr[j], arr[j + 1])</code>.</li><li><strong>Swap &amp; Bubble:</strong> If <code>arr[j] &gt; arr[j + 1]</code>, swap them in-place. The larger value continues to bubble rightward toward the tail.</li><li><strong>Tail Lock:</strong> Upon completing pass <code>i</code>, index <code>N - 1 - i</code> is locked as permanently sorted. Repeat for <code>i + 1</code>.</li></ul><h3>Mathematical Formulation &amp; Derivation</h3><p>The total number of comparisons in the unoptimized worst case (e.g. reverse-sorted array) forms an arithmetic progression:</p><p><code>T(N) = sum(N - 1 - i) for i=0 &hellip; N-2 = (N-1) + (N-2) + &hellip; + 1 = N(N - 1) / 2 = O(N<sup>2</sup>)</code></p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>arr</code> (<code>list[int]</code>), an unsorted sequence of integers where <code>1 &le; N &le; 10<sup>3</sup></code>.</li><li><strong>Output:</strong> <code>list[int]</code>, the array sorted in non-decreasing order in-place.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Best Case:</strong> <code>O(N)</code> when an early-exit flag detects 0 swaps on pass 1.</li><li><strong>Average Case:</strong> <code>O(N<sup>2</sup>)</code>, requiring <code>N(N-1)/4</code> average swaps.</li><li><strong>Worst Case:</strong> <code>O(N<sup>2</sup>)</code>, executing all <code>N(N-1)/2</code> comparisons and swaps for reverse-sorted inputs.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space since all operations mutate <code>arr</code> in-place.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Single Element / Empty Input:</strong> No comparisons required; array is trivially sorted.</li><li><strong>Already Sorted Input:</strong> Executes <code>N-1</code> comparisons and 0 swaps.</li><li><strong>Duplicate Values:</strong> Stable sort guarantee—strict comparison <code>arr[j] &gt; arr[j+1]</code> prevents equal keys from swapping.</li></ul>",
   constraints: ["1 <= arr.length <= 10^3", "-10^4 <= arr[i] <= 10^4"],
   examples: [
     {
@@ -256,30 +247,30 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   },
   topicGuide: {
     overview:
-      "Bubble Sort is the fundamental comparison-based sorting algorithm operating via adjacent swaps. While inefficient for large $N$ ($\\mathcal{O}(N^2)$ average/worst-case), its simplicity makes it ideal for studying inversion counts, stability guarantees, and adjacent memory accesses. In real-world systems, small-scale adjacent sorting patterns appear in hardware graphics pipelines and low-overhead microcontrollers.",
+      "<p>Bubble Sort is the fundamental comparison-based sorting algorithm operating via adjacent swaps. While inefficient for large <code>N</code> (<code>O(N<sup>2</sup>)</code> average/worst-case), its simplicity makes it ideal for studying inversion counts, stability guarantees, and adjacent memory accesses. In real-world systems, small-scale adjacent sorting patterns appear in hardware graphics pipelines and low-overhead microcontrollers.</p>",
     sections: [
       {
         heading: "Core Concept & Adjacent Inversion Repair",
-        body: "The algorithm repeatedly compares adjacent elements $\\text{arr}[j]$ and $\\text{arr}[j+1]$. If $\\text{arr}[j] > \\text{arr}[j+1]$, they are swapped, eliminating exactly one inversion. With each pass $i$, the largest remaining element bubbles up to its final destination at index $N - i - 1$. This guarantees progressive progress toward full sorting.",
+        body: "<p>The algorithm repeatedly compares adjacent elements <code>arr[j]</code> and <code>arr[j+1]</code>. If <code>arr[j] &gt; arr[j+1]</code>, they are swapped, eliminating exactly one inversion. With each pass <code>i</code>, the largest remaining element bubbles up to its final destination at index <code>N - i - 1</code>. This guarantees progressive progress toward full sorting.</p>",
       },
       {
         heading: "Systems & Performance Impact: Memory Locality & SIMD",
-        body: "Because Bubble Sort accesses array elements sequentially ($\\text{arr}[j], \\text{arr}[j+1]$), it exhibits high CPU cache line spatial locality compared to tree-based or heap-based sorts. However, its high total swap count creates branch mispredictions and write amplification on modern flash/NVMe controllers. In SIMD architectures, fixed small adjacent swaps can be vectorised effectively.",
+        body: "<p>Because Bubble Sort accesses array elements sequentially (<code>arr[j]</code>, <code>arr[j+1]</code>), it exhibits high CPU cache line spatial locality compared to tree-based or heap-based sorts. However, its high total swap count creates branch mispredictions and write amplification on modern flash/NVMe controllers. In SIMD architectures, fixed small adjacent swaps can be vectorised effectively.</p>",
       },
       {
         heading: "Implementation Nuances & Stability",
-        body: "Bubble Sort is a stable sorting algorithm because equal elements are never swapped (comparison is strictly $\\text{arr}[j] > \\text{arr}[j+1]$). Using a swapped boolean flag allows the algorithm to detect sorted arrays early and exit in $\\mathcal{O}(N)$ best-case time. Preserving stability is essential when sorting structured records by secondary keys.",
+        body: "<p>Bubble Sort is a stable sorting algorithm because equal elements are never swapped (comparison is strictly <code>arr[j] &gt; arr[j+1]</code>). Using a swapped boolean flag allows the algorithm to detect sorted arrays early and exit in <code>O(N)</code> best-case time. Preserving stability is essential when sorting structured records by secondary keys.</p>",
       },
       {
         heading: "Edge Case Analysis & Boundary Invariants",
-        body: "For $N \\le 1$, zero passes are executed because the array is trivially sorted. Reverse-sorted arrays represent the absolute worst case requiring $\\frac{N(N-1)}{2}$ swaps. Already-sorted arrays require $N-1$ comparisons and $0$ swaps when early-exit optimization is active.",
+        body: "<p>For <code>N &le; 1</code>, zero passes are executed because the array is trivially sorted. Reverse-sorted arrays represent the absolute worst case requiring <code>N(N-1)/2</code> swaps. Already-sorted arrays require <code>N-1</code> comparisons and 0 swaps when early-exit optimization is active.</p>",
       },
     ],
     keyTerms: [
       {
         term: "Inversion",
         definition:
-          "A pair of indices $(i, j)$ such that $i < j$ but $\\text{arr}[i] > \\text{arr}[j]$. Bubble Sort resolves exactly one adjacent inversion per swap.",
+          "A pair of indices (i, j) such that i < j but arr[i] > arr[j]. Bubble Sort resolves exactly one adjacent inversion per swap.",
       },
       {
         term: "Stable Sort",
@@ -289,7 +280,7 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
       {
         term: "Adaptive Algorithm",
         definition:
-          "An algorithm whose runtime improves (e.g. down to $\\mathcal{O}(N)$) when the input is already partially sorted.",
+          "An algorithm whose runtime improves (e.g. down to O(N)) when the input is already partially sorted.",
       },
     ],
   },

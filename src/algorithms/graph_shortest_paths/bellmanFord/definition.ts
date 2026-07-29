@@ -25,58 +25,58 @@ export const DEFAULT_BELLMAN_FORD_INPUT: BellmanFordInput = {
 
 const BELLMAN_FORD_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Bellman-Ford solves the same single-source shortest path problem as Dijkstra's algorithm, but it abandons the requirement that edge weights be non-negative. Rather than trusting a greedy order, it relaxes every edge in the graph over and over and lets improvements ripple outward one hop per sweep. That makes it the right tool whenever a cost can be negative — a rebate, a currency gain, energy recovered instead of spent — and it comes with a bonus no greedy method can offer: it can tell you when the question has no answer at all because a negative cycle exists. The trade you accept is doing far more redundant work in exchange for that robustness.",
+    "<p>Bellman-Ford solves the Single-Source Shortest Path (SSSP) problem on directed weighted graphs, supporting negative edge weights and detecting negative-weight cycles. Unlike Dijkstra's algorithm, which greedily finalizes vertices, Bellman-Ford repeatedly relaxes all edges in the graph across <code>|V| - 1</code> passes, allowing distance updates to propagate outward hop by hop.</p>",
   sections: [
     {
       heading: "Relax everything, then do it again",
-      body: "The insight is that you do not need to know which edge to relax next if you are willing to relax all of them. After one full sweep over the edge list, every shortest path that uses a single edge is definitely correct; after two sweeps, every shortest path using at most two edges is correct, and so on. Since a shortest path never needs to repeat a vertex, it can span at most V - 1 edges, so V - 1 sweeps are enough to settle every distance in the graph. You are effectively doing dynamic programming where the stage is the number of edges a path is allowed to use, and the edge list is the transition table.",
+      body: "<p>Instead of deciding which vertex to process next, Bellman-Ford relaxes all <code>|E|</code> edges in each pass. After <code>k</code> passes, the algorithm guarantees finding the shortest path to any vertex reachable using at most <code>k</code> edges. Because a simple shortest path without cycles contains at most <code>|V| - 1</code> edges, <code>|V| - 1</code> passes are sufficient to discover all shortest paths.</p>",
     },
     {
       heading: "What one sweep actually does",
-      body: "A sweep walks the edge list in whatever order it happens to be stored and, for each edge from u to v, asks whether the distance already known for u plus that edge's weight beats the distance recorded for v. When it does, you overwrite v's entry, and that improvement is immediately visible to later edges in the same sweep — which is why a lucky edge ordering can converge in one pass while an unlucky one needs all V - 1. You must guard the comparison by checking that u is reachable at all, because adding a weight to infinity is meaningless and, with negative weights, can even manufacture a finite distance to an unreachable vertex. A sweep that changes nothing proves the table has converged, so tracking that flag lets you stop early instead of grinding through the remaining passes.",
+      body: "<p>Each sweep iterates through every edge <code>(u, v)</code>. If vertex <code>u</code> is reachable (<code>dist[u] ≠ ∞</code>) and <code>dist[u] + w(u, v) &lt; dist[v]</code>, we update <code>dist[v] = dist[u] + w(u, v)</code>. If an entire pass completes without updating any distance, the distances have converged early and the algorithm terminates.</p>",
     },
     {
-      heading: "Why V - 1 sweeps are exactly enough",
-      body: "The invariant to hold in mind is that after k sweeps, the table holds the true cost of the best path to each vertex among all paths using no more than k edges. Proving the step is easy: an optimal path with k + 1 edges is an optimal path with k edges followed by one final edge, and that final edge is guaranteed to be relaxed during sweep k + 1. Because an optimal path in a graph with no negative cycle never revisits a vertex, it has at most V - 1 edges, so the invariant at k = V - 1 already covers every optimal path there is. This is also why the bound is tight rather than pessimistic — a long chain of vertices relaxed in exactly the wrong order really does need every sweep.",
+      heading: "Why |V| - 1 sweeps are exactly enough",
+      body: "<p>A simple path in a graph with <code>|V|</code> vertices contains at most <code>|V| - 1</code> edges. Since each pass extends optimal path lengths by at least one edge, <code>|V| - 1</code> passes suffice to compute shortest paths for all reachable vertices.</p>",
     },
     {
       heading: "Negative cycles: detection, not repair",
-      body: 'Run one extra sweep after the V - 1 are done. If any edge can still be relaxed, no simple path explanation is possible, so some negative-weight cycle must be reachable from the source, and that is precisely what the extra pass detects. When such a cycle exists, "shortest path" stops being well defined for the vertices it can reach, because looping the cycle once more always lowers the total, driving the cost toward negative infinity. Bellman-Ford does not repair this — it reports it, which in practice is often the whole point, as in arbitrage detection where the negative cycle is the profitable trade you were looking for. If you need to know which vertices are spoiled rather than just that something is wrong, you can propagate the "unbounded" mark forward from any still-relaxable edge.',
+      body: "<p>Running an extra <code>|V|</code>-th pass checks for negative-weight cycles. If any edge <code>(u, v)</code> can still be relaxed after <code>|V| - 1</code> passes (<code>dist[u] + w(u, v) &lt; dist[v]</code>), a negative-weight cycle is reachable from the source. In such cases, shortest distances are undefined (cost tends toward <code>-∞</code>).</p>",
     },
     {
       heading: "Choosing it over the alternatives",
-      body: "With strictly non-negative weights Dijkstra's algorithm is the better choice and you should default to it; Bellman-Ford earns its keep only when negativity or cycle detection is in play. If the graph happens to be acyclic, forget sweeps entirely and relax edges in topological order, which settles every distance in a single pass regardless of sign. For all-pairs questions on graphs with negative edges, Bellman-Ford becomes a subroutine rather than the answer: Johnson's algorithm runs it once from an artificial source to compute a reweighting that removes negative weights, then runs Dijkstra from every vertex. The queue-based refinement often called SPFA keeps only vertices whose distance changed, which is much faster on typical graphs but has no better worst case, so it is an optimization rather than a different algorithm.",
+      body: "<p>Use Dijkstra's algorithm when all edge weights are non-negative due to its superior <code>O((V + E) log V)</code> time complexity. Choose Bellman-Ford when graphs contain negative edge weights or require negative cycle detection.</p>",
     },
     {
       heading: "Pitfalls and practical notes",
-      body: "Do not confuse a negative edge with a negative cycle: negative edges alone are entirely fine here, and only a cycle whose total weight is negative breaks the problem. Remember that detection is scoped to cycles reachable from your source — a negative cycle sitting in a disconnected corner of the graph cannot affect any distance you compute, so it will not and should not be flagged. On undirected graphs a single negative edge is automatically a negative cycle, since you can walk back and forth across it, which is why negative weights are really a directed-graph topic. Finally, keep the early-exit check honest: stop when a sweep changes nothing, not when it changes little, or you will report distances that have not finished settling.",
+      body: "<p>Always guard edge relaxation with a reachability check (<code>dist[u] ≠ ∞</code>) to avoid arithmetic on infinite values, especially when edge weights are negative. Note that negative cycles are only detected if they are reachable from the start node.</p>",
     },
   ],
   keyTerms: [
     {
-      term: "Edge relaxation",
+      term: "Edge Relaxation",
       definition:
-        "The single operation the whole algorithm is built from: if the distance to u plus the weight of edge u to v is smaller than the recorded distance to v, replace v's distance with the better value.",
+        "The operation dist[v] = min(dist[v], dist[u] + w(u, v)) updating the tentative shortest distance to node v.",
     },
     {
-      term: "Sweep (pass)",
+      term: "Pass / Sweep",
       definition:
-        "One complete traversal of the entire edge list, relaxing each edge once. Each sweep extends the set of correct answers by one more edge of path length.",
+        "One complete iteration over all edges in the graph, extending shortest path computations by one edge.",
     },
     {
-      term: "Negative-weight cycle",
+      term: "Negative-Weight Cycle",
       definition:
-        "A directed cycle whose edge weights sum to less than zero. Any vertex reachable through one has no shortest distance, because every extra lap around the cycle makes the total cheaper.",
+        "A directed cycle whose edge weights sum to less than zero, causing path costs to decrease infinitely.",
     },
     {
-      term: "Reachability guard",
+      term: "Reachability Guard",
       definition:
-        "The check that skips an edge whose source is still at infinity. It stops the algorithm from arithmetic on an unreachable distance, which negative weights would otherwise turn into a bogus finite answer.",
+        "The check dist[u] ≠ ∞ ensuring an edge's source vertex is reachable before attempting relaxation.",
     },
     {
-      term: "Early termination",
+      term: "Early Termination",
       definition:
-        "Stopping as soon as a full sweep produces no update. The table cannot change again after such a sweep, so the remaining passes would be pure waste.",
+        "Stopping the algorithm early when a complete pass produces no distance updates across any edge.",
     },
   ],
 };
@@ -110,7 +110,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
   description:
-    "The Bellman-Ford algorithm computes shortest paths from one source vertex to every other vertex in a directed weighted graph $G = (V, E)$. Unlike Dijkstra's algorithm, Bellman-Ford supports negative edge weights ($w(u,v) \\in \\mathbb{R}$) and detects negative-weight cycles. It repeatedly relaxes all $|E|$ edges over $|V|-1$ passes in $\\mathcal{O}(|V| \\cdot |E|)$ time and $\\mathcal{O}(|V|)$ space.",
+    "<p>The <strong>Bellman-Ford algorithm</strong> computes Single-Source Shortest Paths (SSSP) from a source vertex to every other vertex in a directed weighted graph <code>G = (V, E)</code>. Unlike Dijkstra's algorithm, Bellman-Ford supports negative edge weights (<code>w(u, v) ∈ ℝ</code>) and detects negative-weight cycles.</p><p>It repeatedly relaxes all <code>|E|</code> edges over <code>|V| - 1</code> passes in <code>O(|V| · |E|)</code> time and <code>O(|V|)</code> space.</p>",
   constraints: [
     "1 <= Vertices V <= 250",
     "0 <= Edges E <= 2500",
@@ -188,8 +188,8 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Each of the $|V|-1$ passes relaxes all $|E|$ edges, resulting in $\\mathcal{O}(|V| \\cdot |E|)$ time. If no distances change in a pass, the algorithm terminates early in $\\mathcal{O}(|E|)$ best-case time.",
-    space: "The distance map stores $|V|$ entries, requiring $\\mathcal{O}(|V|)$ space.",
+    time: "Each of the |V|-1 passes relaxes all |E| edges, resulting in O(|V| · |E|) time. If no distances change in a pass, the algorithm terminates early in O(|E|) best-case time.",
+    space: "The distance map stores |V| entries, requiring O(|V|) space.",
   },
   topicGuide: BELLMAN_FORD_TOPIC_GUIDE,
   trivia: BELLMAN_FORD_TRIVIA,

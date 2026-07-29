@@ -48,7 +48,14 @@ export const PYTHON_TSP_BITMASK_CODE = `def tsp_bitmask(dist: list[list[int]]) -
 
 export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmStep[] => {
   const n = Math.min(6, Math.max(2, input?.n ?? DEFAULT_TSP_BITMASK_INPUT.n));
-  const dist = input?.dist ?? DEFAULT_TSP_BITMASK_INPUT.dist;
+  const rawDist = input?.dist ?? DEFAULT_TSP_BITMASK_INPUT.dist;
+  const dist: number[][] = Array.from({ length: n }, (_, u) =>
+    Array.from({ length: n }, (_, v) => {
+      const val = rawDist?.[u]?.[v];
+      return typeof val === "number" ? val : u === v ? 0 : Infinity;
+    }),
+  );
+
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
@@ -103,8 +110,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Start TSP Bitmask algorithm for N=${n} cities`,
-      why: "Computing minimum cost closed Hamiltonian cycle visiting all cities.",
+      what: `Initialize Held-Karp Bitmask DP for ${n} cities.`,
+      why: "Computing the optimal closed Hamiltonian cycle visiting every city once before returning to City 0.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { n } },
@@ -115,8 +122,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 2,
     explanation: {
-      what: `Extract city count n = len(dist) = ${n}`,
-      why: "Grid dimensions and bitmask width are determined by number of cities.",
+      what: `Read city count n = ${n} from distance matrix.`,
+      why: "The total number of cities defines both the bitmask size and the state space dimensions.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { n } },
@@ -127,8 +134,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Define INF = float('inf') as sentinel for unreachable states`,
-      why: 'Using infinity as the DP table\'s initial value cleanly represents "not yet computed" and lets us take min() without special-casing.',
+      what: "Set infinity sentinel for unreachable state distances.",
+      why: "Initializes uncalculated state costs so dynamic programming relaxation can cleanly select minimum path values.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { INF: "inf" } },
@@ -139,8 +146,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 4,
     explanation: {
-      what: `Calculate number of bitmask subsets num_masks = 2^${n} = ${numMasks}`,
-      why: "An n-bit integer mask captures all subsets of visited cities.",
+      what: `Compute total city subset bitmasks: 2^${n} = ${numMasks}.`,
+      why: "An n-bit integer binary mask efficiently encodes all 2^n possible subsets of visited cities.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { numMasks } },
@@ -151,8 +158,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 5,
     explanation: {
-      what: `Allocate 2D DP matrix of size ${numMasks} x ${n} initialized to infinity`,
-      why: "dp[mask][u] stores min travel cost to visit subset of cities in mask ending at u.",
+      what: `Allocate 2D state matrix dp[2^${n}][${n}] initialized to infinity.`,
+      why: "dp[mask][u] tracks the minimum path distance to visit city subset mask and terminate at city u.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { rows: numMasks, cols: n } },
@@ -163,8 +170,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 6,
     explanation: {
-      what: "Initialize TSP base state: start at City 0 with mask 1 (0001_2)",
-      why: "dp[1][0] = 0 because visiting only City 0 at start costs 0.",
+      what: "Set base case: start at City 0 with mask 1 (0001₂).",
+      why: "dp[1][0] = 0 represents starting the tour at City 0 with zero path cost accumulated.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { startCity: 0, mask: 1 } },
@@ -176,8 +183,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
       stepIndex: stepIndex++,
       codeLine: 8,
       explanation: {
-        what: `Outer loop for subset bitmask = ${mask} (${mask.toString(2)})`,
-        why: `Evaluating all subset combinations of visited cities.`,
+        what: `Evaluate city subset bitmask = ${mask} (${mask.toString(2)}₂).`,
+        why: "Sweeping subproblem sizes systematically ensures all smaller sub-tours are solved before larger subsets.",
       },
       primarySnapshot: createSnapshot(0),
       auxiliaryState: { customState: { mask: mask.toString(2) } },
@@ -189,8 +196,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         stepIndex: stepIndex++,
         codeLine: 9,
         explanation: {
-          what: `Middle loop testing ending city u = ${u} for mask ${mask.toString(2)}`,
-          why: `Checking if state dp[${mask.toString(2)}][${u}] is reachable.`,
+          what: `Test endpoint City ${u} for visited subset ${mask.toString(2)}₂.`,
+          why: "Determines whether a valid sub-tour ending at city u exists for the current city subset.",
         },
         primarySnapshot: createSnapshot(u),
         auxiliaryState: { customState: { u, mask: mask.toString(2) } },
@@ -201,11 +208,11 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         stepIndex: stepIndex++,
         codeLine: 10,
         explanation: {
-          what: `Check condition if dp[${mask.toString(2)}][${u}] == INF`,
+          what: `Check state accessibility for dp[${mask.toString(2)}₂][${u}].`,
           why:
             dp[mask][u] === INF
-              ? `State unreachable (cost is infinity). Skipping.`
-              : `State is reachable with cost ${dp[mask][u]}. Exploring unvisited target cities.`,
+              ? "State is unreachable from City 0; skipping transitions from this endpoint."
+              : `State is reachable with cost ${dp[mask][u]}; exploring potential extensions to unvisited cities.`,
         },
         primarySnapshot: createSnapshot(u),
         auxiliaryState: { customState: { u, cost: dp[mask][u] } },
@@ -217,8 +224,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
           stepIndex: stepIndex++,
           codeLine: 11,
           explanation: {
-            what: `Skip: dp[${mask.toString(2)}][${u}] is unreachable`,
-            why: `No path visits subset ${mask.toString(2)} and ends at city ${u}, so there's nothing to extend from. We continue to the next state.`,
+            what: `Bypass unreachable state dp[${mask.toString(2)}₂][${u}].`,
+            why: "No valid path visits this specific city subset ending at city u, so no sub-tour extension can proceed.",
           },
           primarySnapshot: createSnapshot(u),
           auxiliaryState: { customState: { u, mask: mask.toString(2), unreachable: true } },
@@ -231,8 +238,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         stepIndex: stepIndex++,
         codeLine: 12,
         explanation: {
-          what: `Inner loop: try extending to each city v from city ${u}`,
-          why: `City ${u} is reachable in subset ${mask.toString(2)}. We now try every unvisited city as the next destination.`,
+          what: `Attempt sub-tour extensions from City ${u}.`,
+          why: "With a valid sub-tour in hand, evaluate moving to each remaining unvisited city.",
         },
         primarySnapshot: createSnapshot(u),
         auxiliaryState: { customState: { u, mask: mask.toString(2), reachable: true } },
@@ -247,11 +254,11 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
           stepIndex: stepIndex++,
           codeLine: 13,
           explanation: {
-            what: `Inspect transition from City ${u} to City ${v}: unvisited=${unvisited}, edgeExists=${edgeExists}`,
+            what: `Inspect edge transition City ${u} -> City ${v}.`,
             why:
               unvisited && edgeExists
-                ? `City ${v} is unvisited in mask ${mask.toString(2)} and edge (${u}, ${v}) costs ${dist[u][v]}.`
-                : `Cannot move to City ${v} (already visited or no direct edge).`,
+                ? `City ${v} is unvisited in subset ${mask.toString(2)}₂ and edge (${u}, ${v}) has weight ${dist[u][v]}.`
+                : `Transition to City ${v} is invalid (already visited or no direct edge exists).`,
           },
           primarySnapshot: createSnapshot(u, v),
           auxiliaryState: { customState: { u, v, unvisited, edgeExists } },
@@ -266,8 +273,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
             stepIndex: stepIndex++,
             codeLine: 14,
             explanation: {
-              what: `Compute next_mask = ${mask.toString(2)} | (1 << ${v}) = ${nextMask.toString(2)}`,
-              why: `Adding City ${v} to visited subset yields new mask ${nextMask.toString(2)}.`,
+              what: `Form new subset bitmask ${nextMask.toString(2)}₂ by including City ${v}.`,
+              why: "Bitwise OR sets the bit for city v, generating the bitmask for the expanded city subset.",
             },
             primarySnapshot: createSnapshot(u, v),
             auxiliaryState: { customState: { nextMask: nextMask.toString(2) } },
@@ -281,8 +288,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
               stepIndex: stepIndex++,
               codeLine: 15,
               explanation: {
-                what: `Relax edge City ${u} -> City ${v} (weight ${dist[u][v]}): update dp[${nextMask.toString(2)}][${v}] = ${candidate}`,
-                why: `New shorter route found! Updated dp[${nextMask.toString(2)}][${v}] = ${dp[nextMask][v]}.`,
+                what: `Relax path cost dp[${nextMask.toString(2)}₂][${v}] = ${candidate}.`,
+                why: `A shorter sub-tour reaching City ${v} through City ${u} was found, reducing path cost from ${dp[nextMask][v] === candidate ? "previous cost" : "inf"} to ${candidate}.`,
               },
               primarySnapshot: createSnapshot(u, v),
               auxiliaryState: {
@@ -313,8 +320,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 17,
     explanation: {
-      what: `Compute full_mask = (1 << ${n}) - 1 = ${fullMask.toString(2)}`,
-      why: "All cities visited bitmask state.",
+      what: `Construct full-coverage bitmask ${fullMask.toString(2)}₂ representing all ${n} cities.`,
+      why: "Full bitmask represents complete coverage where every city has been visited exactly once.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { fullMask: fullMask.toString(2) } },
@@ -328,8 +335,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 18,
     explanation: {
-      what: "Initialize ans = INF to track minimum complete tour cost",
-      why: "We search for the best Hamiltonian cycle cost among all last-city choices. Starting at infinity ensures the first valid candidate wins.",
+      what: "Initialize tour cost accumulator ans = ∞.",
+      why: "Preparing to find the minimum closed tour cost across all possible ending cities.",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { ans: "INF", fullMask: fullMask.toString(2) } },
@@ -340,8 +347,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 19,
     explanation: {
-      what: "Sweep last visited cities u to calculate complete return tour back to City 0",
-      why: "Adding return edge dist[u][0] to complete the Hamiltonian cycle.",
+      what: "Evaluate closing return edges to City 0 from every candidate ending city u.",
+      why: "Completes the Hamiltonian cycle by adding edge cost dist[u][0] to full-coverage path cost dp[full_mask][u].",
     },
     primarySnapshot: createSnapshot(0),
     auxiliaryState: { customState: { fullMask: fullMask.toString(2) } },
@@ -353,11 +360,11 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
       stepIndex: stepIndex++,
       codeLine: 20,
       explanation: {
-        what: `Check return edge from city ${u} to city 0`,
+        what: `Verify return edge validity from City ${u} to City 0.`,
         why:
           dist[u][0] !== INF && dp[fullMask][u] !== INF
-            ? `Both the return edge (dist[${u}][0] = ${dist[u][0]}) and the path dp[full][${u}] = ${dp[fullMask][u]} are finite — this is a valid complete tour.`
-            : `Either the return edge or the path to city ${u} is infinite — skip this ending city.`,
+            ? `Reachable full tour ending at City ${u} (cost ${dp[fullMask][u]}) with return edge cost ${dist[u][0]}.`
+            : `Cannot close tour via City ${u} (either path to city ${u} or return edge is non-existent).`,
       },
       primarySnapshot: createSnapshot(u, 0),
       auxiliaryState: { customState: { u, returnEdge: dist[u][0], pathCost: dp[fullMask][u] } },
@@ -370,8 +377,8 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
         stepIndex: stepIndex++,
         codeLine: 21,
         explanation: {
-          what: `Evaluate return tour via last City ${u}: dp[full][${u}] (${dp[fullMask][u]}) + dist[${u}][0] (${dist[u][0]}) = ${totalCost}`,
-          why: `Comparing candidate closed tour cost ${totalCost} against current best ${ans === INF ? "∞" : ans}.`,
+          what: `Calculate candidate tour cost ending at City ${u}: ${dp[fullMask][u]} + ${dist[u][0]} = ${totalCost}.`,
+          why: `Compares candidate Hamiltonian cycle cost ${totalCost} against best recorded tour cost ${ans === INF ? "∞" : ans}.`,
         },
         primarySnapshot: createSnapshot(u, 0),
         auxiliaryState: { customState: { u, totalCost } },
@@ -390,11 +397,11 @@ export const generateTspBitmaskDpSteps = (input: TspBitmaskDpInput): AlgorithmSt
     stepIndex: stepIndex++,
     codeLine: 23,
     explanation: {
-      what: `Final result: Complete TSP Tour cost = ${finalCost}`,
+      what: `Final optimal TSP tour cost = ${finalCost}.`,
       why:
         finalCost !== -1
-          ? `Visited all cities and returned to City 0 via City ${bestLastCity}. Minimum total tour cost: ${finalCost}.`
-          : "Graph is disconnected; no valid TSP Hamiltonian cycle exists.",
+          ? `Successfully identified shortest closed Hamiltonian cycle returning to City 0 via City ${bestLastCity} with total cost ${finalCost}.`
+          : "Graph is disconnected; no valid closed Hamiltonian tour visiting all cities exists.",
     },
     primarySnapshot: createSnapshot(bestLastCity !== -1 ? bestLastCity : 0, 0),
     auxiliaryState: { customState: { minTourCost: finalCost } },
@@ -437,28 +444,7 @@ export const tspBitmaskDp: AlgorithmDefinition<TspBitmaskDpInput> = {
   title: "Traveling Salesperson Problem (Bitmask DP)",
   topicIds: ["dp_2d"],
   difficulty: "Hard",
-  description: `The **Traveling Salesperson Problem (TSP)** (LeetCode #943 / Held-Karp Algorithm) asks for the minimum cost closed tour that visits every city $v \\in \\{0, 1, \\dots, N-1\\}$ exactly once and returns to the starting city (City 0).
-
-### Held-Karp Dynamic Programming & Bitmask State
-Brute-force permutation checking requires $\\mathcal{O}(N!)$ time. The Held-Karp algorithm uses bitmask dynamic programming to solve TSP in $\\mathcal{O}(N^2 \\cdot 2^N)$ time.
-
-Let $dp[\\text{mask}][u]$ represent the minimum cost to visit the subset of cities encoded by the bitmask $\\text{mask}$, ending at city $u$.
-
-#### Base Case
-$$dp[1][0] = 0 \\quad (\\text{mask } 1 = 0001_2 \\text{ means only City 0 is visited, starting at cost } 0)$$
-
-#### State Transitions
-For any active state $(dp[\\text{mask}][u] \\ne \\infty)$ and unvisited neighbor city $v$ ($v \\notin \\text{mask}$, $dist[u][v] \\ne \\infty$):
-$$\\text{next\\_mask} = \\text{mask} \\mid (1 \\ll v)$$
-$$dp[\\text{next\\_mask}][v] = \\min \\Big( dp[\\text{next\\_mask}][v], \\, dp[\\text{mask}][u] + dist[u][v] \\Big)$$
-
-#### Closing the Tour
-After filling all states up to $\\text{full\\_mask} = 2^N - 1$, add the return edge $dist[u][0]$ to complete the cycle back to City 0:
-$$\\text{Ans} = \\min_{1 \\le u < N} \\Big( dp[\\text{full\\_mask}][u] + dist[u][0] \\Big)$$
-
-### Key Interview Insights
-1. **Factorial to Exponential**: Reduces runtime from $\\mathcal{O}(N!)$ to $\\mathcal{O}(N^2 \\cdot 2^N)$ and space to $\\mathcal{O}(N \\cdot 2^N)$.
-2. **Subset Overlap**: States are defined by $(mask, last\\_city)$ rather than exact visiting order.`,
+  description: `<p>The <strong>Traveling Salesperson Problem (TSP)</strong> (LeetCode #943 / Held-Karp Algorithm) asks for the minimum cost closed tour that visits every city <span>v &isin; {0, 1, &hellip;, N-1}</span> exactly once and returns to the starting city (City 0).</p><h3>Held-Karp Dynamic Programming &amp; Bitmask State</h3><p>Brute-force permutation checking requires <span>O(N!)</span> time. The Held-Karp algorithm uses bitmask dynamic programming to solve TSP in <span>O(N&sup2; &middot; 2ᴺ)</span> time.</p><p>Let <code>dp[mask][u]</code> represent the minimum cost to visit the subset of cities encoded by the bitmask <code>mask</code>, ending at city <code>u</code>.</p><h3>Base Case</h3><p><code>dp[1][0] = 0</code> (bitmask <code>1</code> representing <code>0001₂</code> means only City 0 is visited, starting at cost 0).</p><h3>State Transitions</h3><p>For any active state (<code>dp[mask][u] &ne; &infin;</code>) and unvisited neighbor city <code>v</code> (<code>v &notin; mask</code>, <code>dist[u][v] &ne; &infin;</code>):</p><p><code>next_mask = mask | (1 &lt;&lt; v)</code><br /><code>dp[next_mask][v] = min(dp[next_mask][v], dp[mask][u] + dist[u][v])</code></p><h3>Closing the Tour</h3><p>After filling all states up to <code>full_mask = 2ᴺ - 1</code>, add the return edge <code>dist[u][0]</code> to complete the cycle back to City 0:</p><p><code>Ans = min_{1 &le; u &lt; N} (dp[full_mask][u] + dist[u][0])</code></p><h3>Key Interview Insights</h3><ul><li><strong>Factorial to Exponential:</strong> Reduces runtime from <span>O(N!)</span> to <span>O(N&sup2; &middot; 2ᴺ)</span> and space to <span>O(N &middot; 2ᴺ)</span>.</li><li><strong>Subset Overlap:</strong> States are defined by <code>(mask, last_city)</code> rather than exact visiting order.</li></ul>`,
   constraints: [
     "2 <= N <= 20",
     "0 <= dist[u][v] <= 10^4",
@@ -528,30 +514,30 @@ $$\\text{Ans} = \\min_{1 \\le u < N} \\Big( dp[\\text{full\\_mask}][u] + dist[u]
   },
   topicGuide: {
     overview:
-      "The Traveling Salesperson Problem (TSP) is the quintessential NP-hard optimization problem in graph theory and operations research. Given $N$ cities and an $N \\times N$ distance matrix $dist$, we find a minimum-weight Hamiltonian cycle. Held-Karp Bitmask DP reduces runtime from $\\mathcal{O}(N!)$ down to $\\mathcal{O}(N^2 \\cdot 2^N)$ time and $\\mathcal{O}(N \\cdot 2^N)$ space.",
+      "<p>The Traveling Salesperson Problem (TSP) is the quintessential NP-hard optimization problem in graph theory and operations research. Given <code>N</code> cities and an <code>N &times; N</code> distance matrix <code>dist</code>, we find a minimum-weight Hamiltonian cycle. Held-Karp Bitmask DP reduces runtime from <span>O(N!)</span> down to <span>O(N&sup2; &middot; 2ᴺ)</span> time and <span>O(N &middot; 2ᴺ)</span> space.</p>",
     sections: [
       {
         heading: "1. Subset Bitmask Representation",
-        body: "An $N$-bit integer $mask$ represents the set of visited cities (bit $i$ is $1$ if city $i$ has been visited). A 2D array $dp[mask][u]$ records the minimum distance to visit all cities in $mask$, ending at city $u$.",
+        body: "<p>An <code>N</code>-bit integer <code>mask</code> represents the set of visited cities (bit <code>i</code> is <code>1</code> if city <code>i</code> has been visited). A 2D array <code>dp[mask][u]</code> records the minimum distance to visit all cities in <code>mask</code>, ending at city <code>u</code>.</p>",
       },
       {
         heading: "2. Held-Karp Recurrence & Transitions",
-        body: "- **Base Case**: $dp[1][0] = 0$ (starting at City 0).\n- **Forward Edge Relaxation**:\n  $$dp[mask \\mid (1 \\ll v)][v] = \\min \\Big( dp[mask \\mid (1 \\ll v)][v], \\, dp[mask][u] + dist[u][v] \\Big)$$\n- **Closing the Tour**:\n  $$\\text{Cost} = \\min_{u \\ne 0} \\Big( dp[2^N - 1][u] + dist[u][0] \\Big)$$",
+        body: "<p><strong>Base Case:</strong> <code>dp[1][0] = 0</code> (starting at City 0).</p><p><strong>Forward Edge Relaxation:</strong> <code>dp[mask | (1 &lt;&lt; v)][v] = min(dp[mask | (1 &lt;&lt; v)][v], dp[mask][u] + dist[u][v])</code></p><p><strong>Closing the Tour:</strong> <code>Cost = min_{u &ne; 0} (dp[2ᴺ - 1][u] + dist[u][0])</code></p>",
       },
       {
         heading: "3. Systems & Industrial Applications",
-        body: "TSP models real-world logistics and manufacturing routing:\n- **Delivery Fleet Vehicle Routing**: Optimizing package delivery paths for UPS/FedEx fleets.\n- **PCB Lithography & Drill Trajectory**: Minimizing robotic drill head movements across circuit boards.\n- **Microchip Laser Inspection**: Positioning inspection optics over wafer targets.",
+        body: "<p>TSP models real-world logistics and manufacturing routing:</p><ul><li><strong>Delivery Fleet Vehicle Routing:</strong> Optimizing package delivery paths for UPS/FedEx fleets.</li><li><strong>PCB Lithography &amp; Drill Trajectory:</strong> Minimizing robotic drill head movements across circuit boards.</li><li><strong>Microchip Laser Inspection:</strong> Positioning inspection optics over wafer targets.</li></ul>",
       },
       {
         heading: "4. Scalability Limits & Heuristics",
-        body: "Held-Karp solves TSP exactly for $N \\le 22$ within seconds. For larger $N > 50$, heuristic algorithms (e.g. Christofides 1.5-approximation, 2-opt local search, simulated annealing) are required.",
+        body: "<p>Held-Karp solves TSP exactly for <code>N &le; 22</code> within seconds. For larger <code>N &gt; 50</code>, heuristic algorithms (e.g. Christofides 1.5-approximation, 2-opt local search, simulated annealing) are required.</p>",
       },
     ],
     keyTerms: [
       {
         term: "Held-Karp Algorithm",
         definition:
-          "A bitmask dynamic programming algorithm that solves exact TSP in $\\mathcal{O}(N^2 \\cdot 2^N)$ time.",
+          "A bitmask dynamic programming algorithm that solves exact TSP in O(N² · 2ᴺ) time.",
       },
       {
         term: "Hamiltonian Cycle",

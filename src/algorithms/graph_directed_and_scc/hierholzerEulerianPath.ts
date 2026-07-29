@@ -123,9 +123,14 @@ export const HIERHOLZER_TRIVIA: TriviaMeta = {
 
 export function generateHierholzerSteps(input: HierholzerEulerianPathInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_HIERHOLZER_INPUT;
   const inputNodes =
-    input?.nodes && input.nodes.length > 0 ? input.nodes : DEFAULT_HIERHOLZER_INPUT.nodes;
-  const inputEdges = input?.edges !== undefined ? input.edges : DEFAULT_HIERHOLZER_INPUT.edges;
+    Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
+      ? safeInput.nodes
+      : DEFAULT_HIERHOLZER_INPUT.nodes;
+  const inputEdges = Array.isArray(safeInput.edges)
+    ? safeInput.edges
+    : DEFAULT_HIERHOLZER_INPUT.edges;
 
   const nodes = inputNodes.map((n) => ({ ...n }));
   const edges = inputEdges.map((e) => ({ ...e }));
@@ -444,7 +449,7 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "Finds an Eulerian path or Eulerian circuit in a directed graph—a trail that visits every directed edge exactly once. An Eulerian path exists if and only if at most one vertex has out-degree - in-degree == 1 (start) and at most one has in-degree - out-degree == 1 (end), with all other vertices having equal in-degree and out-degree. The algorithm uses a post-order DFS stack to traverse sub-circuits and splice them together in O(V + E) time.",
+    "<p>Finds an Eulerian path or Eulerian circuit in a directed graph—a trail that visits every directed edge exactly once. An Eulerian path exists if and only if at most one vertex has <code>out_degree - in_degree == 1</code> (start) and at most one has <code>in_degree - out_degree == 1</code> (end), with all other vertices having equal in-degree and out-degree. The algorithm uses a post-order DFS stack to traverse sub-circuits and splice them together in <code>O(V + E)</code> time.</p>",
   constraints: [
     "1 <= Vertices V <= 10^4",
     "0 <= Edges E <= 3 * 10^4",
@@ -465,38 +470,38 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
   timeComplexity: { best: "O(V + E)", average: "O(V + E)", worst: "O(V + E)" },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Each edge is traversed and removed from the adjacency list exactly once, and each vertex is pushed/popped from the stack once. Total time is linear $\\mathcal{O}(V + E)$.",
-    space: "$\\mathcal{O}(V + E)$ auxiliary space for adjacency list, stack, and circuit array.",
+    time: "Each edge is traversed and removed from the adjacency list exactly once, and each vertex is pushed/popped from the stack once. Total time is linear O(V + E).",
+    space: "O(V + E) auxiliary space for adjacency list, stack, and circuit array.",
   },
   topicGuide: {
     overview:
-      "Hierholzer's algorithm constructs an **Eulerian Path** or **Eulerian Circuit**—a path visiting every directed edge in a graph $G = (V, E)$ exactly once—in linear $\\mathcal{O}(V + E)$ time. It works by maintaining an explicit LIFO stack, building sub-circuits when reaching dead ends, and splicing them into a single continuous trail.",
+      "<p>Hierholzer's algorithm constructs an <strong>Eulerian Path</strong> or <strong>Eulerian Circuit</strong>—a path visiting every directed edge in a graph <code>G = (V, E)</code> exactly once—in linear <code>O(V + E)</code> time. It works by maintaining an explicit LIFO stack, building sub-circuits when reaching dead ends, and splicing them into a single continuous trail.</p>",
     sections: [
       {
         heading: "Why It Exists & What It Solves",
-        body: "The Seven Bridges of Königsberg problem laid the foundation for graph theory. Modern applications include **genome assembly** (De Bruijn graph traversal), street-sweeping/snowplow routing (Chinese Postman Problem variant), and circuit board trace printing, where every path edge must be traversed without duplication.",
+        body: "<p>The Seven Bridges of Königsberg problem laid the foundation for graph theory. Modern applications include <strong>genome assembly</strong> (De Bruijn graph traversal), street-sweeping/snowplow routing (Chinese Postman Problem variant), and circuit board trace printing, where every path edge must be traversed without duplication.</p>",
       },
       {
         heading: "Degree Conditions for Eulerian Paths in Directed Graphs",
-        body: "1. **Eulerian Circuit**: Every vertex has `in_degree == out_degree`, and all non-isolated vertices belong to a single strongly connected component.\n2. **Eulerian Path**: Exactly one vertex has `out_degree - in_degree == 1` (start vertex), exactly one has `in_degree - out_degree == 1` (end vertex), and all other vertices have `in_degree == out_degree`.",
+        body: "<ol><li><strong>Eulerian Circuit:</strong> Every vertex has <code>in_degree == out_degree</code>, and all non-isolated vertices belong to a single strongly connected component.</li><li><strong>Eulerian Path:</strong> Exactly one vertex has <code>out_degree - in_degree == 1</code> (start vertex), exactly one has <code>in_degree - out_degree == 1</code> (end vertex), and all other vertices have <code>in_degree == out_degree</code>.</li></ol>",
       },
       {
         heading: "Step-by-Step Intuition: Sub-Circuit Splicing",
-        body: "1. **Identify Start**: Find valid start vertex (where `out_degree - in_degree == 1`, or any node with `out_degree > 0`).\n2. **Initialize Stack**: Push start vertex onto LIFO stack.\n3. **Traverse & Backtrack**: While stack is non-empty:\n   a. Peek top vertex $u$.\n   b. If $u$ has unvisited outgoing edges, remove edge $(u, v)$ and push $v$ onto stack.\n   c. If $u$ has no remaining outgoing edges, pop $u$ and append to circuit.\n4. **Reverse**: Reverse circuit to obtain forward Eulerian path sequence.",
+        body: "<ol><li><strong>Identify Start:</strong> Find valid start vertex (where <code>out_degree - in_degree == 1</code>, or any node with <code>out_degree &gt; 0</code>).</li><li><strong>Initialize Stack:</strong> Push start vertex onto LIFO stack.</li><li><strong>Traverse &amp; Backtrack:</strong> While stack is non-empty:<br/>a. Peek top vertex <code>u</code>.<br/>b. If <code>u</code> has unvisited outgoing edges, remove edge <code>(u, v)</code> and push <code>v</code> onto stack.<br/>c. If <code>u</code> has no remaining outgoing edges, pop <code>u</code> and append to circuit.</li><li><strong>Reverse:</strong> Reverse circuit to obtain forward Eulerian path sequence.</li></ol>",
       },
       {
         heading: "Trade-offs & Implementation Notes",
-        body: "Fleury's algorithm also finds Eulerian paths but requires checking for bridge edges before each step, resulting in $\\mathcal{O}(E^2)$ time. Hierholzer's post-order stack approach avoids bridge checks entirely, operating in optimal $\\mathcal{O}(V + E)$ linear time.",
+        body: "<p>Fleury's algorithm also finds Eulerian paths but requires checking for bridge edges before each step, resulting in <code>O(E<sup>2</sup>)</code> time. Hierholzer's post-order stack approach avoids bridge checks entirely, operating in optimal <code>O(V + E)</code> linear time.</p>",
       },
       {
         heading: "Complexity Analysis",
-        body: "$$\\text{Time Complexity}: \\mathcal{O}(V + E)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Every directed edge is pushed and popped from adjacency lists once, taking linear $\\mathcal{O}(V + E)$ time.\n- **Space**: Memory for adjacency lists, LIFO stack, and output circuit array takes $\\mathcal{O}(V + E)$ space.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(V + E)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Time:</strong> Every directed edge is pushed and popped from adjacency lists once, taking linear <code>O(V + E)</code> time.</li><li><strong>Space:</strong> Memory for adjacency lists, LIFO stack, and output circuit array takes <code>O(V + E)</code> space.</li></ul>",
       },
     ],
     keyTerms: [
       {
         term: "Eulerian Path",
-        definition: "A trail in a finite graph that visits every edge $e \\in E$ exactly once.",
+        definition: "A trail in a finite graph that visits every edge e in E exactly once.",
       },
       {
         term: "Eulerian Circuit",
@@ -505,7 +510,7 @@ export const hierholzerEulerianPath: AlgorithmDefinition<HierholzerEulerianPathI
       {
         term: "In-Degree / Out-Degree Balance",
         definition:
-          "The equality condition `in_degree == out_degree` required for Eulerian circuit existence.",
+          "The equality condition in_degree == out_degree required for Eulerian circuit existence.",
       },
       {
         term: "Post-Order Circuit Splicing",

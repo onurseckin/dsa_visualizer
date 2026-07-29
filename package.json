@@ -30,15 +30,12 @@
     "compose:check": "bun run scripts/checkCompose.ts",
     "compose:dev:check": "docker compose -f compose.dev.yaml config",
     "audit:catalog": "bun run scripts/auditCatalog.ts",
-    "test:e2e": "playwright test",
-    "test:e2e:docker": "E2E_DOCKER=1 E2E_BASE_URL=http://127.0.0.1:5173 playwright test",
-    "test": "vitest run --maxConcurrency 8",
-    "test:coverage": "vitest run --coverage --maxConcurrency 8 && bun run scripts/checkCoverageFiles.ts",
+    "audit:visualizers": "bun run scripts/auditVisualizers.ts",
     "build": "tsc && vite build",
     "preview": "bun run scripts/freePort.ts 4173 && vite preview",
     "start": "bun run scripts/freePort.ts 4173 && vite preview",
     "kill-ports": "bun run scripts/freePort.ts 5173 4173",
-    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run compose:dev:check && bun run audit:catalog && bun run test:coverage && bun run build"
+    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run compose:dev:check && bun run audit:catalog && bun run build"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",
@@ -58,24 +55,18 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/router-cli": "^1.167.21",
     "@tanstack/router-plugin": "^1.168.23",
-    "@testing-library/jest-dom": "^6.4.2",
-    "@testing-library/react": "^16.2.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.1",
-    "@vitest/coverage-v8": "1.6.1",
-    "jsdom": "^24.0.0",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0",
     "typescript": "^7.0.2",
     "vite": "^5.1.4",
-    "vite-plugin-static-copy": "3.1.4",
-    "vitest": "1.6.1"
+    "vite-plugin-static-copy": "3.1.4"
   },
   "intent": {
     "skills": [

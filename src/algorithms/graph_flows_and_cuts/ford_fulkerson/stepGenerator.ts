@@ -5,8 +5,8 @@ export const generateFordFulkersonSteps = (input: FordFulkersonInput): Algorithm
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawNodes = input?.nodes || [];
-  const rawEdges = input?.edges || [];
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
   const source = input?.source || (rawNodes[0] ?? "");
   const sink = input?.sink || (rawNodes[rawNodes.length - 1] ?? "");
 

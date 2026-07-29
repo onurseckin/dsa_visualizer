@@ -14,8 +14,9 @@ Before editing files for a substantial task:
 
 # DSA Visualizer contributor guide
 
-This is a local-first full-stack learning app with exactly 88 DSA and 69
-ML-infrastructure items, curriculum roadmaps, executable Python workspaces,
+This is a local-first full-stack learning app with exactly 88 active DSA items.
+The 23 ML-infrastructure topic and roadmap shells remain, but native ML content is
+currently retired. The app also includes executable Python workspaces,
 visualizations, and retrieval-practice trivia. Read [README.md](README.md) for setup,
 [docs/architecture.md](docs/architecture.md) for system boundaries, and
 [docs/catalog.md](docs/catalog.md) before changing curriculum or algorithm data.
@@ -25,7 +26,7 @@ visualizations, and retrieval-practice trivia. Read [README.md](README.md) for s
 - React 19, TypeScript 7, Vite 5, TanStack Router file routes, Tailwind 4, and
   token-based CSS.
 - Bun is the only package/script runner. Do not add npm, pnpm, or yarn lockfiles.
-- Vitest + jsdom test the app. Oxlint and Oxfmt are the lint/format tools.
+- Oxlint and Oxfmt are the lint/format tools.
 - Docker Compose runs Nginx, the Bun/SQLite API, and an internal CPython runner.
   The Vite plugin exposes the same persistence surface for frontend development.
 
@@ -48,14 +49,10 @@ visualizations, and retrieval-practice trivia. Read [README.md](README.md) for s
 | `bun run typecheck` | TypeScript check |
 | `bun run format:check` | Check formatting |
 | `bun run lint` | Run Oxlint with zero warnings |
-| `bunx vitest run <path>` | Run a focused test while iterating |
-| `bun run test` | Run the full suite |
-| `bun run test:coverage` | Run the suite and enforce repository coverage floors |
 | `bun run build` | Typecheck and create `dist/` |
 | `bun run audit:catalog` | Verify exact active counts, Python assets, sources, and retirement |
-| `bun run test:e2e` | Run local browser smoke tests |
-| `bun run test:e2e:docker` | Run the complete browser suite against Compose |
-| `bun run check` | Full quality gate |
+| `bun run audit:visualizers` | Report tutorial migration and primitive-authoring health |
+| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog audit, and build |
 
 `src/routeTree.gen.ts` is generated. Never edit it by hand. Keep the TanStack Router
 plugin before React in `vite.config.ts` and use `bun run generate-routes` when a route
@@ -66,7 +63,7 @@ file changes.
 ```text
 src/curriculum/       canonical topics and authored roadmap placements
 src/algorithms/       88 canonical DSA definitions and enrollment
-src/learning/         157-item model/registry, 69 ML items, assessment and progress
+src/learning/         88-item model/registry, retired ML support, assessment and progress
 src/playground/       DSA execution adapters, hybrid runners, and draft persistence
 src/routes/           file-based pages and workspace/trivia behavior
 src/components/       feature components and visualizer primitives
@@ -90,39 +87,48 @@ The catalog has one source of truth for each kind of fact.
   equal membership semantics; tuple order is not a primary/fallback mechanism. Do not introduce
   `category`, `categories`, `mlInfraCategory`, `isMlInfra`, or an implicit fallback.
 - `src/algorithms/registry.ts` enrolls exactly 88 DSA definitions in `ALGORITHMS`.
-  `src/learning/registry.ts` adapts them and enrolls exactly 69 native ML items
-  into the 157-item cross-track catalog.
-- ML items use algorithm, trace, calculator, debugging, scenario, or capstone
-  evidence. Each of the 23 ML topics contains exactly three items.
+  `src/learning/registry.ts` adapts those definitions into the 88-item active
+  catalog. Native ML items are retired; their 23 topic and placement shells are
+  retained for roadmap structure only.
 - There are **no secondary UUIDs, aliases, or legacy ID compatibility layers**. A changed ID is a
   breaking content change: update every in-repo reference in the same change.
 - Curriculum placements describe teaching sequence and layout, not algorithm data.
   They reference a `topicId`; problem counts and drawer cards are derived from the
   algorithm registry. Never add `algorithmCount`, static problem/question lists, or
   copied algorithm title/difficulty/description to a placement.
+- Problem descriptions and topic guides use clean React HTML markup.
+- Visualizer tutorials tell an intuitive visual story of algorithm state transitions, completely independent of source code line numbers.
 
 The DSA catalog, learning registry, target catalog, and graph topology contracts,
 plus `bun run audit:catalog`, are required gates for catalog changes.
 
 ## Adding or changing content
 
-1. Choose existing `topicIds` from `TOPIC_CATALOG`; add a new topic only when the
-   curriculum really needs a new navigable subject.
-2. Give the definition a stable kebab-case `id`, a non-empty `topicIds` tuple, code,
-   examples/default input, step generator, educational metadata, and sources.
-3. Import and enroll that definition once in `ALGORITHMS`. Its `id` must be the only
-   registry key.
-4. Add focused pure-generator tests. When a render test shares a basename with a
-   logic test, use `*.render.spec.tsx` to avoid TypeScript basename collisions.
-5. Add or revise a curriculum placement only when the teaching roadmap needs it;
-   do not create a placement merely to expose a topic in filtering.
-6. Run the catalog contracts, the algorithm tests, then `bun run check` before handoff.
+Agents authoring new items or updating existing algorithm/learning items MUST strictly follow the canonical [TUTORIAL_GUIDE.md](TUTORIAL_GUIDE.md) guide.
 
-For native ML content, use `src/learning/authoring` and enroll it in the matching
-`src/learning/items` collection, not `ALGORITHMS`. Preserve the three-items-per-topic
-contract. Every item needs objective/evidence, four-factor difficulty, sources,
-assessment metadata, distinct starter/reference Python, a validated execution spec
-with at least three cases, and input-derived steps. See [docs/catalog.md](docs/catalog.md).
+1. **Choose Topic & Stable Kebab-Case ID**: Choose existing `topicIds` from `TOPIC_CATALOG`; give the definition a stable kebab-case `id` and non-empty `topicIds` tuple.
+2. **Read [TUTORIAL_GUIDE.md](TUTORIAL_GUIDE.md) First**: Follow the **3-Phase Tutorial Framework**:
+   - **Phase 1 (Inputless Intro)**: Conceptual mental model, problem setup, and naive bottleneck explanation *before* operating on specific input arrays.
+   - **Phase 2 (Concrete Walkthrough)**: Step-by-step visual execution on representative default inputs.
+   - **Phase 3 (3-Scenario Matrix)**: Define 3 distinct input scenarios (Scenario 1: Standard Path, Scenario 2: Boundary/Edge Case like $N=1$, Scenario 3: Complex/Adversarial Case).
+3. **Single Fluid Narrative Paragraph Rule**:
+   - Step captions MUST be authored as a **single, fluid, conversational narrative paragraph**.
+   - Strictly ban mechanical `{ what, why }` object splits, bulleted checklists, or line-number references.
+4. **Canvas Law & Native In-Canvas Auxiliary State**:
+   - Visualizer SVGs MUST follow Canvas Law: `viewBox = boxViewBox(measuredBox)` with `width="100%" height="100%"`.
+   - All auxiliary data structures (stacks, queues, hash maps, DP matrices, visited sets) MUST be rendered natively **INSIDE the SVG canvas** (`CanvasAuxiliaryOverlay` or in-canvas HUDs). Floating HTML side panels are strictly prohibited.
+   - Use canonical reusable primitives from `src/components/primitives/` (Array, Matrix, Graph, Tree, Grid, Vector, Quantization, Interval, Heap, DSU, HashTable, StateSpace, CallStack, Bitmask, AttentionMap, Trie) or `CompositeCanvasSnapshot` for multi-primitive views.
+5. **Code Decoupling (`codeLine: undefined`)**:
+   - Visualizer step snapshots MUST set `codeLine: undefined`. Visual transitions tell an intuitive story independent of source code line numbers.
+6. **Narrative and Names**:
+   - Use `createTutorialStep` with one scalar `narrative` and phase metadata. The legacy `explanation` object, `title`, and `planeTitle` fields are not authoring APIs for migrations.
+   - `snapshot.name` is bare semantic identity. Only arrays render `name =`; every other non-composite primitive uses a bare caption. A lone graph is normally unnamed; name it only to disambiguate an auxiliary, comparison, or multiple-structure frame.
+   - Composite `id` and `role` define layout semantics; the nested snapshot owns the optional visual `name`. Composite rendering uses independently measured SVG regions in CSS grid/flex, and routes the one HUD to its primary region.
+7. **Enrollment**:
+   - Import and enroll a DSA definition once in `ALGORITHMS`. Do not add native ML
+     items while that track is retired.
+8. **Quality Check Gate**:
+   - Run `bun run audit:visualizers`, `bun run audit:catalog`, and `bun run check` before handoff. See [docs/catalog.md](docs/catalog.md) and [TUTORIAL_GUIDE.md](TUTORIAL_GUIDE.md).
 
 ## UI and runtime rules
 
@@ -142,12 +148,11 @@ with at least three cases, and input-derived steps. See [docs/catalog.md](docs/c
   are editable, keyed by canonical item ID, and must execute through the shared
   browser/server contract with bounded output and authored cases.
 
-## Quality baseline
+## Planning and verification
 
-Coverage uses `all: true` over executable `src/**/*.ts(x)` files. The enforced floors
-are 98% statements, 89% branches, 97% functions, and 98% lines. The additional
-per-file gate rejects a source file with zero hits in any applicable metric. These
-are floors, not a reason to avoid improving a changed module toward 100%.
+Do not write, generate, or require unit, component, integration, or end-to-end tests
+in plans or implementation work. Verify changes with the relevant non-test commands,
+such as typecheck, formatting, lint, catalog audit, Compose validation, and build.
 
 ## Working in a shared checkout
 
@@ -158,6 +163,6 @@ work. For independent bounded work, delegate only when requested or when the act
 task explicitly calls for parallelism.
 
 Suggested roles are a coordinator for integration and scope, focused implementers
-for disjoint files, and a reviewer for tests/contracts. Choose a model and reasoning
+for disjoint files, and a reviewer for production behavior and contracts. Choose a model and reasoning
 effort for the task at hand rather than pinning a repository-wide model configuration.
 Project trust is configured by the user's Codex configuration, not this repository.

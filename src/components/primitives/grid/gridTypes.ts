@@ -1,4 +1,10 @@
-import { GridCellNode, ElementState, elementStateToken } from "../../../types/dsa";
+import {
+  GridCellNode,
+  ElementState,
+  elementStateToken,
+  AuxiliaryState,
+  DisplayValue,
+} from "../../../types/dsa";
 
 export interface GridVisualizerProps {
   grid: GridCellNode[][];
@@ -6,6 +12,8 @@ export interface GridVisualizerProps {
   showDistance?: boolean;
   onCellClick?: (row: number, col: number) => void;
   title?: string;
+  auxiliaryState?: AuxiliaryState;
+  variables?: Record<string, DisplayValue>;
 }
 
 export interface CellAppearance {

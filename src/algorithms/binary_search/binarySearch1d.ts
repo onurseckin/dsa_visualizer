@@ -53,10 +53,16 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const arr = [...input.array].sort((a, b) => a - b);
+  const safeInput = {
+    array: Array.isArray(input?.array) ? input.array : DEFAULT_BINARY_SEARCH_1D_INPUT.array,
+    target:
+      typeof input?.target === "number" ? input.target : DEFAULT_BINARY_SEARCH_1D_INPUT.target,
+    mode: input?.mode ?? DEFAULT_BINARY_SEARCH_1D_INPUT.mode,
+  };
+  const arr = [...safeInput.array].sort((a, b) => a - b);
   const n = arr.length;
-  const target = input.target;
-  const mode = input.mode ?? "exact";
+  const target = safeInput.target;
+  const mode = safeInput.mode;
 
   const makeElements = (
     left: number,
@@ -324,7 +330,7 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
       1,
       `Initialize 1D Binary Search (exact mode)`,
       `Searching for target = ${target} in sorted array of length N = ${n}: [${arr.join(", ")}].`,
-      { n, target, mode },
+      { n, target, mode: mode ?? "exact" },
       0,
       n - 1,
     );
@@ -479,23 +485,23 @@ export const generateBinarySearch1dSteps = (input: BinarySearch1dInput): Algorit
 
 export const BINARY_SEARCH_1D_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "1D Binary Search is the foundational logarithmic search paradigm operating on sorted domains. By evaluating the midpoint of an active search interval [left, right], it discards half of the candidate space in a single comparison. Beyond value lookup in sorted vectors, binary search generalizes to continuous monotonic predicate functions (binary search on answer), powers B-Tree database indexing, and drives low-latency systems algorithms like std::lower_bound and std::upper_bound.",
+    "<p><strong>1D Binary Search</strong> is the foundational logarithmic search paradigm operating on sorted domains. By evaluating the midpoint of an active search interval <code>[left, right]</code>, it discards half of the candidate space in a single comparison. Beyond value lookup in sorted vectors, binary search generalizes to continuous monotonic predicate functions (binary search on answer), powers B-Tree database indexing, and drives low-latency systems algorithms like <code>std::lower_bound</code> and <code>std::upper_bound</code>.</p>",
   sections: [
     {
-      heading: "Why It Exists & Core Problem Solved",
-      body: "Linear scanning over N elements requires O(N) comparisons, which becomes prohibitively slow for millions or billions of records. When elements are stored in sorted order, binary search leverages monotonic order to cut the search space by half on every iteration, reaching any target in at most log2(N) probes.",
+      heading: "1. Why It Exists & Core Problem Solved",
+      body: "<p>Linear scanning over <code>N</code> elements requires <code>O(N)</code> comparisons, which becomes prohibitively slow for millions or billions of records. When elements are stored in sorted order, binary search leverages monotonic order to cut the search space by half on every iteration, reaching any target in at most <code>log₂ N</code> probes.</p>",
     },
     {
-      heading: "Step-by-Step Intuition & Invariant Maintenance",
-      body: "The central invariant maintains that if target exists, it must reside within the closed interval [left, right]. Midpoint mid = left + (right - left) // 2 splits the interval. Comparing arr[mid] against target reveals which sub-interval retains the target, allowing the other half to be discarded unconditionally without missing valid solutions.",
+      heading: "2. Step-by-Step Intuition & Invariant Maintenance",
+      body: "<p>The central invariant maintains that if target exists, it must reside within the closed interval <code>[left, right]</code>. Midpoint <code>mid = left + &lfloor;(right - left) / 2&rfloor;</code> splits the interval. Comparing <code>arr[mid]</code> against target reveals which sub-interval retains the target, allowing the other half to be discarded unconditionally without missing valid solutions.</p>",
     },
     {
-      heading: "Exact vs Lower Bound Formulations",
-      body: "Exact binary search halts as soon as arr[mid] == target. Lower bound searches for the boundary index i where arr[i] >= target, using a half-open interval [0, N). Lower bound and upper bound together enable duplicate counting in O(log N) time as upper_bound - lower_bound.",
+      heading: "3. Exact vs Lower Bound Formulations",
+      body: "<p>Exact binary search halts as soon as <code>arr[mid] == target</code>. Lower bound searches for the boundary index <code>i</code> where <code>arr[i] &ge; target</code>, using a half-open interval <code>[0, N)</code>. Lower bound and upper bound together enable duplicate counting in <code>O(log N)</code> time as <code>upper_bound - lower_bound</code>.</p>",
     },
     {
-      heading: "Trade-offs & Modern Systems Considerations",
-      body: "Binary search requires contiguous memory or random-access indexing alongside sorted data. Random memory jumps across huge arrays can trigger CPU L3 cache misses compared to sequential SIMD vector scans. In high-performance runtimes, midpoint calculations use bitwise unsigned shifts mid = (left + right) >>> 1 or mid = left + ((right - left) >> 1) to prevent integer overflow.",
+      heading: "4. Trade-offs & Modern Systems Considerations",
+      body: "<p>Binary search requires contiguous memory or random-access indexing alongside sorted data. Random memory jumps across huge arrays can trigger CPU L3 cache misses compared to sequential SIMD vector scans. In high-performance runtimes, midpoint calculations use bitwise unsigned shifts <code>mid = (left + right) &gt;&gt;&gt; 1</code> or <code>mid = left + ((right - left) &gt;&gt; 1)</code> to prevent integer overflow.</p>",
     },
   ],
   keyTerms: [
@@ -562,39 +568,8 @@ export const binarySearch1d: AlgorithmDefinition<BinarySearch1dInput> = {
   title: "1D Binary Search & Lower/Upper Bound",
   topicIds: ["binary_search"],
   difficulty: "Easy",
-  description: `Master 1D Binary Search: locate target values or boundary thresholds (\`lower_bound\` / \`upper_bound\`) in sorted 1D arrays in $O(\\log N)$ time.
-
-### Why It Exists & What It Solves
-When searching an unsorted list of $N$ items, finding an element requires a linear scan inspecting up to $N$ items in $O(N)$ time. However, when data is ordered (sorted), binary search replaces brute-force scanning by repeatedly probing the midpoint and discarding half of the remaining items. This reduces the search time from linear to logarithmic $O(\\log N)$, enabling instant lookups even across billions of records.
-
-### Step-by-Step Intuition
-1. **Define the Bounds**: Maintain two pointers \`left\` and \`right\` representing the candidate range \`[left, right]\`.
-2. **Compute Midpoint**: Pick \`mid = left + (right - left) // 2\` to divide the range into two sub-intervals.
-3. **Probe & Evaluate**: Compare \`arr[mid]\` against \`target\`:
-   - If \`arr[mid] == target\`, target is found! Return \`mid\`.
-   - If \`arr[mid] < target\`, target must reside strictly to the right. Update \`left = mid + 1\`.
-   - If \`arr[mid] > target\`, target must reside strictly to the left. Update \`right = mid - 1\`.
-4. **Repeat Until Convergence**: Continue until \`left > right\` (range exhausted) or target is matched.
-
-### Input Parameters
-- \`array\`: A 1D array of numbers sorted in non-decreasing order.
-- \`target\`: The target integer value to locate.
-- \`mode\` (optional): \`"exact"\` | \`"lower_bound"\` | \`"upper_bound"\`. Defaults to \`"exact"\`.
-
-### Output
-- Returns the integer index matching the target or boundary condition, or \`-1\` if absent in \`exact\` mode.
-
-### Trade-offs & Complexity
-- **Time Complexity**: $O(\\log N)$ worst/average case, $O(1)$ best case.
-- **Space Complexity**: $O(1)$ auxiliary space using iterative pointers.
-- **Prerequisite**: Input array must be sorted in non-decreasing order ($O(N \\log N)$ pre-sort cost if un-ordered).
-
-### Edge Cases & Constraints
-- \`1 <= array.length <= 10^5\`
-- \`-10^9 <= array[i], target <= 10^9\`
-- Target smaller than all array elements or larger than all elements.
-- Array with duplicate values (\`lower_bound\` pinpoints the first occurrence).
-- Overflow-safe midpoint arithmetic preventing 32-bit integer wrapper wrap-around.`,
+  description:
+    "<p>Master 1D Binary Search: locate target values or boundary thresholds (<code>lower_bound</code> / <code>upper_bound</code>) in sorted 1D arrays in <code>O(log N)</code> time.</p><h3>Why It Exists &amp; What It Solves</h3><p>When searching an unsorted list of <code>N</code> items, finding an element requires a linear scan inspecting up to <code>N</code> items in <code>O(N)</code> time. However, when data is ordered (sorted), binary search replaces brute-force scanning by repeatedly probing the midpoint and discarding half of the remaining items. This reduces the search time from linear to logarithmic <code>O(log N)</code>, enabling instant lookups even across billions of records.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Define the Bounds</strong>: Maintain two pointers <code>left</code> and <code>right</code> representing candidate range <code>[left, right]</code>.</li><li><strong>Compute Midpoint</strong>: Pick <code>mid = left + &lfloor;(right - left) / 2&rfloor;</code> to divide range into two sub-intervals.</li><li><strong>Probe &amp; Evaluate</strong>: Compare <code>arr[mid]</code> against <code>target</code>: if equal, target is found! If smaller, update <code>left = mid + 1</code>. If larger, update <code>right = mid - 1</code>.</li><li><strong>Repeat Until Convergence</strong>: Continue until <code>left &gt; right</code> or target is matched.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input</strong>: <code>array</code> (<code>number[]</code>) sorted in non-decreasing order, <code>target</code> (<code>number</code>), optional <code>mode</code> (<code>exact</code>, <code>lower_bound</code>, or <code>upper_bound</code>).</li><li><strong>Output</strong>: <code>number</code> index matching target/boundary or <code>-1</code> if absent in exact mode.</li></ul><h3>Trade-offs &amp; Complexity</h3><ul><li><strong>Time Complexity</strong>: <code>O(log N)</code> worst/average case, <code>O(1)</code> best case.</li><li><strong>Space Complexity</strong>: <code>O(1)</code> auxiliary space using iterative pointers.</li></ul>",
   constraints: ["1 <= N <= 10^5", "-10^9 <= array[i], target <= 10^9"],
   examples: [
     {

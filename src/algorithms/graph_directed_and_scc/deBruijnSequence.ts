@@ -124,9 +124,12 @@ function generateCombinations(alphabet: string[], length: number): string[] {
 
 export function generateDeBruijnSteps(input: DeBruijnSequenceInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const k = Math.max(2, Math.min(input.k ?? DEFAULT_DE_BRUIJN_INPUT.k, 4));
-  const n = Math.max(2, Math.min(input.n ?? DEFAULT_DE_BRUIJN_INPUT.n, 4));
-  const alphabet = input.alphabet || Array.from({ length: k }, (_, i) => String(i));
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_DE_BRUIJN_INPUT;
+  const k = Math.max(2, Math.min(safeInput.k ?? DEFAULT_DE_BRUIJN_INPUT.k, 4));
+  const n = Math.max(2, Math.min(safeInput.n ?? DEFAULT_DE_BRUIJN_INPUT.n, 4));
+  const alphabet = Array.isArray(safeInput.alphabet)
+    ? safeInput.alphabet
+    : Array.from({ length: k }, (_, i) => String(i));
 
   const prefixLen = n - 1;
   const nodeLabels = generateCombinations(alphabet, prefixLen);
@@ -354,7 +357,7 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   topicIds: ["graph_directed_and_scc"],
   difficulty: "Hard",
   description:
-    "A De Bruijn sequence B(k, n) is a cyclic sequence of length k^n containing every possible length-n combination over an alphabet of size k exactly once as a contiguous substring. It is constructed by building a directed De Bruijn graph—where vertices represent length-(n-1) state prefixes and edges represent length-n transitions—and finding an Eulerian circuit using Hierholzer's algorithm in optimal linear O(k^n) time.",
+    "<p>A De Bruijn sequence B(k, n) is a cyclic sequence of length <code>k<sup>n</sup></code> containing every possible length-n combination over an alphabet of size <code>k</code> exactly once as a contiguous substring. It is constructed by building a directed De Bruijn graph—where vertices represent length-(n-1) state prefixes and edges represent length-n transitions—and finding an Eulerian circuit using Hierholzer's algorithm in optimal linear <code>O(k<sup>n</sup>)</code> time.</p>",
   constraints: [
     "2 <= Alphabet Size k <= 4",
     "2 <= Substring Length n <= 4",
@@ -380,45 +383,44 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
   },
   spaceComplexity: "O(k^n)",
   complexityAnalysis: {
-    time: "The graph has $k^{n-1}$ vertices and $k^n$ edges. Hierholzer's Eulerian circuit algorithm traverses each edge once, resulting in optimal linear $\\mathcal{O}(k^n)$ time.",
-    space:
-      "$\\mathcal{O}(k^n)$ memory to store De Bruijn graph edges, traversal stack, and sequence output.",
+    time: "The graph has k^(n-1) vertices and k^n edges. Hierholzer's Eulerian circuit algorithm traverses each edge once, resulting in optimal linear O(k^n) time.",
+    space: "O(k^n) memory to store De Bruijn graph edges, traversal stack, and sequence output.",
   },
   topicGuide: {
     overview:
-      "A **De Bruijn sequence** $B(k, n)$ is a minimal-length cyclic sequence containing every possible substring of length $n$ over a $k$-element alphabet exactly once. By mapping the problem to finding an **Eulerian circuit** on a directed De Bruijn graph, the sequence can be constructed efficiently in $\\mathcal{O}(k^n)$ time.",
+      "<p>A <strong>De Bruijn sequence</strong> <code>B(k, n)</code> is a minimal-length cyclic sequence containing every possible substring of length <code>n</code> over a <code>k</code>-element alphabet exactly once. By mapping the problem to finding an <strong>Eulerian circuit</strong> on a directed De Bruijn graph, the sequence can be constructed efficiently in <code>O(k<sup>n</sup>)</code> time.</p>",
     sections: [
       {
         heading: "Why It Exists & What It Solves",
-        body: "De Bruijn sequences enable optimal rotary position encoding in robotics, lock combination cracking (entering minimal test keystroke streams), memory pattern testing in hardware, and genome sequence assembly in bioinformatics.",
+        body: "<p>De Bruijn sequences enable optimal rotary position encoding in robotics, lock combination cracking (entering minimal test keystroke streams), memory pattern testing in hardware, and genome sequence assembly in bioinformatics.</p>",
       },
       {
         heading: "The De Bruijn Graph Model",
-        body: "Construct a directed graph $G$ where vertices are strings of length $n - 1$ over an alphabet of size $k$. Draw a directed edge from vertex $u$ to vertex $v$ labeled with character $c$ if $v = u[1:] + c$. Because every vertex has $\\text{in\\_degree} = k$ and $\\text{out\\_degree} = k$, the graph is Eulerian, guaranteeing an Eulerian circuit exists.",
+        body: "<p>Construct a directed graph <code>G</code> where vertices are strings of length <code>n - 1</code> over an alphabet of size <code>k</code>. Draw a directed edge from vertex <code>u</code> to vertex <code>v</code> labeled with character <code>c</code> if <code>v = u[1:] + c</code>. Because every vertex has <code>in_degree = k</code> and <code>out_degree = k</code>, the graph is Eulerian, guaranteeing an Eulerian circuit exists.</p>",
       },
       {
         heading: "Step-by-Step Intuition",
-        body: "1. **Generate State Nodes**: Generate all $k^{n-1}$ prefix state nodes.\n2. **Build Transition Edges**: Add directed edges transitioning from state $u$ to $u[1:] + c$ for each symbol $c$.\n3. **Run Hierholzer**: Execute Hierholzer's Eulerian circuit algorithm from starting state $0^{n-1}$.\n4. **Extract Sequence**: Extract the trailing symbol of each circuit node to assemble the minimal sequence $B(k, n)$.",
+        body: "<ol><li><strong>Generate State Nodes:</strong> Generate all <code>k<sup>n-1</sup></code> prefix state nodes.</li><li><strong>Build Transition Edges:</strong> Add directed edges transitioning from state <code>u</code> to <code>u[1:] + c</code> for each symbol <code>c</code>.</li><li><strong>Run Hierholzer:</strong> Execute Hierholzer's Eulerian circuit algorithm from starting state <code>0<sup>n-1</sup></code>.</li><li><strong>Extract Sequence:</strong> Extract the trailing symbol of each circuit node to assemble the minimal sequence <code>B(k, n)</code>.</li></ol>",
       },
       {
         heading: "Trade-offs & Minimal Length Guarantee",
-        body: "A naive concatenation of all $k^n$ length-$n$ strings requires $n \\cdot k^n$ symbols. A De Bruijn sequence overlapping adjacent substrings reduces the required length down to exactly $k^n$ (cyclic) or $k^n + n - 1$ (linear), representing a factor of $n$ compression.",
+        body: "<p>A naive concatenation of all <code>k<sup>n</sup></code> length-n strings requires <code>n &middot; k<sup>n</sup></code> symbols. A De Bruijn sequence overlapping adjacent substrings reduces the required length down to exactly <code>k<sup>n</sup></code> (cyclic) or <code>k<sup>n</sup> + n - 1</code> (linear), representing a factor of <code>n</code> compression.</p>",
       },
       {
         heading: "Complexity Analysis",
-        body: "$$\\text{Time Complexity}: \\mathcal{O}(k^n)$$\n$$\\text{Space Complexity}: \\mathcal{O}(k^n)$$\n- **Time**: The graph has $|V| = k^{n-1}$ and $|E| = k^n$. Traversing every edge once takes linear $\\mathcal{O}(k^n)$ time.\n- **Space**: Storing graph edges, stack, and result sequence consumes $\\mathcal{O}(k^n)$ memory.",
+        body: "<p><strong>Time Complexity:</strong> <code>O(k<sup>n</sup>)</code><br/><strong>Space Complexity:</strong> <code>O(k<sup>n</sup>)</code></p><ul><li><strong>Time:</strong> The graph has <code>|V| = k<sup>n-1</sup></code> and <code>|E| = k<sup>n</sup></code>. Traversing every edge once takes linear <code>O(k<sup>n</sup>)</code> time.</li><li><strong>Space:</strong> Storing graph edges, stack, and result sequence consumes <code>O(k<sup>n</sup>)</code> memory.</li></ul>",
       },
     ],
     keyTerms: [
       {
         term: "De Bruijn Sequence B(k, n)",
         definition:
-          "A minimal cyclic sequence containing all $k^n$ length-$n$ words over an alphabet of size $k$.",
+          "A minimal cyclic sequence containing all k^n length-n words over an alphabet of size k.",
       },
       {
         term: "De Bruijn Graph",
         definition:
-          "A directed graph whose vertices are length-$(n-1)$ sequences and edges are length-$n$ sequences.",
+          "A directed graph whose vertices are length-(n-1) sequences and edges are length-n sequences.",
       },
       {
         term: "Rotary Position Encoder",
@@ -428,7 +430,7 @@ export const deBruijnSequence: AlgorithmDefinition<DeBruijnSequenceInput> = {
       {
         term: "Overlapping Substrings",
         definition:
-          "Property allowing adjacent $n$-length windows to share $n-1$ characters, compressing total sequence length.",
+          "Property allowing adjacent n-length windows to share n-1 characters, compressing total sequence length.",
       },
     ],
   },

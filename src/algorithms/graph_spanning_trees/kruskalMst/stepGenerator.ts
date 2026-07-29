@@ -1,4 +1,5 @@
-import type { AlgorithmStep, GraphEdgeItem, GraphNodeItem } from "../../../types/dsa";
+import type { AlgorithmStep, ArrayElement, GraphEdgeItem, GraphNodeItem } from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 
 export interface KruskalInput {
   nodes: GraphNodeItem[];
@@ -9,12 +10,15 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nodes: GraphNodeItem[] = input.nodes.map((n) => ({
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
+
+  const nodes: GraphNodeItem[] = rawNodes.map((n) => ({
     ...n,
     state: "default",
   }));
 
-  const edges: GraphEdgeItem[] = input.edges.map((e) => ({
+  const edges: GraphEdgeItem[] = rawEdges.map((e) => ({
     ...e,
     isTraversed: false,
     isPath: false,
@@ -23,60 +27,126 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const parent: Record<string, string> = {};
   const mstEdges: GraphEdgeItem[] = [];
 
+  const conceptualNodes = (stage: number): GraphNodeItem[] =>
+    ["P", "Q", "R", "S"].map((id, index) => ({
+      id,
+      label: id,
+      state:
+        index === stage % 4
+          ? "active"
+          : index === (stage + 1) % 4
+            ? "compare"
+            : index < Math.floor(stage / 4)
+              ? "visited"
+              : "default",
+    }));
+  const conceptualEdges = (stage: number): GraphEdgeItem[] =>
+    [
+      { from: "P", to: "Q", weight: 1 },
+      { from: "Q", to: "R", weight: 2 },
+      { from: "R", to: "S", weight: 3 },
+      { from: "P", to: "S", weight: 4 },
+    ].map((edge, index) => ({
+      ...edge,
+      isTraversed: index === stage % 4,
+      isPath: index === Math.floor(stage / 4),
+    }));
+
   const addStep = (
-    codeLine: number,
     what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
+    customNodes?: GraphNodeItem[],
+    customEdges?: GraphEdgeItem[],
+    customDsuHighlight?: Record<string, "default" | "active" | "comparing" | "visited">,
+    phase: "intro" | "walkthrough" = "walkthrough",
   ) => {
-    const parentHashMap: Record<string, string> = {};
-    for (const n of nodes) {
-      if (parent[n.id] !== undefined) {
-        parentHashMap[`parent[${n.id}]`] = parent[n.id];
-      }
-    }
+    const currentNodes = customNodes || nodes;
+    const currentEdges = customEdges || edges;
 
-    const mstEdgeLabels = mstEdges.map((e) => `(${e.from}-${e.to}: w=${e.weight ?? 1})`);
-
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "graph",
-        nodes: nodes.map((n) => ({ ...n })),
-        edges: edges.map((e) => ({ ...e })),
-      },
-      auxiliaryState: {
-        hashMap: parentHashMap,
-        visited: mstEdges.flatMap((e) => [e.from, e.to]),
-        customState: {
-          "DSU Parents": Object.entries(parent)
-            .map(([k, v]) => `${k} -> ${v}`)
-            .join(", "),
-          "MST Edges Count": mstEdges.length,
-          "MST Total Weight": mstEdges.reduce((acc, e) => acc + (e.weight ?? 0), 0),
-          "MST Edges": mstEdgeLabels.join(", ") || "None",
-        },
-      },
-      variables,
+    const dsuElements: ArrayElement[] = currentNodes.map((n) => {
+      const parentVal = parent[n.id] ?? n.id;
+      const highlighted =
+        customDsuHighlight?.[n.id] ??
+        (n.state === "active"
+          ? "active"
+          : n.state === "compare"
+            ? "compare"
+            : n.state === "visited"
+              ? "visited"
+              : "default");
+      const status = highlighted === "comparing" ? "compare" : highlighted;
+      return {
+        id: n.id,
+        value: parentVal,
+        label: n.id,
+        state: status,
+      };
     });
+
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase,
+        narrative: what,
+        primarySnapshot: {
+          kind: "composite",
+          layout: "grid",
+          columns: 2,
+          items: [
+            {
+              id: "kruskal-graph",
+              role: "primary",
+              snapshot: {
+                kind: "graph",
+                nodes: currentNodes.map((n) => ({ ...n })),
+                edges: currentEdges.map((e) => ({ ...e })),
+              },
+            },
+            {
+              id: "kruskal-parent",
+              role: "auxiliary",
+              snapshot: {
+                kind: "array",
+                name: "parent",
+                elements: dsuElements,
+              },
+            },
+          ],
+        },
+        auxiliaryState:
+          phase === "walkthrough"
+            ? {
+                customState: {
+                  Accepted: mstEdges.length,
+                  Weight: mstEdges.reduce((total, edge) => total + (edge.weight ?? 0), 0),
+                },
+              }
+            : undefined,
+      }),
+    );
   };
 
-  addStep(
-    27,
-    "Start Kruskal's MST algorithm",
-    "We want the cheapest set of edges that still connects every node. The plan: sort the edges by weight, then greedily keep each one that joins two components that are not yet connected.",
-    { nodeCount: nodes.length, edgeCount: edges.length },
-  );
+  // Phase 1: Inputless Intro (12 Conceptual Steps)
+  const conceptualNarratives = [
+    "Kruskal's Minimum Spanning Tree method connects a weighted network with the lightest possible collection of edges while keeping every route cycle-free.",
+    "A spanning tree reaches every node through one connected structure, so each accepted edge must contribute a new connection rather than redundancy.",
+    "The cut property says that the lightest edge crossing a separation between components is always a safe candidate for an optimal tree.",
+    "Kruskal makes that safety visible by arranging every candidate edge from the smallest weight toward the largest before any decisions begin.",
+    "A tempting edge can still be rejected when its endpoints already share a route, because adding it would close a cycle without expanding reach.",
+    "A disjoint-set structure keeps track of the separate components so the algorithm can test each candidate connection quickly.",
+    "Each component has a representative root, giving the forest a compact way to answer whether two nodes already belong together.",
+    "Finding a representative can compress the route toward its root, keeping future component checks fast as the forest grows.",
+    "When two different representatives meet, union merges their components and records one larger connected region.",
+    "When the representatives match, the candidate edge stays outside the tree because its endpoints already have a path between them.",
+    "When the representatives differ, the candidate edge becomes part of the tree because it joins two previously separate regions.",
+    "The process finishes after enough safe joins connect the network, with sorting the candidates providing the dominant cost.",
+  ];
+  conceptualNarratives.forEach((narrative, stage) => {
+    addStep(narrative, conceptualNodes(stage), conceptualEdges(stage), undefined, "intro");
+  });
 
+  // Phase 2: Concrete Walkthrough
   if (nodes.length === 0) {
-    addStep(
-      39,
-      "Kruskal's MST complete",
-      "With no nodes there is nothing to connect, so the spanning tree is empty.",
-      { mstEdgeCount: 0 },
-    );
+    addStep("Kruskal's MST complete with empty graph: 0 edges added to the spanning tree.");
     return steps;
   }
 
@@ -87,10 +157,9 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   }
 
   addStep(
-    29,
-    "Make each node its own set",
-    "We give every node parent[v] = v and rank[v] = 1, so each starts as a singleton component. From here, UnionFind tracks component roots and ranks.",
-    { dsuInitialized: true },
+    `Initialize DSU with ${nodes.length} singleton sets where each vertex starts as its own representative root leader.`,
+    nodes.map((n) => ({ ...n, state: "default" as const })),
+    edges.map((e) => ({ ...e, isTraversed: false, isPath: false })),
   );
 
   const find = (i: string): string => {
@@ -123,14 +192,11 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const sortedEdges = [...edges].sort((a, b) => (a.weight ?? 1) - (b.weight ?? 1));
 
   addStep(
-    30,
-    `Sort the ${sortedEdges.length} edges by weight`,
-    `Cheapest-first is the whole greedy idea: [${sortedEdges
+    `Sort all ${sortedEdges.length} edges in ascending order of weight: [${sortedEdges
       .map((e) => `${e.from}-${e.to}(w=${e.weight ?? 1})`)
-      .join(
-        ", ",
-      )}]. The lightest edge that bridges two separate components is always safe to keep, so we want to meet those edges first.`,
-    { sortedEdgeCount: sortedEdges.length },
+      .join(", ")}].`,
+    nodes.map((n) => ({ ...n, state: "default" as const })),
+    edges.map((e, idx) => (idx === 0 ? { ...e, isTraversed: true } : { ...e, isTraversed: false })),
   );
 
   for (const edge of sortedEdges) {
@@ -153,16 +219,7 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
     const rootV = find(edge.to);
 
     addStep(
-      35,
-      `Examine edge ${edge.from} - ${edge.to} (weight ${edge.weight ?? 1})`,
-      `Before deciding, we ask UnionFind which component each endpoint lives in: find('${edge.from}') = '${rootU}' and find('${edge.to}') = '${rootV}'. Different roots mean this edge connects new territory.`,
-      {
-        from: edge.from,
-        to: edge.to,
-        weight: edge.weight ?? 1,
-        rootU,
-        rootV,
-      },
+      `Examine edge ${edge.from} - ${edge.to} (weight ${edge.weight ?? 1}) connecting roots '${rootU}' and '${rootV}'.`,
     );
 
     const merged = union(edge.from, edge.to);
@@ -177,29 +234,17 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
       if (vNode) vNode.state = "active";
 
       addStep(
-        36,
-        `Add edge ${edge.from} - ${edge.to} to the MST`,
-        `'${edge.from}' and '${edge.to}' live in different components ('${rootU}' vs '${rootV}'), so this edge connects them without closing a loop. We keep it and merge the two sets using rank heuristics.`,
-        {
-          from: edge.from,
-          to: edge.to,
-          weight: edge.weight ?? 1,
-          newParent: rootV,
-          mstSize: mstEdges.length,
-        },
+        `Add edge ${edge.from} - ${edge.to} (weight ${edge.weight ?? 1}) to the MST, merging components '${rootU}' and '${rootV}'.`,
       );
     } else {
+      if (uNode) uNode.state = "visited";
+      if (vNode) vNode.state = "visited";
+
       addStep(
-        35,
-        `Skip edge ${edge.from} - ${edge.to} (cycle)`,
-        `Both '${edge.from}' and '${edge.to}' already trace back to the same root '${rootU}', so they're connected already. Keeping this edge would only close a loop — and a tree never has one.`,
-        {
-          from: edge.from,
-          to: edge.to,
-          weight: edge.weight ?? 1,
-          sameRoot: rootU,
-          skipped: true,
-        },
+        `Skip edge ${edge.from} - ${edge.to} (weight ${edge.weight ?? 1}) because both endpoints belong to root '${rootU}', forming a cycle.`,
+        nodes.map((n) =>
+          n.id === edge.from || n.id === edge.to ? { ...n, state: "visited" as const } : { ...n },
+        ),
       );
     }
 
@@ -210,13 +255,8 @@ export const generateKruskalSteps = (input: KruskalInput): AlgorithmStep[] => {
   const totalMstWeight = mstEdges.reduce((sum, e) => sum + (e.weight ?? 1), 0);
 
   addStep(
-    39,
-    `Kruskal's MST complete: total weight ${totalMstWeight}`,
-    `We kept ${mstEdges.length} edges that connect every node for a total weight of ${totalMstWeight}, and no cheaper spanning tree exists. Fittingly, the up-front sort was the most expensive part — O(E log E) overall.`,
-    {
-      totalEdgesInMst: mstEdges.length,
-      totalMstWeight,
-    },
+    `Kruskal's MST complete: accepted ${mstEdges.length} edges for a total Minimum Spanning Tree weight of ${totalMstWeight}.`,
+    nodes.map((n) => ({ ...n, state: "active" as const })),
   );
 
   return steps;

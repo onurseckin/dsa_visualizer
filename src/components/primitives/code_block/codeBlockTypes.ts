@@ -2,7 +2,7 @@ import type { DisplayValue } from "../../../types/dsa";
 
 export interface CodeBlockViewerProps {
   code: string;
-  activeLine: number;
+  activeLine?: number;
   variables?: Record<string, DisplayValue>;
   lineExplanations?: Record<number, string>;
 }

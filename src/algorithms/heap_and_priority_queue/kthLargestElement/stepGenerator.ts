@@ -5,6 +5,11 @@ export interface KthLargestInput {
   k: number;
 }
 
+export const DEFAULT_KTH_LARGEST_INPUT: KthLargestInput = {
+  nums: [3, 2, 1, 5, 6, 4],
+  k: 2,
+};
+
 function createArrayElements(
   heap: number[],
   activeIdx: number = -1,
@@ -32,23 +37,30 @@ function createArrayElements(
 
 export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const nums = input.nums || [];
-  const k = Math.max(1, Math.min(input.k || 1, nums.length || 1));
+  const rawNums = Array.isArray(input?.nums)
+    ? input.nums
+    : input?.nums === undefined
+      ? []
+      : DEFAULT_KTH_LARGEST_INPUT.nums;
+  const targetK = typeof input?.k === "number" ? input.k : DEFAULT_KTH_LARGEST_INPUT.k;
 
-  if (nums.length === 0) {
+  if (!Array.isArray(rawNums) || rawNums.length === 0) {
     steps.push({
       stepIndex: 0,
       codeLine: 3,
       explanation: {
-        what: "Stop: the array is empty",
-        why: "There is no Kth largest element to find in an empty array, so we stop right away.",
+        what: "Validate input bounds",
+        why: "Input array is empty. Terminating algorithm with default invalid rank result.",
       },
       primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { k, heapSize: 0 } },
-      variables: { k, result: -1 },
+      auxiliaryState: { customState: { k: targetK, heapSize: 0 } },
+      variables: { k: targetK, result: -1 },
     });
     return steps;
   }
+
+  const nums = rawNums;
+  const k = Math.max(1, Math.min(targetK, nums.length));
 
   let stepIdx = 0;
   const minHeap: number[] = [];
@@ -57,8 +69,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     stepIndex: stepIdx++,
     codeLine: 1,
     explanation: {
-      what: "Import heapq for min-heap operations",
-      why: "Python's heapq provides O(log k) push and pop on the heap, which is what makes this algorithm O(n log k) overall instead of O(n log n) with full sorting.",
+      what: "Initialize Bounded Min-Heap filter",
+      why: "A min-heap of capacity k maintains the top k largest values seen so far. Root element corresponds to the minimum of the top k (the current k-th largest candidate).",
     },
     primarySnapshot: { kind: "array", elements: createArrayElements(minHeap) },
     auxiliaryState: { customState: { k, nums: `[${nums.join(", ")}]` } },
@@ -69,8 +81,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     stepIndex: stepIdx++,
     codeLine: 4,
     explanation: {
-      what: `Create an empty min-heap for K = ${k}`,
-      why: `Here's the plan: we keep only the ${k} largest numbers we've seen so far, stored in a min-heap. That way the smallest of our keepers always sits at the root, ready to be compared or evicted in an instant.`,
+      what: `Allocate min-heap with target capacity K = ${k}`,
+      why: `The min-heap acts as a sliding window of the top ${k} largest numbers. Any element that drops below root is evicted, guaranteeing O(N log k) total runtime.`,
     },
     primarySnapshot: { kind: "array", elements: createArrayElements(minHeap) },
     auxiliaryState: {
@@ -123,8 +135,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       stepIndex: stepIdx++,
       codeLine: 5,
       explanation: {
-        what: `Inspect element nums[${i}] = ${num}`,
-        why: `We consider ${num} to see if it belongs among the ${k} largest elements seen so far.`,
+        what: `Process array element nums[${i}] = ${num}`,
+        why: `Evaluating ${num} against candidate top ${k} values currently in min-heap.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -148,8 +160,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       stepIndex: stepIdx++,
       codeLine: 6,
       explanation: {
-        what: `Push ${num} into the heap`,
-        why: `We add ${num} and let it sift up until its parent is smaller, so the smallest candidate stays at the root. The heap now holds [${minHeap.join(", ")}].`,
+        what: `Insert ${num} into min-heap`,
+        why: `Pushing ${num} and performing sift-up to restore min-heap invariant. Smallest candidate moves to root.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -167,10 +179,10 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       stepIndex: stepIdx++,
       codeLine: 7,
       explanation: {
-        what: `Check heap capacity: size ${minHeap.length} > k (${k})? ${exceedsCapacity ? "Yes" : "No"}`,
+        what: `Check heap capacity: size ${minHeap.length} > capacity ${k}? ${exceedsCapacity ? "Yes" : "No"}`,
         why: exceedsCapacity
-          ? `The heap size (${minHeap.length}) exceeds k (${k}), so we must evict the root (the smallest candidate).`
-          : `The heap size (${minHeap.length}) is within capacity k (${k}), so no eviction is needed yet.`,
+          ? `Heap size (${minHeap.length}) exceeds maximum capacity k (${k}). The root minimum must be evicted.`
+          : `Heap size (${minHeap.length}) is within capacity k (${k}). No eviction needed.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -197,8 +209,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         stepIndex: stepIdx++,
         codeLine: 8,
         explanation: {
-          what: `Evict the root minimum, ${popped}`,
-          why: `The heap just grew past capacity ${k}, so the smallest candidate, ${popped} at the root, gets dropped. Everything still in the heap is at least as large as what we discard.`,
+          what: `Evict root element ${popped} via min-heap pop`,
+          why: `Evicting root value ${popped} (smallest candidate among top ${k + 1}). All remaining heap items are strictly greater than or equal to ${popped}.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -223,8 +235,8 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     stepIndex: stepIdx++,
     codeLine: 9,
     explanation: {
-      what: `Done: the answer is ${result}`,
-      why: `Every number has passed through the filter, so the heap now holds the ${k} largest values in the whole array — and its root, ${result}, is the smallest of that group, which makes it exactly the Kth largest overall.`,
+      what: `Return K-th largest element: ${result}`,
+      why: `All array elements processed. Min-heap contains the ${k} largest numbers overall. Root value ${result} is the minimum of the top ${k}, which is precisely the ${k}-th largest element.`,
     },
     primarySnapshot: { kind: "array", elements: finalElements },
     auxiliaryState: {

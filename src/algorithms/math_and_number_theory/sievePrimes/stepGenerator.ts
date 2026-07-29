@@ -13,7 +13,7 @@ export const generateSieveSteps = (input: SieveInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const limit = Math.max(0, Math.floor(input.limit));
+  const limit = Math.max(0, Math.floor(typeof input?.limit === "number" ? input.limit : 30));
 
   const isPrime: boolean[] = new Array(limit + 1).fill(true);
   if (limit >= 0) isPrime[0] = false;

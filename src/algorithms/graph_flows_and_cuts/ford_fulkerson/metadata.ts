@@ -3,57 +3,57 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const FORD_FULKERSON_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **flow network** is a directed graph $G = (V, E)$ whose edges carry capacities $c(u, v) \\ge 0$. The maximum-flow problem asks for the maximal material that can be shipped from source $s$ to sink $t$ under capacity constraints $f(u, v) \\le c(u, v)$ and flow conservation $\\sum f(u, v) = \\sum f(v, u)$. Ford-Fulkerson repeatedly finds **augmenting paths** in the **residual graph** $G_f$ in $\\mathcal{O}(E \\cdot |f^*|)$ time, certified by the **Max-Flow Min-Cut Theorem**.",
+    "<p>A <strong>flow network</strong> is a directed graph <code>G = (V, E)</code> whose edges carry non-negative capacities <code>c(u, v) &ge; 0</code>. The maximum-flow problem asks for the maximal material that can be shipped from source <code>s</code> to sink <code>t</code> under capacity constraints <code>f(u, v) &le; c(u, v)</code> and flow conservation. Ford-Fulkerson repeatedly finds <strong>augmenting paths</strong> in the <strong>residual graph</strong> <code>G<sub>f</sub></code> in <code>O(E &middot; |f*|)</code> time, certified by the <strong>Max-Flow Min-Cut Theorem</strong>.</p>",
   sections: [
     {
-      heading: "The core idea: never treat a routing decision as final",
-      body: "A feasible flow assigns each edge a non-negative amount $f(u, v) \\le c(u, v)$, and every vertex $v \\in V \\setminus \\{s, t\\}$ obeys flow conservation. Greedy saturation can strand you. Ford-Fulkerson escapes this by introducing residual edges $c_f(v, u) = f(u, v)$ that allow reversing previously pushed flow.",
+      heading: "The Core Idea: Dynamic Flow Cancellation",
+      body: "<p>A feasible flow assigns each edge a non-negative amount <code>f(u, v) &le; c(u, v)</code>, and every vertex <code>v &isin; V &setminus; {s, t}</code> obeys flow conservation. Greedy saturation can strand the algorithm in a non-optimal state. Ford-Fulkerson escapes this by introducing residual edges with reverse capacity <code>c<sub>f</sub>(v, u) = f(u, v)</code> that allow reversing previously pushed flow.</p>",
     },
     {
-      heading: "How the residual graph actually works",
-      body: "In residual graph $G_f$, a forward edge offers residual capacity $c_f(u, v) = c(u, v) - f(u, v)$, while a reverse edge offers $c_f(v, u) = f(u, v)$. Pushing flow along a reverse edge cancels previous flow. The bottleneck is:\n$$\\gamma = \\min_{(u, v) \\in P} c_f(u, v)$$",
+      heading: "How the Residual Graph Works",
+      body: "<p>In residual graph <code>G<sub>f</sub></code>, a forward edge offers residual capacity <code>c<sub>f</sub>(u, v) = c(u, v) - f(u, v)</code>, while a reverse edge offers <code>c<sub>f</sub>(v, u) = f(u, v)</code>. Pushing flow along a reverse edge cancels previous flow. The path bottleneck is the minimum residual capacity along the augmenting path: <code>&gamma; = min_{(u, v) &isin; P} c<sub>f</sub>(u, v)</code>.</p>",
     },
     {
-      heading: "Why it stops at the true maximum (Max-Flow Min-Cut Theorem)",
-      body: "When no augmenting path exists in $G_f$, let $S$ be the set of vertices reachable from source $s$. The cut $(S, T)$ has capacity equal to the total flow value:\n$$|f| = c(S, T) = \\sum_{u \\in S, v \\in T} c(u, v)$$\nSince no flow can exceed any cut capacity, $f$ is guaranteed to be maximum.",
+      heading: "Max-Flow Min-Cut Theorem",
+      body: "<p>When no augmenting path exists in <code>G<sub>f</sub></code>, let <code>S</code> be the set of vertices reachable from source <code>s</code>. The cut <code>(S, T)</code> has capacity equal to the total flow value: <code>|f| = c(S, T) = &sum; c(u, v)</code>. Since no flow can exceed any cut capacity, <code>f</code> is guaranteed to be maximum.</p>",
     },
     {
-      heading: "Which path to pick, and why people say Edmonds-Karp",
-      body: "Ford-Fulkerson using DFS runs in $\\mathcal{O}(E \\cdot |f^*|)$ time. Selecting the shortest augmenting path via BFS yields **Edmonds-Karp**, bounding iterations to $\\mathcal{O}(V \\cdot E)$ and total time to $\\mathcal{O}(V \\cdot E^2)$, independent of capacities.",
+      heading: "Which Path to Pick: Edmonds-Karp Variant",
+      body: "<p>Ford-Fulkerson using Depth-First Search (DFS) runs in <code>O(E &middot; |f*|)</code> time. Selecting the shortest augmenting path via Breadth-First Search (BFS) yields <strong>Edmonds-Karp</strong>, bounding iterations to <code>O(V &middot; E)</code> and total execution time to <code>O(V &middot; E<sup>2</sup>)</code>, independent of numeric capacities.</p>",
     },
     {
-      heading: "Pitfalls and edge cases",
-      body: "Failing to update reverse residual capacity prevents flow cancellation. Irrational edge capacities can lead to infinite non-convergent iterations. Always reset visited sets between search iterations.",
+      heading: "Pitfalls and Edge Cases",
+      body: "<p>Failing to update reverse residual capacity prevents flow cancellation. Irrational edge capacities can lead to infinite non-convergent iterations. Always reset visited sets between search iterations.</p>",
     },
     {
       heading: "Complexity Analysis",
-      body: "$$\\text{Time Complexity}: \\mathcal{O}(E \\cdot |f^*|)$$\n$$\\text{Space Complexity}: \\mathcal{O}(V + E)$$\n- **Time**: Each DFS takes $\\mathcal{O}(E)$ time. With integer capacities, each augmentation increases flow by at least 1, taking at most $|f^*|$ rounds.\n- **Space**: Storing capacities, flows, and recursion stacks requires $\\mathcal{O}(V + E)$ space.",
+      body: "<p><strong>Time Complexity:</strong> <code>O(E &middot; |f*|)</code><br/><strong>Space Complexity:</strong> <code>O(V + E)</code></p><ul><li><strong>Time:</strong> Each DFS takes <code>O(E)</code> time. With integer capacities, each augmentation increases flow by at least 1, taking at most <code>|f*|</code> rounds.</li><li><strong>Space:</strong> Storing capacities, flows, and recursion stacks requires <code>O(V + E)</code> space.</li></ul>",
     },
   ],
   keyTerms: [
     {
       term: "Residual capacity",
       definition:
-        "Remaining usable capacity $c_f(u, v) = c(u, v) - f(u, v)$ on forward edges, and $c_f(v, u) = f(u, v)$ on reverse edges.",
+        "Remaining usable capacity c_f(u, v) = c(u, v) - f(u, v) on forward edges, and c_f(v, u) = f(u, v) on reverse edges.",
     },
     {
       term: "Augmenting path",
       definition:
-        "A directed path from source $s$ to sink $t$ in residual graph $G_f$ where every edge has positive residual capacity $c_f(u, v) > 0$.",
+        "A directed path from source s to sink t in residual graph G_f where every edge has positive residual capacity c_f(u, v) > 0.",
     },
     {
       term: "Bottleneck",
-      definition: "The minimal residual capacity $\\gamma$ along an augmenting path $P$.",
+      definition: "The minimal residual capacity &gamma; along an augmenting path P.",
     },
     {
       term: "Max-Flow Min-Cut Theorem",
       definition:
-        "Fundamental duality theorem asserting that the maximum flow value equals the minimum capacity of an $s$-$t$ cut.",
+        "Fundamental duality theorem asserting that the maximum flow value equals the minimum capacity of an s-t cut.",
     },
     {
       term: "Flow conservation",
       definition:
-        "Requirement that total incoming flow equals total outgoing flow for every intermediate vertex $v \\in V \\setminus \\{s, t\\}$.",
+        "Requirement that total incoming flow equals total outgoing flow for every intermediate vertex v &isin; V &setminus; {s, t}.",
     },
   ],
 };

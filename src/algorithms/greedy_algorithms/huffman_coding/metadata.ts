@@ -3,27 +3,27 @@ import type { TriviaMeta } from "../../../types/trivia";
 
 export const HUFFMAN_CODING_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Huffman coding is a greedy algorithm for building an optimal prefix-free binary code from character frequencies. It answers the fundamental compression question: how many bits does each symbol deserve? Frequent symbols receive short bit strings, while rare symbols receive longer ones, provably minimizing the total weighted path length $\\sum_{i=1}^K f_i \\cdot d_i$ where $f_i$ is symbol frequency and $d_i$ is code length.",
+    "<p>Huffman coding is a greedy algorithm for building an optimal prefix-free binary code from character frequencies. It answers the fundamental compression question: how many bits does each symbol deserve? Frequent symbols receive short bit strings, while rare symbols receive longer ones, provably minimizing the total weighted path length <span>&sum; f_i &middot; d_i</span> where <code>f_i</code> is symbol frequency and <code>d_i</code> is code length.</p>",
   sections: [
     {
       heading: "Why a variable-length code must be prefix-free",
-      body: "Fixed-width encoding like ASCII costs equal space regardless of character probability. Giving frequent symbols shorter bit codes saves space, but creates ambiguity if one code is a prefix of another. The solution is a prefix-free code, where no code word is a prefix of any other code word. Representing codes as a binary tree where all symbols reside at leaf nodes guarantees the prefix-free property. Traversal from root to leaf generates the exact code for each character.",
+      body: "<p>Fixed-width encoding like ASCII costs equal space regardless of character probability. Giving frequent symbols shorter bit codes saves space, but creates ambiguity if one code is a prefix of another. The solution is a prefix-free code, where no code word is a prefix of any other code word. Representing codes as a binary tree where all symbols reside at leaf nodes guarantees the prefix-free property. Traversal from root to leaf generates the exact code for each character.</p>",
     },
     {
       heading: "The greedy mechanism: repeatedly merge the two lightest nodes",
-      body: "Initialize $K$ leaf nodes weighted by character frequency $f_i$ in a min-heap. At each step, extract the two nodes with smallest frequencies ($w_1, w_2$) from the priority queue. Construct a parent node with weight $w_1 + w_2$, attach the two extracted nodes as children, and push the parent node back into the min-heap. Repeat this process $K - 1$ times until a single root node remains. Total weighted path length equals the sum of weights of all internal nodes created during execution.",
+      body: "<p>Initialize <code>K</code> leaf nodes weighted by character frequency <code>f_i</code> in a min-heap. At each step, extract the two nodes with smallest frequencies (<code>w_1, w_2</code>) from the priority queue. Construct a parent node with weight <code>w_1 + w_2</code>, attach the two extracted nodes as children, and push the parent node back into the min-heap. Repeat this process <code>K - 1</code> times until a single root node remains. Total weighted path length equals the sum of weights of all internal nodes created during execution.</p>",
     },
     {
       heading: "Why the greedy choice is optimal (Exchange Argument)",
-      body: "Let $x$ and $y$ be the two characters with lowest frequencies in the alphabet. In any optimal tree $T^*$, there exist two sibling leaves at maximum depth $d_{max}$. Swapping $x$ and $y$ with those sibling leaves cannot increase total cost $\\sum f_i d_i$, because lower frequency items move to equal or greater depth. Thus, an optimal tree exists where $x$ and $y$ are lowest-depth siblings. Merging them into a meta-symbol with weight $f_x + f_y$ reduces the problem to an instance with $K - 1$ symbols, establishing optimal substructure by induction.",
+      body: "<p>Let <code>x</code> and <code>y</code> be the two characters with lowest frequencies in the alphabet. In any optimal tree <code>T*</code>, there exist two sibling leaves at maximum depth <code>d_max</code>. Swapping <code>x</code> and <code>y</code> with those sibling leaves cannot increase total cost <code>&sum; f_i d_i</code>, because lower frequency items move to equal or greater depth. Thus, an optimal tree exists where <code>x</code> and <code>y</code> are lowest-depth siblings. Merging them into a meta-symbol with weight <code>f_x + f_y</code> reduces the problem to an instance with <code>K - 1</code> symbols, establishing optimal substructure by induction.</p>",
     },
     {
       heading: "Entropy and Practical Limits",
-      body: "According to Shannon's source coding theorem, the average code length per symbol $L = \\sum p_i d_i$ satisfies $H(X) \\le L < H(X) + 1$. Here $H(X) = -\\sum p_i \\log_2 p_i$ is the entropy of the source alphabet. Huffman coding achieves an integer-bit optimal code. However, when symbol probabilities are highly skewed, assigning at least 1 bit per symbol incurs overhead compared to arithmetic or range coding.",
+      body: "<p>According to Shannon's source coding theorem, the average code length per symbol <code>L = &sum; p_i d_i</code> satisfies <code>H(X) &le; L &lt; H(X) + 1</code>. Here <code>H(X) = -&sum; p_i log₂ p_i</code> is the entropy of the source alphabet. Huffman coding achieves an integer-bit optimal code. However, when symbol probabilities are highly skewed, assigning at least 1 bit per symbol incurs overhead compared to arithmetic or range coding.</p>",
     },
     {
       heading: "Pitfalls, Edge Cases, and Real-world Usage",
-      body: "Edge cases include single-character inputs, requiring fallback to assign a 1-bit code `0`. Frequency ties can also occur and are broken arbitrarily without affecting total encoded length. Because the decoder requires the tree topology to decode the bitstream, real-world implementations transmit a compact canonical Huffman code table. Algorithms like DEFLATE combine LZ77 dictionary matching with a final Huffman coding pass.",
+      body: "<p>Edge cases include single-character inputs, requiring fallback to assign a 1-bit code <code>0</code>. Frequency ties can also occur and are broken arbitrarily without affecting total encoded length. Because the decoder requires the tree topology to decode the bitstream, real-world implementations transmit a compact canonical Huffman code table. Algorithms like DEFLATE combine LZ77 dictionary matching with a final Huffman coding pass.</p>",
     },
   ],
   keyTerms: [
@@ -35,22 +35,22 @@ export const HUFFMAN_CODING_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Min-heap",
       definition:
-        "A priority queue supporting $O(\\log K)$ insertions and minimum element extractions, used to efficiently retrieve the two lowest-frequency nodes.",
+        "A priority queue supporting O(log K) insertions and minimum element extractions, used to efficiently retrieve the two lowest-frequency nodes.",
     },
     {
       term: "Weighted path length",
       definition:
-        "The objective value $\\sum_{i=1}^K f_i \\cdot d_i$ representing the total number of bits required to encode the string.",
+        "The objective value ∑ f_i · d_i representing the total number of bits required to encode the string.",
     },
     {
       term: "Internal node",
       definition:
-        "A non-leaf node created during a merge step, carrying weight $f_{left} + f_{right}$ without bound character data.",
+        "A non-leaf node created during a merge step, carrying weight f_left + f_right without bound character data.",
     },
     {
-      term: "Entropy $H(X)$",
+      term: "Entropy H(X)",
       definition:
-        "The theoretical lower bound on average bits per symbol, defined as $H(X) = -\\sum_{i=1}^K p_i \\log_2 p_i$.",
+        "The theoretical lower bound on average bits per symbol, defined as H(X) = -∑ p_i log₂ p_i.",
     },
   ],
 };

@@ -45,7 +45,11 @@ export const DEFAULT_SPARSE_TABLE_RMQ_INPUT: SparseTableRmqInput = {
 export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const arr = [...input.array];
+  const safeInput = {
+    array: Array.isArray(input?.array) ? input.array : DEFAULT_SPARSE_TABLE_RMQ_INPUT.array,
+    queries: Array.isArray(input?.queries) ? input.queries : DEFAULT_SPARSE_TABLE_RMQ_INPUT.queries,
+  };
+  const arr = [...safeInput.array];
   const n = arr.length;
   const K = n > 0 ? Math.floor(Math.log2(n)) + 1 : 0;
 
@@ -223,7 +227,7 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
   );
 
   // Process queries
-  const queries = input.queries ?? [];
+  const queries = safeInput.queries;
   for (let qIdx = 0; qIdx < queries.length; qIdx++) {
     const { left, right } = queries[qIdx];
     const L = Math.max(0, Math.min(left, n - 1));
@@ -279,27 +283,27 @@ export const generateSparseTableRmqSteps = (input: SparseTableRmqInput): Algorit
 
 export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "A **Sparse Table** is an advanced static range query data structure that precomputes answers for all sub-intervals whose lengths are exact powers of $2$. Leveraging the algebraic property of **idempotence** ($f(x, x) = x$, such as $\\min$, $\\max$, or $\\text{GCD}$), any query range $[L \\dots R]$ can be completely covered by overlapping two precomputed power-of-2 sub-intervals. This enables Range Minimum Queries (RMQ) to execute in $O(1)$ constant time after $O(N \\log N)$ dynamic programming precomputation.",
+    "<p>A <strong>Sparse Table</strong> is an advanced static range query data structure that precomputes answers for all sub-intervals whose lengths are exact powers of 2. Leveraging the algebraic property of <strong>idempotence</strong> (<em>f(x, x) = x</em>, such as min, max, or GCD), any query range <code>[L...R]</code> can be completely covered by overlapping two precomputed power-of-2 sub-intervals. This enables Range Minimum Queries (RMQ) to execute in <code>O(1)</code> constant time after <code>O(N log N)</code> dynamic programming precomputation.</p>",
   sections: [
     {
       heading: "1. Power-of-Two Sub-interval Precomputation",
-      body: "Instead of precomputing all $O(N^2)$ possible contiguous sub-intervals, a Sparse Table computes values only for sub-intervals of length $2^j$ starting at index $i$, where $0 \\le j \\le \\lfloor \\log_2 N \\rfloor$.\n\n- Entry `st[i][j]` stores the minimum for interval $[i \\dots i + 2^j - 1]$.\n- Table dimensions are $N \\times (\\lfloor \\log_2 N \\rfloor + 1)$, requiring $O(N \\log N)$ space.",
+      body: "<p>Instead of precomputing all <code>O(N²)</code> possible contiguous sub-intervals, a Sparse Table computes values only for sub-intervals of length <code>2^j</code> starting at index <code>i</code>, where <code>0 &le; j &le; &lfloor;log₂ N&rfloor;</code>.</p><ul><li>Entry <code>st[i][j]</code> stores the minimum for interval <code>[i...i + 2^j - 1]</code>.</li><li>Table dimensions are <code>N &times; (&lfloor;log₂ N&rfloor; + 1)</code>, requiring <code>O(N log N)</code> space.</li></ul>",
     },
     {
       heading: "2. Dynamic Programming Precomputation",
-      body: "The table is built bottom-up by powers of two:\n\n- **Base Case ($j=0$, length $2^0=1$)**: `st[i][0] = arr[i]`.\n- **Inductive Step ($j \\ge 1$, length $2^j$)**: Split the length-$2^j$ interval into two adjacent halves of length $2^{j-1}$:\n\n$$\\text{st}[i][j] = \\min\\left(\\text{st}[i][j-1], \\, \\text{st}[i + 2^{j-1}][j-1]\\right)$$",
+      body: "<p>The table is built bottom-up by powers of two:</p><ul><li><strong>Base Case (j=0, length 2⁰=1)</strong>: <code>st[i][0] = arr[i]</code>.</li><li><strong>Inductive Step (j &ge; 1, length 2^j)</strong>: Split the length-<code>2^j</code> interval into two adjacent halves of length <code>2^(j-1)</code>: <code>st[i][j] = min(st[i][j-1], st[i + 2^(j-1)][j-1])</code>.</li></ul>",
     },
     {
-      heading: "3. Constant Time $O(1)$ Overlapping Query Mechanics",
-      body: "To query range $[L \\dots R]$:\n\n1. Compute length $\\text{len} = R - L + 1$ and power exponent $k = \\lfloor \\log_2(\\text{len}) \\rfloor$.\n2. The range is covered by two overlapping intervals of length $2^k$:\n   - Left subsegment $[L \\dots L + 2^k - 1]$ stored at `st[L][k]`.\n   - Right subsegment $[R - 2^k + 1 \\dots R]$ stored at `st[R - 2^k + 1][k]`.\n3. Return the minimum of the two parts:\n\n$$\\text{RMQ}(L, R) = \\min\\left(\\text{st}[L][k], \\, \\text{st}[R - 2^k + 1][k]\\right)$$",
+      heading: "3. Constant Time O(1) Overlapping Query Mechanics",
+      body: "<p>To query range <code>[L...R]</code>:</p><ul><li>Compute length <code>len = R - L + 1</code> and power exponent <code>k = &lfloor;log₂(len)&rfloor;</code>.</li><li>The range is covered by two overlapping intervals of length <code>2^k</code>:<ul><li>Left subsegment <code>[L...L + 2^k - 1]</code> stored at <code>st[L][k]</code>.</li><li>Right subsegment <code>[R - 2^k + 1...R]</code> stored at <code>st[R - 2^k + 1][k]</code>.</li></ul></li><li>Return the minimum of the two parts: <code>RMQ(L, R) = min(st[L][k], st[R - 2^k + 1][k])</code>.</li></ul>",
     },
     {
       heading: "4. Trade-off Matrix: Sparse Table vs Segment Tree",
-      body: "| Feature | Sparse Table | Segment Tree |\n| :--- | :--- | :--- |\n| **Query Complexity** | $O(1)$ constant time | $O(\\log N)$ logarithmic time |\n| **Update Complexity** | Static Only ($O(N \\log N)$ rebuild) | $O(\\log N)$ point/range updates |\n| **Supported Operations** | Idempotent Only ($min$, $max$, $\\text{GCD}$) | Any Associative Operation (including Sum) |",
+      body: "<p>Comparing static power-of-two lookups against dynamic logarithmic trees:</p><ul><li><strong>Query Complexity</strong>: Sparse Table achieves <code>O(1)</code> constant time versus Segment Tree's <code>O(log N)</code>.</li><li><strong>Update Complexity</strong>: Sparse Table is static only (requires <code>O(N log N)</code> full rebuild), whereas Segment Tree handles <code>O(log N)</code> point/range updates.</li><li><strong>Supported Operations</strong>: Sparse Table requires idempotent operations (<code>min</code>, <code>max</code>, <code>GCD</code>), whereas Segment Trees support any associative operation including summation.</li></ul>",
     },
     {
       heading: "5. Interview Pitfalls & Common Bugs",
-      body: "- **Non-Idempotent Operations**: Never use Sparse Tables for Range Sum queries in $O(1)$ time, as overlapping elements would be counted twice.\n- **0-Based Index Math**: Ensure $R - 2^k + 1$ is calculated correctly to align the right-hand covering interval with boundary $R$.",
+      body: "<ul><li><strong>Non-Idempotent Operations</strong>: Never use Sparse Tables for Range Sum queries in <code>O(1)</code> time, as overlapping elements would be counted twice.</li><li><strong>0-Based Index Math</strong>: Ensure <code>R - 2^k + 1</code> is calculated correctly to align the right-hand covering interval with boundary <code>R</code>.</li></ul>",
     },
   ],
   keyTerms: [
@@ -310,16 +314,16 @@ export const SPARSE_TABLE_RMQ_TOPIC_GUIDE: TopicGuide = {
     {
       term: "Idempotence",
       definition:
-        "A mathematical property where combining a value with itself yields the same value: $f(x, x) = x$ (e.g. $\\min(a, a) = a$).",
+        "A mathematical property where combining a value with itself yields the same value: f(x, x) = x (e.g. min(a, a) = a).",
     },
     {
       term: "Power-of-Two Interval",
-      definition: "A sub-interval whose length is an exact power of 2 ($1, 2, 4, 8, \\dots$).",
+      definition: "A sub-interval whose length is an exact power of 2 (1, 2, 4, 8, ...).",
     },
     {
       term: "Overlapping Coverage",
       definition:
-        "Covering range $[L \\dots R]$ using two overlapping intervals of length $2^k$ in $O(1)$ time without double-counting errors.",
+        "Covering range [L...R] using two overlapping intervals of length 2^k in O(1) time without double-counting errors.",
     },
   ],
 };
@@ -372,7 +376,7 @@ export const sparseTableRmq: AlgorithmDefinition<SparseTableRmqInput> = {
   topicIds: ["advanced_range_queries"],
   difficulty: "Medium",
   description:
-    "A **Sparse Table** precomputes range minimums for power-of-two interval lengths. Leveraging the idempotence of minimum operations, it achieves $O(N \\log N)$ precomputation time and $O(1)$ constant query time on static arrays.",
+    "<p>A <strong>Sparse Table</strong> precomputes range minimums for power-of-two interval lengths. Leveraging the idempotence of minimum operations, it achieves <code>O(N log N)</code> precomputation time and <code>O(1)</code> constant query time on static arrays.</p>",
   constraints: ["1 <= N <= 10^5", "1 <= Q <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {

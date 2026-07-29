@@ -51,15 +51,18 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
   };
 
   const hoveredNode = hoveredNodeId ? ML_INFRA_TREE_PLACEMENT_MAP.get(hoveredNodeId) : undefined;
-  const positionedPlacements = useMemo(() => {
-    return layoutResponsiveGraph(ML_INFRA_TREE_PLACEMENTS, { width: measuredBox.width, height: 0 })
-      .nodes;
-  }, [measuredBox]);
-  const canvasHeight = layoutResponsiveGraph(ML_INFRA_TREE_PLACEMENTS, {
-    width: measuredBox.width,
-    height: 0,
-  }).canvasHeight;
-  const canvasBox = { width: measuredBox.width, height: canvasHeight };
+  const layout = useMemo(() => {
+    return layoutResponsiveGraph(
+      ML_INFRA_TREE_PLACEMENTS,
+      { width: measuredBox.width, height: 0 },
+      { nodeWidth: 240, nodeHeight: 64 },
+    );
+  }, [measuredBox.width]);
+
+  const positionedPlacements = layout.nodes;
+  const canvasHeight = layout.canvasHeight;
+  const canvasWidth = layout.canvasWidth;
+  const canvasBox = { width: canvasWidth, height: canvasHeight };
   const positionedPlacementMap = useMemo(
     () => new Map(positionedPlacements.map((placement) => [placement.id, placement])),
     [positionedPlacements],
@@ -95,14 +98,14 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
       </ul>
 
       {/* Main Card Container */}
-      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-3 shadow-2xl relative mx-auto">
+      <div className="w-full overflow-x-auto bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-4 shadow-2xl relative mx-auto">
         <div
           ref={canvasRef}
           data-testid="ml-infra-canvas"
           style={{
-            width: "100%",
+            width: `${canvasWidth}px`,
+            minWidth: "100%",
             height: `${canvasHeight}px`,
-            overflow: "hidden",
           }}
         >
           <svg

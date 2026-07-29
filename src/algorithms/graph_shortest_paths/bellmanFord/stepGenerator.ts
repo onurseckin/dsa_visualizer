@@ -5,9 +5,9 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawNodes = input.nodes || [];
-  const rawEdges = input.edges || [];
-  const startNode = input.startNode || (rawNodes[0] ?? "");
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
+  const startNode = typeof input?.startNode === "string" ? input.startNode : (rawNodes[0] ?? "S");
 
   const dist: Record<string, number> = {};
   rawNodes.forEach((n) => (dist[n] = Infinity));

@@ -27,7 +27,7 @@ export const generateNearestSmallerElementSteps = (
   input: NearestSmallerElementInput,
 ): AlgorithmStep[] => {
   const nums =
-    input?.nums && Array.isArray(input.nums) && input.nums.length > 0
+    Array.isArray(input?.nums) && input.nums.length > 0
       ? [...input.nums]
       : DEFAULT_NEAREST_SMALLER_INPUT.nums;
   const n = nums.length;
@@ -42,8 +42,8 @@ export const generateNearestSmallerElementSteps = (
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Start Nearest Smaller Element computation for array of length ${n}`,
-      why: `We use a monotonic stack to find the nearest leftward value smaller than nums[i] for every position i in $O(N)$ total time.`,
+      what: `Initialize monotonic stack search for input sequence of length ${n}`,
+      why: "We prepare to scan the array left-to-right, maintaining a monotonic stack of candidate values to identify the nearest smaller predecessor for each position in linear O(N) total time.",
     },
     primarySnapshot: {
       kind: "array",
@@ -65,8 +65,8 @@ export const generateNearestSmallerElementSteps = (
     stepIndex: stepIndex++,
     codeLine: 2,
     explanation: {
-      what: `Get array length n = ${n}`,
-      why: "Cache array length to bound single-pass loop iterations.",
+      what: `Determine sequence length (N = ${n})`,
+      why: "Establishes the total iteration count for scanning all elements in a single sequential pass.",
     },
     primarySnapshot: {
       kind: "array",
@@ -88,8 +88,8 @@ export const generateNearestSmallerElementSteps = (
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: `Initialize result array of length ${n} with default -1 values`,
-      why: "Default value -1 indicates no smaller element exists to the left.",
+      what: `Initialize output array with default -1 entries`,
+      why: "A value of -1 represents the baseline assumption that no smaller element exists to the left until a valid predecessor is identified.",
     },
     primarySnapshot: {
       kind: "array",
@@ -111,8 +111,8 @@ export const generateNearestSmallerElementSteps = (
     stepIndex: stepIndex++,
     codeLine: 4,
     explanation: {
-      what: "Initialize empty monotonic stack",
-      why: "The stack will hold candidate values in strictly monotonically increasing order.",
+      what: "Create empty candidate stack",
+      why: "The stack will maintain candidate elements in strictly increasing order, allowing rapid O(1) access to the nearest smaller element.",
     },
     primarySnapshot: {
       kind: "array",
@@ -137,8 +137,8 @@ export const generateNearestSmallerElementSteps = (
       stepIndex: stepIndex++,
       codeLine: 6,
       explanation: {
-        what: `Inspect element nums[${i}] = ${current}`,
-        why: `Process index ${i} with value ${current}. We check the monotonic stack to find the nearest preceding element strictly smaller than ${current}.`,
+        what: `Scan element nums[${i}] = ${current} at index ${i}`,
+        why: `Evaluating element ${current}. We inspect the monotonic stack to determine whether preceding elements are smaller or dominated.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -167,14 +167,14 @@ export const generateNearestSmallerElementSteps = (
       explanation: {
         what:
           stack.length > 0
-            ? `Check condition: stack top (${stack[stack.length - 1]}) >= nums[${i}] (${current})`
-            : `Stack is empty; skip popping loop`,
+            ? `Compare stack top candidate (${stack[stack.length - 1]}) with current element ${current}`
+            : "Stack is empty; no candidates to compare",
         why:
           stack.length > 0 && stack[stack.length - 1] >= current
-            ? `Stack top ${stack[stack.length - 1]} is >= current element ${current}. It cannot be a nearest smaller element and must be popped.`
+            ? `Candidate ${stack[stack.length - 1]} is greater than or equal to current element ${current}. To preserve monotonic increasing order, this candidate must be evicted.`
             : stack.length > 0
-              ? `Stack top ${stack[stack.length - 1]} < current element ${current}. Monotonic invariant holds; stop popping.`
-              : `No candidates to pop from empty stack.`,
+              ? `Candidate ${stack[stack.length - 1]} is strictly smaller than ${current}. The monotonic invariant is satisfied, establishing this as the nearest smaller element.`
+              : "With an empty stack, there are no preceding candidate elements to evaluate.",
       },
       primarySnapshot: {
         kind: "array",
@@ -203,8 +203,8 @@ export const generateNearestSmallerElementSteps = (
         stepIndex: stepIndex++,
         codeLine: 8,
         explanation: {
-          what: `Pop ${popped} from stack`,
-          why: `Popped ${popped} because ${popped} >= ${current}. Since ${current} comes later and is smaller or equal, ${popped} can never be the nearest smaller element for ${current} or any future elements (Domination Principle).`,
+          what: `Evict candidate ${popped} from monotonic stack`,
+          why: `Since ${current} is smaller or equal and appears later, ${popped} is permanently dominated. It can never serve as a nearest smaller element for ${current} or any subsequent rightward positions.`,
         },
         primarySnapshot: {
           kind: "array",
@@ -234,12 +234,12 @@ export const generateNearestSmallerElementSteps = (
       explanation: {
         what:
           stack.length > 0
-            ? `Stack contains candidate ${stack[stack.length - 1]}`
-            : "Stack is empty",
+            ? `Valid nearest smaller candidate found on stack: ${stack[stack.length - 1]}`
+            : "No smaller predecessor exists to the left",
         why:
           stack.length > 0
-            ? `After popping larger/equal elements, stack top ${stack[stack.length - 1]} is the nearest smaller element to the left of ${current}.`
-            : `All preceding elements were >= ${current}, so no smaller element exists to the left.`,
+            ? `After popping larger or equal elements, the top of the stack is guaranteed to be the closest smaller element to the left.`
+            : `All preceding values were greater than or equal to ${current}, leaving -1 as the output for position ${i}.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -268,8 +268,8 @@ export const generateNearestSmallerElementSteps = (
         stepIndex: stepIndex++,
         codeLine: 10,
         explanation: {
-          what: `Set result[${i}] = ${result[i]}`,
-          why: `Record ${result[i]} as the nearest smaller element to the left of index ${i} (nums[${i}] = ${current}).`,
+          what: `Record result[${i}] = ${result[i]}`,
+          why: `Stores ${result[i]} as the verified nearest smaller leftward element for nums[${i}].`,
         },
         primarySnapshot: {
           kind: "array",
@@ -295,8 +295,8 @@ export const generateNearestSmallerElementSteps = (
       stepIndex: stepIndex++,
       codeLine: 11,
       explanation: {
-        what: `Push ${current} onto stack`,
-        why: `Push ${current} onto the stack so it can serve as a candidate smaller element for future indices to the right. Stack is now [${stack.join(", ")}].`,
+        what: `Push current element ${current} onto candidate stack`,
+        why: `Enters ${current} onto the stack so it can act as a candidate nearest smaller element for future elements further right.`,
       },
       primarySnapshot: {
         kind: "array",
@@ -325,8 +325,8 @@ export const generateNearestSmallerElementSteps = (
     stepIndex: stepIndex++,
     codeLine: 13,
     explanation: {
-      what: `Return nearest smaller element result array: [${result.join(", ")}]`,
-      why: "Monotonic stack traversal complete. Every element was pushed once and popped at most once in linear O(N) total time.",
+      what: `Complete monotonic stack scan and return result array`,
+      why: "All elements have been processed. Every element was pushed once and popped at most once, guaranteeing linear O(N) total runtime.",
     },
     primarySnapshot: {
       kind: "array",
@@ -368,40 +368,38 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   title: "Nearest Smaller Element",
   topicIds: ["stack_and_queue"],
   difficulty: "Medium",
-  description: `Given an array of integers \`nums\`, find the nearest smaller element to the left for each element in the array.
-
-For each element at index $i$ ($0 \\le i < N$), locate the largest index $j < i$ such that $\\text{nums}[j] < \\text{nums}[i]$. If no such element exists, output \`-1\` for index $i$. A monotonic stack algorithm computes the answer in linear $O(N)$ time by maintaining an increasing stack of candidate elements.
-
-### Why It Exists & Real-World Relevance
-Finding nearest smaller or larger elements in an array is a fundamental pattern in algorithm design. A naive nested loop takes $O(N^2)$ time, which becomes prohibitively slow for arrays with millions of elements. Monotonic stacks solve this class of problems in linear $O(N)$ time.
-
-Real-world applications include:
-- **Histogram & Layout Math**: Computing the largest rectangle in a histogram (e.g. LeetCode 84) relies on finding the nearest smaller element on both left and right sides to establish bar boundaries.
-- **Stock Span & Financial Analytics**: Calculating how many consecutive days prior to today a stock price was lower or equal.
-- **Tensor & Memory Layout Compilers**: PyTorch and TensorFlow compilers use monotonic bounds to find non-overlapping contiguous memory spans.
-
-### How It Works (Step-by-Step Intuition)
-1. Maintain an increasing monotonic stack storing candidate elements.
-2. Iterate through each element \`nums[i]\` from left to right.
-3. **Pop Phase**: While the stack is non-empty and the top element is $\\ge \\text{nums}[i]$, pop it. Why? Because \`nums[i]\` is both smaller (or equal) and positioned further right, so any future element that could use the popped value can use \`nums[i]\` instead.
-4. **Answer Phase**: If the stack is non-empty after popping, the top element is the nearest smaller element to the left of \`nums[i]\`. If the stack is empty, no smaller element exists to the left, so record \`-1\`.
-5. **Push Phase**: Push \`nums[i]\` onto the stack.
-
-$$\\text{stack}[-1] \\ge \\text{nums}[i] \\implies \\text{stack.pop}()$$
-$$\\sum_{i=0}^{N-1} (\\text{push count} + \\text{pop count}) \\le 2N = O(N)$$
-
-### Input Parameters
-- \`nums\`: An array of integers.
-
-### Output
-- Returns an array \`result\` of length $N$ where \`result[i]\` is the nearest smaller element to the left of \`nums[i]\`, or \`-1\` if no smaller element exists to its left.
-
-### Edge Cases & Constraints
-- \`1 <= nums.length <= 10^5\`
-- \`-10^4 <= nums[i] <= 10^4\`
-- Strictly increasing array: Each element's nearest smaller element is its immediate left neighbor.
-- Strictly decreasing array: No element has a smaller element to its left; all entries in \`result\` are \`-1\`.
-- Duplicate elements: Popping when $\\text{stack}[-1] \\ge \\text{nums}[i]$ ensures equal values are popped, preserving strict monotonicity.`,
+  description: `<p>Given an array of integers <code>nums</code>, find the nearest smaller element to the left for each element in the array.</p>
+<p>For each element at index <em>i</em> (0 &le; <em>i</em> &lt; <em>N</em>), locate the largest index <em>j</em> &lt; <em>i</em> such that <code>nums[j]</code> &lt; <code>nums[i]</code>. If no such element exists, output <code>-1</code> for index <em>i</em>. A monotonic stack algorithm computes the answer in linear <em>O(N)</em> time by maintaining an increasing stack of candidate elements.</p>
+<h3>Why It Exists &amp; Real-World Relevance</h3>
+<p>Finding nearest smaller or larger elements in an array is a fundamental pattern in algorithm design. A naive nested loop takes <em>O(N<sup>2</sup>)</em> time, which becomes prohibitively slow for large arrays. Monotonic stacks solve this class of problems in linear <em>O(N)</em> time.</p>
+<p>Real-world applications include:</p>
+<ul>
+  <li><strong>Histogram &amp; Layout Math</strong>: Computing the largest rectangle in a histogram relies on finding the nearest smaller element on both left and right sides to establish bar boundaries.</li>
+  <li><strong>Stock Span &amp; Financial Analytics</strong>: Calculating how many consecutive days prior to today a stock price was lower or equal.</li>
+  <li><strong>Tensor &amp; Memory Layout Compilers</strong>: PyTorch and TensorFlow compilers use monotonic bounds to find non-overlapping contiguous memory spans.</li>
+</ul>
+<h3>How It Works (Step-by-Step Intuition)</h3>
+<ul>
+  <li>Maintain an increasing monotonic stack storing candidate elements.</li>
+  <li>Iterate through each element <code>nums[i]</code> from left to right.</li>
+  <li><strong>Pop Phase</strong>: While the stack is non-empty and the top element is &ge; <code>nums[i]</code>, pop it because <code>nums[i]</code> is both smaller (or equal) and positioned further right, so any future element that could use the popped value can use <code>nums[i]</code> instead.</li>
+  <li><strong>Answer Phase</strong>: If the stack is non-empty after popping, the top element is the nearest smaller element to the left of <code>nums[i]</code>. If empty, record <code>-1</code>.</li>
+  <li><strong>Push Phase</strong>: Push <code>nums[i]</code> onto the stack.</li>
+</ul>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: An array of integers.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an array <code>result</code> of length <em>N</em> where <code>result[i]</code> is the nearest smaller element to the left of <code>nums[i]</code>, or <code>-1</code> if no smaller element exists to its left.</p>
+<h3>Edge Cases &amp; Constraints</h3>
+<ul>
+  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code></li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code></li>
+  <li><strong>Strictly increasing array</strong>: Each element's nearest smaller element is its immediate left neighbor.</li>
+  <li><strong>Strictly decreasing array</strong>: No element has a smaller element to its left; all entries in <code>result</code> are <code>-1</code>.</li>
+  <li><strong>Duplicate elements</strong>: Popping when the stack top is &ge; <code>nums[i]</code> ensures equal values are popped, preserving strict monotonicity.</li>
+</ul>`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
@@ -442,27 +440,27 @@ $$\\sum_{i=0}^{N-1} (\\text{push count} + \\text{pop count}) \\le 2N = O(N)$$
   },
   topicGuide: {
     overview:
-      "The Nearest Smaller Element problem asks for the nearest preceding element smaller than each array entry. A naive search checks all preceding indices for each element, taking $O(N^2)$ time. By using a monotonic stack—a stack whose elements are maintained in strictly sorted order—we can prune invalid candidates and achieve $O(N)$ linear runtime. This paradigm is a cornerstone of competitive programming and systems engineering.",
+      "<p>The Nearest Smaller Element problem asks for the nearest preceding element smaller than each array entry. A naive search checks all preceding indices for each element, taking <em>O(N<sup>2</sup>)</em> time. By using a monotonic stack—a stack whose elements are maintained in strictly sorted order—we can prune invalid candidates and achieve <em>O(N)</em> linear runtime.</p>",
     sections: [
       {
         heading: "The Monotonic Stack Invariant",
-        body: "The algorithm maintains a stack whose entries strictly increase from bottom to top. When processing element $\\text{nums}[i]$, any stack element $\\ge \\text{nums}[i]$ is popped. This preserves the invariant: every element currently in the stack is strictly smaller than the elements above it. Once popping finishes, the top element is guaranteed to be the nearest smaller element to the left of index $i$.",
+        body: "<p>The algorithm maintains a stack whose entries strictly increase from bottom to top. When processing element <code>nums[i]</code>, any stack element &ge; <code>nums[i]</code> is popped. This preserves the invariant: every element currently in the stack is strictly smaller than the elements above it. Once popping finishes, the top element is guaranteed to be the nearest smaller element to the left of index <em>i</em>.</p>",
       },
       {
         heading: "Domination Principle & Amortized Linear Proof",
-        body: "Why is it safe to pop an element $x$ when $x \\ge \\text{nums}[i]$? Because $\\text{nums}[i]$ is both smaller than (or equal to) $x$ AND located further to the right. Any future element to the right of index $i$ that could potentially use $x$ as its nearest smaller element will find $\\text{nums}[i]$ (or something even smaller) first! Thus, $x$ is permanently dominated and can never be the answer for any subsequent query. Since each element is pushed once and popped at most once, total work across the entire scan is bounded by $2N$ operations, guaranteeing amortized $O(N)$ runtime.",
+        body: "<p>Why is it safe to pop an element <em>x</em> when <em>x</em> &ge; <code>nums[i]</code>? Because <code>nums[i]</code> is both smaller than (or equal to) <em>x</em> AND located further to the right. Any future element to the right of index <em>i</em> that could potentially use <em>x</em> as its nearest smaller element will find <code>nums[i]</code> (or something even smaller) first. Thus, <em>x</em> is permanently dominated and can never be the answer for any subsequent query. Since each element is pushed once and popped at most once, total work across the entire scan is bounded by 2<em>N</em> operations, guaranteeing amortized <em>O(N)</em> runtime.</p>",
       },
       {
         heading: "Comparison of Approaches & Trade-Offs",
-        body: "1. **Brute Force** $O(N^2)$: For each element $i$, scan leftward. Simple but exceeds time limits for $N > 10,000$.\n2. **Segment Tree / RMQ** $O(N \\log N)$: Supports dynamic range minimum queries, but requires $O(N)$ extra tree overhead and logarithmic query time.\n3. **Monotonic Stack** $O(N)$: Optimal for static array scans. Runs in linear time with sequential array access that maximizes CPU cache hit rates.",
+        body: "<p>1. <strong>Brute Force</strong> <em>O(N<sup>2</sup>)</em>: For each element <em>i</em>, scan leftward. Simple but exceeds time limits for large inputs.<br />2. <strong>Segment Tree / RMQ</strong> <em>O(N log N)</em>: Supports dynamic range minimum queries, but requires <em>O(N)</em> extra tree overhead and logarithmic query time.<br />3. <strong>Monotonic Stack</strong> <em>O(N)</em>: Optimal for static array scans. Runs in linear time with sequential array access that maximizes CPU cache hit rates.</p>",
       },
       {
         heading: "Systems Applications & Memory Efficiency",
-        body: "Monotonic stack traversals access memory sequentially, which plays exceptionally well with modern CPU hardware prefetchers. Dynamic array-backed stacks (such as C++ `std::vector` or Python lists) store entries contiguously in L1/L2 cache, making this algorithm significantly faster in practice than pointer-based data structures like binary search trees.",
+        body: "<p>Monotonic stack traversals access memory sequentially, which plays exceptionally well with modern CPU hardware prefetchers. Dynamic array-backed stacks store entries contiguously in L1/L2 cache, making this algorithm significantly faster in practice than pointer-based data structures like binary search trees.</p>",
       },
       {
         heading: "Edge Cases & Strict vs Non-Strict Variations",
-        body: "The condition `stack[-1] >= nums[i]` enforces strictly smaller nearest neighbors. If the problem asks for nearest smaller-or-equal elements, change the condition to `stack[-1] > nums[i]`. For duplicate elements (e.g. `[2, 2, 2]`), non-strict popping ensures the stack only holds distinct values when required.",
+        body: "<p>The condition <code>stack[-1] &ge; nums[i]</code> enforces strictly smaller nearest neighbors. If the problem asks for nearest smaller-or-equal elements, change the condition to <code>stack[-1] &gt; nums[i]</code>. For duplicate elements, non-strict popping ensures the stack only holds distinct values when required.</p>",
       },
     ],
     keyTerms: [

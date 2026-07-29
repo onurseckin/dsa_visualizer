@@ -69,7 +69,6 @@ export function useMainLayoutState() {
       applyPanelHeights(
         {
           tutorial: heights.tutorial ?? null,
-          auxiliary: heights.auxiliary ?? null,
           visualizer: heights.visualizer ?? null,
         },
         commit,

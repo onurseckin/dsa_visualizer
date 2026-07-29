@@ -26,11 +26,16 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectTopic })
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const { ref: canvasRef, box: measuredBox } = useCanvasBox({ width: 1200, height: 1 });
   const layout = useMemo(
-    () => layoutResponsiveGraph(DSA_TREE_PLACEMENTS, { width: measuredBox.width, height: 0 }),
+    () =>
+      layoutResponsiveGraph(
+        DSA_TREE_PLACEMENTS,
+        { width: measuredBox.width, height: 0 },
+        { nodeWidth: 200, nodeHeight: 64 },
+      ),
     [measuredBox.width],
   );
   const positionedPlacements = layout.nodes;
-  const canvasBox = { width: measuredBox.width, height: layout.canvasHeight };
+  const canvasBox = { width: layout.canvasWidth, height: layout.canvasHeight };
 
   return (
     <div
@@ -40,8 +45,16 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectTopic })
     >
       <KnowledgeGraphLegend />
 
-      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-3 shadow-2xl relative mx-auto">
-        <div ref={canvasRef} style={{ width: "100%", height: `${layout.canvasHeight}px` }}>
+      <div className="w-full overflow-x-auto bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-4 shadow-2xl relative mx-auto">
+        <div
+          ref={canvasRef}
+          data-testid="knowledge-graph-canvas"
+          style={{
+            width: `${layout.canvasWidth}px`,
+            minWidth: "100%",
+            height: `${layout.canvasHeight}px`,
+          }}
+        >
           <svg
             width="100%"
             height="100%"

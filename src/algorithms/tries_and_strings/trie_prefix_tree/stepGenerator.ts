@@ -1,10 +1,22 @@
 import type { AlgorithmStep, ElementState, GraphEdgeItem, GraphNodeItem } from "../../../types/dsa";
 import type { TriePrefixTreeInput, InternalTrieNode } from "./types";
+import { DEFAULT_TRIE_INPUT } from "./types";
 
 export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
   let nodeCounter = 0;
+
+  const wordsToInsert =
+    Array.isArray(input?.wordsToInsert) && input.wordsToInsert.length > 0
+      ? input.wordsToInsert
+      : DEFAULT_TRIE_INPUT.wordsToInsert;
+  const searchWord =
+    typeof input?.searchWord === "string" ? input.searchWord : DEFAULT_TRIE_INPUT.searchWord;
+  const prefixToSearch =
+    typeof input?.prefixToSearch === "string"
+      ? input.prefixToSearch
+      : DEFAULT_TRIE_INPUT.prefixToSearch;
 
   const rootTrieNode: InternalTrieNode = {
     id: "trie-root",
@@ -83,9 +95,9 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
       },
       auxiliaryState: {
         customState: {
-          insertedWords: input.wordsToInsert.join(", "),
-          searchWord: input.searchWord,
-          prefixToSearch: input.prefixToSearch,
+          insertedWords: wordsToInsert.join(", "),
+          searchWord: searchWord,
+          prefixToSearch: prefixToSearch,
         },
       },
       variables: extraVars,
@@ -94,21 +106,21 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
 
   addStep(
     8,
-    "Create the empty root node",
-    "We start with a single root that stands for the empty string — every word we insert will grow a path of characters down from here.",
+    "Initialize Trie root node",
+    "We start with a single root representing the empty string prefix. Every inserted word grows a character path extending downward from the root.",
     "trie-root",
     [],
     { status: "Initialized" },
   );
 
-  for (const word of input.wordsToInsert) {
+  for (const word of wordsToInsert) {
     let current = rootTrieNode;
     const traversedEdges: string[] = [];
 
     addStep(
       11,
-      `Start inserting "${word}"`,
-      `We begin at the root and walk down one character of "${word}" at a time, creating branches only where the path doesn't exist yet.`,
+      `Begin inserting word "${word}"`,
+      `Traversing character path for "${word}" starting at root node. New child nodes are created only when a prefix path diverges.`,
       current.id,
       [],
       { operation: "insert", word },
@@ -133,8 +145,8 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
 
         addStep(
           14,
-          `Create a new node for '${char}'`,
-          `No child for '${char}' exists on this path yet, so we grow the tree here — character ${i + 1} of "${word}" is the point where it diverges from everything stored so far.`,
+          `Create new Trie node for '${char}'`,
+          `No child link for '${char}' exists under current node. Allocating a new node for character ${i + 1} of "${word}".`,
           current.id,
           [...traversedEdges],
           { operation: "insert", word, char, created: true },
@@ -147,8 +159,8 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
 
         addStep(
           15,
-          `Reuse the existing '${char}' node`,
-          `A '${char}' child is already here from an earlier word, so we simply step into it — shared prefixes share nodes, which is the trie's whole space-saving trick.`,
+          `Traverse existing node for '${char}'`,
+          `A node for character '${char}' already exists from a previously inserted word. Reusing shared prefix node to optimize memory.`,
           current.id,
           [...traversedEdges],
           { operation: "insert", word, char, created: false },
@@ -159,23 +171,22 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
     current.isEndOfWord = true;
     addStep(
       16,
-      `Mark '${current.char}' as end of word`,
-      `We've placed every character of "${word}", so we flag this node as a word ending — without the flag we couldn't tell a stored word from a mere prefix later.`,
+      `Mark node '${current.char}' as terminal word ending`,
+      `All characters of "${word}" inserted. Setting is_end_of_word flag to distinguish complete words from intermediate prefixes.`,
       current.id,
       [...traversedEdges],
       { operation: "insert", word, isEndOfWord: true },
     );
   }
 
-  const searchWord = input.searchWord;
   let currentSearch = rootTrieNode;
   const searchEdges: string[] = [];
   let found = true;
 
   addStep(
     19,
-    `Search for "${searchWord}"`,
-    `We go back to the root and follow the exact character path for "${searchWord}" — the word is stored only if the path exists and ends on a marked node.`,
+    `Search for exact key "${searchWord}"`,
+    `Following root-to-leaf character path for "${searchWord}". The search succeeds only if all characters exist and the terminal node is flagged as a word ending.`,
     currentSearch.id,
     [],
     { operation: "search", targetWord: searchWord },
@@ -187,8 +198,8 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
       found = false;
       addStep(
         22,
-        `Stop — no '${char}' child here`,
-        `Node '${currentSearch.char}' has no child for '${char}', so "${searchWord}" was never inserted — the search returns False.`,
+        `Path broken at character '${char}'`,
+        `Current node '${currentSearch.char}' has no child link for '${char}'. Search for "${searchWord}" terminates early with false.`,
         currentSearch.id,
         [...searchEdges],
         { operation: "search", targetWord: searchWord, char, found: false },
@@ -203,8 +214,8 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
 
     addStep(
       23,
-      `Follow the '${char}' edge`,
-      `The child for '${char}' exists, so we step down into it and keep matching "${searchWord}" one character at a time.`,
+      `Traverse child link for '${char}'`,
+      `Character '${char}' matched. Advancing down the Trie branch to check subsequent characters of "${searchWord}".`,
       currentSearch.id,
       [...searchEdges],
       { operation: "search", targetWord: searchWord, char },
@@ -215,41 +226,42 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
     const isComplete = currentSearch.isEndOfWord;
     addStep(
       24,
-      isComplete ? `Confirm "${searchWord}" is stored` : `"${searchWord}" is only a prefix`,
       isComplete
-        ? `We matched every character and landed on a node flagged as a word ending, so search returns True.`
-        : `We matched all the characters, but this node was never marked as a word ending — "${searchWord}" is just the start of a longer word, so search returns False.`,
+        ? `Exact key "${searchWord}" verified`
+        : `"${searchWord}" is only an incomplete prefix`,
+      isComplete
+        ? `Matched all characters of "${searchWord}" and verified is_end_of_word flag is true. Return search success.`
+        : `Matched all characters of "${searchWord}", but terminal node is not marked as a word ending. Return search failure.`,
       currentSearch.id,
       [...searchEdges],
       { operation: "search", targetWord: searchWord, found: isComplete },
     );
   }
 
-  const prefix = input.prefixToSearch;
   let currentPrefix = rootTrieNode;
   const prefixEdges: string[] = [];
   let prefixFound = true;
 
   addStep(
     27,
-    `Check the prefix "${prefix}"`,
-    `starts_with only asks whether some word begins with "${prefix}", so we walk the same path from the root — this time no end-of-word flag is needed.`,
+    `Verify prefix existence for "${prefixToSearch}"`,
+    `Checking if any stored key begins with prefix "${prefixToSearch}". Only path presence is required; word-ending flags are ignored.`,
     currentPrefix.id,
     [],
-    { operation: "startsWith", prefix },
+    { operation: "startsWith", prefix: prefixToSearch },
   );
 
-  for (let i = 0; i < prefix.length; i++) {
-    const char = prefix[i];
+  for (let i = 0; i < prefixToSearch.length; i++) {
+    const char = prefixToSearch[i];
     if (!currentPrefix.children.has(char)) {
       prefixFound = false;
       addStep(
         30,
-        `Stop — the path breaks at '${char}'`,
-        `There is no child for '${char}' here, so no stored word starts with "${prefix}" — starts_with returns False.`,
+        `Prefix path broken at character '${char}'`,
+        `Node '${currentPrefix.char}' has no child for '${char}'. No stored word contains prefix "${prefixToSearch}". Return startsWith failure.`,
         currentPrefix.id,
         [...prefixEdges],
-        { operation: "startsWith", prefix, char, found: false },
+        { operation: "startsWith", prefix: prefixToSearch, char, found: false },
       );
       break;
     }
@@ -262,21 +274,21 @@ export const generateTriePrefixTreeSteps = (input: TriePrefixTreeInput): Algorit
     addStep(
       31,
       `Match prefix character '${char}'`,
-      `The '${char}' child exists, so we step into it — so far every character of the prefix agrees with what's stored.`,
+      `Character '${char}' matched in Trie. Moving down to verify remaining characters of prefix "${prefixToSearch}".`,
       currentPrefix.id,
       [...prefixEdges],
-      { operation: "startsWith", prefix, char },
+      { operation: "startsWith", prefix: prefixToSearch, char },
     );
   }
 
   if (prefixFound) {
     addStep(
       32,
-      `Confirm prefix "${prefix}" exists`,
-      `We walked the whole prefix without falling off the tree, so at least one stored word starts with "${prefix}" — starts_with returns True. Every operation here cost one node per character, which is where the O(L) bound comes from.`,
+      `Prefix "${prefixToSearch}" verified`,
+      `Successfully traversed all characters of prefix "${prefixToSearch}". At least one word in the Trie shares this prefix. Return startsWith success.`,
       currentPrefix.id,
       [...prefixEdges],
-      { operation: "startsWith", prefix, found: true },
+      { operation: "startsWith", prefix: prefixToSearch, found: true },
     );
   }
 

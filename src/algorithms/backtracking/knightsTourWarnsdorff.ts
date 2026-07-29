@@ -60,9 +60,13 @@ const WARNSDORFF_TRIVIA: TriviaMeta = {
 };
 
 export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): AlgorithmStep[] => {
-  const n = Math.max(3, Math.min(8, input.size));
-  const startR = Math.max(0, Math.min(n - 1, input.startRow));
-  const startC = Math.max(0, Math.min(n - 1, input.startCol));
+  const safeInput = input ?? DEFAULT_KNIGHTS_TOUR_INPUT;
+  const rawSize = safeInput.size ?? DEFAULT_KNIGHTS_TOUR_INPUT.size;
+  const n = Math.max(3, Math.min(8, rawSize));
+  const rawStartRow = safeInput.startRow ?? DEFAULT_KNIGHTS_TOUR_INPUT.startRow;
+  const rawStartCol = safeInput.startCol ?? DEFAULT_KNIGHTS_TOUR_INPUT.startCol;
+  const startR = Math.max(0, Math.min(n - 1, rawStartRow));
+  const startC = Math.max(0, Math.min(n - 1, rawStartCol));
 
   const steps: AlgorithmStep[] = [];
   let stepCount = 0;
@@ -119,8 +123,8 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
     stepIndex: stepCount++,
     codeLine: 13,
     explanation: {
-      what: `Placed knight at starting position (${startR}, ${startC}).`,
-      why: "Initial position marked as step 1.",
+      what: `Place knight at initial starting square (${startR}, ${startC}).`,
+      why: "The starting position is marked as move 1 of the tour.",
     },
     primarySnapshot: {
       kind: "grid",
@@ -162,7 +166,7 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
         codeLine: 24,
         explanation: {
           what: `No valid unvisited moves remaining from (${currR}, ${currC}).`,
-          why: "Knight reached a dead end before completing the full tour.",
+          why: "The knight encountered a dead end before visiting all board squares.",
         },
         primarySnapshot: {
           kind: "grid",
@@ -190,8 +194,8 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
       stepIndex: stepCount++,
       codeLine: 21,
       explanation: {
-        what: `Evaluated ${candidates.length} candidate moves from (${currR}, ${currC}) via Warnsdorff degrees.`,
-        why: "Warnsdorff's rule prioritizes squares with the fewest onward unvisited neighbors.",
+        what: `Evaluate ${candidates.length} candidate moves from (${currR}, ${currC}) using Warnsdorff onward degrees.`,
+        why: "Warnsdorff's heuristic prioritizes candidate squares with the fewest onward unvisited neighbors to avoid isolation.",
       },
       primarySnapshot: {
         kind: "grid",
@@ -223,8 +227,8 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
       stepIndex: stepCount++,
       codeLine: 27,
       explanation: {
-        what: `Moved knight to (${currR}, ${currC}) (step ${moveIdx + 1}).`,
-        why: "Selected candidate move with minimum onward degree.",
+        what: `Advance knight to (${currR}, ${currC}) (move ${moveIdx + 1}).`,
+        why: "Selected the candidate square with the minimum onward degree.",
       },
       primarySnapshot: {
         kind: "grid",
@@ -251,8 +255,8 @@ export const generateKnightsTourWarnsdorffSteps = (input: KnightsTourInput): Alg
       stepIndex: stepCount++,
       codeLine: 30,
       explanation: {
-        what: `Completed full Knight's Tour visiting all ${totalSquares} squares!`,
-        why: "Warnsdorff's heuristic guided the knight through all squares without backtracking.",
+        what: `Knight's Tour complete! All ${totalSquares} board squares visited successfully.`,
+        why: "Warnsdorff's greedy heuristic guided the knight through a full space-filling Hamiltonian path without backtracking.",
       },
       primarySnapshot: {
         kind: "grid",
@@ -281,7 +285,7 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   topicIds: ["backtracking"],
   difficulty: "Medium",
   description:
-    "Construct a valid Knight's Tour visiting every square on an N×N chessboard exactly once using Warnsdorff's minimum-degree heuristic.\n\n### Problem Statement\nGiven an $N \\times N$ chessboard and a starting coordinate `(startRow, startCol)`, construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.\n\nWhile brute-force depth-first search exhibits exponential explosion $O(8^{N^2})$, Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial $O(N^2)$ time without deep backtracking.\n\n### Input Parameters\n- `size` (int): Board dimension $N$.\n- `startRow` (int): Starting row coordinate.\n- `startCol` (int): Starting column coordinate.\n\n### Output\n- tuple[bool, list[list[int]]]: Success boolean flag and 2D matrix containing step numbers (0 to $N^2-1$).\n\n### Constraints & Edge Cases\n- `3 <= size <= 8`\n- `0 <= startRow, startCol < size`\n- Small 3x3 boards terminate early as dead ends because no complete tour exists.",
+    "<p>Construct a valid Knight's Tour visiting every square on an N&times;N chessboard exactly once using Warnsdorff's minimum-degree heuristic.</p><h3>Problem Statement</h3><p>Given an <code>N &times; N</code> chessboard and a starting coordinate <code>(startRow, startCol)</code>, construct a valid Knight's Tour — a sequence of knight moves visiting every square on the board exactly once.</p><p>While brute-force depth-first search exhibits exponential explosion <code>O(8^(N^2))</code>, Warnsdorff's heuristic greedily moves the knight to the unvisited candidate square with the smallest number of valid onward unvisited neighbors. This greedy heuristic solves tours in polynomial <code>O(N^2)</code> time without deep backtracking.</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>size</code> (board dimension N), <code>startRow</code>, and <code>startCol</code>.</li><li><strong>Output:</strong> A 2D matrix containing step numbers (0 to <code>N^2 - 1</code>) for every board square.</li></ul><h3>Constraints &amp; Edge Cases</h3><ul><li><code>3 &lt;= size &lt;= 8</code></li><li><code>0 &lt;= startRow, startCol &lt; size</code></li><li>Small 3x3 boards terminate early as dead ends because no complete tour exists.</li></ul>",
   constraints: ["3 <= size <= 8", "0 <= startRow, startCol < size"],
   examples: [
     {
@@ -354,23 +358,23 @@ export const knightsTourWarnsdorff: AlgorithmDefinition<KnightsTourInput> = {
   },
   topicGuide: {
     overview:
-      "The Knight's Tour is a classic Hamiltonian path problem on a graph where vertices are chessboard squares and edges are valid L-shaped knight moves. Naive depth-first search suffers from combinatorial explosion. In 1823, H. C. von Warnsdorff introduced the minimum-degree onward move heuristic, turning exponential state space exploration into a polynomial greedy search. Modern systems application of this heuristic technique include robotic arm joint path trajectory optimization and spatial space-filling curve generation.",
+      "<p>The Knight's Tour is a classic Hamiltonian path problem on a graph where vertices are chessboard squares and edges are valid L-shaped knight moves. Naive depth-first search suffers from combinatorial explosion. In 1823, H. C. von Warnsdorff introduced the minimum-degree onward move heuristic, turning exponential state space exploration into a polynomial greedy search. Modern systems applications of this heuristic technique include robotic arm joint path trajectory optimization and spatial space-filling curve generation.</p>",
     sections: [
       {
         heading: "Warnsdorff's Minimum-Degree Rule",
-        body: "Always select the candidate unvisited square that has the FEWEST valid onward unvisited knight moves. Prioritizing constrained squares (such as board corners and edges) early prevents them from becoming isolated un-reachable nodes later in the tour.",
+        body: "<p>Always select the candidate unvisited square that has the <strong>FEWEST</strong> valid onward unvisited knight moves. Prioritizing constrained squares (such as board corners and edges) early prevents them from becoming isolated un-reachable nodes later in the tour.</p>",
       },
       {
         heading: "Tie-Breaking & Squirrel Strategies",
-        body: "When multiple candidate squares share equal minimum onward degrees, ties can cause dead ends on large boards. Breaking ties by favoring candidates furthest from the board center (or using Roth's tie-breaking rules) guarantees deterministic completion for arbitrary board dimensions.",
+        body: "<p>When multiple candidate squares share equal minimum onward degrees, ties can cause dead ends on large boards. Breaking ties by favoring candidates furthest from the board center (or using Roth's tie-breaking rules) guarantees deterministic completion for arbitrary board dimensions.</p>",
       },
       {
         heading: "Systems Applications & Space-Filling Curves",
-        body: "Space-filling traversals on 2D grids (similar to Hilbert curves and Morton Z-order curves) are used in database spatial indexing and memory cache locality optimizations. Warnsdorff-style greedy graph walks offer efficient continuous coverage for robotic vacuum cleaners and automated 3D printing nozzles.",
+        body: "<p>Space-filling traversals on 2D grids (similar to Hilbert curves and Morton Z-order curves) are used in database spatial indexing and memory cache locality optimizations. Warnsdorff-style greedy graph walks offer efficient continuous coverage for robotic vacuum cleaners and automated 3D printing nozzles.</p>",
       },
       {
         heading: "Closed vs Open Tours",
-        body: "An open tour visits all N^2 squares without returning to the start. A closed (or re-entrant) tour requires the last visited square (step N^2-1) to be a single knight's move away from (startRow, startCol), creating a continuous directed cycle.",
+        body: "<p>An open tour visits all <code>N^2</code> squares without returning to the start. A closed (or re-entrant) tour requires the last visited square (step <code>N^2 - 1</code>) to be a single knight's move away from <code>(startRow, startCol)</code>, creating a continuous directed cycle.</p>",
       },
     ],
     keyTerms: [

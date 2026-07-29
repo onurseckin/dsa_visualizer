@@ -78,34 +78,39 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   addStep(
     1,
-    `Evaluate ${n} piles: [${piles.join(", ")}]`,
-    "To decide who wins this Nim position, we compute the Nim-sum (bitwise XOR of all pile sizes).",
+    `Evaluating Nim position with ${n} piles: [${piles.join(", ")}].`,
+    "The Sprague-Grundy theorem proves that the game outcome depends entirely on the bitwise XOR sum (Nim-sum) of all pile sizes.",
     { n, piles: piles.join(", ") },
   );
 
   addStep(
     2,
-    "Initialize running xor_sum = 0",
-    "Starting accumulator for folding pile sizes via bitwise XOR.",
+    "Initializing running Nim-sum accumulator to 0.",
+    "The Nim-sum aggregates parity counts across all binary bit positions of the pile sizes.",
     { xorSum: 0 },
   );
 
   addStep(
     3,
-    `Calculate total piles n = ${n}`,
-    "Determines total iterations for computing the Nim-sum.",
+    `Recorded pile count n = ${n}.`,
+    "Preparing to iterate through all piles to compute the combined Nim-sum.",
     { n },
   );
 
   if (n === 0) {
-    addStep(7, "Check Nim-sum on empty board: xor_sum = 0", "With 0 piles, the Nim-sum is 0.", {
-      n,
-      xorSum: 0,
-    });
+    addStep(
+      7,
+      "Checking Nim-sum on empty board: xorSum = 0.",
+      "With 0 piles, the Nim-sum is 0 by definition.",
+      {
+        n,
+        xorSum: 0,
+      },
+    );
     addStep(
       8,
-      "Game complete: no piles to play (Second Player Wins)",
-      "With no piles there is no legal move, so the First Player loses and Second Player wins by default.",
+      "Game complete: no piles to play (Second Player Wins).",
+      "No legal moves remain, so the player to move loses under normal play rules.",
       { n, xorSum: 0, winner: "Second Player" },
       -1,
       -1,
@@ -120,8 +125,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       4,
-      `Inspect pile ${i} of size ${piles[i]}`,
-      `Preparing to fold pile ${i} (value ${piles[i]}, binary 0b${piles[i].toString(2)}) into the running XOR accumulator.`,
+      `Inspecting pile ${i} of size ${piles[i]} (binary 0b${piles[i].toString(2)}).`,
+      `Folding pile ${i} into the global XOR total to analyze bit parities.`,
       { i, pileSize: piles[i] },
     );
 
@@ -130,8 +135,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       5,
-      `XOR in pile ${i} of size ${piles[i]}: ${prevXor} ^ ${piles[i]} = ${currentXorSum}`,
-      `Running XOR total updated to ${currentXorSum} (binary 0b${currentXorSum.toString(2)}). Each set bit in the Nim-sum indicates an odd count of piles having that power-of-two bit set.`,
+      `Accumulating pile ${i}: ${prevXor} ^ ${piles[i]} = ${currentXorSum} (binary 0b${currentXorSum.toString(2)}).`,
+      `Each 1-bit in the Nim-sum indicates an odd number of piles having that power-of-two component.`,
       { i, pileSize: piles[i], prevXorSum: prevXor, xorSum: currentXorSum },
     );
 
@@ -141,16 +146,16 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   addStep(
     7,
-    `Evaluate final Nim-sum = ${currentXorSum}`,
-    `If Nim-sum is 0, the position is a P-position (Second Player wins). If Nim-sum != 0, it is an N-position (First Player wins).`,
+    `Evaluated final Nim-sum S = ${currentXorSum}.`,
+    `A Nim-sum of 0 represents a losing P-position for the player to move; a non-zero Nim-sum represents a winning N-position.`,
     { xorSum: currentXorSum },
   );
 
   if (currentXorSum === 0) {
     addStep(
       8,
-      "Nim-sum is 0: Second Player Wins",
-      "Any legal move by the First Player forces the Nim-sum to become non-zero. The Second Player can always restore it to 0, eventually leaving First Player with zero moves.",
+      "Nim-sum is 0: Second Player Wins.",
+      "Any valid move by the First Player forces the Nim-sum to become non-zero, allowing the Second Player to restore it to 0 on every turn.",
       { xorSum: 0, winner: "Second Player", winningPile: -1, targetSize: 0 },
       -1,
       -1,
@@ -167,8 +172,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
   addStep(
     10,
-    `Nim-sum ${currentXorSum} ≠ 0: First Player wins. Searching for winning move...`,
-    "A non-zero Nim-sum guarantees at least one pile can be legally reduced so that all pile sizes XOR to 0.",
+    `Nim-sum S = ${currentXorSum} ≠ 0: First Player has a forced winning move. Searching for optimal pile...`,
+    "A non-zero Nim-sum guarantees the existence of at least one pile that can be reduced to make the new total Nim-sum 0.",
     { xorSum: currentXorSum, winner: "First Player" },
     -1,
     -1,
@@ -181,8 +186,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       10,
-      `Inspect pile ${i} for winning move`,
-      `Checking if pile ${i} can be reduced to zero out the Nim-sum ${currentXorSum}.`,
+      `Testing pile ${i} of size ${piles[i]} for a winning reduction.`,
+      `Checking if modifying pile ${i} can zero out the system Nim-sum.`,
       { i, pileSize: piles[i] },
       -1,
       -1,
@@ -194,8 +199,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       11,
-      `Calculate target size for pile ${i}: ${piles[i]} ^ ${currentXorSum} = ${targetSize}`,
-      `To zero out the total Nim-sum, pile ${i} must be changed to target size ${targetSize}.`,
+      `Target pile size for pile ${i}: ${piles[i]} ^ ${currentXorSum} = ${targetSize}.`,
+      `Changing pile ${i} to ${targetSize} cancels out the current Nim-sum S.`,
       { i, pileSize: piles[i], targetSize },
       -1,
       -1,
@@ -204,10 +209,10 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
     addStep(
       12,
-      `Test pile ${i}: target ${targetSize} < current ${piles[i]}?`,
+      `Testing target size ${targetSize} against current pile size ${piles[i]}.`,
       targetSize < piles[i]
-        ? `Target size ${targetSize} is strictly smaller than pile size ${piles[i]}. This is a valid winning move!`
-        : `Target size ${targetSize} is not smaller than pile size ${piles[i]}. Cannot add objects in Nim, so skipping pile ${i}.`,
+        ? `Target size ${targetSize} is strictly smaller than the current pile size, making this a legal reducing move.`
+        : `Target size exceeds current pile size, which is illegal in Nim where objects can only be removed.`,
       { i, pileSize: piles[i], targetSize, isWinningMove: targetSize < piles[i] },
       -1,
       -1,
@@ -222,8 +227,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         13,
-        `Construct winning response object for pile ${i}`,
-        `Selected pile ${i} (original size ${piles[i]}, new target size ${targetSize}).`,
+        `Selected pile ${i} (original size ${piles[i]}, target size ${targetSize}).`,
+        `Reducing pile ${i} to ${targetSize} leaves the opponent with a zero Nim-sum.`,
         { i, targetSize, removeAmount },
         i,
         targetSize,
@@ -232,7 +237,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         14,
-        "Set winner = 'First Player'",
+        "Set winner = 'First Player'.",
         "First Player has a forced winning strategy from this position.",
         { winner: "First Player" },
         i,
@@ -242,7 +247,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         15,
-        `Set winning_pile = ${i}`,
+        `Set winning_pile = ${i}.`,
         `Pile index ${i} will be reduced to execute the winning strategy.`,
         { winningPile: i },
         i,
@@ -252,7 +257,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         16,
-        `Set target_size = ${targetSize}`,
+        `Set target_size = ${targetSize}.`,
         `Target pile size after removing ${removeAmount} objects.`,
         { targetSize },
         i,
@@ -262,7 +267,7 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         17,
-        `Calculate objects to remove: ${piles[i]} - ${targetSize} = ${removeAmount}`,
+        `Calculate objects to remove: ${piles[i]} - ${targetSize} = ${removeAmount}.`,
         `Removing ${removeAmount} objects from pile ${i} leaves the remaining piles with exact Nim-sum 0.`,
         { removeAmount },
         i,
@@ -272,8 +277,8 @@ export const generateNimGameSteps = (input: NimInput): AlgorithmStep[] => {
 
       addStep(
         18,
-        `Shrink pile ${i} from ${piles[i]} to ${targetSize}`,
-        `First Player wins by removing ${removeAmount} objects from pile ${i}, leaving a total Nim-sum of 0 for opponent.`,
+        `Reducing pile ${i} from ${piles[i]} to ${targetSize} (removing ${removeAmount} objects).`,
+        `First Player forces a win by transitioning the board into a P-position with Nim-sum 0.`,
         {
           winningPile: i,
           originalSize: piles[i],

@@ -5,27 +5,27 @@ import { generateQuickSortSteps } from "./stepGenerator";
 
 const QUICK_SORT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Quick Sort is an efficient divide-and-conquer sorting algorithm. It selects a pivot element, partitions the array so smaller elements sit to its left and larger elements sit to its right, and recursively sorts each partition in $O(N \\log N)$ average time.",
+    "<p>Quick Sort is an efficient divide-and-conquer sorting algorithm. It selects a pivot element, partitions the array so smaller elements sit to its left and larger elements sit to its right, and recursively sorts each partition in <code>O(N log N)</code> average time.</p>",
   sections: [
     {
       heading: "The core idea: place one element, split the rest",
-      body: "Most quadratic sorting algorithms move elements gradually toward their destinations. Quick Sort places at least one pivot element into its final sorted position per partition step. The array is split into two independent sub-problems around the pivot $p$: elements in $[low..p-1]$ are $\\le arr[p]$, and elements in $[p+1..high]$ are $\\ge arr[p]$.",
+      body: "<p>Most quadratic sorting algorithms move elements gradually toward their destinations. Quick Sort places at least one pivot element into its final sorted position per partition step. The array is split into two independent sub-problems around the pivot <code>p</code>: elements in <code>[low &hellip; p-1]</code> are <code>&le; arr[p]</code>, and elements in <code>[p+1 &hellip; high]</code> are <code>&ge; arr[p]</code>.</p>",
     },
     {
       heading: "How Lomuto partitioning actually moves elements",
-      body: "Lomuto partitioning picks the last element $arr[high]$ as the pivot. Pointer $i$ marks the boundary of elements $\\le pivot$, starting at $low - 1$. Pointer $j$ scans from $low$ to $high - 1$. Whenever $arr[j] \\le pivot$, $i$ increments by $1$ and $arr[i]$ swaps with $arr[j]$. Finally, $arr[i + 1]$ swaps with $arr[high]$, placing the pivot at index $i + 1$.",
+      body: "<p>Lomuto partitioning picks the last element <code>arr[high]</code> as the pivot. Pointer <code>i</code> marks the boundary of elements <code>&le; pivot</code>, starting at <code>low - 1</code>. Pointer <code>j</code> scans from <code>low</code> to <code>high - 1</code>. Whenever <code>arr[j] &le; pivot</code>, <code>i</code> increments by 1 and <code>arr[i]</code> swaps with <code>arr[j]</code>. Finally, <code>arr[i + 1]</code> swaps with <code>arr[high]</code>, placing the pivot at index <code>i + 1</code>.</p>",
     },
     {
       heading: "Why it is correct: the three-region invariant",
-      body: "During partitioning, the slice is divided into three active regions: $arr[low..i] \\le pivot$, $arr[i+1..j-1] > pivot$, and $arr[j..high-1]$ unexamined. Swapping on $arr[j] \\le pivot$ maintains this invariant until all elements are partitioned.",
+      body: "<p>During partitioning, the slice is divided into three active regions: <code>arr[low &hellip; i] &le; pivot</code>, <code>arr[i+1 &hellip; j-1] &gt; pivot</code>, and <code>arr[j &hellip; high-1]</code> unexamined. Swapping on <code>arr[j] &le; pivot</code> maintains this invariant until all elements are partitioned.</p>",
     },
     {
       heading: "When to reach for it versus merge sort or heap sort",
-      body: "Quick Sort is preferred for in-place array sorting in RAM due to exceptional L1/L2 CPU cache locality. Use Merge Sort when stable sorting or guaranteed $O(N \\log N)$ worst-case performance is required.",
+      body: "<p>Quick Sort is preferred for in-place array sorting in RAM due to exceptional L1/L2 CPU cache locality. Use Merge Sort when stable sorting or guaranteed <code>O(N log N)</code> worst-case performance is required.</p>",
     },
     {
       heading: "Pitfalls and edge cases",
-      body: "Fixed end-pivot selection suffers from $O(N^2)$ worst-case complexity on pre-sorted inputs. Randomized pivots or median-of-three mitigates this risk. Subarrays of size $\\le 1$ serve as recursive base cases.",
+      body: "<p>Fixed end-pivot selection suffers from <code>O(N<sup>2</sup>)</code> worst-case complexity on pre-sorted inputs. Randomized pivots or median-of-three mitigates this risk. Subarrays of size <code>&le; 1</code> serve as recursive base cases.</p>",
     },
   ],
   keyTerms: [
@@ -81,7 +81,7 @@ export const quickSort: AlgorithmDefinition<number[]> = {
   topicIds: ["two_pointers"],
   difficulty: "Medium",
   description:
-    "Quick Sort is an efficient divide-and-conquer sorting algorithm that selects a pivot element, partitions the array so smaller elements sit to its left and larger ones to its right, and recursively sorts each half.\n\n### Why It Exists & What It Solves\nDeveloped by Tony Hoare, Quick Sort solves in-place array sorting without allocating auxiliary arrays ($O(1)$ extra memory beyond call stack). It delivers superior CPU cache locality compared to Merge Sort and Heap Sort.\n\n### Step-by-Step Intuition\n1. **Pivot Selection**: Choose a pivot element (typically $arr[high]$).\n2. **Lomuto Partitioning**: Maintain boundary pointer $i = low - 1$. Scan $j$ from $low$ to $high - 1$. If $arr[j] \\le pivot$, increment $i$ and swap $arr[i]$ with $arr[j]$.\n3. **Pivot Placement**: Swap $arr[i + 1]$ with $arr[high]$. The pivot lands at $pivot\\_idx = i + 1$.\n4. **Recursion**: Recurse on $[low..pivot\\_idx - 1]$ and $[pivot\\_idx + 1..high]$.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), unsorted array of numbers.\n- **Output**: `list[int]`, sorted array in non-decreasing order.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: Average/Best $\\mathcal{O}(N \\log N)$, Worst $\\mathcal{O}(N^2)$ for unbalanced pivots.\n- **Space Complexity**: $\\mathcal{O}(\\log N)$ auxiliary space for call stack frames.\n\n### Edge Cases & Constraints\n- **Base Cases**: Subarrays with $N \\le 1$ return immediately.\n- **Duplicates**: Handled non-stably by Lomuto partitioning.",
+    "<p>Quick Sort is an efficient divide-and-conquer sorting algorithm that selects a pivot element, partitions the array so smaller elements sit to its left and larger ones to its right, and recursively sorts each half.</p><h3>Why It Exists &amp; What It Solves</h3><p>Developed by Tony Hoare, Quick Sort solves in-place array sorting without allocating auxiliary arrays (<code>O(1)</code> extra memory beyond call stack frames). It delivers superior CPU cache locality compared to Merge Sort and Heap Sort.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Pivot Selection:</strong> Choose a pivot element (typically <code>arr[high]</code>).</li><li><strong>Lomuto Partitioning:</strong> Maintain boundary pointer <code>i = low - 1</code>. Scan <code>j</code> from <code>low</code> to <code>high - 1</code>. If <code>arr[j] &le; pivot</code>, increment <code>i</code> and swap <code>arr[i]</code> with <code>arr[j]</code>.</li><li><strong>Pivot Placement:</strong> Swap <code>arr[i + 1]</code> with <code>arr[high]</code>. The pivot lands at <code>pivot_idx = i + 1</code>.</li><li><strong>Recursion:</strong> Recurse on <code>[low &hellip; pivot_idx - 1]</code> and <code>[pivot_idx + 1 &hellip; high]</code>.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>arr</code> (<code>list[int]</code>), unsorted array of numbers.</li><li><strong>Output:</strong> <code>list[int]</code>, sorted array in non-decreasing order.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> Average/Best <code>O(N log N)</code>, Worst <code>O(N<sup>2</sup>)</code> for unbalanced pivots.</li><li><strong>Space Complexity:</strong> <code>O(log N)</code> auxiliary space for call stack frames.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Cases:</strong> Subarrays with <code>N &le; 1</code> return immediately.</li><li><strong>Duplicates:</strong> Handled non-stably by Lomuto partitioning.</li></ul>",
   constraints: ["1 <= arr.length <= 10^5", "-10^9 <= arr[i] <= 10^9"],
   examples: [
     {

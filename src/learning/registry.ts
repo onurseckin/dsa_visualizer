@@ -1,10 +1,5 @@
 import { ALGORITHMS } from "../algorithms/registry";
 import { adaptAlgorithmDefinition } from "./algorithmAdapters";
-import { ML_PLATFORM_CAPSTONES } from "./items/capstones";
-import { ELECTIVE_LEARNING_ITEMS } from "./items/electives";
-import { PRODUCTION_OPERATIONS_ITEMS } from "./items/production-operations";
-import { REQUIRED_FOUNDATION_ITEMS } from "./items/required-foundations";
-import { REPRODUCIBLE_DELIVERY_ITEMS } from "./items/reproducible-delivery";
 import {
   isCodeLearningItem,
   isTriviaEligibleLearningItem,
@@ -16,13 +11,7 @@ export const DSA_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze(
   ALGORITHMS.map(adaptAlgorithmDefinition),
 );
 
-export const ML_INFRA_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
-  ...REQUIRED_FOUNDATION_ITEMS,
-  ...REPRODUCIBLE_DELIVERY_ITEMS,
-  ...PRODUCTION_OPERATIONS_ITEMS,
-  ...ML_PLATFORM_CAPSTONES,
-  ...ELECTIVE_LEARNING_ITEMS,
-]);
+export const ML_INFRA_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([]);
 
 export const LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
   ...DSA_LEARNING_ITEMS,

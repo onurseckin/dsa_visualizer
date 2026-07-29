@@ -38,7 +38,7 @@ function createIntervalArrayElements(
 
 export function generateMergeIntervalsSteps(input: MergeIntervalsInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const rawIntervals = input?.intervals || [];
+  const rawIntervals = Array.isArray(input?.intervals) ? input.intervals : [];
 
   let stepIdx = 0;
 
@@ -47,8 +47,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
     stepIndex: stepIdx++,
     codeLine: 1,
     explanation: {
-      what: `Function call: merge with ${rawIntervals.length} interval(s)`,
-      why: "Our objective is to merge overlapping intervals into a minimal disjoint set.",
+      what: `Initialize interval consolidation for ${rawIntervals.length} range(s).`,
+      why: "Consolidating overlapping intervals into a minimal disjoint set that covers the exact same numerical range.",
     },
     primarySnapshot: {
       kind: "array",
@@ -69,8 +69,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
       stepIndex: stepIdx++,
       codeLine: 2,
       explanation: {
-        what: "Evaluate `if not intervals:` -> True (empty input)",
-        why: "Input list is empty, so we skip sorting and proceed to return an empty array.",
+        what: "Check for empty input intervals list.",
+        why: "Input list contains no intervals; skipping sorting to return empty result immediately.",
       },
       primarySnapshot: {
         kind: "array",
@@ -87,8 +87,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
       stepIndex: stepIdx++,
       codeLine: 3,
       explanation: {
-        what: "Return empty list `[]`",
-        why: "There are no intervals to process, returning empty output immediately.",
+        what: "Return empty list [].",
+        why: "No intervals exist to process, so the minimal disjoint set is empty.",
       },
       primarySnapshot: {
         kind: "array",
@@ -108,8 +108,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
     stepIndex: stepIdx++,
     codeLine: 2,
     explanation: {
-      what: `Evaluate \`if not intervals:\` -> False (${rawIntervals.length} interval(s) present)`,
-      why: "Input is non-empty, so we proceed to sort intervals by start time.",
+      what: `Verify non-empty input (${rawIntervals.length} interval(s) present).`,
+      why: "Non-empty collection confirmed; proceeding to sort intervals by start coordinate.",
     },
     primarySnapshot: {
       kind: "array",
@@ -130,8 +130,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
     stepIndex: stepIdx++,
     codeLine: 4,
     explanation: {
-      what: `Execute \`intervals.sort(key=lambda x: x[0])\` on ${intervals.length} intervals`,
-      why: "Sorting by start time guarantees that any intervals capable of overlapping will appear contiguously in sequence.",
+      what: `Sort ${intervals.length} intervals by start coordinate.`,
+      why: "Sorting guarantees that any potentially overlapping or contiguous intervals will appear adjacent in sequence.",
     },
     primarySnapshot: {
       kind: "array",
@@ -156,8 +156,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
     stepIndex: stepIdx++,
     codeLine: 5,
     explanation: {
-      what: `Initialize \`merged = [intervals[0]]\` with first sorted interval ${formatInterval(intervals[0])}`,
-      why: "Seed our merged accumulator with the earliest-starting interval as the active open block.",
+      what: `Seed merged result with earliest sorted interval ${formatInterval(intervals[0])}.`,
+      why: "The first sorted interval forms the initial active block against which subsequent intervals are evaluated.",
     },
     primarySnapshot: {
       kind: "array",
@@ -183,8 +183,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
       stepIndex: stepIdx++,
       codeLine: 6,
       explanation: {
-        what: `Loop iteration ${i}/${intervals.length - 1}: fetch current interval ${formatInterval(current)}`,
-        why: "Retrieve the next interval from sorted array to compare against the active open block.",
+        what: `Inspect next candidate interval ${formatInterval(current)} (${i}/${intervals.length - 1}).`,
+        why: "Fetching the next sorted interval to test against the current active merged block.",
       },
       primarySnapshot: {
         kind: "array",
@@ -211,8 +211,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
       stepIndex: stepIdx++,
       codeLine: 7,
       explanation: {
-        what: `Retrieve last merged interval: \`prev = merged[-1]\` -> ${formatInterval(prev)}`,
-        why: "Because intervals are sorted by start time, we only need to compare against the last block in our merged list.",
+        what: `Retrieve active merged block ${formatInterval(prev)}.`,
+        why: "Because intervals are sorted by start time, comparing against only the last merged block is necessary and sufficient.",
       },
       primarySnapshot: {
         kind: "array",
@@ -238,10 +238,10 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
       stepIndex: stepIdx++,
       codeLine: 8,
       explanation: {
-        what: `Evaluate \`current[0] <= prev[1]\`: (${current.start} <= ${prev.end}) -> ${overlaps ? "TRUE" : "FALSE"}`,
+        what: `Evaluate overlap: current start ${current.start} ≤ active block end ${prev.end} (${overlaps ? "TRUE" : "FALSE"}).`,
         why: overlaps
-          ? `Interval ${formatInterval(current)} starts at ${current.start}, which is <= active block end ${prev.end}. Overlap detected!`
-          : `Interval ${formatInterval(current)} starts at ${current.start}, which is > active block end ${prev.end}. No overlap (gap)!`,
+          ? `Interval ${formatInterval(current)} starts before or at active block end ${prev.end}. Overlap confirmed!`
+          : `Interval ${formatInterval(current)} starts after active block end ${prev.end}. Disjoint gap detected!`,
       },
       primarySnapshot: {
         kind: "array",
@@ -270,8 +270,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
         stepIndex: stepIdx++,
         codeLine: 9,
         explanation: {
-          what: `Update \`prev[1] = max(${oldEnd}, ${current.end})\` -> ${prev.end}`,
-          why: `Extend active block end to ${prev.end}. Using max() prevents nested/shorter sub-intervals from shrinking the block.`,
+          what: `Extend active block end coordinate to max(${oldEnd}, ${current.end}) = ${prev.end}.`,
+          why: "Taking max() expands active range while preserving full coverage if the candidate interval is nested.",
         },
         primarySnapshot: {
           kind: "array",
@@ -296,8 +296,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
         stepIndex: stepIdx++,
         codeLine: 10,
         explanation: {
-          what: `Execute \`else:\` branch (no overlap with active block ${formatInterval(prev)})`,
-          why: "Previous block is complete and sealed off. The current interval starts a new disjoint block.",
+          what: `Branch to seal active block ${formatInterval(prev)}.`,
+          why: "Current interval starts strictly after active block ends; the previous range is now complete.",
         },
         primarySnapshot: {
           kind: "array",
@@ -322,8 +322,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
         stepIndex: stepIdx++,
         codeLine: 11,
         explanation: {
-          what: `Execute \`merged.append(${formatInterval(current)})\``,
-          why: `Append new non-overlapping block ${formatInterval(current)} to merged list. Total merged blocks: ${merged.length}.`,
+          what: `Append new disjoint interval block ${formatInterval(current)} to merged list.`,
+          why: "Starts a new active merged block for subsequent comparisons.",
         },
         primarySnapshot: {
           kind: "array",
@@ -348,8 +348,8 @@ export function generateMergeIntervalsSteps(input: MergeIntervalsInput): Algorit
     stepIndex: stepIdx++,
     codeLine: 12,
     explanation: {
-      what: `Return \`merged\` list with ${merged.length} disjoint interval(s)`,
-      why: `Finished linear pass. Merged result contains non-overlapping intervals: ${merged.map(formatInterval).join(", ")}.`,
+      what: `Final merged result: ${merged.length} disjoint interval(s).`,
+      why: `Linear pass complete. Merged ranges: ${merged.map(formatInterval).join(", ")}.`,
     },
     primarySnapshot: {
       kind: "array",

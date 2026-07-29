@@ -17,11 +17,21 @@ export interface PolygonAreaInput {
   points: Point2D[];
 }
 
+const FALLBACK_POINTS: Point2D[] = [
+  { x: 100, y: 100, id: "P0", label: "P0 (100, 100)" },
+  { x: 400, y: 100, id: "P1", label: "P1 (400, 100)" },
+  { x: 350, y: 300, id: "P2", label: "P2 (350, 300)" },
+  { x: 150, y: 300, id: "P3", label: "P3 (150, 300)" },
+];
+
 export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const points = input.points;
+  const points =
+    input && Array.isArray(input.points) && input.points.length > 0
+      ? input.points
+      : FALLBACK_POINTS;
   const n = points.length;
 
   const getBaseNodes = (activeIdx?: number, compareIdx?: number): GraphNodeItem[] => {
@@ -82,8 +92,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     1,
-    `Enter polygon_area with ${n} vertices`,
-    `We receive the polygon vertices as a list of (x, y) tuples. The shoelace formula will compute the signed area in one pass around the boundary.`,
+    `Initialize polygon area calculation for ${n} vertices`,
+    `The Shoelace (Gauss) formula calculates polygon surface area by computing signed cross-products along ordered boundary edges in a single linear pass.`,
     getBaseNodes(),
     getBaseEdges(),
     { vertexCount: `${n}` },
@@ -93,8 +103,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     2,
-    "Start the shoelace formula",
-    `We'll walk the ${n} vertices in order, cross-multiplying each edge's coordinates; the criss-cross pattern of those products is where the "shoelace" name comes from.`,
+    "Prepare ordered vertex cross-multiplication pass",
+    `Iterating around perimeter vertices in cyclic order allows trapezoidal areas to accumulate while canceling out regions outside the boundary.`,
     getBaseNodes(),
     getBaseEdges(),
     { Formula: "Area = 0.5 * |sum(x_i * y_{i+1} - x_{i+1} * y_i)|" },
@@ -104,10 +114,10 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     3,
-    `Check n < 3 (n = ${n})`,
+    `Validate polygon boundary vertex count (n = ${n})`,
     n < 3
-      ? `Only ${n} vertices — not enough to form a polygon. The function returns 0.0 immediately.`
-      : `${n} vertices found — enough to form a polygon. We proceed to compute the area.`,
+      ? `A valid enclosed 2D surface requires at least 3 non-collinear vertices.`
+      : `With ${n} ordered vertices, the boundary encloses a valid 2D polygon ready for area calculation.`,
     getBaseNodes(),
     getBaseEdges(),
     { n: `${n}`, validPolygon: `${n >= 3}` },
@@ -118,8 +128,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
   if (n < 3) {
     addStep(
       4,
-      "Stop — too few vertices",
-      `A polygon needs at least 3 vertices to enclose any region, and we only have ${n}, so the area is simply 0.`,
+      "Return zero area for degenerate polygon input",
+      `Fewer than 3 points cannot define a 2D surface, resulting in an area of 0.`,
       getBaseNodes(),
       getBaseEdges(),
       { Status: "Invalid polygon (n < 3)" },
@@ -134,8 +144,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     6,
-    "Set the running sum to zero",
-    "Each edge will add its signed cross product here; positive and negative terms partly cancel, and what survives is exactly twice the enclosed area.",
+    "Initialize signed area sum register to 0.0",
+    "Accumulating signed cross-products along boundary edges will total exactly twice the enclosed polygon area.",
     getBaseNodes(),
     getBaseEdges(),
     { area_sum: "0.0" },
@@ -145,8 +155,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     7,
-    `Start the shoelace loop: iterate i from 0 to ${n - 1}`,
-    "We traverse each edge in order (wrapping from the last vertex back to the first), accumulating the cross-product terms that sum to twice the signed area.",
+    `Sweep perimeter edges from index 0 to ${n - 1}`,
+    "Sequential edge traversal ensures adjacent vertex pairs cross-multiply with correct cyclic wrap-around.",
     getBaseNodes(),
     getBaseEdges(),
     { iterations: `${n}`, wrap: `i+1 mod ${n}` },
@@ -165,8 +175,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     // Line 8: Unpack p1
     addStep(
       8,
-      `Select vertex P${i} = (${p1.x}, ${p1.y})`,
-      `Reading start point coordinates for edge ${i}.`,
+      `Select boundary start vertex P${i} (${p1.x}, ${p1.y})`,
+      `Establishing the anchor vertex coordinates for edge segment P${i} → P${nextIdx}.`,
       nodes,
       edges,
       { "Active Vertex": `P${i} (${p1.x}, ${p1.y})` },
@@ -177,8 +187,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     // Line 9: Unpack p2
     addStep(
       9,
-      `Select next vertex P${nextIdx} = (${p2.x}, ${p2.y})`,
-      `Reading end point coordinates for edge ${i} (wrapping index modulo ${n}).`,
+      `Select boundary end vertex P${nextIdx} (${p2.x}, ${p2.y})`,
+      `Pairing adjacent vertex coordinates around boundary loop (wrapping modulo ${n}).`,
       nodes,
       edges,
       { "Next Vertex": `P${nextIdx} (${p2.x}, ${p2.y})` },
@@ -193,8 +203,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     // Line 10: Compute cross product
     addStep(
       10,
-      `Cross-multiply: (${p1.x} × ${p2.y}) - (${p2.x} × ${p1.y}) = ${term1} - ${term2} = ${crossProduct}`,
-      `Evaluating 2D cross product for edge P${i} -> P${nextIdx}.`,
+      `Compute 2D determinant for edge P${i} → P${nextIdx}: (${p1.x} × ${p2.y}) - (${p2.x} × ${p1.y}) = ${crossProduct}`,
+      `The 2D cross-product measures twice the signed area of the origin-anchored triangle for this edge segment.`,
       nodes,
       edges,
       {
@@ -221,8 +231,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
     // Line 11: Accumulate
     addStep(
       11,
-      `Accumulate area_sum += ${crossProduct} -> ${areaSum}`,
-      `Adding edge ${i} signed contribution to running total area_sum.`,
+      `Fold cross-product ${crossProduct} into signed area sum (Total = ${areaSum})`,
+      `Summing signed cross-products combines interior trapezoidal areas while external regions cancel out.`,
       nodes,
       edges,
       {
@@ -261,8 +271,8 @@ export const generatePolygonAreaSteps = (input: PolygonAreaInput): AlgorithmStep
 
   addStep(
     13,
-    `Halve the sum: area = |${areaSum}| / 2 = ${finalArea}`,
-    `Every edge has been folded in. Halving the absolute running sum yields final polygon area ${finalArea}.`,
+    `Finalize polygon area calculation: |${areaSum}| / 2 = ${finalArea}`,
+    `Taking absolute value resolves vertex orientation (clockwise vs counter-clockwise) and halving yields exact polygon area.`,
     finalNodes,
     finalEdges,
     {

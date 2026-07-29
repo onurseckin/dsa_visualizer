@@ -5,8 +5,8 @@ export const generateFloydWarshallSteps = (input: FloydWarshallInput): Algorithm
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawNodes = input?.nodes || [];
-  const rawEdges = input?.edges || [];
+  const rawNodes = Array.isArray(input?.nodes) ? input.nodes : [];
+  const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
   const n = rawNodes.length;
 
   if (n === 0) {

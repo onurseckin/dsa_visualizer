@@ -3,6 +3,7 @@ import { Size, boxViewBox, useCanvasBox, viewBoxAttr } from "./vizGeometry";
 import { GridVisualizerProps, GAP, PAD } from "./grid/gridTypes";
 import { computeGridLayout } from "./grid/layoutEngine";
 import { GridCellItem } from "./grid/GridCellItem";
+import { CanvasAuxiliaryOverlay } from "./CanvasAuxiliaryOverlay";
 
 export type { GridVisualizerProps };
 
@@ -12,6 +13,8 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
   showDistance = true,
   onCellClick,
   title,
+  auxiliaryState,
+  variables,
 }) => {
   const rows = grid.length;
   const cols = grid.reduce((widest, row) => Math.max(widest, row.length), 0);
@@ -62,6 +65,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
           minHeight: 0,
           overflow: "hidden",
           background: "var(--bg-inset)",
+          padding: 0,
         }}
       >
         <svg
@@ -83,6 +87,7 @@ export const GridVisualizer: React.FC<GridVisualizerProps> = ({
               />
             )),
           )}
+          <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
         </svg>
       </div>
     </div>

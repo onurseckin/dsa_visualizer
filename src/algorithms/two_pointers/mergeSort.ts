@@ -32,7 +32,10 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const currentArr = [...input.array];
+  const safeInput = {
+    array: Array.isArray(input?.array) ? input.array : DEFAULT_MERGE_SORT_INPUT.array,
+  };
+  const currentArr = [...safeInput.array];
   const n = currentArr.length;
 
   const makeElements = (
@@ -436,23 +439,23 @@ export const generateMergeSortSteps = (input: MergeSortInput): AlgorithmStep[] =
 
 export const MERGE_SORT_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "Merge Sort is the canonical divide-and-conquer sorting algorithm. It guarantees $O(N \\log N)$ performance across all input distributions by recursively partitioning an array into equal subproblems, sorting each half independently, and zipping them back together with a linear two-pointer merge step.",
+    "<p><strong>Merge Sort</strong> is the canonical divide-and-conquer sorting algorithm. It guarantees <code>O(N log N)</code> performance across all input distributions by recursively partitioning an array into equal subproblems, sorting each half independently, and zipping them back together with a linear two-pointer merge step.</p>",
   sections: [
     {
-      heading: "Divide and Conquer Mechanics",
-      body: "The array is partitioned at its arithmetic midpoint $mid = \\lfloor (l + r) / 2 \\rfloor$. Recursion continues down to base cases of sub-arrays of size $0$ or $1$, which are trivially sorted. As call frames unwind, the merge phase combines two sorted adjacent sub-arrays of size $A$ and $B$ into a single sorted contiguous run of size $A + B$ in $O(A + B)$ comparisons.",
+      heading: "1. Divide and Conquer Mechanics",
+      body: "<p>The array is partitioned at its arithmetic midpoint <code>mid = &lfloor;(l + r) / 2&rfloor;</code>. Recursion continues down to base cases of sub-arrays of size 0 or 1, which are trivially sorted. As call frames unwind, the merge phase combines two sorted adjacent sub-arrays of size <code>A</code> and <code>B</code> into a single sorted contiguous run of size <code>A + B</code> in <code>O(A + B)</code> comparisons.</p>",
     },
     {
-      heading: "Systems & Cache Impact: Sequential Memory Access",
-      body: "Unlike Quick Sort or Heap Sort, which exhibit unpredictable random pointer jumps, Merge Sort streams through memory sequentially during the merge phase. This sequential access pattern makes it ideal for hardware cache prefetching, SSD block transfers, and tape/disk storage engines (External Merge Sort).",
+      heading: "2. Systems & Cache Impact: Sequential Memory Access",
+      body: "<p>Unlike Quick Sort or Heap Sort, which exhibit unpredictable random pointer jumps, Merge Sort streams through memory sequentially during the merge phase. This sequential access pattern makes it ideal for hardware cache prefetching, SSD block transfers, and tape/disk storage engines (External Merge Sort).</p>",
     },
     {
-      heading: "Implementation Nuances & Stability",
-      body: "Stability is preserved by taking elements from the left sub-array when elements in the left and right halves are equal ($left[i] \\le right[j]$). In-place variants of Merge Sort exist (e.g. block merge sort used in Timsort), but traditional Merge Sort requires $O(N)$ auxiliary buffer space.",
+      heading: "3. Implementation Nuances & Stability",
+      body: "<p>Stability is preserved by taking elements from the left sub-array when elements in the left and right halves are equal (<code>left[i] &le; right[j]</code>). In-place variants of Merge Sort exist (e.g. block merge sort used in Timsort), but traditional Merge Sort requires <code>O(N)</code> auxiliary buffer space.</p>",
     },
     {
-      heading: "Edge Case Analysis & Optimization",
-      body: "Small sub-arrays ($N \\le 16$) suffer from call-stack overhead; practical implementations switch to Insertion Sort for tiny partitions. Already-sorted sub-arrays can skip the merge step entirely if $left[last] \\le right[first]$.",
+      heading: "4. Edge Case Analysis & Optimization",
+      body: "<p>Small sub-arrays (<code>N &le; 16</code>) suffer from call-stack overhead; practical implementations switch to Insertion Sort for tiny partitions. Already-sorted sub-arrays can skip the merge step entirely if <code>left[last] &le; right[first]</code>.</p>",
     },
   ],
   keyTerms: [
@@ -511,7 +514,7 @@ export const mergeSort: AlgorithmDefinition<MergeSortInput> = {
   topicIds: ["two_pointers"],
   difficulty: "Medium",
   description:
-    "Merge Sort is a classic stable divide-and-conquer sorting algorithm that guarantees $O(N \\log N)$ runtime.\n\n### Why It Exists & What It Solves\nQuick Sort offers fast in-place performance on average but suffers from an $O(N^2)$ worst-case runtime. Merge Sort solves this by guaranteeing a strict $O(N \\log N)$ worst-case bound regardless of input ordering. Additionally, Merge Sort is a stable sort and streams data sequentially, making it the ideal foundation for external disk-based sorting (External Merge Sort).\n\n### Step-by-Step Intuition\n1. **Divide**: Split array of length $N$ at midpoint $mid = N // 2$ into `left` and `right` sub-arrays.\n2. **Conquer**: Recursively invoke `merge_sort` on `left` and `right` until base case $N \\le 1$ is hit.\n3. **Combine (Two-Pointer Merge)**: Maintain pointers `i` and `j` at the start of `left` and `right`. Repeatedly select `min(left[i], right[j])` and append to `merged`. When equal, pick `left[i]` to preserve stability.\n4. **Flush Tail**: Append remaining elements `left[i:]` or `right[j:]` to `merged` and return.\n\n### Input & Output Contracts\n- **Input**: `arr` (`list[int]`), an un-sorted array of integers.\n- **Output**: `list[int]`, a new array sorted in non-decreasing order.\n\n### Trade-Offs & Complexity Analysis\n- **Time Complexity**: $\\mathcal{O}(N \\log N)$ in best, average, and worst cases because the array is always halved $\\log_2 N$ times.\n- **Space Complexity**: $\\mathcal{O}(N)$ auxiliary space for temporary `merged` buffers.\n\n### Edge Cases & Constraints\n- **Base Case**: Slices of size $N \\le 1$ return directly.\n- **Stability**: Equality comparison `left[i] <= right[j]` ensures equal elements retain original relative order.",
+    "<p><strong>Merge Sort</strong> is a classic stable divide-and-conquer sorting algorithm that guarantees <code>O(N log N)</code> runtime.</p><h3>Why It Exists &amp; What It Solves</h3><p>Quick Sort offers fast in-place performance on average but suffers from an <code>O(N²)</code> worst-case runtime. Merge Sort solves this by guaranteeing a strict <code>O(N log N)</code> worst-case bound regardless of input ordering. Additionally, Merge Sort is a stable sort and streams data sequentially, making it the ideal foundation for external disk-based sorting (External Merge Sort).</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Divide</strong>: Split array of length <code>N</code> at midpoint <code>mid = &lfloor;N / 2&rfloor;</code> into <code>left</code> and <code>right</code> sub-arrays.</li><li><strong>Conquer</strong>: Recursively invoke <code>merge_sort</code> on <code>left</code> and <code>right</code> until base case <code>N &le; 1</code> is hit.</li><li><strong>Combine (Two-Pointer Merge)</strong>: Maintain pointers <code>i</code> and <code>j</code> at the start of <code>left</code> and <code>right</code>. Repeatedly select <code>min(left[i], right[j])</code> and append to <code>merged</code>. When equal, pick <code>left[i]</code> to preserve stability.</li><li><strong>Flush Tail</strong>: Append remaining elements <code>left[i:]</code> or <code>right[j:]</code> to <code>merged</code> and return.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input</strong>: <code>arr</code> (<code>number[]</code>), an un-sorted array of integers.</li><li><strong>Output</strong>: <code>number[]</code>, a new array sorted in non-decreasing order.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity</strong>: <code>O(N log N)</code> in best, average, and worst cases because the array is always halved <code>log₂ N</code> times.</li><li><strong>Space Complexity</strong>: <code>O(N)</code> auxiliary space for temporary <code>merged</code> buffers.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Case</strong>: Slices of size <code>N &le; 1</code> return directly.</li><li><strong>Stability</strong>: Equality comparison <code>left[i] &le; right[j]</code> ensures equal elements retain original relative order.</li></ul>",
   constraints: ["1 <= N <= 10^5", "-10^9 <= array[i] <= 10^9"],
   examples: [
     {

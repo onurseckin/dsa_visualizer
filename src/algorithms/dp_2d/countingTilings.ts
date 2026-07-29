@@ -290,25 +290,8 @@ export const countingTilings: AlgorithmDefinition<CountingTilingsInput> = {
   title: "Counting Tilings (Bitmask DP)",
   topicIds: ["dp_2d"],
   difficulty: "Hard",
-  description: `The **Counting Tilings** problem (CSES #2181) asks for the number of ways to completely tile an $N \\times M$ grid using non-overlapping $1 \\times 2$ and $2 \\times 1$ dominoes.
-
-### Parity Check & Broken Profile Bitmask DP
-1. **Area Parity**: If the total grid area $N \\times M$ is odd, tiling is impossible, returning $0$ immediately.
-2. **Broken Profile DP**: Rather than transitioning entire columns at once (which takes $\\mathcal{O}(M \\times 2^{2N})$ operations), we process grid cells sequentially (cell by cell, row by row), maintaining an $N$-bit bitmask $\\text{mask} \\in [0, 2^N - 1]$ representing occupied boundary cells extending into the next column.
-
-### State Transitions per Cell $(r, c)$
-At cell $(r, c)$:
-- If bit $r$ of $\\text{mask}$ is set ($1$), the cell is already occupied by a horizontal domino. Clear bit $r$:
-  $$\\text{next\\_dp}[\\text{mask} \\oplus (1 \\ll r)] \\mathrel{+}= dp[\\text{mask}]$$
-- If bit $r$ is empty ($0$):
-  - **Option A (Horizontal)**: Place a $1 \\times 2$ domino extending into column $c+1$, setting bit $r$:
-    $$\\text{next\\_dp}[\\text{mask} \\mid (1 \\ll r)] \\mathrel{+}= dp[\\text{mask}]$$
-  - **Option B (Vertical)**: If $r + 1 < N$ and bit $r+1$ is empty, place a $2 \\times 1$ vertical domino covering $(r, c)$ and $(r+1, c)$, setting bit $r+1$:
-    $$\\text{next\\_dp}[\\text{mask} \\mid (1 \\ll (r + 1))] \\mathrel{+}= dp[\\text{mask}]$$
-
-### Key Interview Insights
-1. **Time & Space Complexity**: Time complexity is $\\mathcal{O}(N \\times M \\times 2^N)$ and auxiliary space is $\\mathcal{O}(2^N)$.
-2. **Kasteleyn Formula**: For larger grids, Kasteleyn's formula computes tilings via matrix determinants.`,
+  description:
+    "<p>The <strong>Counting Tilings</strong> problem (CSES #2181) asks for the number of ways to completely tile an <code>N &times; M</code> grid using non-overlapping <code>1 &times; 2</code> and <code>2 &times; 1</code> dominoes.</p><p>If the total area <code>N &times; M</code> is odd, tiling is impossible, returning 0 immediately. For even area, <strong>Broken Profile Bitmask DP</strong> processes grid cells sequentially, maintaining an <code>N</code>-bit mask representing boundary cells extending into the next column. This yields an efficient state transition in <code>O(N &times; M &times; 2<sup>N</sup>)</code> time.</p>",
   constraints: [
     "1 <= n <= 10",
     "1 <= m <= 10",
@@ -353,23 +336,23 @@ At cell $(r, c)$:
   },
   topicGuide: {
     overview:
-      "Counting domino tilings of an $N \\times M$ grid is a landmark problem in algebraic combinatorics and advanced dynamic programming (CSES 2181 / Kasteleyn Tiling Theory). When $N \\le 10$, broken profile bitmask DP processes grid cells sequentially, maintaining an $N$-bit mask for boundary profile occupancy in $\\mathcal{O}(N \\times M \\times 2^N)$ time and $\\mathcal{O}(2^N)$ space.",
+      "<p>Counting domino tilings of an <code>N &times; M</code> grid is a landmark problem in algebraic combinatorics and advanced dynamic programming (CSES #2181 / Kasteleyn Tiling Theory). When <code>N &le; 10</code>, broken profile bitmask DP processes grid cells sequentially, maintaining an <code>N</code>-bit mask for boundary profile occupancy in <code>O(N &times; M &times; 2<sup>N</sup>)</code> time and <code>O(2<sup>N</sup>)</code> space.</p>",
     sections: [
       {
         heading: "1. Broken Profile Bitmask Representation",
-        body: "An $N$-bit integer $\\text{mask}$ represents the profile boundary state between column $c-1$ and $c$. The $i$-th bit is $1$ if cell $(i, c)$ is occupied by a horizontal domino extending from column $c-1$, and $0$ otherwise.",
+        body: "<p>An <code>N</code>-bit integer <code>mask</code> represents the profile boundary state between column <code>c-1</code> and <code>c</code>. The <code>i</code>-th bit is 1 if cell <code>(i, c)</code> is occupied by a horizontal domino extending from column <code>c-1</code>, and 0 otherwise.</p>",
       },
       {
         heading: "2. Cell-by-Cell Transitions",
-        body: "At cell $(r, c)$:\n- **Bit $r = 1$**: Cell is occupied. Clear bit $r$ in $\\text{next\\_dp}$.\n- **Bit $r = 0$**: Cell is empty.\n  - Place horizontal domino: Set bit $r$ in $\\text{next\\_dp}$.\n  - Place vertical domino: If $r+1 < N$ and bit $r+1 = 0$, set bit $r+1$ in $\\text{next\\_dp}$.",
+        body: "<p>At cell <code>(r, c)</code>:</p><ul><li><strong>Bit r = 1:</strong> Cell is occupied. Clear bit <code>r</code> in <code>next_dp</code>.</li><li><strong>Bit r = 0:</strong> Cell is empty.<ul><li><em>Option A (Horizontal):</em> Place 1x2 domino, setting bit <code>r</code> in <code>next_dp</code>.</li><li><em>Option B (Vertical):</em> If <code>r+1 &lt; N</code> and bit <code>r+1 = 0</code>, place 2x1 domino, setting bit <code>r+1</code> in <code>next_dp</code>.</li></ul></li></ul>",
       },
       {
         heading: "3. Kasteleyn Exact Trigonometric Formula",
-        body: "For unobstructed $N \\times M$ grids, Kasteleyn's exact formula computes the total tilings in closed form:\n$$N(n,m) = \\prod_{j=1}^{\\lfloor n/2 \\rfloor} \\prod_{k=1}^{\\lfloor m/2 \\rfloor} 4 \\left( \\cos^2 \\frac{j \\pi}{n+1} + \\cos^2 \\frac{k \\pi}{m+1} \\right)$$",
+        body: "<p>For unobstructed <code>N &times; M</code> grids, Kasteleyn's exact formula computes the total tilings in closed form using trigonometric products of cosine terms.</p>",
       },
       {
         heading: "4. Physical Science & Systems Applications",
-        body: "Domino tiling algorithms model dimer coverage in statistical mechanics (Ising model), molecular surface adsorption in physical chemistry, and cell layout packing in VLSI integrated circuit design.",
+        body: "<p>Domino tiling algorithms model dimer coverage in statistical mechanics (Ising model), molecular surface adsorption in physical chemistry, and cell layout packing in VLSI integrated circuit design.</p>",
       },
     ],
     keyTerms: [
@@ -381,7 +364,7 @@ At cell $(r, c)$:
       {
         term: "Domino Tiling",
         definition:
-          "A complete tessellation of a grid using $1 \\times 2$ and $2 \\times 1$ rectangular tiles without gaps or overlaps.",
+          "A complete tessellation of a grid using 1x2 and 2x1 rectangular tiles without gaps or overlaps.",
       },
       {
         term: "Kasteleyn Formula",

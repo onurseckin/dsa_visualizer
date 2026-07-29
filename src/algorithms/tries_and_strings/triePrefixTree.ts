@@ -12,8 +12,30 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   title: "Trie (Prefix Tree)",
   topicIds: ["tries_and_strings"],
   difficulty: "Medium",
-  description:
-    "Implement a Trie (Prefix Tree) with `insert`, `search`, and `startsWith` methods.\n\n### Problem Statement\nA Trie (pronounced as 'try') or prefix tree is a tree data structure used to efficiently store and retrieve keys in a dataset of strings. Common prefixes are shared across paths in the tree, allowing for rapid prefix search and autocomplete operations.\n\nImplement the `Trie` class:\n- `Trie()` Initializes the trie object.\n- `void insert(String word)` Inserts the string `word` into the trie in $O(L)$ time.\n- `boolean search(String word)` Returns `true` if the string `word` is in the trie (i.e., was inserted before), and `false` otherwise.\n- `boolean startsWith(String prefix)` Returns `true` if there is a previously inserted string `word` that has the prefix `prefix`, and `false` otherwise.\n\n### Input Parameters\n- `wordsToInsert`: Array of strings to be inserted into the Trie.\n- `searchWord`: Target string for `search()` operation.\n- `prefixToSearch`: Target string for `startsWith()` operation.\n\n### Output\n- Boolean results for `search(searchWord)` and `startsWith(prefixToSearch)`.\n\n### Constraints & Edge Cases\n- `1 <= word.length, prefix.length <= 2000`.\n- `words` consist only of lowercase English letters (`'a'` to `'z'`).\n- At most $3 \\cdot 10^4$ calls in total will be made to `insert`, `search`, and `startsWith`.",
+  description: `<p>Implement a Trie (Prefix Tree) with <code>insert</code>, <code>search</code>, and <code>startsWith</code> methods.</p>
+<h3>Problem Statement</h3>
+<p>A Trie (pronounced as 'try') or prefix tree is a tree data structure used to efficiently store and retrieve keys in a dataset of strings. Common prefixes are shared across paths in the tree, allowing for rapid prefix search and autocomplete operations.</p>
+<p>Implement the <code>Trie</code> class:</p>
+<ul>
+  <li><code>Trie()</code> Initializes the trie object.</li>
+  <li><code>void insert(String word)</code> Inserts the string <code>word</code> into the trie in <em>O(L)</em> time.</li>
+  <li><code>boolean search(String word)</code> Returns <code>true</code> if the string <code>word</code> is in the trie, and <code>false</code> otherwise.</li>
+  <li><code>boolean startsWith(String prefix)</code> Returns <code>true</code> if there is a previously inserted string <code>word</code> that has the prefix <code>prefix</code>, and <code>false</code> otherwise.</li>
+</ul>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>wordsToInsert</code>: Array of strings to be inserted into the Trie.</li>
+  <li><code>searchWord</code>: Target string for <code>search()</code> operation.</li>
+  <li><code>prefixToSearch</code>: Target string for <code>startsWith()</code> operation.</li>
+</ul>
+<h3>Output</h3>
+<p>Boolean results for <code>search(searchWord)</code> and <code>startsWith(prefixToSearch)</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; word.length, prefix.length &le; 2000</code>.</li>
+  <li>Strings consist only of lowercase English letters (<code>'a'</code> to <code>'z'</code>).</li>
+  <li>At most 3 &times; 10<sup>4</sup> calls in total will be made to <code>insert</code>, <code>search</code>, and <code>startsWith</code>.</li>
+</ul>`,
   constraints: [
     "1 <= wordsToInsert.length <= 100",
     "1 <= word.length <= 20",

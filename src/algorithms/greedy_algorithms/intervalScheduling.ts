@@ -44,7 +44,9 @@ export const generateIntervalSchedulingSteps = (
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawIntervals = [...(input?.intervals ?? DEFAULT_INTERVAL_SCHEDULING_INPUT.intervals)];
+  const rawIntervals = Array.isArray(input?.intervals)
+    ? [...input.intervals]
+    : [...DEFAULT_INTERVAL_SCHEDULING_INPUT.intervals];
 
   const createArrayElements = (
     currentList: IntervalItem[],
@@ -76,8 +78,8 @@ export const generateIntervalSchedulingSteps = (
     stepIndex: stepIndex++,
     codeLine: 1,
     explanation: {
-      what: `Function call: interval_scheduling with ${rawIntervals.length} candidate intervals.`,
-      why: "Our objective is to greedily pick the maximum possible number of mutually non-overlapping intervals.",
+      what: `Initialize interval scheduling with ${rawIntervals.length} candidate interval(s).`,
+      why: "Maximizing the total number of mutually non-overlapping activities scheduled on a single shared resource.",
     },
     primarySnapshot: {
       kind: "array",
@@ -101,8 +103,8 @@ export const generateIntervalSchedulingSteps = (
     stepIndex: stepIndex++,
     codeLine: 2,
     explanation: {
-      what: `Sorted ${sortedIntervals.length} intervals by finish time in ascending order.`,
-      why: "Earliest Finish Time (EFT) greedy strategy: completing jobs as early as possible frees the resource for subsequent intervals.",
+      what: `Sort candidate intervals by earliest finish time (EFT).`,
+      why: "Finishing tasks as early as possible leaves maximum remaining capacity for subsequent greedy selections.",
     },
     primarySnapshot: {
       kind: "array",
@@ -127,8 +129,8 @@ export const generateIntervalSchedulingSteps = (
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: "Initialized empty selected list `selected = []`.",
-      why: "This array will store the optimal subset of non-overlapping intervals.",
+      what: "Initialize empty schedule container.",
+      why: "Selected compatible intervals will be collected here to form the optimal schedule.",
     },
     primarySnapshot: {
       kind: "array",
@@ -152,8 +154,8 @@ export const generateIntervalSchedulingSteps = (
     stepIndex: stepIndex++,
     codeLine: 4,
     explanation: {
-      what: "Initialized threshold `last_end = float('-inf')`.",
-      why: "Any valid initial interval will have `start >= -inf`, ensuring the first sorted interval is accepted.",
+      what: "Initialize threshold last_end = -∞.",
+      why: "Setting last_end to negative infinity ensures the first sorted interval will be accepted immediately.",
     },
     primarySnapshot: {
       kind: "array",
@@ -179,8 +181,8 @@ export const generateIntervalSchedulingSteps = (
       stepIndex: stepIndex++,
       codeLine: 6,
       explanation: {
-        what: `Loop step ${i + 1}/${sortedIntervals.length}: inspect interval ${current.id} [${current.start}, ${current.end}].`,
-        why: "Fetch next interval in sorted order to evaluate compatibility.",
+        what: `Inspect candidate interval ${current.id} [${current.start}, ${current.end}] (${i + 1}/${sortedIntervals.length}).`,
+        why: "Fetching the next interval in ascending finish time order for compatibility evaluation.",
       },
       primarySnapshot: {
         kind: "array",
@@ -207,10 +209,10 @@ export const generateIntervalSchedulingSteps = (
       stepIndex: stepIndex++,
       codeLine: 7,
       explanation: {
-        what: `Evaluate condition: start (${current.start}) >= lastEnd (${lastEnd === Number.NEGATIVE_INFINITY ? "-∞" : lastEnd}) -> ${isCompatible ? "TRUE" : "FALSE"}`,
+        what: `Evaluate compatibility: start (${current.start}) ≥ lastEnd (${lastEnd === Number.NEGATIVE_INFINITY ? "-∞" : lastEnd}) -> ${isCompatible ? "TRUE" : "FALSE"}.`,
         why: isCompatible
-          ? `Interval ${current.id} starts at ${current.start}, which is >= finish time ${lastEnd === Number.NEGATIVE_INFINITY ? "-∞" : lastEnd}. No overlap!`
-          : `Interval ${current.id} starts at ${current.start}, which is < finish time ${lastEnd}. Overlap detected!`,
+          ? `Interval ${current.id} starts at ${current.start}, which is at or after finish time ${lastEnd === Number.NEGATIVE_INFINITY ? "-∞" : lastEnd}. Compatible!`
+          : `Interval ${current.id} starts at ${current.start}, which overlaps with previous selection ending at ${lastEnd}. Incompatible!`,
       },
       primarySnapshot: {
         kind: "array",
@@ -240,8 +242,8 @@ export const generateIntervalSchedulingSteps = (
         stepIndex: stepIndex++,
         codeLine: 8,
         explanation: {
-          what: `Append ${current.id} [${current.start}, ${current.end}] to selected schedule.`,
-          why: "Since it is compatible, greedily accepting this interval maximizes available remaining schedule space.",
+          what: `Accept interval ${current.id} [${current.start}, ${current.end}] into schedule.`,
+          why: "Greedily accepting this compatible interval locks in maximum available remaining resource capacity.",
         },
         primarySnapshot: {
           kind: "array",
@@ -266,8 +268,8 @@ export const generateIntervalSchedulingSteps = (
         stepIndex: stepIndex++,
         codeLine: 9,
         explanation: {
-          what: `Update threshold last_end = ${lastEnd} (end time of ${current.id}).`,
-          why: "Future selected intervals must start at or after this updated finish time.",
+          what: `Update threshold last_end = ${lastEnd} (finish time of ${current.id}).`,
+          why: "All future scheduled intervals must start at or after this updated boundary time.",
         },
         primarySnapshot: {
           kind: "array",
@@ -293,8 +295,8 @@ export const generateIntervalSchedulingSteps = (
         stepIndex: stepIndex++,
         codeLine: 7,
         explanation: {
-          what: `Reject interval ${current.id} [${current.start}, ${current.end}] (overlaps with previous ending at ${lastEnd}).`,
-          why: "Discarding overlapping candidates is required to maintain mutual compatibility.",
+          what: `Bypass overlapping interval ${current.id} [${current.start}, ${current.end}].`,
+          why: "Rejecting overlapping intervals is necessary to guarantee non-overlapping mutual compatibility.",
         },
         primarySnapshot: {
           kind: "array",
@@ -319,8 +321,8 @@ export const generateIntervalSchedulingSteps = (
     stepIndex: stepIndex++,
     codeLine: 11,
     explanation: {
-      what: "Finished inspecting all sorted intervals.",
-      why: "All candidate intervals have been evaluated against the Earliest Finish Time criterion.",
+      what: "Completed evaluation of all candidate intervals.",
+      why: "Every candidate interval has been tested against the Earliest Finish Time criterion.",
     },
     primarySnapshot: {
       kind: "array",
@@ -342,7 +344,7 @@ export const generateIntervalSchedulingSteps = (
     stepIndex: stepIndex++,
     codeLine: 11,
     explanation: {
-      what: `Return selected schedule with ${selected.length} non-overlapping intervals.`,
+      what: `Return selected schedule with ${selected.length} non-overlapping interval(s).`,
       why: `Optimal schedule: ${selected.map((s) => `[${s.start},${s.end}]`).join(", ")}.`,
     },
     primarySnapshot: {
@@ -435,15 +437,15 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
   topicIds: ["greedy_algorithms", "two_pointers"],
   difficulty: "Medium",
   description:
-    "Given a collection of intervals each defined by a start time and end time, find a maximum-cardinality subset of mutually compatible (non-overlapping) intervals.\n\n" +
-    "### Problem Overview\n" +
-    "Select the maximum number of intervals such that no two selected intervals overlap. Greedily picking intervals in ascending order of finish time (Earliest Finish Time) guarantees an optimal schedule.\n\n" +
-    "### Key Insights & Proof Sketch\n" +
-    "- **Earliest Finish Time (EFT)**: Finishing a job as early as possible leaves maximum remaining time for remaining activities.\n" +
-    "- **Exchange Argument**: Let $g_1$ be the greedy choice and $o_1$ be the first interval in an optimal schedule $OPT$. Since $\\text{end}(g_1) \\le \\text{end}(o_1)$, swapping $o_1$ with $g_1$ yields another optimal schedule.\n\n" +
-    "### Complexity\n" +
-    "- **Time**: $O(N \\log N)$ where $N$ is the number of intervals, dominated by the sorting step.\n" +
-    "- **Space**: $O(N)$ for storing the sorted intervals and selected schedule.",
+    "<p>Given a collection of intervals each defined by a start time and end time, find a maximum-cardinality subset of mutually compatible (non-overlapping) intervals.</p>" +
+    "<h3>Problem Overview</h3>" +
+    "<p>Select the maximum number of intervals such that no two selected intervals overlap. Greedily picking intervals in ascending order of finish time (Earliest Finish Time) guarantees an optimal schedule.</p>" +
+    "<h3>Key Insights &amp; Proof Sketch</h3>" +
+    "<ul><li><strong>Earliest Finish Time (EFT):</strong> Finishing a job as early as possible leaves maximum remaining time for subsequent activities.</li>" +
+    "<li><strong>Exchange Argument:</strong> Let <code>g_1</code> be the greedy choice and <code>o_1</code> be the first interval in an optimal schedule <code>OPT</code>. Since <code>end(g_1) &le; end(o_1)</code>, swapping <code>o_1</code> with <code>g_1</code> yields another optimal schedule.</li></ul>" +
+    "<h3>Complexity</h3>" +
+    "<ul><li><strong>Time:</strong> <span>O(N log N)</span> where N is the number of intervals, dominated by the sorting step.</li>" +
+    "<li><strong>Space:</strong> <span>O(N)</span> for storing the sorted intervals and selected schedule.</li></ul>",
   constraints: ["1 <= intervals.length <= 10^5", "0 <= start < end <= 10^9"],
   examples: [
     {
@@ -508,7 +510,54 @@ export const intervalScheduling: AlgorithmDefinition<IntervalSchedulingInput> = 
     time: "Sorting N intervals by finish time takes O(N log N) time. The subsequent linear sweep pass takes O(N) time, yielding O(N log N) total execution time.",
     space: "O(N) memory to store the sorted array and output list of selected intervals.",
   },
-  topicGuide: INTERVAL_SCHEDULING_TOPIC_GUIDE,
+  topicGuide: {
+    overview:
+      "<p>Interval Scheduling (also known as the Activity Selection Problem) finds a maximum-cardinality set of mutually compatible non-overlapping intervals from a collection of candidate activities. By sorting candidate intervals by Earliest Finish Time (EFT), the greedy choice provably maximizes the number of scheduled tasks on a single shared resource. Key applications include CPU task execution scheduling, satellite transmission window reservation, and meeting room assignment.</p>",
+    sections: [
+      {
+        heading: "Why Earliest Finish Time (EFT) Works",
+        body: "<p>Picking the interval with the earliest finish time leaves the maximum possible remaining time for all subsequent tasks. Any alternative interval ending later can only restrict future options further. This local choice guarantees optimal remaining capacity for future selections. Thus, making the earliest finish time greedy choice at every step produces a globally optimal schedule.</p>",
+      },
+      {
+        heading: "Exchange Argument Proof of Optimality",
+        body: "<p>Let <code>G = [g_1, g_2, &hellip;, g_k]</code> be the greedy schedule sorted by finish time. Let <code>OPT = [o_1, o_2, &hellip;, o_m]</code> be any optimal schedule. By mathematical induction, <code>finish(g_i) &le; finish(o_i)</code> for all <code>i</code>. Replacing <code>o_1</code> with <code>g_1</code> preserves compatibility for all remaining intervals in <code>OPT</code>, proving <code>|G| = |OPT|</code>.</p>",
+      },
+      {
+        heading: "Flawed Heuristics Counter-Examples",
+        body: "<p>Other greedy criteria fail on simple inputs. Shortest Duration First fails for <code>[1,4]</code>, <code>[3,5]</code>, <code>[4,7]</code> where selecting <code>[3,5]</code> yields 1 job instead of 2. Earliest Start Time First fails for <code>[1,10]</code>, <code>[2,3]</code>, <code>[4,5]</code> where selecting <code>[1,10]</code> yields 1 job instead of 2. Fewest Overlaps First also fails on specific graph configurations.</p>",
+      },
+      {
+        heading: "Boundary Conditions & Touch Conventions",
+        body: "<p>In standard interval scheduling, touching boundaries where <code>start = last_end</code> are compatible under <code>start &ge; last_end</code>. If strict separation <code>start &gt; last_end</code> is required, modifying the operator preserves identical asymptotic performance. Always clarify boundary inclusivity in interview settings. Small changes in inequality constraints alter valid solutions without breaking the greedy core.</p>",
+      },
+      {
+        heading: "Algorithmic Family Comparisons",
+        body: "<p>Contrast Interval Scheduling which maximizes job count in <span>O(N log N)</span> time. Compare it with Weighted Interval Scheduling where jobs carry values, solved via Dynamic Programming in <span>O(N log N)</span> time. Also compare with Interval Partitioning which finds minimum resource rooms to host all jobs, solved with min-heaps in <span>O(N log N)</span> time. Understanding these distinctions helps select the correct pattern immediately.</p>",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Earliest Finish Time (EFT)",
+        definition:
+          "The greedy selection rule prioritizing intervals by smallest finish coordinate to maximize remaining resource availability.",
+      },
+      {
+        term: "Mutual Compatibility",
+        definition:
+          "The property where no two chosen intervals share an overlapping interior time span.",
+      },
+      {
+        term: "Exchange Argument",
+        definition:
+          "A formal proof technique showing a greedy choice can be swapped into any optimal solution without loss of quality.",
+      },
+      {
+        term: "Activity Selection",
+        definition:
+          "The canonical problem of maximizing non-overlapping resource allocations over time.",
+      },
+    ],
+  },
   trivia: INTERVAL_SCHEDULING_TRIVIA,
   sources: [
     {

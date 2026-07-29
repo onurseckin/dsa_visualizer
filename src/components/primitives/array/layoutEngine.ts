@@ -35,6 +35,7 @@ export interface ArrayMetrics {
   minBarHeight: number;
   barRadius: number;
   labelY: number;
+  titleY: number;
   maxVal: number;
 }
 
@@ -42,6 +43,7 @@ export const computeArrayLayout = (
   elements: ArrayElement[],
   box: Size,
   mode: "bar" | "box" = "bar",
+  title?: string,
 ): ArrayMetrics => {
   const maxVal = Math.max(
     ...elements.map((el) => (typeof el.value === "number" ? el.value : Number(el.value) || 1)),
@@ -53,27 +55,48 @@ export const computeArrayLayout = (
     0,
   );
 
-  const run = barRun(count, Math.max(box.width - PAD_X * 2, 1));
-  const barWidth = run.size;
+  const maxCharLen = Math.max(...elements.map((el) => String(el.value ?? "").length), 1);
 
-  const valueFont = clamp(barWidth * 0.34, 9, 30);
-  const indexFont = clamp(barWidth * 0.24, 8, 16);
-  const pointerFont = clamp(barWidth * 0.24, 9, 15);
-  const pointerRowH = pointerFont * 1.55;
+  // Content-aware dynamic cell width calculation
+  const requiredCharWidth = Math.ceil(maxCharLen * 14 * 0.58 + 20);
+  const targetBarW = Math.max(MIN_BAR_W, requiredCharWidth, 54);
 
-  const topPad = Math.min(pointerRows > 0 ? pointerRows * pointerRowH + 16 : 4, box.height * 0.32);
-  const bottomPad = Math.max(indexFont * 2.2 + 16, 32);
+  const gaps = Math.max(count - 1, 0);
+  const avail = Math.max(box.width - PAD_X * 2, 1);
+  const maxGap = Math.max(GAP, targetBarW * MAX_GAP_RATIO);
+  const gap = gaps > 0 ? clamp((avail - targetBarW * count) / gaps, GAP, maxGap) : 0;
+  const span = targetBarW * count + gap * gaps;
+  const run: BarRun = { size: targetBarW, gap, span };
+
+  const barWidth = targetBarW;
+  const valueFont = clamp(Math.min(15, barWidth / (maxCharLen * 0.55 + 1)), 11, 16);
+  const indexFont = 12;
+  const pointerFont = 12;
+  const pointerRowH = pointerFont * 1.5;
+
+  const hasTitle = Boolean(title && title.trim().length > 0);
+  const titleHeight = hasTitle ? 20 : 0;
+  const pointerHeight = pointerRows > 0 ? pointerRows * pointerRowH + 8 : 0;
+  const topPad = titleHeight + pointerHeight + 8;
+  const titleY = hasTitle ? 12 : 0;
+
+  const bottomPad = 24;
   const bandHeight = Math.max(box.height - topPad - bottomPad, 1);
   const baselineY = topPad + bandHeight;
 
   const isBoxMode = mode === "box";
-  const boxSize = Math.min(barWidth, bandHeight);
+  const boxSize = Math.min(Math.max(bandHeight, 48), 56);
   const boxY = topPad + (bandHeight - boxSize) / 2;
 
-  const startX = (box.width - run.span) / 2;
+  const titleWidth = hasTitle && title ? title.trim().length * 8.5 : 0;
+  const titleGap = hasTitle ? 12 : 0;
+  const startX = Math.max(
+    (box.width - run.span + titleWidth + titleGap) / 2,
+    PAD_X + titleWidth + titleGap,
+  );
   const minBarHeight = Math.max(bandHeight * 0.04, 4);
-  const barRadius = clamp(barWidth * 0.12, 3, 10);
-  const labelY = Math.min(baselineY + bottomPad / 2, box.height - indexFont * 0.6);
+  const barRadius = 6;
+  const labelY = boxY + boxSize + 16;
 
   return {
     run,
@@ -93,6 +116,7 @@ export const computeArrayLayout = (
     minBarHeight,
     barRadius,
     labelY,
+    titleY,
     maxVal,
   };
 };

@@ -1,12 +1,6 @@
 import React from "react";
 import { AlgorithmStep } from "../../../types/dsa";
-import { ArrayVisualizer } from "../../primitives/ArrayVisualizer";
-import { GridVisualizer } from "../../primitives/GridVisualizer";
-import { GraphVisualizer } from "../../primitives/GraphVisualizer";
-import { TreeVisualizer } from "../../primitives/TreeVisualizer";
-import { VectorVisualizer } from "../../primitives/VectorVisualizer";
-import { MatrixVisualizer } from "../../primitives/MatrixVisualizer";
-import { QuantizationVisualizer } from "../../primitives/QuantizationVisualizer";
+import { isRenderablePrimitiveSnapshot, RenderPrimitiveSnapshot } from "../../primitives";
 import { ControlPanel, ControlPanelProps } from "../../../ui";
 import { Card } from "../../../ui";
 
@@ -21,53 +15,14 @@ export const PrimaryVisualizerCanvas: React.FC<PrimaryVisualizerCanvasProps> = (
 }) => {
   const primarySnapshot = currentStep?.primarySnapshot;
 
-  const renderPrimaryVisualizer = () => {
-    if (!primarySnapshot) return null;
-
-    switch (primarySnapshot.kind) {
-      case "array":
-        return <ArrayVisualizer elements={primarySnapshot.elements} />;
-      case "grid":
-        return <GridVisualizer grid={primarySnapshot.grid} />;
-      case "graph":
-        return <GraphVisualizer nodes={primarySnapshot.nodes} edges={primarySnapshot.edges} />;
-      case "tree":
-        return <TreeVisualizer nodes={primarySnapshot.nodes} rootId={primarySnapshot.rootId} />;
-      case "vector":
-        return (
-          <VectorVisualizer
-            vectors={primarySnapshot.vectors}
-            origin={primarySnapshot.origin}
-            planeTitle={primarySnapshot.planeTitle}
-            dimensions={primarySnapshot.dimensions}
-          />
-        );
-      case "matrix":
-        return (
-          <MatrixVisualizer
-            rows={primarySnapshot.rows}
-            cols={primarySnapshot.cols}
-            cells={primarySnapshot.cells}
-            rowHeaders={primarySnapshot.rowHeaders}
-            colHeaders={primarySnapshot.colHeaders}
-            title={primarySnapshot.title}
-          />
-        );
-      case "quantization":
-        return (
-          <QuantizationVisualizer
-            originalValue={primarySnapshot.originalValue}
-            quantizedValue={primarySnapshot.quantizedValue}
-            scale={primarySnapshot.scale}
-            zeroPoint={primarySnapshot.zeroPoint}
-            bits={primarySnapshot.bits}
-            title={primarySnapshot.title}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const renderPrimaryVisualizer = () =>
+    primarySnapshot && isRenderablePrimitiveSnapshot(primarySnapshot) ? (
+      <RenderPrimitiveSnapshot
+        snapshot={primarySnapshot}
+        auxiliaryState={currentStep?.auxiliaryState}
+        variables={currentStep?.variables}
+      />
+    ) : null;
 
   return (
     <Card

@@ -43,12 +43,19 @@ const modPow = (base: number, exp: number, mod: number): number => {
   return res;
 };
 
-export const generateChineseRemainderSteps = (input: ChineseRemainderInput): AlgorithmStep[] => {
+export const generateChineseRemainderSteps = (input?: ChineseRemainderInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const num = input.num && input.num.length > 0 ? input.num : [2, 3, 5];
-  const rem = input.rem && input.rem.length === num.length ? input.rem : [1, 2, 3];
+  const safeInput = input ?? DEFAULT_CHINESE_REMAINDER_INPUT;
+  const num =
+    Array.isArray(safeInput.num) && safeInput.num.length > 0
+      ? safeInput.num
+      : DEFAULT_CHINESE_REMAINDER_INPUT.num;
+  const rem =
+    Array.isArray(safeInput.rem) && safeInput.rem.length === num.length
+      ? safeInput.rem
+      : DEFAULT_CHINESE_REMAINDER_INPUT.rem;
   const k = num.length;
 
   const partialMs: (number | string)[] = new Array(k).fill("-");
@@ -95,8 +102,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
     stepIndex: stepIndex++,
     codeLine: 2,
     explanation: {
-      what: `Received ${k} linear congruences: x ≡ r_i (mod m_i).`,
-      why: "Chinese Remainder Theorem guarantees a unique solution modulo M = m_1 * m_2 * ... * m_k for pairwise coprime moduli.",
+      what: `Initializing system of ${k} linear congruences: x ≡ r_i (mod m_i).`,
+      why: "The Chinese Remainder Theorem guarantees a unique minimum non-negative solution modulo master product M = m_1 * m_2 * ... * m_k when moduli are pairwise coprime.",
     },
     primarySnapshot: createMatrixSnapshot(null, null),
     auxiliaryState: {
@@ -121,8 +128,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
     stepIndex: stepIndex++,
     codeLine: 3,
     explanation: {
-      what: "Initializing total product of moduli M = 1.",
-      why: "Master modulus M = prod(m_i) bounds the unique solution range.",
+      what: "Initializing total product accumulator M = 1.",
+      why: "The master modulus M defines the combined residue class within which the system's unique solution lies.",
     },
     primarySnapshot: createMatrixSnapshot(null, null),
     auxiliaryState: {
@@ -138,8 +145,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
       stepIndex: stepIndex++,
       codeLine: 5,
       explanation: {
-        what: `Multiplying modulus m_${i + 1} = ${num[i]}: M = ${prevProd} * ${num[i]} = ${prod}.`,
-        why: "Accumulate total modulus product for all pairwise coprime moduli.",
+        what: `Incorporating modulus m_${i + 1} = ${num[i]} into master product: M = ${prevProd} * ${num[i]} = ${prod}.`,
+        why: "Multiplying pairwise coprime moduli expands the period M of the system.",
       },
       primarySnapshot: createMatrixSnapshot(i, 0),
       auxiliaryState: {
@@ -158,8 +165,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
     stepIndex: stepIndex++,
     codeLine: 7,
     explanation: {
-      what: `Master modulus M = ${prod}. Initializing running sum result = 0.`,
-      why: "We will now evaluate the basis contribution for each congruence equation.",
+      what: `Master modulus computed: M = ${prod}. Initializing result accumulator to 0.`,
+      why: "Each congruence equation will contribute an orthogonal basis term to the final sum.",
     },
     primarySnapshot: createMatrixSnapshot(null, null),
     auxiliaryState: {
@@ -180,8 +187,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
       stepIndex: stepIndex++,
       codeLine: 9,
       explanation: {
-        what: `Equation #${i + 1}: x ≡ ${ri} (mod ${ni}). Partial product M_${i + 1} = M / m_${i + 1} = ${prod} / ${ni} = ${p}.`,
-        why: `M_${i + 1} = ${p} is divisible by all other moduli except m_${i + 1} (${ni}).`,
+        what: `For equation #${i + 1} (x ≡ ${ri} mod ${ni}), computing partial modulus M_${i + 1} = M / m_${i + 1} = ${prod} / ${ni} = ${p}.`,
+        why: `M_${i + 1} = ${p} is divisible by all moduli except m_${i + 1} (${ni}), making its basis term evaluate to 0 modulo all other equations.`,
       },
       primarySnapshot: createMatrixSnapshot(i, 2),
       auxiliaryState: {
@@ -202,8 +209,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
       stepIndex: stepIndex++,
       codeLine: 10,
       explanation: {
-        what: `Modular inverse of M_${i + 1} = ${p} modulo ${ni} is ${inv} (${p} * ${inv} ≡ 1 mod ${ni}).`,
-        why: "By Fermat's Little Theorem, M_i^(-1) ≡ M_i^(m_i - 2) (mod m_i).",
+        what: `Computing modular inverse of M_${i + 1} = ${p} modulo ${ni}, yielding inv = ${inv}.`,
+        why: `The inverse ensures that M_${i + 1} * inv ≡ 1 (mod ${ni}), scaling the term to match remainder r_${i + 1}.`,
       },
       primarySnapshot: createMatrixSnapshot(i, 3),
       auxiliaryState: {
@@ -219,15 +226,14 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
     // Compute term & accumulate
     const term = ri * p * inv;
     terms[i] = term;
-    const prevResult = result;
     result += term;
 
     steps.push({
       stepIndex: stepIndex++,
       codeLine: 11,
       explanation: {
-        what: `Basis term for Eq #${i + 1}: r_i * M_i * inv = ${ri} * ${p} * ${inv} = ${term}. Add to result: ${prevResult} + ${term} = ${result}.`,
-        why: `Term ${term} evaluates to ${ri} modulo ${ni} and 0 modulo all other moduli.`,
+        what: `Computing basis term #${i + 1}: r_i * M_i * inv = ${ri} * ${p} * ${inv} = ${term}. Adding to result: new sum = ${result}.`,
+        why: `This term evaluates to ${ri} (mod ${ni}) and 0 (mod m_j) for all j ≠ i, satisfying the i-th congruence independently.`,
       },
       primarySnapshot: createMatrixSnapshot(i, 4),
       auxiliaryState: {
@@ -248,8 +254,8 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
     stepIndex: stepIndex++,
     codeLine: 13,
     explanation: {
-      what: `Final answer x = ${result} % ${prod} = ${finalAns}.`,
-      why: "The minimum non-negative integer solution satisfying all linear congruences.",
+      what: `Reducing combined result ${result} modulo master product ${prod} yields final solution x = ${finalAns}.`,
+      why: "Taking the sum modulo M guarantees the minimal non-negative integer satisfying all linear congruences.",
     },
     primarySnapshot: createMatrixSnapshot(null, null),
     auxiliaryState: {
@@ -274,40 +280,40 @@ export const generateChineseRemainderSteps = (input: ChineseRemainderInput): Alg
 
 export const CHINESE_REMAINDER_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Chinese Remainder Theorem (CRT) guarantees that a system of simultaneous linear congruences $x \\equiv r_i \\pmod{m_i}$ with pairwise coprime moduli has a unique solution modulo master product $M = \\prod_{i=1}^k m_i$. It allows high-precision calculations over large numbers to be decomposed into independent parallel computations over smaller modular fields.",
+    "<p>The <strong>Chinese Remainder Theorem (CRT)</strong> proves that a system of simultaneous linear congruences <code>x &equiv; r<sub>i</sub> (mod m<sub>i</sub>)</code> with pairwise coprime moduli has a unique solution modulo master product <code>M = &prod; m<sub>i</sub></code>. It allows high-precision calculations over large numbers to be decomposed into independent parallel computations over smaller modular fields.</p>",
   sections: [
     {
       heading: "Constructive Explicit Solution Formula",
-      body: "Given $k$ congruences $x \\equiv r_i \\pmod{m_i}$, let $M = \\prod_{i=1}^k m_i$ and $M_i = \\frac{M}{m_i}$. Because $\\gcd(M_i, m_i) = 1$, the modular multiplicative inverse $M_i^{-1} \\bmod m_i$ exists. The combined solution is constructed as:\n$$x = \\sum_{i=1}^k \\left( r_i \\cdot M_i \\cdot \\left(M_i^{-1} \\bmod m_i\\right) \\right) \\pmod M$$\nFor each term $i$, taking modulo $m_i$ cancels all other terms $j \\neq i$ (since $m_i \\mid M_j$) and leaves $r_i \\cdot 1 = r_i$.",
+      body: "<p>Given <code>k</code> congruences <code>x &equiv; r<sub>i</sub> (mod m<sub>i</sub>)</code>, let <code>M = &prod; m<sub>i</sub></code> and <code>M<sub>i</sub> = M / m<sub>i</sub></code>. Because <code>gcd(M<sub>i</sub>, m<sub>i</sub>) = 1</code>, the modular multiplicative inverse <code>M<sub>i</sub><sup>-1</sup> mod m<sub>i</sub></code> exists. The combined solution is constructed as:</p><p><code>x = &sum; (r<sub>i</sub> &times; M<sub>i</sub> &times; (M<sub>i</sub><sup>-1</sup> mod m<sub>i</sub>)) (mod M)</code></p><p>For each term, taking modulo <code>m<sub>i</sub></code> cancels all other terms <code>j &ne; i</code> (since <code>m<sub>i</sub></code> divides <code>M<sub>j</sub></code>) and yields <code>r<sub>i</sub></code>.</p>",
     },
     {
       heading: "Pairwise Coprime Condition & Generalization",
-      body: "Pairwise coprimality ($\\gcd(m_i, m_j) = 1$ for all $i \\neq j$) ensures that each modular inverse $M_i^{-1} \\bmod m_i$ exists. If moduli are not pairwise coprime, a solution exists if and only if $r_i \\equiv r_j \\pmod{\\gcd(m_i, m_j)}$ for all pairs, solved by splitting moduli into prime powers.",
+      body: "<p>Pairwise coprimality (<code>gcd(m<sub>i</sub>, m<sub>j</sub>) = 1</code> for all <code>i &ne; j</code>) guarantees that each modular inverse exists. When moduli share common factors, a solution exists if and only if <code>r<sub>i</sub> &equiv; r<sub>j</sub> (mod gcd(m<sub>i</sub>, m<sub>j</sub>))</code> across all pairs.</p>",
     },
     {
       heading: "Systems & Real-World Applications",
-      body: "CRT is heavily utilized in modern computing:\n1. RSA Cryptography: CRT-RSA accelerates private key operations (decryption and signing) by factorizing 2048-bit modular exponentiations into parallel 1024-bit prime factor computations.\n2. Multi-Modular Arithmetic: Computing giant integer matrix determinants or polynomial products via parallel single-word prime operations without BigInt overhead.\n3. Number Theoretic Transform (NTT) over composite moduli domains.",
+      body: "<p>CRT is widely used across computer science and cryptography:</p><ul><li><strong>RSA Acceleration:</strong> Speeds up private key operations by computing exponentiations modulo prime factors <code>p</code> and <code>q</code> independently.</li><li><strong>Multi-Modular Arithmetic:</strong> Enables large integer computations without floating-point rounding or BigInt overhead.</li><li><strong>Number Theoretic Transforms (NTT):</strong> Combines results across composite modular fields.</li></ul>",
     },
     {
-      heading: "Implementation & Edge Cases",
-      body: "Care must be taken to prevent integer overflow when computing intermediate terms $r_i \\cdot M_i \\cdot \\text{inv}_i$. Intermediate products can reach $\\mathcal{O}(M^2)$, requiring 64-bit or BigInt types. Key boundary cases include $r_i = 0$ for all $i$ (yielding $0 \\bmod M$) and single congruence systems ($k = 1$).",
+      heading: "Implementation & Complexity",
+      body: "<p>Evaluating <code>k</code> congruences requires computing partial products <code>M<sub>i</sub></code> and modular inverses. The constructive approach runs in <code>O(k log M)</code> time and <code>O(k)</code> space.</p>",
     },
   ],
   keyTerms: [
     {
       term: "Linear Congruence",
       definition:
-        "An equation $x \\equiv r \\pmod m$ stating that $x$ and $r$ leave the identical remainder when divided by $m$.",
+        "An equation x ≡ r (mod m) stating that x and r leave the identical remainder when divided by m.",
     },
     {
       term: "Pairwise Coprime Moduli",
       definition:
-        "A set of integers where every pair shares no common factor $> 1$ ($\\gcd(m_i, m_j) = 1$).",
+        "A set of integers where every pair shares no common factor > 1 (gcd(m_i, m_j) = 1).",
     },
     {
       term: "CRT Basis Term",
       definition:
-        "The value $e_i = M_i \\cdot \\left(M_i^{-1} \\bmod m_i\\right)$, which evaluates to $1 \\bmod m_i$ and $0 \\bmod m_j$ for $j \\neq i$.",
+        "The value e_i = M_i * (M_i^-1 mod m_i), which evaluates to 1 mod m_i and 0 mod m_j for j ≠ i.",
     },
   ],
 };
@@ -315,7 +321,7 @@ export const CHINESE_REMAINDER_TOPIC_GUIDE: TopicGuide = {
 export const CHINESE_REMAINDER_TRIVIA: TriviaMeta = {
   lineExplanations: {
     1: "Empty leading line for code formatting.",
-    2: "Defines chinese_remainder function signature taking arrays num ($m_i$) and rem ($r_i$).",
+    2: "Defines chinese_remainder function signature taking arrays num (m_i) and rem (r_i).",
     3: "Initializes total moduli product accumulator prod = 1.",
     4: "Loops over moduli in num array.",
     5: "Multiplies each modulus n into total product prod.",
@@ -337,7 +343,7 @@ export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput>
   topicIds: ["math_and_number_theory"],
   difficulty: "Hard",
   description:
-    "Solves a system of simultaneous linear congruences $x \\equiv r_i \\pmod{m_i}$ for pairwise coprime moduli $m_i$.\n\n$$x = \\sum_{i=1}^k r_i \\cdot M_i \\cdot \\left(M_i^{-1} \\bmod m_i\\right) \\pmod M$$\nwhere $M = \\prod m_i$ and $M_i = \\frac{M}{m_i}$.\n\n### State Matrix Representation\nThe system solution is tracked via a matrix $\\mathbf{M} \\in \\mathbb{Z}^{k \\times 5}$ recording $(m_i, r_i, M_i, M_i^{-1}, \\text{Term}_i)$ for each congruence $i$.\n\n### Input Parameters\n- `num` (`list[int]`): Array of pairwise coprime moduli $[m_1, m_2, \\dots, m_k]$.\n- `rem` (`list[int]`): Array of remainders $[r_1, r_2, \\dots, r_k]$.\n\n### Output\n- `int`: The minimal unique non-negative integer solution $x \\bmod M$.\n\n### Edge Cases & Constraints\n- All zero remainders: Returns 0.\n- Single congruence: Returns $r_1 \\bmod m_1$.",
+    "<p>The <strong>Chinese Remainder Theorem (CRT)</strong> solves a system of simultaneous linear congruences <code>x &equiv; r<sub>i</sub> (mod m<sub>i</sub>)</code> for pairwise coprime moduli <code>m<sub>i</sub></code>.</p><p><code>x = &sum; (r<sub>i</sub> &times; M<sub>i</sub> &times; (M<sub>i</sub><sup>-1</sup> mod m<sub>i</sub>)) mod M</code></p><p>where <code>M = &prod; m<sub>i</sub></code> is the master product modulus and <code>M<sub>i</sub> = M / m<sub>i</sub></code>.</p><h3>State Matrix Representation</h3><p>The solution progress is recorded in a state matrix tracking <code>(m<sub>i</sub>, r<sub>i</sub>, M<sub>i</sub>, M<sub>i</sub><sup>-1</sup> mod m<sub>i</sub>, Term<sub>i</sub>)</code> for each congruence.</p><h3>Input Parameters</h3><ul><li><code>num</code>: Array of pairwise coprime moduli <code>[m<sub>1</sub>, m<sub>2</sub>, ..., m<sub>k</sub>]</code>.</li><li><code>rem</code>: Array of remainders <code>[r<sub>1</sub>, r<sub>2</sub>, ..., r<sub>k</sub>]</code>.</li></ul><h3>Output</h3><ul><li><code>int</code>: The minimal non-negative integer solution <code>x mod M</code>.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Zero Remainders:</strong> When all <code>r<sub>i</sub> = 0</code>, the solution is <code>0</code>.</li><li><strong>Single Congruence:</strong> Returns <code>r<sub>1</sub> mod m<sub>1</sub></code>.</li></ul>",
   constraints: ["1 <= num.length <= 10", "2 <= num[i] <= 10^3 (pairwise coprime)"],
   examples: [
     {
@@ -376,8 +382,8 @@ export const chineseRemainderTheorem: AlgorithmDefinition<ChineseRemainderInput>
   },
   spaceComplexity: "O(K)",
   complexityAnalysis: {
-    time: "For $K$ congruences, computing each modular inverse takes $\\mathcal{O}(\\log m_i)$ time. Total runtime is $\\mathcal{O}(K \\log M)$.",
-    space: "Requires $\\mathcal{O}(K)$ space to store intermediate matrix basis vectors.",
+    time: "For K congruences, computing each modular inverse takes O(log m_i) time. Total runtime is O(K log M).",
+    space: "Requires O(K) space to store intermediate matrix basis vectors.",
   },
   topicGuide: CHINESE_REMAINDER_TOPIC_GUIDE,
   trivia: CHINESE_REMAINDER_TRIVIA,

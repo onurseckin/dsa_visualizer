@@ -1,59 +1,10 @@
-import type { AlgorithmDefinition, TopicGuide } from "../../../types/dsa";
+import type { AlgorithmDefinition } from "../../../types/dsa";
 import type { TriviaMeta } from "../../../types/trivia";
 import { PYTHON_SIEVE_CODE } from "./pythonCode";
 import { generateSieveSteps, type SieveInput } from "./stepGenerator";
 
 export const DEFAULT_SIEVE_INPUT: SieveInput = {
   limit: 30,
-};
-
-const SIEVE_PRIMES_TOPIC_GUIDE: TopicGuide = {
-  overview:
-    "A sieve is a table-building technique: instead of answering a question about one number, you answer it about every number in a range $[0, n]$ at once by letting each fact propagate to the values it affects. The Sieve of Eratosthenes is the original and still the most useful instance, finding all primes up to a limit $n$ by crossing out multiples rather than testing candidates. Reach for it whenever a problem needs the primes in a range, or needs some multiplicative fact about every number in a range, because the sieve turns per-number work into shared work. It is also the gateway to a whole family of relatives that compute factorizations, divisor counts, and totients with the same skeleton.",
-  sections: [
-    {
-      heading: "Elimination instead of testing",
-      body: "The direct way to list primes up to $n$ is to test each candidate separately using trial division up to $\\sqrt{n}$, costing $\\mathcal{O}(n \\sqrt{n})$ work overall with nothing carried over between candidates. The sieve inverts the question. Since every composite number $m \\le n$ has at least one prime factor $p \\le \\sqrt{m}$, if you take each prime in turn and cross out all of its multiples, then every composite is guaranteed to be struck at least once, and whatever is never struck cannot be composite. The data structure is a boolean vector $\\mathbf{v} \\in \\{0, 1\\}^{n+1}$ indexed directly by the integers, making state lookups $\\mathcal{O}(1)$.",
-    },
-    {
-      heading: "Optimization using the square root bound",
-      body: "You begin optimistically, setting $\\mathbf{v}[i] = 1$ for all $0 \\le i \\le n$, then immediately correct the two non-prime exceptions $\\mathbf{v}[0] = \\mathbf{v}[1] = 0$. The outer loop walks candidate $p$ upward. When it finds $\\mathbf{v}[p] = 1$, $p$ is prime. The inner loop flags $p^2, p^2 + p, p^2 + 2p, \\dots \\le n$ as composite. The outer loop can safely stop once $p^2 > n$, because any composite $m \\le n$ must have a prime factor $p \\le \\sqrt{n}$. The inner loop starts at $p^2$ because any smaller multiple $k \\cdot p$ with $k < p$ already carries a prime factor smaller than $p$ and was crossed out in an earlier sweep.",
-    },
-    {
-      heading: "Mathematical time complexity derivation",
-      body: "The total number of elimination operations performed by the inner loops across all base primes $p \\le \\sqrt{n}$ is proportional to:\n$$\\sum_{p \\le \\sqrt{n}} \\frac{n}{p} = n \\sum_{p \\le \\sqrt{n}} \\frac{1}{p}$$\nBy Mertens' Second Theorem, the sum of the reciprocals of prime numbers up to $x$ grows as $\\ln \\ln x + M$ (where $M \\approx 0.261497$ is the Meissel-Mertens constant). Thus, the overall time complexity is $\\mathcal{O}(n \\log \\log n)$, which is nearly linear in $n$.",
-    },
-    {
-      heading: "When to sieve and when to test a single number",
-      body: "Sieving is optimal when finding all primes in range $[0, n]$, precomputing Smallest Prime Factors (SPF) for fast $\\mathcal{O}(\\log n)$ factorization queries, or computing multiplicative functions over a range. It is sub-optimal for deciding the primality of a single massive candidate (where Miller-Rabin probabilistic test takes $\\mathcal{O}(k \\log^3 n)$ time without allocating $\\mathcal{O}(n)$ memory). For large but narrow ranges $[L, R]$, a Segmented Sieve sieves a window of size $R - L + 1$ using base primes up to $\\sqrt{R}$, reducing space to $\\mathcal{O}(\\sqrt{R} + (R - L))$.",
-    },
-    {
-      heading: "Pitfalls and edge cases",
-      body: "Size the array as $n + 1$ because indexing is 0-based and $n$ is inclusive. The base cases $\\mathbf{v}[0] = \\mathbf{v}[1] = 0$ must be set explicitly. For large bounds, calculating $p \\cdot p$ can overflow standard 32-bit integers, so use $p \\le n / p$ or $p \\le \\lfloor\\sqrt{n}\\rfloor$. Starting the inner loop at $2p$ instead of $p^2$ is redundant (though correct), while starting after $p^2$ misses composites.",
-    },
-  ],
-  keyTerms: [
-    {
-      term: "Composite number",
-      definition:
-        "An integer $m > 1$ that is the product of two smaller integers, having at least one prime factor $p \\le \\sqrt{m}$.",
-    },
-    {
-      term: "Base prime",
-      definition:
-        "A prime $p$ discovered by the outer loop and used to eliminate its multiples $p^2, p(p+1), \\dots$. Only primes $p \\le \\sqrt{n}$ serve as base primes.",
-    },
-    {
-      term: "Square root bound",
-      definition:
-        "The mathematical principle that if $m$ is composite, it must have a factor $\\le \\sqrt{m}$. Thus, outer loops terminate at $p^2 > n$.",
-    },
-    {
-      term: "Smallest Prime Factor (SPF)",
-      definition:
-        "A sieve variation storing the smallest prime factor for each integer $i$, enabling complete prime factorization in $\\mathcal{O}(\\log n)$ steps.",
-    },
-  ],
 };
 
 const SIEVE_PRIMES_TRIVIA: TriviaMeta = {
@@ -87,7 +38,16 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
   topicIds: ["math_and_number_theory"],
   difficulty: "Medium",
   description:
-    "The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit $n$. Instead of testing numbers individually via trial division in $O(n \\sqrt{n})$ time, it crosses out multiples of each discovered prime $p$ starting from $p^2$, leaving only primes standing in nearly linear time:\n\n$$\\sum_{p \\le \\sqrt{n}} \\frac{n}{p} = \\mathcal{O}(n \\log \\log n)$$\n\n### Primality State Vector\nThe primality status is recorded in state vector $\\mathbf{v} \\in \\{0, 1\\}^{n+1}$ where $\\mathbf{v}[i] = 1$ indicates $i$ is prime and $\\mathbf{v}[i] = 0$ indicates $i$ is composite.\n\n### Input Parameters\n- `limit` ($n \\in \\mathbb{Z}_{\\ge 0}$): Upper bound inclusive limit.\n\n### Output\n- `list[int]`: List of all prime numbers $p \\le n$.\n\n### Edge Cases & Constraints\n- `limit < 2`: Returns empty list `[]`.\n- Large `limit`: Memory scales linearly with limit $\\mathcal{O}(n)$.",
+    "<p>The Sieve of Eratosthenes is an ancient algorithm for finding all prime numbers up to a given limit <code>n</code>. Instead of testing numbers individually via trial division in <span>O(n &radic;n)</span> time, it crosses out multiples of each discovered prime <code>p</code> starting from <code>p&sup2;</code>, leaving only primes standing in nearly linear time: <span>O(n log log n)</span>.</p>" +
+    "<h3>Primality State Vector</h3>" +
+    "<p>The primality status is recorded in state vector <code>v</code> of size <code>n + 1</code> where <code>v[i] = 1</code> indicates <code>i</code> is prime and <code>v[i] = 0</code> indicates <code>i</code> is composite.</p>" +
+    "<h3>Input Parameters</h3>" +
+    "<ul><li><code>limit</code> (<code>n &ge; 0</code>): Upper bound inclusive limit.</li></ul>" +
+    "<h3>Output</h3>" +
+    "<ul><li><code>list[int]</code>: List of all prime numbers <code>p &le; n</code>.</li></ul>" +
+    "<h3>Edge Cases &amp; Constraints</h3>" +
+    "<ul><li><code>limit &lt; 2</code>: Returns empty list <code>[]</code>.</li>" +
+    "<li>Large <code>limit</code>: Memory scales linearly with limit <span>O(n)</span>.</li></ul>",
   constraints: ["0 <= limit <= 10^5"],
   examples: [
     {
@@ -129,7 +89,54 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
     time: "Crossing out multiples of prime $p$ costs $\\frac{n}{p}$ work. Summing $\\sum_{p \\le \\sqrt{n}} \\frac{n}{p}$ over all primes yields $n \\log \\log n$ work via Mertens' Theorem. Outer loop stops at $p^2 > n$.",
     space: "Requires boolean array vector of size $n+1$, taking $\\mathcal{O}(n)$ auxiliary space.",
   },
-  topicGuide: SIEVE_PRIMES_TOPIC_GUIDE,
+  topicGuide: {
+    overview:
+      "<p>A sieve is a table-building technique: instead of answering a question about one number, you answer it about every number in a range <code>[0, n]</code> at once by letting each fact propagate to the values it affects. The Sieve of Eratosthenes is the original and still the most useful instance, finding all primes up to a limit <code>n</code> by crossing out multiples rather than testing candidates. Reach for it whenever a problem needs the primes in a range, or needs some multiplicative fact about every number in a range, because the sieve turns per-number work into shared work. It is also the gateway to a whole family of relatives that compute factorizations, divisor counts, and totients with the same skeleton.</p>",
+    sections: [
+      {
+        heading: "Elimination instead of testing",
+        body: "<p>The direct way to list primes up to <code>n</code> is to test each candidate separately using trial division up to <code>&radic;n</code>, costing <span>O(n &radic;n)</span> work overall with nothing carried over between candidates. The sieve inverts the question. Since every composite number <code>m &le; n</code> has at least one prime factor <code>p &le; &radic;m</code>, if you take each prime in turn and cross out all of its multiples, then every composite is guaranteed to be struck at least once, and whatever is never struck cannot be composite. The data structure is a boolean vector <code>v</code> indexed directly by the integers, making state lookups <span>O(1)</span>.</p>",
+      },
+      {
+        heading: "Optimization using the square root bound",
+        body: "<p>You begin optimistically, setting <code>v[i] = 1</code> for all <code>0 &le; i &le; n</code>, then immediately correct the two non-prime exceptions <code>v[0] = v[1] = 0</code>. The outer loop walks candidate <code>p</code> upward. When it finds <code>v[p] = 1</code>, <code>p</code> is prime. The inner loop flags <code>p&sup2;, p&sup2; + p, p&sup2; + 2p, &hellip; &le; n</code> as composite. The outer loop can safely stop once <code>p&sup2; &gt; n</code>, because any composite <code>m &le; n</code> must have a prime factor <code>p &le; &radic;n</code>. The inner loop starts at <code>p&sup2;</code> because any smaller multiple <code>k &middot; p</code> with <code>k &lt; p</code> already carries a prime factor smaller than <code>p</code> and was crossed out in an earlier sweep.</p>",
+      },
+      {
+        heading: "Mathematical time complexity derivation",
+        body: "<p>The total number of elimination operations performed by the inner loops across all base primes <code>p &le; &radic;n</code> is proportional to <code>n &sum; (1 / p)</code> over all <code>p &le; &radic;n</code>. By Mertens' Second Theorem, the sum of the reciprocals of prime numbers up to <code>x</code> grows as <code>ln ln x + M</code>. Thus, the overall time complexity is <span>O(n log log n)</span>, which is nearly linear in <code>n</code>.</p>",
+      },
+      {
+        heading: "When to sieve and when to test a single number",
+        body: "<p>Sieving is optimal when finding all primes in range <code>[0, n]</code>, precomputing Smallest Prime Factors (SPF) for fast <span>O(log n)</span> factorization queries, or computing multiplicative functions over a range. It is sub-optimal for deciding the primality of a single massive candidate (where Miller-Rabin probabilistic test takes <span>O(k log&sup3; n)</span> time without allocating <span>O(n)</span> memory). For large but narrow ranges <code>[L, R]</code>, a Segmented Sieve sieves a window of size <code>R - L + 1</code> using base primes up to <code>&radic;R</code>, reducing space to <span>O(&radic;R + (R - L))</span>.</p>",
+      },
+      {
+        heading: "Pitfalls and edge cases",
+        body: "<p>Size the array as <code>n + 1</code> because indexing is 0-based and <code>n</code> is inclusive. The base cases <code>v[0] = v[1] = 0</code> must be set explicitly. For large bounds, calculating <code>p &middot; p</code> can overflow standard 32-bit integers, so use <code>p &le; n / p</code> or <code>p &le; &lfloor;&radic;n&rfloor;</code>. Starting the inner loop at <code>2p</code> instead of <code>p&sup2;</code> is redundant (though correct), while starting after <code>p&sup2;</code> misses composites.</p>",
+      },
+    ],
+    keyTerms: [
+      {
+        term: "Composite number",
+        definition:
+          "An integer m > 1 that is the product of two smaller integers, having at least one prime factor p <= sqrt(m).",
+      },
+      {
+        term: "Base prime",
+        definition:
+          "A prime p discovered by the outer loop and used to eliminate its multiples p², p(p+1), ... Only primes p <= sqrt(n) serve as base primes.",
+      },
+      {
+        term: "Square root bound",
+        definition:
+          "The mathematical principle that if m is composite, it must have a factor <= sqrt(m). Thus, outer loops terminate at p² > n.",
+      },
+      {
+        term: "Smallest Prime Factor (SPF)",
+        definition:
+          "A sieve variation storing the smallest prime factor for each integer i, enabling complete prime factorization in O(log n) steps.",
+      },
+    ],
+  },
   trivia: SIEVE_PRIMES_TRIVIA,
   leetcode: {
     id: 204,

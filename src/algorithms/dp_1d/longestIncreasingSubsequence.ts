@@ -338,20 +338,8 @@ export const longestIncreasingSubsequence: AlgorithmDefinition<LongestIncreasing
     title: "Longest Increasing Subsequence (LIS)",
     topicIds: ["dp_1d"],
     difficulty: "Medium",
-    description: `The **Longest Increasing Subsequence (LIS)** problem (LeetCode #300) asks for the length of the longest subsequence in an array where elements appear in strictly ascending order. Subsequences do not need to be contiguous.
-
-### Optimal Substructure & 1D Recurrence
-Let $dp[i]$ represent the length of the longest strictly increasing subsequence that **ends at index $i$**. For each index $i$, we examine all previous indices $j < i$:
-$$dp[i] = \\max \\Big(1, \\max_{j < i, \\text{nums}[i] > \\text{nums}[j]} (dp[j] + 1) \\Big)$$
-
-The base case is $dp[i] = 1$ for all $i$, because an element alone forms a valid subsequence of length $1$. The overall result is $\\max_{0 \\le i < N} dp[i]$.
-
-### Key Interview Insights
-1. **$O(N^2)$ Dynamic Programming vs. $O(N \\log N)$ Binary Search**:
-   - The standard 1D DP approach runs in $\\mathcal{O}(N^2)$ time and $\\mathcal{O}(N)$ space.
-   - Patience Sorting (using a \`tails\` array and binary search) improves runtime to $\\mathcal{O}(N \\log N)$.
-2. **Subsequence vs. Subarray**: A subsequence allows skipping elements while maintaining relative order.
-3. **Strictly Increasing**: Requires $\\text{nums}[i] > \\text{nums}[j]$. Duplicate values cannot extend the subsequence.`,
+    description:
+      "<p>The <strong>Longest Increasing Subsequence (LIS)</strong> problem (LeetCode #300) asks for the length of the longest subsequence in an array where elements appear in strictly ascending order. Subsequences do not need to be contiguous.</p><p>Let <code>dp[i]</code> represent the length of the longest strictly increasing subsequence that ends at index <code>i</code>. We build the solution using the recurrence: <code>dp[i] = max(1, max(dp[j] + 1))</code> for <code>j &lt; i</code> and <code>nums[i] &gt; nums[j]</code>, with overall result <code>max(dp)</code>.</p>",
     constraints: [
       "1 <= nums.length <= 2500",
       "-10^4 <= nums[i] <= 10^4",
@@ -397,23 +385,23 @@ The base case is $dp[i] = 1$ for all $i$, because an element alone forms a valid
     },
     topicGuide: {
       overview:
-        "The Longest Increasing Subsequence (LIS) problem is a fundamental challenge in sequence analysis. Given an array of integers $\\text{nums}$, we compute the maximum length of a strictly increasing subsequence. Because subproblems depend on all previous elements, 1D dynamic programming evaluates transitions in $\\mathcal{O}(N^2)$ time. Patience sorting with binary search optimizes this to $\\mathcal{O}(N \\log N)$.",
+        "<p>The Longest Increasing Subsequence (LIS) problem is a fundamental challenge in sequence analysis. Given an array of integers <code>nums</code>, we compute the maximum length of a strictly increasing subsequence. Because subproblems depend on all previous elements, 1D dynamic programming evaluates transitions in <code>O(N<sup>2</sup>)</code> time. Patience sorting with binary search optimizes this to <code>O(N log N)</code>.</p>",
       sections: [
         {
           heading: "1. Mathematical Formulation & 1D Recurrence",
-          body: "Define $dp[i]$ as the length of the longest strictly increasing subsequence ending at index $i$.\n\n- **Base Case**: $dp[i] = 1$ for all $0 \\le i < N$.\n- **State Transition**:\n  $$dp[i] = \\max_{0 \\le j < i, \\text{nums}[i] > \\text{nums}[j]} (dp[j] + 1)$$\n- **Global Result**:\n  $$\\text{LIS} = \\max_{0 \\le i < N} dp[i]$$",
+          body: "<p>Define <code>dp[i]</code> as the length of the longest strictly increasing subsequence ending at index <code>i</code>.</p><ul><li><strong>Base Case:</strong> <code>dp[i] = 1</code> for all <code>0 &le; i &lt; N</code>.</li><li><strong>State Transition:</strong> <code>dp[i] = max(dp[j] + 1)</code> for <code>j &lt; i</code> and <code>nums[i] &gt; nums[j]</code>.</li><li><strong>Global Result:</strong> <code>LIS = max(dp)</code>.</li></ul>",
         },
         {
-          heading: "2. $O(N \\log N)$ Patience Sorting Optimization",
-          body: "Instead of comparing all pairs $(i, j)$, maintain a dynamic array $\\text{tails}$ where $\\text{tails}[k]$ stores the smallest tail value of all increasing subsequences of length $k+1$.\n\n1. Iterate through each $x \\in \\text{nums}$.\n2. Binary search (`bisect_left`) to find the smallest index $idx$ in $\\text{tails}$ such that $\\text{tails}[idx] \\ge x$.\n3. If $idx$ equals the length of $\\text{tails}$, append $x$.\n4. Otherwise, update $\\text{tails}[idx] = x$.\n\nAt the end, $\\text{len}(\\text{tails})$ is the exact LIS length, running in $\\mathcal{O}(N \\log N)$ time.",
+          heading: "2. O(N log N) Patience Sorting Optimization",
+          body: "<p>Instead of comparing all pairs <code>(i, j)</code>, maintain a dynamic array <code>tails</code> where <code>tails[k]</code> stores the smallest tail value of all increasing subsequences of length <code>k+1</code>.</p><ul><li>Iterate through each element <code>x &isin; nums</code>.</li><li>Binary search to find the smallest index in <code>tails</code> such that <code>tails[idx] &ge; x</code>.</li><li>If index equals <code>tails.length</code>, append <code>x</code>; otherwise update <code>tails[idx] = x</code>.</li></ul><p>At the end, <code>tails.length</code> is the exact LIS length, running in <code>O(N log N)</code> time.</p>",
         },
         {
           heading: "3. Real-World Systems Applications",
-          body: "LIS and its variants power critical infrastructure systems:\n- **Version Control & Diff Engines**: `git diff` and Myers LCS/LIS algorithm variants for code change tracking.\n- **Computational Genomics**: DNA/RNA sequence alignment and gene mutation tracking.\n- **Database Query Planning**: Index selection for multi-column range queries.",
+          body: "<p>LIS and its variants power critical infrastructure systems:</p><ul><li><strong>Version Control & Diff Engines:</strong> <code>git diff</code> and Myers LCS/LIS algorithm variants for code change tracking.</li><li><strong>Computational Genomics:</strong> DNA/RNA sequence alignment and gene mutation tracking.</li><li><strong>Database Query Planning:</strong> Index selection for multi-column range queries.</li></ul>",
         },
         {
           heading: "4. Common Pitfalls & Edge Cases",
-          body: "- **Strict vs. Non-Strict Order**: Strict inequality ($\\text{nums}[i] > \\text{nums}[j]$) excludes equal elements. For non-decreasing LIS, use $\\ge$ and `bisect_right`.\n- **Decreasing/Duplicate Arrays**: Input like $[7, 7, 7]$ returns $1$.\n- **Empty Input**: Returns $0$ immediately.",
+          body: "<p><strong>Strict vs. Non-Strict Order:</strong> Strict inequality (<code>nums[i] &gt; nums[j]</code>) excludes equal elements. For non-decreasing LIS, use <code>&ge;</code>.<br/><strong>Decreasing/Duplicate Arrays:</strong> Input like <code>[7, 7, 7]</code> returns 1.<br/><strong>Empty Input:</strong> Returns 0 immediately.</p>",
         },
       ],
       keyTerms: [
@@ -425,7 +413,7 @@ The base case is $dp[i] = 1$ for all $i$, because an element alone forms a valid
         {
           term: "Patience Sorting",
           definition:
-            "A card-game-inspired algorithm that builds LIS in $\\mathcal{O}(N \\log N)$ using binary search.",
+            "A card-game-inspired algorithm that builds LIS in O(N log N) using binary search.",
         },
         {
           term: "Tails Array",

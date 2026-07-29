@@ -1,4 +1,4 @@
-import { TreeNodeItem, ElementState } from "../../../types/dsa";
+import { TreeNodeItem, ElementState, AuxiliaryState, DisplayValue } from "../../../types/dsa";
 
 export interface TreeVisualizerProps {
   nodes: TreeNodeItem[];
@@ -7,6 +7,8 @@ export interface TreeVisualizerProps {
   height?: number;
   title?: string;
   groups?: Record<string, number>;
+  auxiliaryState?: AuxiliaryState;
+  variables?: Record<string, DisplayValue>;
 }
 
 export interface ComputedTreeNode extends TreeNodeItem {

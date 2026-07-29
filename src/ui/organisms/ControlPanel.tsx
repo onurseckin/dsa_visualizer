@@ -109,7 +109,7 @@ export function ControlPanel({
         size="sm"
         aria-label={`Step ${displayStep} of ${totalSteps}`}
         label="Step"
-        value={`${currentStep} / ${totalSteps}`}
+        value={`${displayStep} / ${totalSteps}`}
       />
 
       <div className="flex items-center gap-3 md:gap-4 ml-auto">

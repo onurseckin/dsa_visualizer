@@ -93,9 +93,18 @@ export const DEFAULT_DFS_GRAPH_INPUT: DfsGraphInput = {
 
 export function generateDfsGraphSteps(input: DfsGraphInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
-  const nodes = input.nodes.map((n) => ({ ...n }));
-  const edges = input.edges.map((e) => ({ ...e }));
-  const startNode = input.startNodeId || nodes[0]?.id || "A";
+  const safeInput = input && typeof input === "object" ? input : DEFAULT_DFS_GRAPH_INPUT;
+  const inputNodes =
+    Array.isArray(safeInput.nodes) && safeInput.nodes.length > 0
+      ? safeInput.nodes
+      : DEFAULT_DFS_GRAPH_INPUT.nodes;
+  const inputEdges = Array.isArray(safeInput.edges)
+    ? safeInput.edges
+    : DEFAULT_DFS_GRAPH_INPUT.edges;
+
+  const nodes = inputNodes.map((n) => ({ ...n }));
+  const edges = inputEdges.map((e) => ({ ...e }));
+  const startNode = safeInput.startNodeId || nodes[0]?.id || "A";
 
   const adj: Record<string, string[]> = {};
   for (const n of nodes) {
@@ -464,7 +473,7 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   topicIds: ["graph_traversal"],
   difficulty: "Easy",
   description:
-    "Depth-First Search (DFS) traverses a graph $G = (V, E)$ by exploring as deep as possible along each path before backtracking. Given a source vertex $s \\in V$, DFS uses a Last-In-First-Out (LIFO) stack $S_{stack}$ (or call stack) and a visited set $V_{visited} \\subseteq V$ to systematically traverse reachable vertices. DFS runs in $\\mathcal{O}(|V| + |E|)$ time and $\\mathcal{O}(|V|)$ auxiliary space.",
+    "<p>Depth-First Search (DFS) traverses a graph by exploring as deep as possible along each path before backtracking. Given a source vertex <code>s</code>, DFS uses a Last-In-First-Out (LIFO) stack (or call stack) and a visited set to systematically traverse reachable vertices. DFS runs in <code>O(V + E)</code> time and <code>O(V)</code> auxiliary space.</p>",
   constraints: [
     "1 <= V <= 1000",
     "0 <= E <= 5000",
@@ -536,29 +545,29 @@ export const dfsGraph: AlgorithmDefinition<DfsGraphInput> = {
   },
   spaceComplexity: "O(V)",
   complexityAnalysis: {
-    time: "Every reachable vertex is pushed/popped from stack $S_{stack}$ at most once, and every edge $(u,v) \\in E$ is traversed once, taking $\\mathcal{O}(|V| + |E|)$ time.",
+    time: "Every reachable vertex is pushed/popped from the stack at most once, and every edge (u, v) in E is traversed once, taking O(V + E) time.",
     space:
-      "The visited set $V_{visited}$ and the explicit stack $S_{stack}$ store at most $|V|$ node identifiers, taking $\\mathcal{O}(|V|)$ space.",
+      "The visited set and the explicit stack store at most V node identifiers, taking O(V) space.",
   },
   topicGuide: {
     overview:
-      "Depth-First Search (DFS) is a fundamental graph traversal algorithm that explores paths to their maximum depth before backtracking. Utilizing a Last-In-First-Out (LIFO) stack discipline, DFS is central to topological sorting, cycle detection, strongly connected components (Kosaraju / Tarjan), and maze backtracking.",
+      "<p>Depth-First Search (DFS) is a fundamental graph traversal algorithm that explores paths to their maximum depth before backtracking. Utilizing a Last-In-First-Out (LIFO) stack discipline, DFS is central to topological sorting, cycle detection, strongly connected components (Kosaraju / Tarjan), and maze backtracking.</p>",
     sections: [
       {
         heading: "Core Concept: Post-Order Discovery & Backtracking",
-        body: "DFS explores along a branch until reaching a sink node or an already-visited vertex, at which point it backtracks to expand remaining unvisited edges:\n\n$$S_{stack}.\\text{push}(v) \\implies \\text{depth}(v) = \\text{depth}(u) + 1$$\n\nThis LIFO search order yields discovery timestamps $d[u]$ and finish timestamps $f[u]$ satisfying the parenthesis theorem.",
+        body: "<p>DFS explores along a branch until reaching a sink node or an already-visited vertex, at which point it backtracks to expand remaining unvisited edges: <code>stack.push(v) &rArr; depth(v) = depth(u) + 1</code>. This LIFO search order yields discovery and finish timestamps satisfying the parenthesis theorem.</p>",
       },
       {
         heading: "Systems & Compiler Applications",
-        body: "DFS underpins build dependency evaluation, compiler control-flow graph (CFG) reachability analysis, and garbage collector mark-and-sweep roots traversal.",
+        body: "<p>DFS underpins build dependency evaluation, compiler control-flow graph (CFG) reachability analysis, and garbage collector mark-and-sweep roots traversal.</p>",
       },
       {
         heading: "Implementation Nuances: Recursive vs Explicit Stack",
-        body: "Recursive DFS utilizes the call stack which can encounter stack overflow on deep paths of length $\\approx 10^5$. Explicit stack arrays avoid call stack limits.",
+        body: "<p>Recursive DFS utilizes the call stack which can encounter stack overflow on deep paths of length <code>~10<sup>5</sup></code>. Explicit stack arrays avoid call stack limits.</p>",
       },
       {
         heading: "Edge Classifications",
-        body: "DFS partitions graph edges into Tree Edges, Back Edges (cycles), Forward Edges, and Cross Edges.",
+        body: "<p>DFS partitions graph edges into Tree Edges, Back Edges (cycles), Forward Edges, and Cross Edges.</p>",
       },
     ],
     keyTerms: [

@@ -5,10 +5,28 @@ export interface TreeDiameterInput {
   rootId: string;
 }
 
+export const DEFAULT_TREE_DIAMETER_INPUT: TreeDiameterInput = {
+  rootId: "1",
+  nodes: [
+    { id: "1", val: 1, leftId: "2", rightId: "3", state: "default" },
+    { id: "2", val: 2, leftId: "4", rightId: "5", state: "default" },
+    { id: "3", val: 3, rightId: "6", state: "default" },
+    { id: "4", val: 4, leftId: "7", state: "default" },
+    { id: "5", val: 5, state: "default" },
+    { id: "6", val: 6, rightId: "8", state: "default" },
+    { id: "7", val: 7, state: "default" },
+    { id: "8", val: 8, state: "default" },
+  ],
+};
+
 export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
-  const { nodes, rootId } = input;
+  const nodes =
+    Array.isArray(input?.nodes) && input.nodes.length > 0
+      ? input.nodes
+      : DEFAULT_TREE_DIAMETER_INPUT.nodes;
+  const rootId = input?.rootId ?? DEFAULT_TREE_DIAMETER_INPUT.rootId;
 
   const nodeMap = new Map<string, TreeNodeItem>();
   nodes.forEach((n) => nodeMap.set(n.id, n));
@@ -81,8 +99,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   // Line 1: def tree_diameter(n, adj, start_node=1)
   addStep(
     1,
-    "Enter tree_diameter",
-    "We want the longest path anywhere in this tree. The trick we lean on: a DFS from any node always lands on one true endpoint of that longest path, so two well-aimed DFS passes are all we need.",
+    "Initialize 2-DFS Tree Diameter computation",
+    "A single DFS from an arbitrary start node finds one endpoint of a longest path; a second DFS from that endpoint finds the opposite endpoint and exact diameter.",
     undefined,
     undefined,
     undefined,
@@ -104,7 +122,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     // Line 3: max_node, max_dist = node, dist
     addStep(
       3,
-      `DFS 1: node ${valOf(u)} set max_node=${valOf(maxNode)}, max_dist=${maxDist}`,
+      `Pass 1 DFS: Visit node ${valOf(u)}`,
       `Seed the running farthest node with node ${valOf(u)} itself at distance ${dist}. We'll update if any child subtree reaches deeper.`,
       u,
       undefined,
@@ -118,8 +136,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
       // Line 4: for neighbor in adj[node]
       addStep(
         4,
-        `DFS 1: inspect neighbor ${valOf(v)} of node ${valOf(u)}`,
-        `Checking neighbor ${valOf(v)} connected to node ${valOf(u)}.`,
+        `Pass 1 DFS: Inspect neighbor ${valOf(v)} of node ${valOf(u)}`,
+        `Traversing undirected tree edge to evaluate candidate path extending to neighbor ${valOf(v)}.`,
         u,
         undefined,
         undefined,
@@ -131,8 +149,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
       if (v !== parent) {
         addStep(
           5,
-          `DFS 1: neighbor ${valOf(v)} != parent (${valOf(parent)})`,
-          `Node ${valOf(v)} is an unvisited child branch, so we step into it.`,
+          `Pass 1 DFS: Advance to child node ${valOf(v)}`,
+          `Node ${valOf(v)} is an unvisited child branch, stepping into it while guarding against parent backtracking.`,
           v,
           undefined,
           undefined,
@@ -143,8 +161,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
         // Line 6: cand_node, cand_dist = dfs(neighbor, node, dist + 1)
         addStep(
           6,
-          `DFS 1: recurse dfs(node=${valOf(v)}, parent=${valOf(u)}, dist=${dist + 1})`,
-          `Recurse one edge deeper into node ${valOf(v)}'s subtree.`,
+          `Pass 1 DFS: Recurse into child node ${valOf(v)}`,
+          `Recurse one edge deeper into node ${valOf(v)}'s subtree at distance ${dist + 1}.`,
           v,
           undefined,
           undefined,
@@ -157,7 +175,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
         // Line 7: if cand_dist > max_dist
         addStep(
           7,
-          `DFS 1: check if cand_dist (${candDist}) > max_dist (${maxDist})`,
+          `Pass 1 DFS: Compare child subtree depth`,
           `Compare child's deepest node ${valOf(candNode)} (dist=${candDist}) with current best max_dist=${maxDist}.`,
           u,
           undefined,
@@ -172,7 +190,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
           // Line 8: max_node, max_dist = cand_node, cand_dist
           addStep(
             8,
-            `DFS 1: update max_node=${valOf(maxNode)}, max_dist=${maxDist}`,
+            `Pass 1 DFS: New maximum distance discovered (${maxDist})`,
             `Child branch reached further! Adopt node ${valOf(maxNode)} at distance ${maxDist} as new farthest node.`,
             u,
             undefined,
@@ -187,7 +205,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     // Line 9: return max_node, max_dist
     addStep(
       9,
-      `DFS 1: return max_node=${valOf(maxNode)}, max_dist=${maxDist} for subtree at node ${valOf(u)}`,
+      `Pass 1 DFS: Return farthest node from subtree (${valOf(maxNode)})`,
       `Return the deepest node found in node ${valOf(u)}'s entire subtree back to caller.`,
       u,
       undefined,
@@ -203,7 +221,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   // Line 11: node_a, _ = dfs(start_node, None, 0)
   addStep(
     11,
-    `DFS 1: call dfs(start_node=${valOf(rootId)}, None, 0)`,
+    `Pass 1 DFS: Start traversal from root node ${valOf(rootId)}`,
     "The first pass starts at the root node and finds the farthest node in the tree — guaranteed to be one endpoint of the diameter (Endpoint A).",
     rootId,
     undefined,
@@ -216,8 +234,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
 
   addStep(
     11,
-    `DFS 1 complete: Endpoint A confirmed as node ${valOf(farthestNodeA)} (max_dist=${maxDistA})`,
-    `Node ${valOf(farthestNodeA)} is as far as possible from the start node (${maxDistA} edges away). It is Endpoint A of the diameter.`,
+    `Pass 1 complete: Confirmed Endpoint A as node ${valOf(farthestNodeA)}`,
+    `Node ${valOf(farthestNodeA)} is as far as possible from the start node (${maxDistA} edges away). It is guaranteed to be one endpoint of the diameter.`,
     undefined,
     farthestNodeA,
     undefined,
@@ -240,7 +258,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     // Line 3: max_node, max_dist = node, dist
     addStep(
       3,
-      `DFS 2: node ${valOf(u)} set max_node=${valOf(maxNode)}, max_dist=${maxDist}`,
+      `Pass 2 DFS: Visit node ${valOf(u)} from Endpoint A`,
       `Seed running farthest node from Endpoint A (${valOf(farthestNodeA)}) with node ${valOf(u)} at distance ${dist}.`,
       u,
       farthestNodeA,
@@ -254,7 +272,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
       // Line 4: for neighbor in adj[node]
       addStep(
         4,
-        `DFS 2: inspect neighbor ${valOf(v)} of node ${valOf(u)}`,
+        `Pass 2 DFS: Inspect neighbor ${valOf(v)}`,
         `Checking neighbor ${valOf(v)} connected to node ${valOf(u)}.`,
         u,
         farthestNodeA,
@@ -267,7 +285,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
       if (v !== parent) {
         addStep(
           5,
-          `DFS 2: neighbor ${valOf(v)} != parent (${valOf(parent)})`,
+          `Pass 2 DFS: Advance to neighbor ${valOf(v)}`,
           `Node ${valOf(v)} is an unvisited neighbor, stepping into it from Endpoint A side.`,
           v,
           farthestNodeA,
@@ -279,7 +297,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
         // Line 6: cand_node, cand_dist = dfs(neighbor, node, dist + 1)
         addStep(
           6,
-          `DFS 2: recurse dfs(node=${valOf(v)}, parent=${valOf(u)}, dist=${dist + 1})`,
+          `Pass 2 DFS: Recurse into child node ${valOf(v)}`,
           `Recurse one edge deeper from Endpoint A into node ${valOf(v)}'s subtree.`,
           v,
           farthestNodeA,
@@ -293,7 +311,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
         // Line 7: if cand_dist > max_dist
         addStep(
           7,
-          `DFS 2: check if cand_dist (${candDist}) > max_dist (${maxDist})`,
+          `Pass 2 DFS: Compare path length from Endpoint A`,
           `Compare child's farthest node ${valOf(candNode)} (dist=${candDist}) with current best max_dist=${maxDist}.`,
           u,
           farthestNodeA,
@@ -309,7 +327,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
           // Line 8: max_node, max_dist = cand_node, cand_dist
           addStep(
             8,
-            `DFS 2: update max_node=${valOf(maxNode)}, max_dist=${maxDist}`,
+            `Pass 2 DFS: New longest path discovered (${maxDist} edges)`,
             `Found deeper path! Adopt node ${valOf(maxNode)} at distance ${maxDist} from Endpoint A as new candidate for Endpoint B.`,
             u,
             farthestNodeA,
@@ -324,7 +342,7 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
     // Line 9: return max_node, max_dist
     addStep(
       9,
-      `DFS 2: return max_node=${valOf(maxNode)}, max_dist=${maxDist} for subtree at node ${valOf(u)}`,
+      `Pass 2 DFS: Return farthest node from Endpoint A (${valOf(maxNode)})`,
       `Return maximum distance and farthest node found from Endpoint A in node ${valOf(u)}'s subtree.`,
       u,
       farthestNodeA,
@@ -340,8 +358,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   // Line 12: node_b, diameter = dfs(node_a, None, 0)
   addStep(
     12,
-    `DFS 2: call dfs(node_a=${valOf(farthestNodeA)}, None, 0)`,
-    `Run second DFS starting from Endpoint A (node ${valOf(farthestNodeA)}). The farthest node found will be Endpoint B, and the distance is the exact Tree Diameter!`,
+    `Pass 2 DFS: Start search from Endpoint A (${valOf(farthestNodeA)})`,
+    `Run second DFS starting from Endpoint A (node ${valOf(farthestNodeA)}). The farthest node found will be Endpoint B, measuring the exact tree diameter.`,
     farthestNodeA,
     farthestNodeA,
     undefined,
@@ -355,8 +373,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
 
   addStep(
     12,
-    `DFS 2 complete: node_b = ${valOf(farthestNodeB)}, diameter = ${diameter}`,
-    `Farthest node from Endpoint A is node ${valOf(farthestNodeB)} at distance ${diameter}. Endpoint B is confirmed!`,
+    `Pass 2 complete: Confirmed Endpoint B as node ${valOf(farthestNodeB)}`,
+    `The farthest node reached from Endpoint A is node ${valOf(farthestNodeB)} at distance ${diameter}. Endpoint B is confirmed!`,
     undefined,
     farthestNodeA,
     farthestNodeB,
@@ -369,8 +387,8 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   // Line 13: return node_a, node_b, diameter
   addStep(
     13,
-    `Return node_a=${valOf(farthestNodeA)}, node_b=${valOf(farthestNodeB)}, diameter=${diameter}`,
-    `The longest simple path in the tree is ${pathStr} with diameter ${diameter} edges. Finding it took only two linear DFS passes O(V + E).`,
+    `Return Tree Diameter (${diameter} edges)`,
+    `The longest simple path in the tree is ${pathStr} with diameter ${diameter} edges, computed in O(V + E) time via two linear DFS passes.`,
     undefined,
     farthestNodeA,
     farthestNodeB,

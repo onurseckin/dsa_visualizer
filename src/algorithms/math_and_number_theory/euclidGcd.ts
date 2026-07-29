@@ -22,8 +22,12 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  let currentA = Math.abs(Math.floor(input.a));
-  let currentB = Math.abs(Math.floor(input.b));
+  let currentA = Math.abs(
+    Math.floor(typeof input?.a === "number" ? input.a : DEFAULT_EUCLID_GCD_INPUT.a),
+  );
+  let currentB = Math.abs(
+    Math.floor(typeof input?.b === "number" ? input.b : DEFAULT_EUCLID_GCD_INPUT.b),
+  );
   const initialA = currentA;
   const initialB = currentB;
 
@@ -213,49 +217,46 @@ export const generateEuclidGcdSteps = (input: EuclidGcdInput): AlgorithmStep[] =
 
 const EUCLID_GCD_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "The Euclidean algorithm finds the greatest common divisor $\\gcd(a, b)$ of two non-negative integers $a, b \\in \\mathbb{Z}_{\\ge 0}$ by repeatedly replacing the pair with a smaller pair that maintains the exact same common divisors: $\\gcd(a, b) = \\gcd(b, a \\bmod b)$. It is the foundational arithmetic engine powering modular multiplicative inverses, fraction reduction, RSA encryption, and linear Diophantine equations.",
+    "<p>The Euclidean algorithm finds the greatest common divisor <code>gcd(a, b)</code> of two non-negative integers <code>a, b &ge; 0</code> by repeatedly replacing the pair with a smaller pair that maintains the exact same common divisors: <code>gcd(a, b) = gcd(b, a mod b)</code>. It is the foundational arithmetic engine powering modular multiplicative inverses, fraction reduction, RSA encryption, and linear Diophantine equations.</p>",
   sections: [
     {
       heading: "The Identity That Drives Everything",
-      body: "Express $a$ using division with remainder: $a = q \\cdot b + r$, where $0 \\le r < b$ and $q = \\lfloor a / b \\rfloor$. If integer $d$ divides both $a$ and $b$, then $d \\mid (a - q b)$, which means $d \\mid r$. Conversely, if $d \\mid b$ and $d \\mid r$, then $d \\mid (q b + r) = a$. Thus, the set of common divisors of $(a, b)$ is identical to $(b, r)$, proving:\n$$\\gcd(a, b) = \\gcd(b, a \\bmod b)$$",
+      body: "<p>Express <code>a</code> using division with remainder: <code>a = q &middot; b + r</code>, where <code>0 &le; r &lt; b</code> and <code>q = &lfloor;a / b&rfloor;</code>. If integer <code>d</code> divides both <code>a</code> and <code>b</code>, then <code>d | (a - qb)</code>, which means <code>d | r</code>. Conversely, if <code>d | b</code> and <code>d | r</code>, then <code>d | (qb + r) = a</code>. Thus, the set of common divisors of <code>(a, b)</code> is identical to <code>(b, r)</code>, proving:</p><p><code>gcd(a, b) = gcd(b, a mod b)</code></p>",
     },
     {
       heading: "Logarithmic Rate of Reduction",
-      body: "Because $r < b$, the second element strictly decreases each iteration, guaranteeing finite termination. Furthermore, after any two consecutive reductions, the larger number is at least halved:\n$$a \\bmod b < \\frac{a}{2}$$\nThis forces logarithmic bounds on the total iterations $k \\le 2 \\log_2(\\min(a, b))$.",
+      body: "<p>Because <code>r &lt; b</code>, the second element strictly decreases each iteration, guaranteeing finite termination. Furthermore, after any two consecutive reductions, the larger number is at least halved:</p><p><code>a mod b &lt; a / 2</code></p><p>This forces logarithmic bounds on the total iterations <code>k &le; 2 log_2(min(a, b))</code>.</p>",
     },
     {
       heading: "Worst-Case Complexity & Lamé's Theorem",
-      body: "By Lamé's Theorem (1844), the worst-case inputs for the Euclidean algorithm are consecutive Fibonacci numbers $F_{n+1}$ and $F_n$. For instance, running $\\gcd(987, 610)$ yields quotients $q_i = 1$ at every step, requiring $n$ steps. The upper bound on iterations for inputs $\\le N$ is $k \\le \\log_{\\phi}(\\sqrt{5} N)$, where $\\phi = \\frac{1 + \\sqrt{5}}{2} \\approx 1.618$.",
+      body: "<p>By Lamé's Theorem (1844), the worst-case inputs for the Euclidean algorithm are consecutive Fibonacci numbers <code>F_{n+1}</code> and <code>F_n</code>. For instance, running <code>gcd(987, 610)</code> yields quotients <code>q_i = 1</code> at every step, requiring <code>n</code> steps. The upper bound on iterations for inputs <code>&le; N</code> is <code>k &le; log_&phi;(&radic;5 N)</code>, where <code>&phi; = (1 + &radic;5) / 2 &approx; 1.618</code>.</p>",
     },
     {
       heading: "Bézout's Identity & Extended Euclidean",
-      body: "The reduction sequence leaves a trail of quotients that can be back-substituted to express the GCD as a linear combination of original inputs $a$ and $b$:\n$$a x + b y = \\gcd(a, b)$$\nThis extended form finds modular inverses $a^{-1} \\bmod m$ when $\\gcd(a, m) = 1$, where $a x \\equiv 1 \\pmod m$.",
+      body: "<p>The reduction sequence leaves a trail of quotients that can be back-substituted to express the GCD as a linear combination of original inputs <code>a</code> and <code>b</code>:</p><p><code>a x + b y = gcd(a, b)</code></p><p>This extended form finds modular inverses <code>a&sup1; mod m</code> when <code>gcd(a, m) = 1</code>, where <code>a x &equiv; 1 (mod m)</code>.</p>",
     },
     {
       heading: "Pitfalls and Edge Cases",
-      body: "Negative inputs should be normalized using absolute values $|a|, |b|$ before sieving remainders. The base case $\\gcd(a, 0) = a$ holds because every integer divides $0$, and $\\gcd(0, 0) = 0$ by convention. When computing Least Common Multiple (LCM), always divide first to prevent integer overflow:\n$$\\text{lcm}(a, b) = \\left( \\frac{a}{\\gcd(a, b)} \\right) \\cdot b$$",
+      body: "<p>Negative inputs should be normalized using absolute values <code>|a|, |b|</code> before sieving remainders. The base case <code>gcd(a, 0) = a</code> holds because every integer divides 0, and <code>gcd(0, 0) = 0</code> by convention. When computing Least Common Multiple (LCM), always divide first to prevent integer overflow:</p><p><code>lcm(a, b) = (a / gcd(a, b)) &middot; b</code></p>",
     },
   ],
   keyTerms: [
     {
       term: "Greatest Common Divisor (GCD)",
       definition:
-        "The largest positive integer $d$ that divides both $a$ and $b$ without remainder, written $\\gcd(a, b) = d$.",
+        "The largest positive integer d that divides both a and b without remainder, written gcd(a, b) = d.",
     },
     {
       term: "Modulo Operation",
-      definition:
-        "The remainder $r = a \\bmod b = a - b \\lfloor a / b \\rfloor$, satisfying $0 \\le r < b$.",
+      definition: "The remainder r = a mod b = a - b ⌊a / b⌋, satisfying 0 <= r < b.",
     },
     {
       term: "Coprime Integers",
-      definition:
-        "Two integers $a, b$ with $\\gcd(a, b) = 1$, meaning they share no prime factors.",
+      definition: "Two integers a, b with gcd(a, b) = 1, meaning they share no prime factors.",
     },
     {
       term: "Bézout's Identity",
-      definition:
-        "The theorem stating $\\exists x, y \\in \\mathbb{Z}$ such that $a x + b y = \\gcd(a, b)$.",
+      definition: "The theorem stating there exist integers x, y such that a x + b y = gcd(a, b).",
     },
   ],
 };
@@ -277,7 +278,7 @@ export const euclidGcd: AlgorithmDefinition<EuclidGcdInput> = {
   topicIds: ["math_and_number_theory"],
   difficulty: "Easy",
   description:
-    "Computes the Greatest Common Divisor $\\gcd(a, b)$ of two non-negative integers using the classical Euclidean algorithm based on the reduction identity:\n\n$$\\gcd(a, b) = \\gcd(b, a \\bmod b)$$\n\n### Mathematical State Vector\nThe state is tracked as a 2D reduction vector $\\mathbf{v} = (a, b)^T \\in \\mathbb{Z}_{\\ge 0}^2$ updated via matrix transformation:\n$$\\begin{pmatrix} a_{k+1} \\\\ b_{k+1} \\end{pmatrix} = \\begin{pmatrix} 0 & 1 \\\\ 1 & -q_k \\end{pmatrix} \\begin{pmatrix} a_k \\\\ b_k \\end{pmatrix}$$\nwhere $q_k = \\lfloor a_k / b_k \\rfloor$.\n\n### Input Parameters\n- `a` ($a \\in \\mathbb{Z}_{\\ge 0}$): First non-negative integer.\n- `b` ($b \\in \\mathbb{Z}_{\\ge 0}$): Second non-negative integer.\n\n### Output\n- `int`: The greatest common divisor $\\gcd(a, b)$.\n\n### Edge Cases & Constraints\n- `b = 0`: Returns $a$ immediately since $\\gcd(a, 0) = a$.\n- Coprime inputs: Returns $1$.",
+    "<p>Computes the Greatest Common Divisor <code>gcd(a, b)</code> of two non-negative integers using the classical Euclidean algorithm based on the reduction identity:</p><p><code>gcd(a, b) = gcd(b, a mod b)</code></p><h3>Mathematical State Vector</h3><p>The state is tracked as a 2D reduction vector <code>v = (a, b)^T</code> updated via matrix transformation:</p><p><code>(a_{k+1}, b_{k+1}) = (b_k, a_k mod b_k)</code></p><h3>Input Parameters</h3><ul><li><code>a</code> (<code>a &ge; 0</code>): First non-negative integer.</li><li><code>b</code> (<code>b &ge; 0</code>): Second non-negative integer.</li></ul><h3>Output</h3><ul><li><code>int</code>: The greatest common divisor <code>gcd(a, b)</code>.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><code>b = 0</code>: Returns <code>a</code> immediately since <code>gcd(a, 0) = a</code>.</li><li>Coprime inputs: Returns <code>1</code>.</li></ul>",
   constraints: ["0 <= a, b <= 10^9"],
   examples: [
     {
