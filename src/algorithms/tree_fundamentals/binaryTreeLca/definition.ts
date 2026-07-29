@@ -68,32 +68,21 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8], p = 5, q = 1",
       outputDisplay: "3",
-      title: "Basic Example",
-      input: {
-        rootId: "3",
-        pVal: 5,
-        qVal: 1,
-        nodes: [
-          { id: "3", val: 3, leftId: "5", rightId: "1", state: "default" },
-          { id: "5", val: 5, leftId: "6", rightId: "2", state: "default" },
-          { id: "1", val: 1, leftId: "0", rightId: "8", state: "default" },
-          { id: "6", val: 6, state: "default" },
-          { id: "2", val: 2, state: "default" },
-          { id: "0", val: 0, state: "default" },
-          { id: "8", val: 8, state: "default" },
-        ],
-      },
+      title: "Standard Divergent Subtrees Example",
+      input: DEFAULT_BINARY_TREE_LCA_INPUT,
       output: "3",
       explanation:
         "Node 5 is in the left subtree and Node 1 is in the right subtree of Root 3. The lowest common ancestor is Node 3.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4], p = 7, q = 4",
       outputDisplay: "2",
-      title: "Complex Edge Case",
+      title: "Adversarial Deep Subtree Example",
       input: {
         rootId: "3",
         pVal: 7,
@@ -116,9 +105,10 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4], p = 5, q = 4",
-      outputDisplay: "5",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: "root = [1, 2], p = 1, q = 2",
+      outputDisplay: "1",
+      title: "Boundary Ancestor-Descendant Case",
       input: {
         rootId: "1",
         pVal: 1,
@@ -130,7 +120,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
       },
       output: "1",
       explanation:
-        "Node 1 is the ancestor (root) of target Node 2. By definition, a node can be a descendant of itself, so Node 1 is its own and Node 2's LCA.",
+        "Node 1 is the direct parent of Node 2. Because a node can be an ancestor of itself, Node 1 is the LCA.",
     },
   ],
   code: BINARY_TREE_LCA_CODE,
