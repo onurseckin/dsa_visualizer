@@ -43,7 +43,7 @@ This ledger is the decision record for the catalog migration initiated on 2026-0
 | 26 | aho-corasick | repaired as enrichment | Replaced the unrelated board-word-search reference with an Aho-Corasick failure-link matcher. It is correctly recorded as a standard trie enrichment rather than falsely attributed to the handbook's trie section. |
 | 26 | bitwise-trie-xor | repaired as enrichment | The reference now uses an actual high-bit-to-low-bit trie and the verified LeetCode #421 counterpart. The false Chapter 26 binding has been removed. |
 | 27 | sqrt-decomposition, mo-algorithm | repaired | Both bindings now cite Ch27 precisely (§27.1 and §27.3). Their runners retain three scenario fixtures and add five deterministic boundary/adversarial cases each. |
-| 28 | segment-tree-lazy | repair fixtures | Source binding is correct; expand runner cases. |
+| 28 | segment-tree-lazy | repaired | The correct lazy-propagation binding is retained and its runner now covers whole, partial, no-op, signed, and single-index range additions with eight fixtures. |
 | 28 | dynamic-segment-tree, persistent-segment-tree | repair source labels | Both are Ch28 but display Ch9 labels. |
 | 28 | merge-sort-tree, segment-tree-2d | repaired | Runner invocation and fixture shapes now match the actual scalar functions, both have eight cases, and bindings cite the applicable Ch28 data-structure and two-dimensionality sections. |
 | 29 | line-segment-intersection, point-in-polygon, pick-theorem | remove and repair | #223 is rectangle area, #1037 is boomerang; two runner interfaces also wrap inputs incorrectly. |
