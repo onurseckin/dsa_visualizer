@@ -17,15 +17,31 @@ export const PYTHON_BITWISE_TRIE_XOR_CODE = `class Solution:
         pass
 
     def findMaximumXOR(self, nums: list[int]) -> int:
-        res = 0
-        mask = 0
-        for i in range(30, -1, -1):
-            mask |= (1 << i)
-            prefixes = {num & mask for num in nums}
-            target = res | (1 << i)
-            if any((target ^ p) in prefixes for p in prefixes):
-                res = target
-        return res`;
+        if len(nums) < 2:
+            return 0
+
+        root = {}
+        for number in nums:
+            node = root
+            for bit_index in range(30, -1, -1):
+                bit = (number >> bit_index) & 1
+                node = node.setdefault(bit, {})
+
+        best = 0
+        for number in nums:
+            node = root
+            candidate = 0
+            for bit_index in range(30, -1, -1):
+                bit = (number >> bit_index) & 1
+                opposite = bit ^ 1
+                if opposite in node:
+                    candidate |= 1 << bit_index
+                    node = node[opposite]
+                else:
+                    node = node[bit]
+            best = max(best, candidate)
+
+        return best`;
 
 export const DEFAULT_BITWISE_TRIE_XOR_INPUT: BitwiseTrieXorInput = {
   nums: [3, 10, 5, 25, 2, 8],
@@ -430,13 +446,17 @@ export const bitwiseTrieXor: AlgorithmDefinition<BitwiseTrieXorInput> = {
   },
   topicGuide: BITWISE_TRIE_XOR_TOPIC_GUIDE,
   trivia: BITWISE_TRIE_XOR_TRIVIA,
+  leetcode: {
+    id: 421,
+    url: "https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/",
+  },
   sources: [
     {
-      kind: "book",
-      label: "Competitive Programmer's Handbook, Ch 26",
-      bookTitle: "Competitive Programmer's Handbook",
-      chapter: 26,
-      section: "26.2 Trie structure",
+      kind: "leetcode",
+      leetcodeId: 421,
+      label: "LeetCode #421",
+      title: "Maximum XOR of Two Numbers in an Array",
+      url: "https://leetcode.com/problems/maximum-xor-of-two-numbers-in-an-array/",
     },
   ],
   defaultInput: DEFAULT_BITWISE_TRIE_XOR_INPUT,
