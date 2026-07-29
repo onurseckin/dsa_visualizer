@@ -43,7 +43,7 @@ export function CodeCompletionAssessment({
     setMessage(
       saved
         ? "Completion submitted for semantic review and saved with its consequence explanation."
-        : "Completion submitted for semantic review, but it could not be saved.",
+        : "Completion was not submitted or saved. No semantic review was queued.",
     );
   };
 
@@ -83,7 +83,9 @@ export function CodeCompletionAssessment({
       {message ? (
         <p
           className="assessment-status"
-          role={message.startsWith("Provide") || message.includes("could not") ? "alert" : "status"}
+          role={
+            message.startsWith("Provide") || message.includes("not submitted") ? "alert" : "status"
+          }
         >
           {message}
         </p>

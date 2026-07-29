@@ -82,7 +82,7 @@ export function CapstoneAssessment({
     setMessage(
       saved
         ? "Capstone response saved for analytic rubric review."
-        : "The capstone response could not be saved. Analytic review is still pending.",
+        : "Capstone response was not saved. No analytic review was queued.",
     );
   };
 
@@ -153,7 +153,7 @@ export function CapstoneAssessment({
         <p
           className="assessment-status"
           role={
-            message.startsWith("Describe") || message.includes("could not") ? "alert" : "status"
+            message.startsWith("Describe") || message.includes("not saved") ? "alert" : "status"
           }
         >
           {message}

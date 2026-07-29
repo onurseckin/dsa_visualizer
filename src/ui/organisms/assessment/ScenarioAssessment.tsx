@@ -60,7 +60,7 @@ export function ScenarioAssessment({
     setMessage(
       saved
         ? "Response saved for rubric review. This scenario has no fake exact-output grade."
-        : "The response could not be saved. Its rubric review is still pending.",
+        : "Response was not saved. No rubric review was queued.",
     );
   };
 
@@ -138,7 +138,13 @@ export function ScenarioAssessment({
       {message ? (
         <p
           className="assessment-status"
-          role={message.startsWith("Choose") || message.includes("could not") ? "alert" : "status"}
+          role={
+            message.startsWith("Choose") ||
+            message.includes("could not") ||
+            message.includes("not saved")
+              ? "alert"
+              : "status"
+          }
         >
           {message}
         </p>

@@ -47,4 +47,39 @@ describe("CodeCompletionAssessment", () => {
       }),
     );
   });
+
+  it("does not claim submission or review when persistence declines the completion", () => {
+    render(
+      <CodeCompletionAssessment
+        payload={{
+          variant: "stable-softmax",
+          changedContext: false,
+          isomorphicRetest: false,
+          prompt: "Complete the stable normalization decision.",
+          context: "probabilities = ___",
+          requiredConcepts: ["normalization"],
+          consequencePrompt: "What fails without normalization?",
+        }}
+        submissionContext={{
+          confidence: 3,
+          invariantEvidence: "",
+          tradeoffEvidence: "",
+        }}
+        onSubmit={() => false}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Semantic completion" }), {
+      target: { value: "exp(logits) / exp(logits).sum()" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Why this preserves the invariant" }), {
+      target: { value: "The probabilities sum to one." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit completion" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Completion was not submitted or saved. No semantic review was queued.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/pending/i);
+  });
 });

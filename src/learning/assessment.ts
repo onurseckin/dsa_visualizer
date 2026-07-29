@@ -17,7 +17,6 @@ export interface AssessmentVariantMetadata {
   readonly changedContext: boolean;
   readonly isomorphicRetest: boolean;
   readonly delayedRetrievalDueAt?: number;
-  readonly delayedRetrievalCompletedAt?: number;
 }
 
 /**
