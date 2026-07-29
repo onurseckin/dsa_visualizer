@@ -51,28 +51,31 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "n = 4",
       outputDisplay: "2 solutions",
-      title: "Basic Example",
-      input: { n: 4 },
+      title: "Standard 4x4 Chessboard Search",
+      input: DEFAULT_NQUEENS_INPUT,
       output: "2 valid solutions",
       explanation: "Standard 4x4 chessboard has 2 distinct non-attacking queen configurations.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "n = 5",
       outputDisplay: "10 solutions",
-      title: "Complex Edge Case",
-      input: { n: 6 },
-      output: "4 valid solutions",
+      title: "Adversarial 5x5 Deeper Backtracking Search",
+      input: { n: 5 },
+      output: "10 valid solutions",
       explanation:
-        "6x6 chessboard with deeper recursion and multiple diagonal constraint pruning steps.",
+        "5x5 chessboard with deeper recursion and multiple diagonal constraint pruning steps.",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "n = 3",
       outputDisplay: "0 solutions",
-      title: "Failing / Boundary Case",
+      title: "Boundary Impossible N=3 Placement Case",
       input: { n: 3 },
       output: "0 valid solutions",
       explanation:
