@@ -15,28 +15,25 @@ export const PYTHON_GAME_STATE_MINIMAX_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def canIWin(self, maxChoosableInteger: int, desiredTotal: int) -> bool:
-        if (maxChoosableInteger * (maxChoosableInteger + 1)) // 2 < desiredTotal:
-            return False
-        if desiredTotal <= 0:
-            return True
+    def canWin(self, n: int) -> bool:
+        """Return whether the first player wins Flip Game II on n plus signs."""
+        memo: dict[str, bool] = {}
 
-        memo = {}
+        def wins(state: str) -> bool:
+            if state in memo:
+                return memo[state]
 
-        def dfs(used_mask: int, current_total: int) -> bool:
-            if used_mask in memo:
-                return memo[used_mask]
-
-            for i in range(1, maxChoosableInteger + 1):
-                if not (used_mask & (1 << i)):
-                    if current_total + i >= desiredTotal or not dfs(used_mask | (1 << i), current_total + i):
-                        memo[used_mask] = True
+            for index in range(len(state) - 1):
+                if state[index : index + 2] == "++":
+                    next_state = state[:index] + "--" + state[index + 2 :]
+                    if not wins(next_state):
+                        memo[state] = True
                         return True
 
-            memo[used_mask] = False
+            memo[state] = False
             return False
 
-        return dfs(0, 0)`;
+        return wins("+" * n)`;
 
 export const DEFAULT_GAME_STATE_MINIMAX_INPUT: GameStateMinimaxInput = {
   n: 5,
@@ -280,28 +277,29 @@ export const gameStateMinimax: AlgorithmDefinition<GameStateMinimaxInput> = {
   topicIds: ["game_theory"],
   difficulty: "Medium",
   description:
-    "<p>Given a game state representation (such as a string of consecutive '+' signs where two adjacent '+' can be flipped to '--'), determine whether the starting player can force a win using the Minimax algorithm with memoization.</p><p><strong>Input:</strong> An integer <code>n</code> representing the length of a board of consecutive <code>'+'</code> characters, or a game state string.</p><p><strong>Output:</strong> A boolean flag returning <code>true</code> if the first player has a guaranteed winning strategy, and <code>false</code> otherwise.</p>",
-  constraints: ["1 <= n <= 10"],
+    "<p>Start with a board of <code>n</code> consecutive <code>'+'</code> signs. Players alternate replacing one adjacent <code>++</code> pair with <code>--</code>; a player with no legal replacement loses. Determine whether the first player can force a win with memoized minimax.</p><p><strong>Input:</strong> An integer <code>n</code>, the length of the initial all-<code>+</code> board.</p><p><strong>Output:</strong> <code>true</code> when the first player has a forced win, otherwise <code>false</code>.</p>",
+  constraints: ["0 <= n <= 20"],
   examples: [
     {
       kind: "basic",
       scenario: "standard",
       inputDisplay: "n = 5 ('+++++')",
-      outputDisplay: "true",
+      outputDisplay: "false",
       title: "Standard 5-Board Case",
       input: DEFAULT_GAME_STATE_MINIMAX_INPUT,
-      output: "true",
-      explanation: "First player flips center ++ leaving ++ -- ++, forcing opponent loss.",
+      output: "false",
+      explanation:
+        "Every first flip leaves a position from which the other player has a winning reply.",
     },
     {
       kind: "complex",
       scenario: "adversarial",
-      inputDisplay: "n = 10 ('++++++++++')",
+      inputDisplay: "n = 8 ('++++++++')",
       outputDisplay: "true",
       title: "Adversarial 10-Board Case",
-      input: { n: 10 },
+      input: { n: 8 },
       output: "true",
-      explanation: "First player has winning move chain.",
+      explanation: "Memoization recognizes a move to a previously analyzed losing state.",
     },
     {
       kind: "negative",

@@ -46,23 +46,29 @@ export const gameTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "canIWin",
-      arguments: [input("maxChoosableInteger"), input("desiredTotal")],
+      method: "canWin",
+      arguments: [input()],
     },
-    cases: cases(
-      { label: "10, 11", input: { maxChoosableInteger: 10, desiredTotal: 11 }, expected: false },
-      { label: "10, 0", input: { maxChoosableInteger: 10, desiredTotal: 0 }, expected: true },
-      { label: "10, 1", input: { maxChoosableInteger: 10, desiredTotal: 1 }, expected: true },
-    ),
+    cases: [
+      ...cases(
+        { label: "Five signs is losing", input: 5, expected: false },
+        { label: "No legal pair", input: 1, expected: false },
+        { label: "Eight signs has a winning split", input: 8, expected: true },
+      ),
+      ...extraCases(
+        { label: "Empty board", input: 0, expected: false },
+        { label: "One legal move", input: 2, expected: true },
+        { label: "Three signs", input: 3, expected: true },
+        { label: "Four signs", input: 4, expected: true },
+        { label: "Nine signs is losing", input: 9, expected: false },
+      ),
+    ],
     audit: {
-      signature: "Solution().canIWin(maxChoosableInteger: int, desiredTotal: int) -> bool",
-      defaultInputShape: "{ maxChoosableInteger: number; desiredTotal: number }",
-      argumentMapping: [
-        "maxChoosableInteger <- $.maxChoosableInteger",
-        "desiredTotal <- $.desiredTotal",
-      ],
+      signature: "Solution().canWin(n: int) -> bool",
+      defaultInputShape: "number",
+      argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns True if first player can force a win.",
+      returnBehavior: "Returns True if the first player wins Flip Game II on n plus signs.",
     },
   }),
   defineDsaExecution({
