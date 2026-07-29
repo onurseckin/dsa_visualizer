@@ -1,6 +1,11 @@
 import React from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import type { TriviaMeta, TriviaMode, TriviaRound } from "../../types/trivia";
+import type {
+  TriviaMeta,
+  TriviaMode,
+  TriviaReviewSubmission,
+  TriviaRound,
+} from "../../types/trivia";
 
 import { useTriviaSessionState } from "./hooks/useTriviaSessionState";
 import { TriviaSessionHeader } from "./components/TriviaSessionHeader";
@@ -17,6 +22,7 @@ export interface TriviaSessionProps {
   coverage: number;
   /** Fires on "Check answers" with the map the engine should grade and record. */
   onSubmit: (answers: Record<number, string>) => void;
+  onReview?: (submission: TriviaReviewSubmission) => void;
   onNext: () => void;
   onEditSettings?: () => void;
   onBackToHome?: () => void;
@@ -32,6 +38,7 @@ export function TriviaSession({
   level,
   coverage,
   onSubmit,
+  onReview,
   onNext,
   onEditSettings,
   onBackToHome,
@@ -39,7 +46,7 @@ export function TriviaSession({
   hints,
   lineExplanations,
 }: TriviaSessionProps): React.ReactElement {
-  const session = useTriviaSessionState({ round, mode, onSubmit, onNext });
+  const session = useTriviaSessionState({ round, mode, onSubmit, onReview, onNext });
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
     if (event.key === "Escape" && session.selectedTileId !== null) session.setSelectedTileId(null);
@@ -85,6 +92,13 @@ export function TriviaSession({
         onRetry={session.handleRetry}
         onCheck={session.handleCheck}
         onNext={session.handleNext}
+        retrievalPrompt={round.retrievalPrompt}
+        misconceptionCodes={session.grade?.misconceptionCodes}
+        reviewResponse={session.reviewResponse}
+        confidence={session.confidence}
+        reviewComplete={session.reviewComplete}
+        onReviewResponseChange={session.setReviewResponse}
+        onConfidenceChange={session.setConfidence}
       />
     </section>
   );

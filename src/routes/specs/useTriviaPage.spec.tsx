@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
+import { parsePuzzleLines } from "../../trivia/triviaEngine";
 import { createSession, updateSession, writeActiveSessionId } from "../../trivia/triviaSessions";
 
 const renderTriviaRoute = async (initialPath = "/trivia") => {
@@ -131,6 +132,44 @@ describe("useTriviaPage hook & route integration", () => {
     const editBtn = screen.getByRole("button", { name: "Adjust settings to keep going" });
     fireEvent.click(editBtn);
     await screen.findByText("Build your deck");
+  });
+
+  it("keeps the final semantic round visible until its retrieval reflection is submitted", async () => {
+    const s = createSession("Final Reflection", {
+      deck: ["bubble-sort"],
+      mode: "type",
+      minBlanks: 1,
+      maxBlanks: 1,
+      includeDistractors: false,
+    });
+    updateSession(s.id, {
+      lastScreen: "drill",
+      activeRound: {
+        algorithmId: "bubble-sort",
+        level: 1,
+        lines: parsePuzzleLines("def bubble_sort(values):\n    return values"),
+        blanks: [2],
+        tiles: [],
+        variant: "bubble-sort-line-2-prediction",
+        retrievalPrompt: {
+          kind: "prediction",
+          prompt: "Predict what changes for an empty input.",
+        },
+      },
+      progress: {
+        level: 1,
+        drilled: { "bubble-sort": { "1": [2] } },
+        stats: { "bubble-sort": { "2": { attempts: 1, misses: 0 } } },
+        completed: true,
+        roundsPlayed: 1,
+      },
+    });
+    writeActiveSessionId(s.id);
+
+    await renderTriviaRoute();
+
+    await screen.findByTestId("code-puzzle-well");
+    expect(screen.queryByText("Deck complete")).not.toBeInTheDocument();
   });
 
   it("handles session lifecycle actions on Home view", async () => {

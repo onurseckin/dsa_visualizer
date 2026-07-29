@@ -13,6 +13,14 @@
    line from memory (the hard step). */
 
 export type TriviaMode = "choice" | "type";
+export type TriviaConfidence = 1 | 2 | 3 | 4 | 5;
+export type TriviaLineRole =
+  | "boilerplate"
+  | "boundary"
+  | "control-flow"
+  | "state-update"
+  | "invariant"
+  | "result";
 
 export interface TriviaConfig {
   /** Algorithm ids in the current deck. */
@@ -37,6 +45,10 @@ export interface PuzzleLine {
   content: string;
   /** Blank, or author-excluded, lines are never hidden. */
   blankable: boolean;
+  /** Syntax-derived role used to favor lines that carry an algorithmic decision. */
+  role?: TriviaLineRole;
+  /** Relative selection weight. Authored metadata may sharpen the derived value. */
+  semanticWeight?: number;
 }
 
 export interface TriviaTile {
@@ -55,6 +67,14 @@ export interface TriviaRound {
   blanks: number[];
   /** Shuffled candidates for `choice` mode; empty in `type` mode. */
   tiles: TriviaTile[];
+  /** Stable changed-context identifier for spaced retrieval records. */
+  variant?: string;
+  /** Authored or derived reflection shown after code recall. */
+  retrievalPrompt?: TriviaRetrievalPrompt;
+  /** Explicitly authored equivalents; the canonical source remains the default answer. */
+  acceptedAnswers?: Record<number, string[]>;
+  /** Misconceptions diagnosed when a selected line is missed. */
+  misconceptionCodes?: Record<number, string>;
 }
 
 export interface TriviaLineStat {
@@ -69,6 +89,8 @@ export interface TriviaProgress {
   drilled: Record<string, Record<string, number[]>>;
   /** algorithmId -> line number -> running accuracy, drives weighted recall. */
   stats: Record<string, Record<string, TriviaLineStat>>;
+  /** Spaced-retrieval state, stored only inside this session record. */
+  reviews?: Record<string, Record<string, TriviaLineReview>>;
   /** True once `maxBlanks` has been fully covered. */
   completed: boolean;
   roundsPlayed: number;
@@ -78,6 +100,40 @@ export interface TriviaGrade {
   /** Line number -> whether the submitted answer matched. */
   perBlank: Record<number, boolean>;
   allCorrect: boolean;
+  /** Unique authored misconception codes for missed blanks. */
+  misconceptionCodes?: string[];
+}
+
+export interface TriviaRetrievalPrompt {
+  kind: "invariant" | "prediction";
+  prompt: string;
+}
+
+export interface TriviaReviewSubmission {
+  confidence: TriviaConfidence;
+  response: string;
+}
+
+export interface TriviaLineReview {
+  intervalIndex: 0 | 1 | 2;
+  dueAt?: number;
+  lastReviewedAt: number;
+  variant: string;
+  confidence: TriviaConfidence;
+  correct: boolean;
+  masteryScore: number;
+  mastered: boolean;
+  misconceptionCodes: string[];
+  response: string;
+}
+
+export interface TriviaSemanticLine {
+  line: number;
+  role: Exclude<TriviaLineRole, "boilerplate">;
+  misconceptionCode?: string;
+  acceptedAnswers?: string[];
+  invariantPrompt?: string;
+  predictionPrompt?: string;
 }
 
 /* Author-supplied trivia metadata on an algorithm. Everything is optional: a
@@ -91,6 +147,8 @@ export interface TriviaMeta {
   hints?: { line: number; hint: string }[];
   /** Comprehensive line-by-line educational explanations keyed by 1-based line number. */
   lineExplanations?: Record<number, string>;
+  /** Optional semantic sharpening for retrieval, grading, and misconception diagnosis. */
+  semanticLines?: TriviaSemanticLine[];
 }
 
 /* Round 3 session IA (TASKS.md 9.1): `status` never told a caller *which
