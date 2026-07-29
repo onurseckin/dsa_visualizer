@@ -63,19 +63,21 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   examples: [
     {
       kind: "basic",
-      inputDisplay: 's = "aabxaab"',
-      outputDisplay: "[0, 1, 0, 0, 3, 1, 0]",
-      title: "Basic Example",
-      input: { text: "ababaaba", pattern: "aba" },
+      scenario: "standard",
+      inputDisplay: 'text = "ababaaba", pattern = "aba"',
+      outputDisplay: "[0, 2, 5]",
+      title: "Standard Pattern Match Search",
+      input: DEFAULT_Z_ALGORITHM_INPUT,
       output: "[0, 2, 5]",
       explanation:
         "Constructs combined string aba$ababaaba and computes Z-array to find pattern matches at indices 0, 2, and 5.",
     },
     {
       kind: "complex",
-      inputDisplay: 's = "aaaaa"',
-      outputDisplay: "[0, 4, 3, 2, 1]",
-      title: "Complex Edge Case",
+      scenario: "adversarial",
+      inputDisplay: 'text = "aaaaa", pattern = "aa"',
+      outputDisplay: "[0, 1, 2, 3]",
+      title: "Adversarial Uniform Overlapping Pattern",
       input: { text: "aaaaa", pattern: "aa" },
       output: "[0, 1, 2, 3]",
       explanation:
@@ -83,9 +85,10 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: 's = "abcdef"',
-      outputDisplay: "[0, 0, 0, 0, 0, 0]",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: 'text = "abcdef", pattern = "xyz"',
+      outputDisplay: "[]",
+      title: "Boundary Disjoint No-Match Case",
       input: { text: "abcdef", pattern: "xyz" },
       output: "[]",
       explanation: "No characters match; Z-array remains 0 for all text positions.",
