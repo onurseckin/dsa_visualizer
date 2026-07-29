@@ -1,5 +1,12 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  CompositeCanvasSnapshot,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface ValidParenthesesInput {
   s: string;
@@ -21,218 +28,414 @@ export const DEFAULT_VALID_PARENTHESES_INPUT: ValidParenthesesInput = {
   s: "({[()]}())",
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Valid Parentheses problem determines whether a string of bracket characters (), {}, and [] is properly formatted and correctly nested.",
+    primarySnapshot: {
+      kind: "array",
+      name: "chars",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "(", label: "[0]", state: "default" },
+        { id: "c2", value: "{", label: "[1]", state: "default" },
+        { id: "c3", value: "}", label: "[2]", state: "default" },
+        { id: "c4", value: ")", label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Why simple counting fails: integer counters can track equal numbers of openers and closers, but cannot verify nesting order; for example, ([)] has equal counts but is invalid.",
+    primarySnapshot: {
+      kind: "array",
+      name: "chars",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "(", label: "[0]", state: "compare" },
+        { id: "c2", value: "[", label: "[1]", state: "compare" },
+        { id: "c3", value: ")", label: "[2]", state: "compare", pointers: ["mismatch"] },
+        { id: "c4", value: "]", label: "[3]", state: "compare" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The LIFO (Last-In, First-Out) Nesting Invariant requires that the most recently opened bracket must be the very first one to be closed.",
+    primarySnapshot: {
+      kind: "array",
+      name: "chars",
+      mode: "box",
+      elements: [
+        { id: "c1", value: "(", label: "[0]", state: "visited" },
+        { id: "c2", value: "{", label: "[1]", state: "active", pointers: ["must close first"] },
+        { id: "c3", value: "}", label: "[2]", state: "active", pointers: ["closer"] },
+        { id: "c4", value: ")", label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We maintain an auxiliary LIFO stack to store active open brackets awaiting their corresponding closing partners as we scan the string left to right.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-chars",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "chars",
+            mode: "box",
+            elements: [
+              { id: "c1", value: "(", label: "[0]", state: "active", pointers: ["i"] },
+              { id: "c2", value: "{", label: "[1]", state: "default" },
+              { id: "c3", value: "}", label: "[2]", state: "default" },
+              { id: "c4", value: ")", label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [{ id: "st-0", value: "(", label: "top", state: "active" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Opener Case (Push): whenever we encounter an opening bracket '(', '{', or '[', we push it onto the top of the stack.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-chars",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "chars",
+            mode: "box",
+            elements: [
+              { id: "c1", value: "(", label: "[0]", state: "visited" },
+              { id: "c2", value: "{", label: "[1]", state: "active", pointers: ["i"] },
+              { id: "c3", value: "}", label: "[2]", state: "default" },
+              { id: "c4", value: ")", label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [
+              { id: "st-0", value: "(", label: "[0]", state: "default" },
+              { id: "st-1", value: "{", label: "top", state: "active" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Closer Case (Pop): whenever we encounter a closing bracket ')', '}', or ']', we inspect the top of the stack; if it matches the required opener, we pop it off.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-chars",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "chars",
+            mode: "box",
+            elements: [
+              { id: "c1", value: "(", label: "[0]", state: "visited" },
+              { id: "c2", value: "{", label: "[1]", state: "sorted" },
+              { id: "c3", value: "}", label: "[2]", state: "sorted", pointers: ["match"] },
+              { id: "c4", value: ")", label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [{ id: "st-0", value: "(", label: "top", state: "active" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Underflow & Mismatch Guards: if a closing bracket appears when the stack is empty (underflow) or if the stack top does not match the closer, the string is invalid.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-chars",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "chars",
+            mode: "box",
+            elements: [
+              { id: "c1", value: "(", label: "[0]", state: "visited" },
+              { id: "c2", value: "]", label: "[1]", state: "swap", pointers: ["mismatch"] },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [{ id: "st-0", value: "(", label: "top", state: "compare" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Final Validation: after scanning all characters, if the stack is completely empty, all opened brackets were successfully matched, confirming validity in O(N) time and O(N) space.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-chars",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "chars",
+            mode: "box",
+            elements: [
+              { id: "c1", value: "(", label: "[0]", state: "sorted" },
+              { id: "c2", value: "{", label: "[1]", state: "sorted" },
+              { id: "c3", value: "}", label: "[2]", state: "sorted" },
+              { id: "c4", value: ")", label: "[3]", state: "sorted" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [],
+          },
+        },
+      ],
+    },
+  },
+];
+
 export const generateValidParenthesesSteps = (input: ValidParenthesesInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const s = typeof input?.s === "string" ? input.s : DEFAULT_VALID_PARENTHESES_INPUT.s;
+  const s = typeof input?.s === "string" && input.s.length > 0 ? input.s : DEFAULT_VALID_PARENTHESES_INPUT.s;
   const chars = s.split("");
   const n = chars.length;
 
-  const elements: ArrayElement[] = chars.map((ch, idx) => ({
-    id: `char-${idx}`,
-    value: ch,
-    state: "default",
-    pointers: [],
-  }));
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input || (typeof input.s === "string" && input.s === DEFAULT_VALID_PARENTHESES_INPUT.s);
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
 
   const stack: string[] = [];
-  const stackIndices: number[] = [];
   const bracketMap: Record<string, string> = {
     ")": "(",
     "}": "{",
     "]": "[",
   };
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    activeIdx?: number,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el, idx) => ({
-          ...el,
-          pointers: activeIdx === idx ? ["i"] : [],
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        customState: {
-          stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
-          stringLength: n,
-        },
-      },
-      variables,
+  const makeComposite = (
+    currentI?: number,
+    highlightState: "compare" | "active" | "sorted" | "swap" = "compare",
+    matchedIdxPair?: [number, number],
+  ): CompositeCanvasSnapshot => {
+    const arrayElements: ArrayElement[] = chars.map((ch, idx) => {
+      const ptrs: string[] = [];
+      if (idx === currentI) ptrs.push("i");
+
+      let state: ArrayElement["state"] = "default";
+      if (matchedIdxPair && (idx === matchedIdxPair[0] || idx === matchedIdxPair[1])) {
+        state = "sorted";
+      } else if (idx === currentI) {
+        state = highlightState;
+      } else if (currentI !== undefined && idx < currentI) {
+        state = "visited";
+      }
+
+      return {
+        id: `char-${idx}`,
+        value: ch,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
     });
+
+    const stackElements: ArrayElement[] = stack.map((val, pos) => ({
+      id: `st-${pos}`,
+      value: val,
+      label: pos === stack.length - 1 ? "top" : `[${pos}]`,
+      state: pos === stack.length - 1 ? "active" : "default",
+    }));
+
+    return {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "par-chars",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "chars",
+            mode: "box",
+            elements: arrayElements,
+          },
+        },
+        {
+          id: "par-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: stackElements,
+          },
+        },
+      ],
+    };
   };
 
-  addStep(
-    1,
-    "Set up the bracket check",
-    `We scan the string "${s}" left-to-right, using a LIFO stack to enforce that the most recently opened bracket is closed first.`,
-    { inputString: s, length: n },
-  );
+  if (n === 0) {
+    addStep(
+      "The input string is empty, so zero unclosed brackets exist; returning true.",
+      makeComposite(),
+    );
+    return steps;
+  }
 
   addStep(
-    2,
-    "Create an empty stack",
-    "The stack maintains open brackets awaiting their corresponding closer. The top of the stack always points to the active nested context.",
-    { stackSize: 0 },
+    `Having established the mental model, let's now transition to our selected input string "${s}" of length ${n}.`,
+    makeComposite(),
   );
 
-  addStep(
-    3,
-    "Map each closer to its opener",
-    "Mapping closing delimiters to expected opening partners Enables O(1) dictionary lookup during evaluation.",
-    { map: '")":"(", "}":"{", "]":"["' },
-  );
-
+  let isValid = true;
   for (let i = 0; i < n; i++) {
     const char = chars[i];
-    elements[i].state = "active";
 
     addStep(
-      4,
-      `Read '${char}' at index ${i}`,
-      `Inspecting character '${char}' at position ${i}. An opening bracket establishes a new nested context; a closing bracket must resolve the active stack top.`,
-      { i, char, stackSize: stack.length },
-      i,
+      `Inspect character '${char}' at index ${i}: evaluate whether '${char}' is an opening bracket or a closing bracket.`,
+      makeComposite(i, "compare"),
     );
 
     if (char === "(" || char === "{" || char === "[") {
-      addStep(
-        5,
-        `Recognize '${char}' as an opener`,
-        `Character '${char}' is an opening bracket, requiring a push to track this new nested scope.`,
-        { i, char, isOpenBracket: true },
-        i,
-      );
-
       stack.push(char);
-      stackIndices.push(i);
-      elements[i].state = "queued";
-
       addStep(
-        6,
-        `Push '${char}' onto the stack`,
-        `Pushing '${char}' onto the stack. It remains at the top of the stack until a matching closing bracket resolves it.`,
-        { i, char, stackSize: stack.length },
-        i,
+        `Character '${char}' is an opening bracket: push '${char}' onto top of stack (stack size = ${stack.length}).`,
+        makeComposite(i, "active"),
       );
     } else {
       const expectedOpen = bracketMap[char];
       const stackTop = stack.length > 0 ? stack[stack.length - 1] : undefined;
 
-      addStep(
-        7,
-        `'${char}' is a closing bracket — enter else branch`,
-        `Character '${char}' is a closing delimiter. We enter the else path to validate it against the active opener at the top of the stack.`,
-        { i, char, isClosingBracket: true, expectedOpen: expectedOpen ?? "" },
-        i,
-      );
-
-      addStep(
-        8,
-        `Match '${char}' against the stack top`,
-        `Comparing incoming closing bracket '${char}' (requires '${expectedOpen ?? ""}') against the top of the stack '${stackTop ?? "EMPTY"}'.`,
-        { i, char, expectedOpen: expectedOpen ?? "", stackTop: stackTop ?? "EMPTY" },
-        i,
-      );
-
-      if (stack.length === 0 || stackTop !== expectedOpen) {
-        elements[i].state = "swap";
-
+      if (stack.length === 0) {
+        isValid = false;
         addStep(
-          9,
-          "Return False — invalid bracket matching",
-          `Bracket structure violation: incoming '${char}' requires opener '${expectedOpen ?? ""}', but stack top is '${stackTop ?? "EMPTY"}'. Returning False.`,
-          { i, char, stackTop: stackTop ?? "EMPTY", isValid: false },
-          i,
+          `Closing bracket '${char}' at index ${i} requires opening partner '${expectedOpen}', but stack is EMPTY! Underflow error detected; returning false.`,
+          makeComposite(i, "swap"),
         );
-
-        while (steps.length < 20) {
-          addStep(
-            9,
-            `Verification step ${steps.length + 1}`,
-            `Verifying invalid bracket state and early exit safety.`,
-            { isValid: false, remainingStackSize: stack.length },
-            i,
-          );
-        }
-
-        return steps;
+        break;
+      } else if (stackTop !== expectedOpen) {
+        isValid = false;
+        addStep(
+          `Closing bracket '${char}' at index ${i} requires '${expectedOpen}', but top of stack is '${stackTop}'! Mismatch error detected; returning false.`,
+          makeComposite(i, "swap"),
+        );
+        break;
+      } else {
+        const popped = stack.pop()!;
+        addStep(
+          `Closing bracket '${char}' matches top of stack '${popped}'! Pop '${popped}' off stack; bracket pair successfully resolved.`,
+          makeComposite(i, "sorted"),
+        );
       }
+    }
+  }
 
-      const popped = stack.pop();
-      const openIdx = stackIndices.pop();
-      if (openIdx !== undefined) {
-        elements[openIdx].state = "sorted";
-      }
-      elements[i].state = "sorted";
-
+  if (isValid) {
+    if (stack.length === 0) {
       addStep(
-        10,
-        `Pop '${popped}' to close the pair`,
-        `Incoming '${char}' matches opener '${popped}' at stack top. Popping '${popped}' resolves and closes this nested bracket pair.`,
-        { i, char, poppedChar: popped!, stackSize: stack.length },
-        i,
+        `String scan finished and stack is completely EMPTY! All bracket pairs were matched in valid LIFO order; returning true.`,
+        makeComposite(undefined, "sorted"),
+      );
+    } else {
+      addStep(
+        `String scan finished, but stack still contains ${stack.length} unclosed opening bracket(s) [${stack.join(", ")}]! Returning false.`,
+        makeComposite(n - 1, "swap"),
       );
     }
-  }
-
-  const isValid = stack.length === 0;
-
-  if (!isValid) {
-    for (const openIdx of stackIndices) {
-      elements[openIdx].state = "swap";
-    }
-  } else {
-    for (let i = 0; i < n; i++) {
-      elements[i].state = "sorted";
-    }
-  }
-
-  addStep(
-    11,
-    isValid
-      ? "Return True — all brackets valid and balanced"
-      : "Return False — unclosed brackets remain",
-    isValid
-      ? "All characters processed and the stack is completely empty, confirming every open bracket was matched in correct LIFO order."
-      : `Scan completed, but unclosed open brackets [${stack.join(", ")}] remain on the stack. The string is invalid.`,
-    { isValid, remainingStackSize: stack.length },
-  );
-
-  while (steps.length < 20) {
-    addStep(11, `Verification step ${steps.length + 1}`, `Verifying final stack balance state.`, {
-      isValid,
-      remainingStackSize: stack.length,
-    });
   }
 
   return steps;
 };
 
 const VALID_PARENTHESES_TRIVIA: TriviaMeta = {
+  skipLines: [1, 6, 7],
   lineExplanations: {
-    1: "Defines is_valid(s) -> bool: checks whether string s consists of properly nested and balanced parentheses.",
-    2: "Initializes an empty stack list to store open brackets in Last-In, First-Out (LIFO) order.",
-    3: "Creates a dictionary mapping each closing bracket to its corresponding opening bracket for O(1) lookup.",
-    4: "Iterates through each character char in the input string s from left to right.",
-    5: "Checks if the current character char is one of the opening brackets '(', '{', or '['.",
-    6: "Pushes the opening bracket char onto the stack to await its closing partner.",
-    7: "Handles the else branch when char is a closing bracket.",
-    8: "Evaluates if stack is empty OR if the top element stack[-1] fails to match mapping[char].",
-    9: "Returns False immediately upon detecting a mismatch or underflow error.",
-    10: "Pops the matching open bracket off the stack after a successful bracket match.",
-    11: "Returns True if the stack is completely empty after processing all characters, otherwise False.",
+    1: "Declares function is_valid accepting string s of bracket characters.",
+    2: "Initializes empty stack to maintain active open brackets.",
+    3: "Initializes lookup dictionary mapping closing brackets to expected opening partners.",
+    4: "Iterates through each character in string s.",
+    5: "Checks if char is an opening bracket ('(', '{', '[').",
+    6: "Pushes opening bracket char onto top of stack.",
+    7: "Handles else branch for closing bracket evaluation.",
+    8: "Checks if stack is empty OR if stack top stack[-1] fails to match required opener.",
+    9: "Returns False immediately upon detecting underflow or mismatch error.",
+    10: "Pops matching opening bracket off stack.",
+    11: "Returns True if stack is empty after processing all characters, else False.",
   },
 };
 
@@ -242,23 +445,25 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   topicIds: ["stack_and_queue"],
   difficulty: "Easy",
   description:
-    "<p>Determine if an input string composed of bracket characters <code>()</code>, <code>{}</code>, and <code>[]</code> is valid.</p><p>An input string is valid if:</p><ul><li>Open brackets must be closed by the same type of brackets.</li><li>Open brackets must be closed in the correct Last-In, First-Out (LIFO) order.</li><li>Every close bracket has a corresponding open bracket of the same type.</li></ul><h3>Why It Exists &amp; Real-World Relevance</h3><p>Stack-based bracket matching is the foundational algorithm for parsing nested structures. Simple counting fails because it cannot verify nesting order (e.g. <code>([)]</code> has equal counts of brackets but is invalid).</p><p>Real-world applications include:</p><ul><li><strong>Compilers &amp; AST Parsers:</strong> Clang, Babel, and GCC use stack pushdown automata to parse code blocks, function calls, and expression syntax.</li><li><strong>HTML / XML / JSX Validation:</strong> Ensuring tags like <code>&lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;</code> are correctly nested.</li><li><strong>Math Expression Evaluation:</strong> Evaluators (like Shunting-Yard algorithm) use stacks to manage operator precedence and sub-expression parentheses.</li><li><strong>Runtime Call Stacks:</strong> Operating systems and language runtimes (V8, CPython) use a stack frame architecture mirroring this exact mechanism.</li></ul><h3>How It Works (Step-by-Step Intuition)</h3><ul><li>Initialize an empty stack and a lookup table mapping <code>&quot;)&quot; &rarr; &quot;(&quot;</code>, <code>&quot;}&quot; &rarr; &quot;{&quot;</code>, and <code>&quot;]&quot; &rarr; &quot;[&quot;</code>.</li><li>Iterate through each character in the string from left to right.</li><li><strong>Opener Case:</strong> If character is <code>(</code>, <code>{</code>, or <code>[</code>, push it onto the stack.</li><li><strong>Closer Case:</strong> If character is <code>)</code>, <code>}</code>, or <code>]</code>:<ul><li>Check if stack is empty (underflow: closer with no opener) or if top of stack does not match the required opener (mismatch: wrong bracket type). If so, return <code>False</code>.</li><li>Otherwise, pop the top opener from the stack.</li></ul></li><li><strong>Final Check:</strong> After scanning all characters, return <code>True</code> if the stack is completely empty, else <code>False</code>.</li></ul><p><code>stack[-1] == mapping[char] &rArr; stack.pop()</code></p><p><code>len(stack) == 0 &rArr; True</code></p><h3>Input Parameters</h3><ul><li><code>s</code>: A string composed entirely of parenthesis characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code>, <code>']'</code>.</li></ul><h3>Output</h3><p>Returns <code>true</code> if the string is validly formatted and properly nested, otherwise <code>false</code>.</p><h3>Edge Cases &amp; Constraints</h3><ul><li><code>1 &le; s.length &le; 10<sup>4</sup></code></li><li><code>s</code> consists of parentheses only: <code>()[]{}</code>.</li><li>Odd length strings (e.g. <code>s = &quot;(&quot;</code>): Can never be valid (<code>N % 2 != 0</code>).</li><li>Early closer underflow (e.g. <code>s = &quot;)(&quot;</code>): Handled by empty stack guard on closer inspection.</li><li>Leftover openers (e.g. <code>s = &quot;(((&quot;</code>): Detected by final <code>len(stack) == 0</code> check.</li></ul>",
+    "<p>Determine if an input string composed of bracket characters <code>()</code>, <code>{}</code>, and <code>[]</code> is valid.</p><p>An input string is valid if:</p><ul><li>Open brackets must be closed by the same type of brackets.</li><li>Open brackets must be closed in the correct Last-In, First-Out (LIFO) order.</li><li>Every close bracket has a corresponding open bracket of the same type.</li></ul><h3>Why It Exists &amp; Real-World Relevance</h3><p>Stack-based bracket matching is the foundational algorithm for parsing nested structures. Simple counting fails because it cannot verify nesting order (e.g. <code>([)]</code> has equal counts of brackets but is invalid).</p><p>Real-world applications include:</p><ul><li><strong>Compilers &amp; AST Parsers:</strong> Clang, Babel, and GCC use stack pushdown automata to parse code blocks, function calls, and expression syntax.</li><li><strong>HTML / XML / JSX Validation:</strong> Ensuring tags like <code>&lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;</code> are correctly nested.</li><li><strong>Math Expression Evaluation:</strong> Evaluators (like Shunting-Yard algorithm) use stacks to manage operator precedence and sub-expression parentheses.</li><li><strong>Runtime Call Stacks:</strong> Operating systems and language runtimes (V8, CPython) use a stack frame architecture mirroring this exact mechanism.</li></ul><h3>How It Works (Step-by-Step Intuition)</h3><ul><li>Initialize an empty stack and a lookup table mapping <code>&quot;)&quot; &rarr; &quot;(&quot;</code>, <code>&quot;}&quot; &rarr; &quot;{&quot;</code>, and <code>&quot;]&quot; &rarr; &quot;[&quot;</code>.</li><li>Iterate through each character in the string from left to right.</li><li><strong>Opener Case:</strong> If character is <code>(</code>, <code>{</code>, or <code>[</code>, push it onto the stack.</li><li><strong>Closer Case:</strong> If character is <code>)</code>, <code>}</code>, or <code>]</code>:<ul><li>Check if stack is empty (underflow: closer with no opener) or if top of stack does not match the required opener (mismatch: wrong bracket type). If so, return <code>False</code>.</li><li>Otherwise, pop the top opener from the stack.</li></ul></li><li><strong>Final Check:</strong> After scanning all characters, return <code>True</code> if the stack is completely empty, else <code>False</code>.</li></ul><p><code>stack[-1] == mapping[char] &rArr; stack.pop()</code></p><p><code>len(stack) == 0 &rArr; True</code></p><h3>Input Parameters</h3><ul><li><code>s</code>: A string composed entirely of parenthesis characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code>, <code>']'</code>.</li></ul><h3>Output</h3><p>Returns <code>true</code> if the string is validly formatted and properly nested, otherwise <code>false</code>.</p><h3>Edge Cases &amp; Constraints</h3><ul><li><code>1 &le; s.length &le; 10<sup>4</sup></code></li><li><code>s</code> consists of parentheses only: <code>(){}[]</code>.</li><li>Odd length strings (e.g. <code>s = &quot;(&quot;</code>): Can never be valid (<code>N % 2 != 0</code>).</li><li>Early closer underflow (e.g. <code>s = &quot;)(&quot;</code>): Handled by empty stack guard on closer inspection.</li><li>Leftover openers (e.g. <code>s = &quot;(((&quot;</code>): Detected by final <code>len(stack) == 0</code> check.</li></ul>",
   constraints: ["1 <= s.length <= 10^4", "s consists of parentheses only: () {} []"],
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: 's = "({[()]}())"',
       outputDisplay: "true",
-      title: "Basic Balanced Example",
+      title: "Standard Balanced Nested String",
       input: DEFAULT_VALID_PARENTHESES_INPUT,
       output: "true",
       explanation: "Nested brackets matching correctly in Last-In, First-Out order.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: 's = "()[]{}()({[]})"',
       outputDisplay: "true",
-      title: "Complex Sequential & Deep Nesting",
+      title: "Adversarial Sequential & Deep Nesting",
       input: { s: "()[]{}()({[]})" },
       output: "true",
       explanation:
@@ -266,9 +471,10 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: 's = "(]"',
       outputDisplay: "false",
-      title: "Mismatch Boundary Case",
+      title: "Boundary Mismatch Failure",
       input: { s: "(]" },
       output: "false",
       explanation:
@@ -358,3 +564,5 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   defaultInput: DEFAULT_VALID_PARENTHESES_INPUT,
   generateSteps: generateValidParenthesesSteps,
 };
+
+export default validParentheses;
