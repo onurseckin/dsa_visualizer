@@ -3,6 +3,7 @@ import { getAllLearningItems } from "../../learning/registry";
 import { getLearningItemTopics } from "../../app/topics";
 import { boxViewBox, useCanvasBox, viewBoxAttr } from "../primitives/vizGeometry";
 import { layoutResponsiveGraph } from "./responsiveGraphLayout";
+import { usePanZoom } from "./usePanZoom";
 import {
   ML_INFRA_FAMILIES,
   ML_INFRA_TREE_PLACEMENTS,
@@ -25,21 +26,23 @@ export {
 } from "./mlInfraTree";
 export type { MLInfraCurriculumPlacement, MLInfraFamily, MLInfraFamilyId } from "./mlInfraTree";
 
-export interface MLInfraKnowledgeGraphProps {
+interface MLInfraKnowledgeGraphProps {
   onSelectTopic?: (topicId: string) => void;
 }
 
-const ML_INFRA_CANVAS_FALLBACK = { width: 1200, height: 1 };
-
-export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ onSelectTopic }) => {
+export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
+  onSelectTopic,
+}) => {
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
-  const { ref: canvasRef, box: measuredBox } = useCanvasBox(ML_INFRA_CANVAS_FALLBACK);
+  const { ref: canvasRef, box: measuredBox } = useCanvasBox({ width: 1200, height: 1 });
+  const { scale, pan, isPanning, containerProps, controls } = usePanZoom();
 
   const problemCountByTopicId = useMemo(() => {
     const counts = new Map<string, number>();
     getAllLearningItems().forEach((item) => {
-      getLearningItemTopics(item).forEach((topicId) => {
+      const topics = getLearningItemTopics(item);
+      topics.forEach((topicId) => {
         counts.set(topicId, (counts.get(topicId) ?? 0) + 1);
       });
     });
@@ -55,7 +58,6 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
     return layoutResponsiveGraph(
       ML_INFRA_TREE_PLACEMENTS,
       { width: measuredBox.width, height: 0 },
-      { nodeWidth: 240, nodeHeight: 64 },
     );
   }, [measuredBox.width]);
 
@@ -71,25 +73,21 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
   return (
     <div
       role="region"
-      aria-label="ML Infrastructure Knowledge Tree"
+      aria-label="Interactive Machine Learning Systems & Infrastructure Prerequisite Roadmap"
       className="w-full flex flex-col items-center justify-center mx-auto gap-4 relative"
     >
       {/* Legend Header */}
       <ul
-        aria-label="Topic family colors"
-        className="bg-[#141418]/90 backdrop-blur-xl border border-white/15 px-6 py-3 rounded-full shadow-xl mb-6 flex flex-wrap items-center justify-center gap-5 list-none mx-auto relative z-10"
+        aria-label="Topic Family Legend"
+        className="w-full flex flex-wrap items-center justify-center gap-3 md:gap-6 px-4 py-3 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl text-xs font-medium text-[var(--text-secondary)] shadow-sm list-none"
       >
         {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
-          <li
-            key={family.id}
-            className="text-xs font-semibold text-neutral-200 tracking-wide inline-flex items-center gap-2"
-          >
+          <li key={family.id} className="flex items-center gap-2">
             <span
-              aria-hidden="true"
-              className="w-3.5 h-3.5 rounded-full shadow-[0_0_8px_currentColor] opacity-90"
+              className="w-3 h-3 rounded-full border shadow-sm"
               style={{
-                background: mlInfraFamilyColor(family.id),
-                color: mlInfraFamilyColor(family.id),
+                backgroundColor: mlInfraFamilyFill(family.id),
+                borderColor: mlInfraFamilyColor(family.id),
               }}
             />
             {family.label}
@@ -98,53 +96,95 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
       </ul>
 
       {/* Main Card Container */}
-      <div className="w-full overflow-x-auto bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-4 shadow-2xl relative mx-auto">
+      <div className="w-full overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 shadow-2xl relative mx-auto min-h-[800px]">
+        {/* Floating Zoom Controls HUD */}
+        <div className="absolute bottom-6 right-6 z-20 flex items-center gap-1.5 bg-[var(--bg-page)]/90 backdrop-blur-md border border-[var(--border-default)] rounded-xl p-1.5 shadow-xl select-none">
+          <button
+            type="button"
+            onClick={controls.zoomOut}
+            title="Zoom Out"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-surface)] active:scale-95 text-sm font-bold text-[var(--text-primary)] transition-all cursor-pointer"
+          >
+            −
+          </button>
+          <span className="px-2 text-xs font-mono font-semibold text-[var(--text-muted)] min-w-[48px] text-center">
+            {controls.scalePercentage}%
+          </span>
+          <button
+            type="button"
+            onClick={controls.zoomIn}
+            title="Zoom In"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-surface)] active:scale-95 text-sm font-bold text-[var(--text-primary)] transition-all cursor-pointer"
+          >
+            +
+          </button>
+          <div className="w-[1px] h-4 bg-[var(--border-default)] mx-1" />
+          <button
+            type="button"
+            onClick={controls.resetPanZoom}
+            title="Reset Zoom & Pan"
+            className="px-2.5 py-1 text-xs font-medium rounded-lg hover:bg-[var(--bg-surface)] active:scale-95 text-[var(--accent)] transition-all cursor-pointer"
+          >
+            Reset
+          </button>
+        </div>
+
         <div
           ref={canvasRef}
           data-testid="ml-infra-canvas"
+          {...containerProps}
+          className={`w-full overflow-hidden select-none ${isPanning ? "cursor-grabbing" : "cursor-grab"}`}
           style={{
-            width: `${canvasWidth}px`,
-            minWidth: "100%",
+            width: "100%",
             height: `${canvasHeight}px`,
           }}
         >
-          <svg
-            width="100%"
-            height="100%"
-            viewBox={viewBoxAttr(boxViewBox(canvasBox))}
-            className="block relative z-0 drop-shadow-sm"
+          <div
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+              transformOrigin: "top center",
+              transition: isPanning ? "none" : "transform 0.15s ease-out",
+              width: "100%",
+              height: "100%",
+            }}
           >
-            <defs>
-              {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
+            <svg
+              width="100%"
+              height="100%"
+              viewBox={viewBoxAttr(boxViewBox(canvasBox))}
+              className="block relative z-0 drop-shadow-sm"
+            >
+              <defs>
+                {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
+                  <marker
+                    key={family.id}
+                    id={`ml-arrow-${family.id}`}
+                    viewBox="0 0 10 10"
+                    refX="6"
+                    refY="5"
+                    markerWidth="6"
+                    markerHeight="6"
+                    orient="auto-start-reverse"
+                  >
+                    <path
+                      d="M 0 1.5 L 8 5 L 0 8.5 z"
+                      fill={mlInfraFamilyColor(family.id)}
+                      opacity="0.85"
+                    />
+                  </marker>
+                ))}
                 <marker
-                  key={family.id}
-                  id={`ml-arrow-${family.id}`}
+                  id="ml-arrow-active"
                   viewBox="0 0 10 10"
                   refX="6"
                   refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
+                  markerWidth="7"
+                  markerHeight="7"
                   orient="auto-start-reverse"
                 >
-                  <path
-                    d="M 0 1.5 L 8 5 L 0 8.5 z"
-                    fill={mlInfraFamilyColor(family.id)}
-                    opacity="0.85"
-                  />
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
                 </marker>
-              ))}
-              <marker
-                id="ml-arrow-active"
-                viewBox="0 0 10 10"
-                refX="6"
-                refY="5"
-                markerWidth="7"
-                markerHeight="7"
-                orient="auto-start-reverse"
-              >
-                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
-              </marker>
-            </defs>
+              </defs>
 
             {/* Connectors Group */}
             <g className="connectors">
@@ -218,6 +258,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
                     (hoveredNode?.prerequisites.includes(node.id) ?? false));
 
                 const width = node.width;
+                const height = node.height;
 
                 const handleKeyDown = (e: React.KeyboardEvent) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -279,28 +320,31 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
                       }}
                     />
 
-                    <text
-                      x={width / 2}
-                      y="28"
-                      textAnchor="middle"
-                      textLength={Math.max(width - 20, 1)}
-                      lengthAdjust="spacingAndGlyphs"
-                      fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
-                      className="font-bold text-[13px] transition-all duration-300"
+                    <foreignObject
+                      x="0"
+                      y="0"
+                      width={width}
+                      height={height}
+                      className="overflow-visible pointer-events-none"
                     >
-                      {node.title}
-                    </text>
-
-                    <text
-                      x={width / 2}
-                      y="48"
-                      textAnchor="middle"
-                      fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
-                      className="font-mono text-[11px] transition-all duration-300"
-                    >
-                      {problemCount} {problemCount === 1 ? "Problem" : "Problems"} •{" "}
-                      {node.difficulty}
-                    </text>
+                      <div className="w-full h-full p-3 flex flex-col justify-between items-center text-center box-border select-none overflow-hidden">
+                        <span
+                          className={`font-bold text-[12.5px] leading-snug break-words transition-colors duration-300 ${
+                            isHovered ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
+                          }`}
+                        >
+                          {node.title}
+                        </span>
+                        <span
+                          className={`font-mono text-[10.5px] whitespace-nowrap transition-colors duration-300 mt-auto pt-1.5 shrink-0 ${
+                            isHovered ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]"
+                          }`}
+                        >
+                          {problemCount} {problemCount === 1 ? "Problem" : "Problems"} •{" "}
+                          {node.difficulty}
+                        </span>
+                      </div>
+                    </foreignObject>
                   </g>
                 );
               })}
@@ -309,7 +353,8 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({ on
         </div>
       </div>
     </div>
-  );
-};
+  </div>
+);
+}
 
 export default MLInfraKnowledgeGraph;

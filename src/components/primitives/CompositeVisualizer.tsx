@@ -190,6 +190,7 @@ export const RenderPrimitiveSnapshot: React.FC<RenderPrimitiveSnapshotProps> = (
         <ArrayVisualizer
           elements={snapshot.elements}
           mode={snapshot.mode}
+          density={snapshot.density}
           name={snapshot.name}
           title={snapshot.title}
           auxiliaryState={auxiliaryState}
@@ -211,6 +212,7 @@ export const RenderPrimitiveSnapshot: React.FC<RenderPrimitiveSnapshotProps> = (
           nodes={snapshot.nodes}
           edges={snapshot.edges}
           isDirected={snapshot.directed}
+          layout={snapshot.layout}
           name={snapshot.name}
           title={snapshot.title}
           auxiliaryState={auxiliaryState}
@@ -292,6 +294,7 @@ export const RenderPrimitiveSnapshot: React.FC<RenderPrimitiveSnapshotProps> = (
         <DsuVisualizer
           nodes={snapshot.nodes}
           activeIds={snapshot.activeIds}
+          density={snapshot.density}
           title={resolvePrimitiveLabel("dsu", snapshot.name) ?? snapshot.title}
           auxiliaryState={auxiliaryState}
           variables={variables}
@@ -402,14 +405,17 @@ export const CompositeVisualizer: React.FC<CompositeVisualizerProps> = ({
   const isFlexHorizontal = layout === "horizontal";
   const isFlexVertical = layout === "vertical";
   const isFlex = isFlexHorizontal || isFlexVertical || layout === "flex";
+  const isPersistent = layout === "persistent";
 
   const cols =
-    snapshot.columns ||
+    (isPersistent ? 12 : snapshot.columns) ||
     (count <= 1 ? 1 : count === 2 ? 2 : count <= 4 ? 2 : Math.ceil(Math.sqrt(count)));
-  const rows = snapshot.rows || Math.ceil(count / cols);
+  const rows = (isPersistent ? 3 : snapshot.rows) || Math.ceil(count / cols);
 
   const isGrid =
-    !isFlexHorizontal && !isFlexVertical && (layout === "grid" || layout === "auto" || !isFlex);
+    !isFlexHorizontal &&
+    !isFlexVertical &&
+    (layout === "grid" || layout === "auto" || isPersistent || !isFlex);
 
   return (
     <div

@@ -130,7 +130,6 @@
   /* Layout metrics — the workspace sizes itself from these so a tall monitor
      fits everything on screen while a short one degrades to page scrolling. */
   --navbar-h: 56px;
-  --stage-min-h: 420px;
   --panel-min-h: 200px;
   --code-workspace-toolbar-h: 48px;
   --code-workspace-editor-min-h: 180px;

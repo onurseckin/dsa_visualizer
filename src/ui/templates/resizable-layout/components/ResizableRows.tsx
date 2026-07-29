@@ -107,6 +107,8 @@ export const ResizableRows: React.FC<ResizableRowsProps> = ({
     [applyHeight, clampRowHeight],
   );
 
+  const hasPinnedRow = visibleRows.some((row) => row.height !== null);
+
   return (
     <div
       ref={containerRef}
@@ -114,9 +116,9 @@ export const ResizableRows: React.FC<ResizableRowsProps> = ({
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        height: "100%",
+        height: hasPinnedRow ? "100%" : "auto",
         minHeight: 0,
-        overflowY: "auto",
+        overflowY: hasPinnedRow ? "auto" : "visible",
         overflowX: "hidden",
         userSelect: dragRowId !== null ? "none" : "auto",
       }}

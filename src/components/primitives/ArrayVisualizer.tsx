@@ -13,6 +13,7 @@ const trimLegacyTitle = (title?: string): string | undefined => title?.trim() ||
 export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   elements,
   mode = "bar",
+  density,
   maxHeight = 220,
   name,
   title: rawTitle,
@@ -28,7 +29,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
   };
   const { ref, box } = useCanvasBox(fallbackBox);
 
-  const metrics = computeArrayLayout(elements, box, mode, title);
+  const metrics = computeArrayLayout(elements, box, mode, title, density);
 
   return (
     <div
@@ -71,7 +72,7 @@ export const ArrayVisualizer: React.FC<ArrayVisualizerProps> = ({
               dominantBaseline="central"
               fill="var(--text-muted)"
               fontFamily="var(--font-code)"
-              fontSize="13px"
+              fontSize={density === "compact" ? "11px" : "13px"}
               fontWeight="700"
               letterSpacing="0.02em"
             >

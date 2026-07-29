@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Brain,
   BrainCircuit,
+  Check,
+  ChevronDown,
   Code2,
   Eye,
   FileText,
@@ -17,7 +19,7 @@ import {
   Activity,
 } from "lucide-react";
 import { TopicId, AppView, PanelKey, PanelVisibility } from "../../types/dsa";
-import { Button, ButtonGroup, ConfirmDialog, Segmented } from "../index";
+import { Button, ConfirmDialog, Segmented, cx } from "../index";
 import { resetWorkspaceLayout } from "../../app/workspaceLayout";
 import { resetTriviaLayout } from "../../trivia/triviaLayout";
 import { resetSqliteLayouts } from "../../app/sqliteSync";
@@ -101,6 +103,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { isDrawerOpen, openDrawer, closeDrawer } = useSearchStore();
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isVisibilityOpen, setIsVisibilityOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -116,10 +120,33 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [openDrawer]);
 
+  useEffect(() => {
+    if (!isVisibilityOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsVisibilityOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsVisibilityOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isVisibilityOpen]);
+
   const handleConfirmReset = () => {
-    resetWorkspaceLayout();
-    resetTriviaLayout();
-    void resetSqliteLayouts();
+    if (appView === "workspace") {
+      resetWorkspaceLayout(activeAlgorithmId);
+    } else if (appView === "trivia") {
+      resetTriviaLayout();
+      void resetSqliteLayouts();
+    }
     setIsResetDialogOpen(false);
   };
 
@@ -136,23 +163,74 @@ export const Navbar: React.FC<NavbarProps> = ({
       </nav>
 
       <div className="flex items-center gap-4">
-        <ButtonGroup role="group" aria-label="Panel toggles" gap="sm">
-          {appView === "workspace" &&
-            PANEL_TOGGLES.map(({ key, label, icon, hint }) => (
-              <Button
-                key={key}
-                size="sm"
-                selected={panels[key]}
-                aria-pressed={panels[key]}
-                icon={icon}
-                onClick={() => onTogglePanel(key)}
-                title={`${panels[key] ? "Hide" : "Show"} the ${hint}`}
-                className="p-2.5 min-h-[44px] min-w-[44px] rounded-xl"
+        {appView === "workspace" && (
+          <div className="relative" ref={dropdownRef}>
+            <Button
+              size="sm"
+              icon={<Eye className="w-3.5 h-3.5" />}
+              selected={isVisibilityOpen}
+              aria-expanded={isVisibilityOpen}
+              aria-haspopup="menu"
+              onClick={() => setIsVisibilityOpen((prev) => !prev)}
+              title="Toggle section visibility"
+              className="min-h-[44px] rounded-xl flex items-center gap-1.5"
+            >
+              <span>Visibility</span>
+              <ChevronDown
+                className={cx(
+                  "w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-200",
+                  isVisibilityOpen && "rotate-180"
+                )}
+              />
+            </Button>
+
+            {isVisibilityOpen && (
+              <div
+                role="menu"
+                aria-label="Visibility section toggles"
+                className="absolute right-0 top-full mt-2 w-52 py-1.5 px-1.5 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-xl shadow-xl z-[var(--z-dropdown)] flex flex-col gap-0.5"
               >
-                {label}
-              </Button>
-            ))}
-        </ButtonGroup>
+                <div className="px-2.5 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                  Workspace Sections
+                </div>
+                {PANEL_TOGGLES.map(({ key, label, icon, hint }) => {
+                  const isVisible = panels[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="menuitemcheckbox"
+                      aria-checked={isVisible}
+                      onClick={() => onTogglePanel(key)}
+                      title={`${isVisible ? "Hide" : "Show"} the ${hint}`}
+                      className={cx(
+                        "w-full px-2.5 py-2 rounded-lg text-sm font-medium flex items-center justify-between transition-colors cursor-pointer select-none",
+                        isVisible
+                          ? "bg-[var(--bg-pressed)] text-[var(--text-primary)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                      )}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-[var(--text-muted)] shrink-0">{icon}</span>
+                        <span className="truncate">{label}</span>
+                      </div>
+                      <div
+                        className={cx(
+                          "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ml-2",
+                          isVisible
+                            ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--text-on-accent)]"
+                            : "border-[var(--border-strong)] bg-transparent"
+                        )}
+                      >
+                        {isVisible && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {(appView === "workspace" || appView === "trivia") && (
           <>
@@ -194,3 +272,4 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
+

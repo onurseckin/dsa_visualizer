@@ -13,8 +13,8 @@ import {
 } from "../../../app/workspaceLayout";
 import { PanelHeightMap, usePointerDrag } from "../../../ui";
 
-export function useMainLayoutState() {
-  const [layout, setLayout] = useState<WorkspaceLayout>(() => readWorkspaceLayout());
+export function useMainLayoutState(algorithmId?: string) {
+  const [layout, setLayout] = useState<WorkspaceLayout>(() => readWorkspaceLayout(algorithmId));
   const problemExpanded = layout.problemExpanded;
   const solutionExpanded = layout.solutionExpanded;
 
@@ -22,31 +22,57 @@ export function useMainLayoutState() {
   layoutRef.current = layout;
 
   useEffect(() => {
-    const reload = () => setLayout(readWorkspaceLayout());
+    setLayout(readWorkspaceLayout(algorithmId));
+  }, [algorithmId]);
+
+  useEffect(() => {
+    const reload = (event?: Event) => {
+      const customEvent = event as CustomEvent<{ algorithmId?: string }> | undefined;
+      const targetId = customEvent?.detail?.algorithmId;
+      if (!targetId || targetId === algorithmId) {
+        setLayout(readWorkspaceLayout(algorithmId));
+      }
+    };
     window.addEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
     return () => window.removeEventListener(WORKSPACE_LAYOUT_RESET_EVENT, reload);
-  }, []);
+  }, [algorithmId]);
 
   const handleToggleProblemExpanded = useCallback(() => {
-    setLayout(writeWorkspaceLayout({ problemExpanded: !layoutRef.current.problemExpanded }));
-  }, []);
+    setLayout(
+      writeWorkspaceLayout(
+        { problemExpanded: !layoutRef.current.problemExpanded },
+        algorithmId,
+      ),
+    );
+  }, [algorithmId]);
 
   const handleToggleSolutionExpanded = useCallback(() => {
-    setLayout(writeWorkspaceLayout({ solutionExpanded: !layoutRef.current.solutionExpanded }));
-  }, []);
+    setLayout(
+      writeWorkspaceLayout(
+        { solutionExpanded: !layoutRef.current.solutionExpanded },
+        algorithmId,
+      ),
+    );
+  }, [algorithmId]);
 
   const handleSplitChange = useCallback((percent: number) => {
     setLayout((prev) => ({ ...prev, splitPercent: percent }));
   }, []);
 
-  const handleSplitCommit = useCallback((percent: number) => {
-    setLayout(
-      writeWorkspaceLayout({
-        splitPercent: percent,
-        panelHeights: layoutRef.current.panelHeights,
-      }),
-    );
-  }, []);
+  const handleSplitCommit = useCallback(
+    (percent: number) => {
+      setLayout(
+        writeWorkspaceLayout(
+          {
+            splitPercent: percent,
+            panelHeights: layoutRef.current.panelHeights,
+          },
+          algorithmId,
+        ),
+      );
+    },
+    [algorithmId],
+  );
 
   const applyPanelHeights = useCallback(
     (patch: Partial<WorkspacePanelHeights>, commit: boolean) => {
@@ -55,13 +81,16 @@ export function useMainLayoutState() {
         return;
       }
       setLayout(
-        writeWorkspaceLayout({
-          splitPercent: layoutRef.current.splitPercent,
-          panelHeights: { ...layoutRef.current.panelHeights, ...patch },
-        }),
+        writeWorkspaceLayout(
+          {
+            splitPercent: layoutRef.current.splitPercent,
+            panelHeights: { ...layoutRef.current.panelHeights, ...patch },
+          },
+          algorithmId,
+        ),
       );
     },
-    [],
+    [algorithmId],
   );
 
   const applyLeftHeights = useCallback(

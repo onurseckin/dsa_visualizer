@@ -94,27 +94,30 @@ export const KnowledgeGraphNode: React.FC<KnowledgeGraphNodeProps> = ({
         }}
       />
 
-      <text
-        x={width / 2}
-        y="28"
-        textAnchor="middle"
-        textLength={Math.max(width - 20, 1)}
-        lengthAdjust="spacingAndGlyphs"
-        fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
-        className="font-bold text-[13px] transition-all duration-300"
+      <foreignObject
+        x="0"
+        y="0"
+        width={width}
+        height={height}
+        className="overflow-visible pointer-events-none"
       >
-        {node.title}
-      </text>
-
-      <text
-        x={width / 2}
-        y="48"
-        textAnchor="middle"
-        fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
-        className="font-mono text-[11px] transition-all duration-300"
-      >
-        {actualCount} {actualCount === 1 ? "Problem" : "Problems"} • {node.difficulty}
-      </text>
+        <div className="w-full h-full p-3 flex flex-col justify-between items-center text-center box-border select-none overflow-hidden">
+          <span
+            className={`font-bold text-[12.5px] leading-snug break-words transition-colors duration-300 ${
+              isHovered ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
+            }`}
+          >
+            {node.title}
+          </span>
+          <span
+            className={`font-mono text-[10.5px] whitespace-nowrap transition-colors duration-300 mt-auto pt-1.5 shrink-0 ${
+              isHovered ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)]"
+            }`}
+          >
+            {actualCount} {actualCount === 1 ? "Problem" : "Problems"} • {node.difficulty}
+          </span>
+        </div>
+      </foreignObject>
     </g>
   );
 };

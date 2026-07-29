@@ -61,17 +61,19 @@ export const ArrayItem: React.FC<ArrayItemProps> = ({ item, index, metrics }) =>
           {item.value}
         </text>
 
-        <text
-          x={x + metrics.barWidth / 2}
-          y={metrics.labelY}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fill="var(--text-muted)"
-          fontFamily="var(--font-code)"
-          fontSize={metrics.indexFont}
-        >
-          [{index}]
-        </text>
+        {metrics.showIndices && (
+          <text
+            x={x + metrics.barWidth / 2}
+            y={metrics.labelY}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="var(--text-muted)"
+            fontFamily="var(--font-code)"
+            fontSize={metrics.indexFont}
+          >
+            [{index}]
+          </text>
+        )}
       </g>
     );
   }
@@ -111,17 +113,19 @@ export const ArrayItem: React.FC<ArrayItemProps> = ({ item, index, metrics }) =>
         {item.value}
       </text>
 
-      <text
-        x={x + metrics.barWidth / 2}
-        y={metrics.labelY}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="var(--text-muted)"
-        fontFamily="var(--font-code)"
-        fontSize={metrics.indexFont}
-      >
-        [{index}]
-      </text>
+      {metrics.showIndices && (
+        <text
+          x={x + metrics.barWidth / 2}
+          y={metrics.labelY}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="var(--text-muted)"
+          fontFamily="var(--font-code)"
+          fontSize={metrics.indexFont}
+        >
+          [{index}]
+        </text>
+      )}
     </g>
   );
 };

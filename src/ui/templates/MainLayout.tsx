@@ -58,7 +58,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onGenerateRandom,
   supportsCustomSize,
 }) => {
-  const layoutState = useMainLayoutState();
+  const layoutState = useMainLayoutState(algorithm.id);
 
   const resolvedControlProps: ControlPanelProps | null =
     controlProps ||

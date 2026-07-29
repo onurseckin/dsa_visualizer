@@ -7,6 +7,7 @@ import { vizSlotBg, vizSlotColor } from "./vizPalette";
 export interface DsuVisualizerProps {
   nodes: DsuNodeItem[];
   activeIds?: string[];
+  density?: "compact";
   title?: string;
   auxiliaryState?: AuxiliaryState;
   variables?: Record<string, DisplayValue>;
@@ -15,6 +16,7 @@ export interface DsuVisualizerProps {
 export const DsuVisualizer: React.FC<DsuVisualizerProps> = ({
   nodes,
   activeIds = [],
+  density,
   title,
   auxiliaryState,
   variables,
@@ -107,6 +109,166 @@ export const DsuVisualizer: React.FC<DsuVisualizerProps> = ({
         return vizSlotColor(compIdx);
     }
   };
+
+  if (density === "compact") {
+    const count = Math.max(nodes.length, 1);
+    const gutter = 30;
+    const cellW = Math.max(18, Math.min(58, (box.width - gutter - 12) / count));
+    const tableW = cellW * count;
+    const startX = Math.max(gutter, (box.width - tableW + gutter) / 2);
+    const rowH = Math.max(22, Math.min(30, (box.height - 20) / 3));
+    const tableY = Math.max(8, (box.height - rowH * 3) / 2);
+    const cellFont = Math.max(8, Math.min(11, cellW * 0.26));
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: "1 1 auto",
+          alignSelf: "stretch",
+          width: "100%",
+          height: "100%",
+          minWidth: 0,
+          minHeight: 0,
+        }}
+      >
+        <div
+          ref={ref}
+          data-testid="canvas-container"
+          style={{
+            flex: "1 1 auto",
+            width: "100%",
+            minWidth: 0,
+            minHeight: 0,
+            overflow: "hidden",
+            background: "var(--bg-inset)",
+          }}
+        >
+          <svg
+            width="100%"
+            height="100%"
+            viewBox={viewBoxAttr(boxViewBox(box))}
+            role="img"
+            aria-label={title ? `Disjoint set parent table: ${title}` : "Disjoint set parent table"}
+            style={{ display: "block" }}
+          >
+            <text
+              x={startX - 6}
+              y={tableY + rowH * 0.5}
+              textAnchor="end"
+              dominantBaseline="central"
+              fill="var(--text-muted)"
+              fontSize="10"
+              fontWeight="700"
+              fontFamily="var(--font-code)"
+            >
+              id
+            </text>
+            <text
+              x={startX - 6}
+              y={tableY + rowH * 1.5}
+              textAnchor="end"
+              dominantBaseline="central"
+              fill="var(--text-muted)"
+              fontSize="10"
+              fontWeight="700"
+              fontFamily="var(--font-code)"
+            >
+              parent
+            </text>
+            <text
+              x={startX - 6}
+              y={tableY + rowH * 2.5}
+              textAnchor="end"
+              dominantBaseline="central"
+              fill="var(--text-muted)"
+              fontSize="10"
+              fontWeight="700"
+              fontFamily="var(--font-code)"
+            >
+              rank
+            </text>
+            {nodes.map((node, index) => {
+              const x = startX + index * cellW;
+              const component = node.group ?? componentMap.get(node.id) ?? 0;
+              const active = isActive(node.id);
+
+              return (
+                <g key={`dsu-compact-${node.id}`}>
+                  <rect
+                    x={x}
+                    y={tableY}
+                    width={cellW - 2}
+                    height={rowH - 2}
+                    rx={3}
+                    fill={vizSlotBg(component, 15)}
+                    stroke={vizSlotColor(component)}
+                  />
+                  <text
+                    x={x + (cellW - 2) / 2}
+                    y={tableY + rowH / 2}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="var(--text-primary)"
+                    fontSize={cellFont}
+                    fontWeight="700"
+                    fontFamily="var(--font-code)"
+                  >
+                    {node.id}
+                  </text>
+                  <rect
+                    x={x}
+                    y={tableY + rowH}
+                    width={cellW - 2}
+                    height={rowH - 2}
+                    rx={3}
+                    fill={active ? "rgba(59, 130, 246, 0.25)" : "var(--bg-surface)"}
+                    stroke={active ? "var(--accent)" : "var(--border-default)"}
+                    strokeWidth={active ? 2 : 1}
+                  />
+                  <text
+                    x={x + (cellW - 2) / 2}
+                    y={tableY + rowH * 1.5}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="var(--text-primary)"
+                    fontSize={cellFont}
+                    fontWeight={active ? "700" : "600"}
+                    fontFamily="var(--font-code)"
+                  >
+                    {node.parentId ?? node.id}
+                  </text>
+                  <rect
+                    x={x}
+                    y={tableY + rowH * 2}
+                    width={cellW - 2}
+                    height={rowH - 2}
+                    rx={3}
+                    fill="var(--bg-surface)"
+                    stroke="var(--border-default)"
+                  />
+                  <text
+                    x={x + (cellW - 2) / 2}
+                    y={tableY + rowH * 2.5}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fill="var(--text-muted)"
+                    fontSize={cellFont}
+                    fontWeight="600"
+                    fontFamily="var(--font-code)"
+                  >
+                    {node.rank ?? node.size ?? "-"}
+                  </text>
+                </g>
+              );
+            })}
+            <CanvasAuxiliaryOverlay box={box} state={auxiliaryState} variables={variables} />
+          </svg>
+        </div>
+      </div>
+    );
+  }
 
   // 2. Parent & Rank / Size Array Representation (Bottom Section)
   const arrayY = box.height - 110;

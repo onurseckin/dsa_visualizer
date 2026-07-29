@@ -5,6 +5,7 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
+  margin: 0;
   color: var(--text-primary);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
@@ -12,56 +13,25 @@
 }
 
 .code-workspace__header {
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--code-workspace-toolbar-h);
-  padding: var(--space-2);
-  background: var(--bg-chrome);
-  border-bottom: 1px solid var(--border-default);
-}
-
-.code-workspace__title-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
-  min-width: 0;
-}
-
-.code-workspace__title-row h3 {
+  min-height: var(--control-h-sm);
+  padding: 4px var(--space-2);
   margin: 0;
-  font-size: var(--text-sm);
-  white-space: nowrap;
+  background: #000000;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .code-workspace__tabs {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
   gap: var(--space-1);
   min-width: 0;
 }
 
-.code-workspace__tab {
-  min-height: var(--control-h-sm);
-  padding: var(--space-1) var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
-  background: var(--bg-inset);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-}
-
-.code-workspace__tab:hover {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-}
-
-.code-workspace__tab[aria-selected="true"] {
-  color: var(--text-primary);
-  background: var(--bg-pressed);
-  border-color: var(--border-strong);
-}
 
 .code-workspace__run-actions {
   display: flex;
@@ -69,6 +39,17 @@
 }
 
 .code-workspace__body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.code-workspace[data-pinned="false"] .code-workspace__body {
+  height: auto;
+  overflow: visible;
+}
+
+.code-workspace[data-pinned="true"] .code-workspace__body {
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -85,6 +66,12 @@
   min-height: 0;
   padding: var(--space-2);
   overflow: auto;
+}
+
+.code-workspace[data-pinned="false"] .code-workspace__playground,
+.code-workspace[data-pinned="false"] .code-workspace__output {
+  height: auto;
+  overflow: visible;
 }
 
 .code-workspace__playground {

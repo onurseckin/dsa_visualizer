@@ -9,6 +9,7 @@ import {
 export interface ArrayVisualizerProps {
   elements: ArrayElement[];
   mode?: "bar" | "box";
+  density?: "compact";
   maxHeight?: number;
   name?: string;
   /** @deprecated Use `name` for primitive identity. */

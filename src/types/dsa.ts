@@ -89,10 +89,14 @@ export interface GraphNodeItem {
   group?: number;
 }
 
+export type GraphEdgeDecisionState = "default" | "candidate" | "selected" | "rejected";
+
 export interface GraphEdgeItem {
   from: string;
   to: string;
   weight?: number;
+  /** Explicit teaching state for edge-selection algorithms such as Kruskal's. */
+  state?: GraphEdgeDecisionState;
   isTraversed?: boolean;
   isPath?: boolean;
   /* See GraphNodeItem.group — lets an edge inherit its component's color. */
@@ -161,6 +165,8 @@ export interface ArrayVisualSnapshot extends VisualSnapshotIdentity {
   kind: "array";
   elements: ArrayElement[];
   mode?: "bar" | "box";
+  /** Use a shallow, wide treatment when this persistent array shares a canvas with other state. */
+  density?: "compact";
   /**
    * Short variable/entity assignment identifier ONLY (e.g. "nums =", "prefix =", "scanner =").
    * STRICTLY PROHIBITED: Long text sentences, step descriptions, or formulas.
@@ -179,6 +185,12 @@ export interface GraphVisualSnapshot extends VisualSnapshotIdentity {
   nodes: GraphNodeItem[];
   edges: GraphEdgeItem[];
   directed?: boolean;
+  /**
+   * Opt into an irregular, weight-informed arrangement for a weighted graph.
+   * Edge labels remain the source of truth for costs; geometry only improves
+   * separation and must not be read as a literal cost scale.
+   */
+  layout?: "authored" | "weighted";
   /** @deprecated Use `name` for primitive identity. */
   title?: string;
 }
@@ -305,6 +317,8 @@ export interface DsuVisualSnapshot extends VisualSnapshotIdentity {
   kind: "dsu";
   nodes: DsuNodeItem[];
   activeIds?: string[];
+  /** Show the changing parent table when the full forest would be too cramped. */
+  density?: "compact";
   /** @deprecated Use `name` for primitive identity. */
   title?: string;
 }
@@ -380,7 +394,11 @@ export interface CompositeCanvasItem {
 export interface CompositeCanvasSnapshot {
   kind: "composite";
   items: CompositeCanvasItem[];
-  layout?: "flex" | "grid" | "horizontal" | "vertical" | "auto";
+  /**
+   * `persistent` reserves a stable 12-column teaching grid: evolving primary
+   * structures can remain visible while a shallow auxiliary strip spans below.
+   */
+  layout?: "flex" | "grid" | "horizontal" | "vertical" | "auto" | "persistent";
   columns?: number;
   rows?: number;
   heading?: string;

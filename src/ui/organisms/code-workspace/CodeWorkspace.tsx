@@ -9,7 +9,6 @@ import { playgroundDraftStorage, type DraftStorage } from "../../../playground/d
 import { createHybridPythonRunner, selectPythonRuntime } from "../../../playground/runnerSelector";
 import { executionErrorResult, type PythonRunner } from "../../../playground/types";
 import type { DisplayValue } from "../../../types/dsa";
-import { Badge } from "../../atoms/Badge";
 import { Button } from "../../atoms/Button";
 import { CodeBlockViewer } from "../../molecules/CodeBlockViewer";
 import { ExecutionOutput } from "./ExecutionOutput";
@@ -23,6 +22,7 @@ export interface CodeWorkspaceProps {
   readonly activeLine?: number;
   readonly draftStorage?: DraftStorage;
   readonly executionSpec?: PythonExecutionSpec;
+  readonly isPinned?: boolean;
   readonly itemId: string;
   readonly itemTitle: string;
   readonly lineExplanations?: Record<number, string>;
@@ -44,6 +44,7 @@ export function CodeWorkspace({
   activeLine,
   draftStorage = playgroundDraftStorage,
   executionSpec,
+  isPinned = false,
   itemId,
   itemTitle,
   lineExplanations,
@@ -59,7 +60,7 @@ export function CodeWorkspace({
   );
   const [result, setResult] = useState<PythonRunResult>();
   const [outputMessage, setOutputMessage] = useState<string>();
-  const [statusMessage, setStatusMessage] = useState("Ready.");
+  const [, setStatusMessage] = useState("Ready.");
   const [running, setRunning] = useState(false);
 
   const activeRunRef = useRef<ActiveRun | undefined>(undefined);
@@ -204,8 +205,6 @@ export function CodeWorkspace({
     }
   };
 
-  const runtime = executionSpec ? selectPythonRuntime(executionSpec) : undefined;
-
   const handleTabKeyDown = (
     event: KeyboardEvent<HTMLButtonElement>,
     currentTab: CodeWorkspaceTab,
@@ -238,18 +237,12 @@ export function CodeWorkspace({
   };
 
   return (
-    <section className="code-workspace" aria-label={`${itemTitle} code workspace`}>
+    <section
+      className="code-workspace"
+      data-pinned={isPinned ? "true" : "false"}
+      aria-label={`${itemTitle} code workspace`}
+    >
       <div className="code-workspace__header">
-        <div className="code-workspace__title-row">
-          <h3>Code workspace</h3>
-          <Badge size="sm" variant={runtime ? "info" : "neutral"}>
-            {runtime === "browser"
-              ? "Browser runtime"
-              : runtime === "server"
-                ? "Docker runtime"
-                : "Scratchpad only"}
-          </Badge>
-        </div>
         <div
           role="tablist"
           aria-label="Code workspace views"
@@ -257,7 +250,7 @@ export function CodeWorkspace({
           className="code-workspace__tabs"
         >
           {CODE_WORKSPACE_TABS.map((nextTab) => (
-            <button
+            <Button
               key={nextTab}
               ref={(element) => {
                 tabRefs.current[nextTab] = element;
@@ -265,15 +258,16 @@ export function CodeWorkspace({
               id={codeWorkspaceTabId(itemId, nextTab)}
               type="button"
               role="tab"
+              size="sm"
+              variant={tab === nextTab ? "primary" : "secondary"}
               aria-controls={codeWorkspacePanelId(itemId, nextTab)}
               aria-selected={tab === nextTab}
               tabIndex={tab === nextTab ? 0 : -1}
-              className="code-workspace__tab"
               onClick={() => setTab(nextTab)}
               onKeyDown={(event) => handleTabKeyDown(event, nextTab)}
             >
               {capitalize(nextTab)}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="code-workspace__run-actions">
@@ -308,6 +302,7 @@ export function CodeWorkspace({
             activeLine={activeLine}
             variables={variables}
             lineExplanations={lineExplanations}
+            isPinned={isPinned}
           />
         )}
       </div>
@@ -372,10 +367,6 @@ export function CodeWorkspace({
           <ExecutionOutput caseLabels={caseLabels} message={outputMessage} result={result} />
         )}
       </div>
-
-      <p className="code-workspace__live-status" role="status" aria-live="polite">
-        {statusMessage}
-      </p>
     </section>
   );
 }
