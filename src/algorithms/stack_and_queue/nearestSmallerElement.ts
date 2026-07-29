@@ -1,5 +1,13 @@
-import type { AlgorithmDefinition, AlgorithmStep } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  CompositeCanvasSnapshot,
+  ElementState,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface NearestSmallerElementInput {
   nums: number[];
@@ -23,343 +31,433 @@ export const PYTHON_NEAREST_SMALLER_CODE = `def nearest_smaller_element(nums: li
 
     return result`;
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Nearest Smaller Element problem finds the closest preceding number to the left that is strictly smaller than the current element for each position in an array.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 6, label: "[0]", state: "default" },
+        { id: "c2", value: 4, label: "[1]", state: "default" },
+        { id: "c3", value: 5, label: "[2]", state: "default" },
+        { id: "c4", value: 2, label: "[3]", state: "default" },
+        { id: "c5", value: 10, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A naive search scans leftward for every element, requiring O(N²) quadratic time in the worst case; a monotonic stack optimizes this to optimal O(N) linear time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 6, label: "[0]", state: "compare" },
+        { id: "c2", value: 4, label: "[1]", state: "compare" },
+        { id: "c3", value: 5, label: "[2]", state: "active", pointers: ["i"] },
+        { id: "c4", value: 2, label: "[3]", state: "default" },
+        { id: "c5", value: 10, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We maintain an increasing monotonic stack of candidate values whose elements strictly increase from bottom to top.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 6, label: "[0]", state: "visited" },
+              { id: "c2", value: 4, label: "[1]", state: "sorted", pointers: ["cand"] },
+              { id: "c3", value: 5, label: "[2]", state: "active", pointers: ["i"] },
+              { id: "c4", value: 2, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [{ id: "st-0", value: 4, label: "top", state: "active" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "By the Domination Principle, if an older element X ≥ nums[i], then X is dominated by nums[i] (which is smaller and newer) and can never be the nearest smaller element for any future query.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 6, label: "[0]", state: "visited", pointers: ["dominated"] },
+              { id: "c2", value: 4, label: "[1]", state: "active", pointers: ["smaller & newer"] },
+              { id: "c3", value: 5, label: "[2]", state: "default" },
+              { id: "c4", value: 2, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [{ id: "st-0", value: 4, label: "top", state: "active" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Pop Phase: whenever a new element nums[i] arrives, we pop all elements off the stack that are ≥ nums[i] to preserve monotonic ordering.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 6, label: "[0]", state: "visited" },
+              { id: "c2", value: 4, label: "[1]", state: "swap", pointers: ["popped"] },
+              { id: "c3", value: 5, label: "[2]", state: "visited" },
+              { id: "c4", value: 2, label: "[3]", state: "active", pointers: ["i"] },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Answer Phase: after popping, if the stack is non-empty, the top element stack[-1] is the nearest smaller element to the left; if empty, output -1.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 6, label: "[0]", state: "visited" },
+              { id: "c2", value: 4, label: "[1]", state: "sorted", pointers: ["ans = 4"] },
+              { id: "c3", value: 5, label: "[2]", state: "active", pointers: ["i"] },
+              { id: "c4", value: 2, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [{ id: "st-0", value: 4, label: "top", state: "sorted" }],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Push Phase: push nums[i] onto the stack so it can serve as a smaller candidate for subsequent rightward elements.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 6, label: "[0]", state: "visited" },
+              { id: "c2", value: 4, label: "[1]", state: "sorted" },
+              { id: "c3", value: 5, label: "[2]", state: "active", pointers: ["pushed"] },
+              { id: "c4", value: 2, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [
+              { id: "st-0", value: 4, label: "[0]", state: "default" },
+              { id: "st-1", value: 5, label: "top", state: "active" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Amortized O(N) Efficiency: because each element is pushed onto the stack exactly once and popped at most once, total operations across N steps are bounded by 2N.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 6, label: "[0]", state: "sorted" },
+              { id: "c2", value: 4, label: "[1]", state: "sorted" },
+              { id: "c3", value: 5, label: "[2]", state: "sorted" },
+              { id: "c4", value: 2, label: "[3]", state: "sorted" },
+              { id: "c5", value: 10, label: "[4]", state: "sorted" },
+            ],
+          },
+        },
+        {
+          id: "intro-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: [
+              { id: "st-0", value: 2, label: "[0]", state: "default" },
+              { id: "st-1", value: 10, label: "top", state: "sorted" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+];
+
 export const generateNearestSmallerElementSteps = (
   input: NearestSmallerElementInput,
 ): AlgorithmStep[] => {
-  const nums =
-    Array.isArray(input?.nums) && input.nums.length > 0
-      ? [...input.nums]
-      : DEFAULT_NEAREST_SMALLER_INPUT.nums;
-  const n = nums.length;
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const result = new Array<number>(n).fill(-1);
+  const nums =
+    Array.isArray(input?.nums) && input.nums.length > 0
+      ? input.nums
+      : DEFAULT_NEAREST_SMALLER_INPUT.nums;
+  const n = nums.length;
+
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.nums) &&
+      input.nums.length === DEFAULT_NEAREST_SMALLER_INPUT.nums.length &&
+      input.nums.every((val, idx) => val === DEFAULT_NEAREST_SMALLER_INPUT.nums[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   const stack: number[] = [];
+  const result: number[] = new Array<number>(n).fill(-1);
 
-  // Step 1: Function entry (Line 1)
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Initialize monotonic stack search for input sequence of length ${n}`,
-      why: "We prepare to scan the array left-to-right, maintaining a monotonic stack of candidate values to identify the nearest smaller predecessor for each position in linear O(N) total time.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
+  const makeComposite = (
+    currentI?: number,
+    highlightIdx?: number,
+    highlightState: ElementState = "compare",
+  ): CompositeCanvasSnapshot => {
+    const arrayElements: ArrayElement[] = nums.map((val, idx) => {
+      const ptrs: string[] = [];
+      if (idx === currentI) ptrs.push("i");
+      if (result[idx] !== -1 && idx <= (currentI ?? n - 1)) {
+        ptrs.push(`ans:${result[idx]}`);
+      }
+
+      let state: ArrayElement["state"] = "default";
+      if (idx === highlightIdx) {
+        state = highlightState;
+      } else if (idx === currentI) {
+        state = "active";
+      } else if (currentI !== undefined && idx < currentI) {
+        state = "visited";
+      }
+
+      return {
         id: `num-${idx}`,
         value: val,
-        state: "default",
-      })),
-    },
-    auxiliaryState: {
-      stack: [],
-      customState: { "Array Length": n, "Array Elements": nums.join(", ") },
-    },
-    variables: { n, nums: nums.join(", ") },
-  });
-
-  // Step 2: Cache length n (Line 2)
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 2,
-    explanation: {
-      what: `Determine sequence length (N = ${n})`,
-      why: "Establishes the total iteration count for scanning all elements in a single sequential pass.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
-        id: `num-${idx}`,
-        value: val,
-        state: "default",
-      })),
-    },
-    auxiliaryState: {
-      stack: [],
-      customState: { "Array Length": n, "Array Elements": nums.join(", ") },
-    },
-    variables: { n },
-  });
-
-  // Step 3: Initialize result array (Line 3)
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 3,
-    explanation: {
-      what: `Initialize output array with default -1 entries`,
-      why: "A value of -1 represents the baseline assumption that no smaller element exists to the left until a valid predecessor is identified.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
-        id: `num-${idx}`,
-        value: val,
-        state: "default",
-      })),
-    },
-    auxiliaryState: {
-      stack: [],
-      customState: { "Result Array": result.join(", ") },
-    },
-    variables: { n, result: result.join(", ") },
-  });
-
-  // Step 4: Initialize stack (Line 4)
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: "Create empty candidate stack",
-      why: "The stack will maintain candidate elements in strictly increasing order, allowing rapid O(1) access to the nearest smaller element.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: nums.map((val, idx) => ({
-        id: `num-${idx}`,
-        value: val,
-        state: "default",
-      })),
-    },
-    auxiliaryState: {
-      stack: [],
-      customState: { Stack: "[]", "Result Array": result.join(", ") },
-    },
-    variables: { n, result: result.join(", "), stackSize: 0 },
-  });
-
-  for (let i = 0; i < n; i++) {
-    const current = nums[i];
-
-    // Line 6: for i in range(n)
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 6,
-      explanation: {
-        what: `Scan element nums[${i}] = ${current} at index ${i}`,
-        why: `Evaluating element ${current}. We inspect the monotonic stack to determine whether preceding elements are smaller or dominated.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: nums.map((val, idx) => ({
-          id: `num-${idx}`,
-          value: val,
-          state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? ["i"] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        customState: {
-          "Current Index": i,
-          "Current Value": current,
-          "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
-        },
-      },
-      variables: { i, current, stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY" },
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
     });
 
-    // Line 7: while stack and stack[-1] >= nums[i]
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 7,
-      explanation: {
-        what:
-          stack.length > 0
-            ? `Compare stack top candidate (${stack[stack.length - 1]}) with current element ${current}`
-            : "Stack is empty; no candidates to compare",
-        why:
-          stack.length > 0 && stack[stack.length - 1] >= current
-            ? `Candidate ${stack[stack.length - 1]} is greater than or equal to current element ${current}. To preserve monotonic increasing order, this candidate must be evicted.`
-            : stack.length > 0
-              ? `Candidate ${stack[stack.length - 1]} is strictly smaller than ${current}. The monotonic invariant is satisfied, establishing this as the nearest smaller element.`
-              : "With an empty stack, there are no preceding candidate elements to evaluate.",
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: nums.map((val, idx) => ({
-          id: `num-${idx}`,
-          value: val,
-          state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? ["i"] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        customState: {
-          "Current Index": i,
-          "Current Value": current,
-          "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
-        },
-      },
-      variables: { i, current, stackTop: stack.length > 0 ? stack[stack.length - 1] : "EMPTY" },
-    });
+    const stackElements: ArrayElement[] = stack.map((val, pos) => ({
+      id: `st-${pos}`,
+      value: val,
+      label: pos === stack.length - 1 ? "top" : `[${pos}]`,
+      state: pos === stack.length - 1 ? "active" : "default",
+    }));
 
-    // Monotonic stack popping loop (Line 8)
-    while (stack.length > 0 && stack[stack.length - 1] >= current) {
-      const popped = stack.pop()!;
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 8,
-        explanation: {
-          what: `Evict candidate ${popped} from monotonic stack`,
-          why: `Since ${current} is smaller or equal and appears later, ${popped} is permanently dominated. It can never serve as a nearest smaller element for ${current} or any subsequent rightward positions.`,
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: nums.map((val, idx) => ({
-            id: `num-${idx}`,
-            value: val,
-            state: idx === i ? "active" : idx < i ? "visited" : "default",
-            pointers: idx === i ? ["i"] : undefined,
-          })),
-        },
-        auxiliaryState: {
-          stack: [...stack],
-          customState: {
-            "Popped Element": popped,
-            "Current Value": current,
-            "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
+    return {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "nse-nums",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: arrayElements,
           },
         },
-        variables: { i, current, popped },
-      });
-    }
-
-    // Line 9: if stack:
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 9,
-      explanation: {
-        what:
-          stack.length > 0
-            ? `Valid nearest smaller candidate found on stack: ${stack[stack.length - 1]}`
-            : "No smaller predecessor exists to the left",
-        why:
-          stack.length > 0
-            ? `After popping larger or equal elements, the top of the stack is guaranteed to be the closest smaller element to the left.`
-            : `All preceding values were greater than or equal to ${current}, leaving -1 as the output for position ${i}.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: nums.map((val, idx) => ({
-          id: `num-${idx}`,
-          value: val,
-          state: idx === i ? "active" : idx < i ? "visited" : "default",
-          pointers: idx === i ? ["i"] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        customState: {
-          "Current Index": i,
-          "Current Value": current,
-          "Stack Top": stack.length > 0 ? stack[stack.length - 1] : "EMPTY",
+        {
+          id: "nse-stack",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "stack",
+            mode: "box",
+            elements: stackElements,
+          },
         },
-      },
-      variables: { i, current, hasSmaller: stack.length > 0 },
-    });
+      ],
+    };
+  };
+
+  if (n === 0) {
+    addStep(
+      "The input array is empty, so no nearest smaller elements can be identified; returning empty result [].",
+      makeComposite(),
+    );
+    return steps;
+  }
+
+  addStep(
+    `Having established the mental model, let's now transition to our selected input array of ${n} elements: [${nums.join(", ")}].`,
+    makeComposite(),
+  );
+
+  for (let i = 0; i < n; i++) {
+    const currentVal = nums[i];
+
+    addStep(
+      `Inspect index ${i} (nums[${i}] = ${currentVal}): prepare to query monotonic stack for nearest smaller element to the left.`,
+      makeComposite(i, i, "compare"),
+    );
+
+    while (stack.length > 0 && stack[stack.length - 1] >= currentVal) {
+      const poppedVal = stack.pop()!;
+      addStep(
+        `Stack top ${poppedVal} ≥ current value ${currentVal}: by Domination Principle, pop ${poppedVal} off stack as it cannot serve as nearest smaller for future queries.`,
+        makeComposite(i, i, "swap"),
+      );
+    }
 
     if (stack.length > 0) {
       result[i] = stack[stack.length - 1];
-      // Line 10: result[i] = stack[-1]
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 10,
-        explanation: {
-          what: `Record result[${i}] = ${result[i]}`,
-          why: `Stores ${result[i]} as the verified nearest smaller leftward element for nums[${i}].`,
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: nums.map((val, idx) => ({
-            id: `num-${idx}`,
-            value: val,
-            state: idx === i ? "active" : idx < i ? "visited" : "default",
-            pointers: idx === i ? ["i"] : undefined,
-          })),
-        },
-        auxiliaryState: {
-          stack: [...stack],
-          customState: { "Current Index": i, "Current Value": current, "result[i]": result[i] },
-        },
-        variables: { i, current, "result[i]": result[i] },
-      });
+      addStep(
+        `Stack top ${result[i]} is strictly smaller than current value ${currentVal}: record nearest smaller element for index ${i} as result[${i}] = ${result[i]}.`,
+        makeComposite(i, i, "sorted"),
+      );
+    } else {
+      result[i] = -1;
+      addStep(
+        `Stack is EMPTY: no element to the left is smaller than ${currentVal}. Record result[${i}] = -1.`,
+        makeComposite(i, i, "active"),
+      );
     }
 
-    stack.push(current);
-
-    // Line 11: stack.append(nums[i])
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 11,
-      explanation: {
-        what: `Push current element ${current} onto candidate stack`,
-        why: `Enters ${current} onto the stack so it can act as a candidate nearest smaller element for future elements further right.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: nums.map((val, idx) => ({
-          id: `num-${idx}`,
-          value: val,
-          state: idx === i ? "sorted" : idx < i ? "visited" : "default",
-          pointers: idx === i ? ["i"] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        stack: [...stack],
-        customState: {
-          "Current Index": i,
-          "Current Value": current,
-          "Nearest Smaller": result[i],
-          "Stack Contents": stack.join(", "),
-        },
-      },
-      variables: { i, current, "result[i]": result[i] },
-    });
+    stack.push(currentVal);
+    addStep(
+      `Push current value ${currentVal} onto stack (stack = [${stack.join(", ")}]) as candidate for subsequent elements.`,
+      makeComposite(i, i, "active"),
+    );
   }
 
-  // Line 13: return result
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 13,
-    explanation: {
-      what: `Complete monotonic stack scan and return result array`,
-      why: "All elements have been processed. Every element was pushed once and popped at most once, guaranteeing linear O(N) total runtime.",
-    },
-    primarySnapshot: {
-      kind: "array",
-      elements: result.map((val, idx) => ({
-        id: `res-${idx}`,
-        value: val,
-        state: "sorted",
-      })),
-    },
-    auxiliaryState: {
-      stack: [...stack],
-      customState: { "Final Result": result.join(", ") },
-    },
-    variables: { result: result.join(", ") },
-  });
+  addStep(
+    `Nearest Smaller Element complete! Processed all ${n} elements, yielding result list: [${result.join(", ")}].`,
+    makeComposite(undefined, undefined, "sorted"),
+  );
 
   return steps;
 };
 
 const NEAREST_SMALLER_TRIVIA: TriviaMeta = {
-  skipLines: [5, 12],
+  skipLines: [2, 6, 10, 13, 15, 18],
   lineExplanations: {
-    1: "Defines nearest_smaller_element: accepts a list of numbers and returns an array where entry i contains the nearest element to the left strictly smaller than nums[i].",
-    2: "Caches the length of the input array in variable n to bound loop iterations.",
-    3: "Initializes the result array of size n with default values of -1 (indicating no smaller element found).",
-    4: "Creates an empty stack that will maintain candidate elements in strictly monotonically increasing order.",
-    6: "Loops sequentially through every index i from 0 up to n - 1.",
-    7: "Evaluates whether the stack is non-empty and the top element is >= current element nums[i].",
-    8: "Pops the top element from the stack because its value is >= nums[i] and it lies further left, so nums[i] dominates it for all future queries.",
-    9: "Checks if the stack still contains elements after popping larger or equal items.",
-    10: "Records the top element of the stack as result[i], which is guaranteed to be the nearest smaller element to the left.",
-    11: "Pushes the current element nums[i] onto the stack so it can serve as a candidate for subsequent elements.",
-    13: "Returns the filled result list containing the nearest smaller element for every position.",
+    1: "Declares nearest_smaller_element function accepting an integer list nums.",
+    2: "Caches length of input sequence as variable n.",
+    3: "Initializes result list of length n filled with default -1 entries.",
+    4: "Initializes empty monotonic stack to track increasing candidate elements.",
+    5: "Iterates through array indices i from 0 up to n - 1.",
+    6: "Loops while stack is non-empty and top element stack[-1] >= nums[i].",
+    7: "Pops top element off stack because nums[i] is smaller and newer.",
+    8: "Checks if stack contains a valid smaller candidate after popping.",
+    9: "Records stack top element as nearest smaller element to the left (result[i] = stack[-1]).",
+    10: "Pushes current element nums[i] onto top of stack.",
+    11: "Returns completed result list after scanning all array elements.",
   },
 };
 
@@ -404,27 +502,30 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "nums = [6, 4, 5, 2, 10, 8, 7, 12, 1, 9]",
       outputDisplay: "[-1, -1, 4, -1, 2, 2, 2, 7, -1, 1]",
-      title: "Basic Case",
+      title: "Standard 10-Element Array",
       input: DEFAULT_NEAREST_SMALLER_INPUT,
       output: "[-1, -1, 4, -1, 2, 2, 2, 7, -1, 1]",
       explanation: "Nearest smaller elements to the left for array of 10 elements.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "nums = [4, 5, 2, 10, 8]",
       outputDisplay: "[-1, 4, -1, 2, 2]",
-      title: "Short Array",
+      title: "Adversarial 5-Element Array",
       input: { nums: [4, 5, 2, 10, 8] },
       output: "[-1, 4, -1, 2, 2]",
       explanation: "Returns nearest smaller elements [-1, 4, -1, 2, 2].",
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "nums = [5, 4, 3, 2, 1]",
       outputDisplay: "[-1, -1, -1, -1, -1]",
-      title: "Decreasing Array",
+      title: "Boundary Decreasing Array",
       input: { nums: [5, 4, 3, 2, 1] },
       output: "[-1, -1, -1, -1, -1]",
       explanation: "In a strictly decreasing array, no element has a smaller element to its left.",
@@ -489,7 +590,6 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   trivia: NEAREST_SMALLER_TRIVIA,
   sources: [
     {
-      type: "book",
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: "Ch 8",
@@ -499,3 +599,5 @@ export const nearestSmallerElement: AlgorithmDefinition<NearestSmallerElementInp
   defaultInput: DEFAULT_NEAREST_SMALLER_INPUT,
   generateSteps: generateNearestSmallerElementSteps,
 };
+
+export default nearestSmallerElement;
