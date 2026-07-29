@@ -10,34 +10,32 @@ export const PYTHON_MILLER_RABIN_PRIMALITY_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def primePalindrome(self, n: int) -> int:
-        def is_prime(x: int) -> bool:
-            if x < 2: return False
-            if x in (2, 3): return True
-            if x % 2 == 0 or x % 3 == 0: return False
-            d, s = x - 1, 0
-            while d % 2 == 0:
-                d //= 2
-                s += 1
-            for a in (2, 3, 5, 7, 11):
-                if x <= a: break
-                t = pow(a, d, x)
-                if t == 1 or t == x - 1: continue
-                for _ in range(s - 1):
-                    t = pow(t, 2, x)
-                    if t == x - 1: break
-                else: return False
+    def isProbablePrime(self, n: int) -> bool:
+        if n < 2:
+            return False
+        if n in (2, 3):
             return True
+        if n % 2 == 0:
+            return False
 
-        if 8 <= n <= 11:
-            return 11
-        for length in range(1, 6):
-            for root in range(10**(length - 1), 10**length):
-                st = str(root)
-                val = int(st + st[-2::-1])
-                if val >= n and is_prime(val):
-                    return val
-        return -1`;
+        d, s = n - 1, 0
+        while d % 2 == 0:
+            d //= 2
+            s += 1
+
+        for witness in (2, 3, 5, 7, 11):
+            if witness >= n:
+                continue
+            power = pow(witness, d, n)
+            if power in (1, n - 1):
+                continue
+            for _ in range(s - 1):
+                power = pow(power, 2, n)
+                if power == n - 1:
+                    break
+            else:
+                return False
+        return True`;
 
 export const DEFAULT_MILLER_RABIN_PRIMALITY_INPUT: MillerRabinPrimalityInput = {
   n: 17,

@@ -1375,20 +1375,29 @@ export const mathAndNumberTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "primePalindrome",
+      method: "isProbablePrime",
       arguments: [input()],
     },
-    cases: cases(
-      { label: "Number 6", input: 6, expected: 7 },
-      { label: "Number 8", input: 8, expected: 11 },
-      { label: "Number 13", input: 13, expected: 101 },
-    ),
+    cases: [
+      ...cases(
+        { label: "Small prime", input: 17, expected: true },
+        { label: "Even composite", input: 6, expected: false },
+        { label: "Carmichael composite", input: 561, expected: false },
+      ),
+      ...extraCases(
+        { label: "Below prime range", input: 1, expected: false },
+        { label: "Smallest prime", input: 2, expected: true },
+        { label: "Odd composite", input: 49, expected: false },
+        { label: "Large known prime", input: 104729, expected: true },
+        { label: "Strong pseudoprime factor", input: 2047, expected: false },
+      ),
+    ],
     audit: {
-      signature: "Solution().primePalindrome(n: int) -> int",
+      signature: "Solution().isProbablePrime(n: int) -> bool",
       defaultInputShape: "number",
       argumentMapping: ["n <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns smallest prime palindrome >= n.",
+      returnBehavior: "Returns whether the fixed witness set accepts n as prime.",
     },
   }),
   defineDsaExecution({
