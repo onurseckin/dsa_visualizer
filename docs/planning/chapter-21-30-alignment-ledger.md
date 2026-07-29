@@ -41,7 +41,7 @@ This ledger is the decision record for the catalog migration initiated on 2026-0
 | 26 | trie-prefix-tree, kmp-string-match | keep | #208 and #28 are exact practice counterparts. KMP must not cite book §26.1 as pattern matching because that section is terminology. |
 | 26 | string-hashing, z-algorithm | repaired | Both now expose book-style text/pattern matching contracts with verified runners. |
 | 26 | aho-corasick | repaired as enrichment | Replaced the unrelated board-word-search reference with an Aho-Corasick failure-link matcher. It is correctly recorded as a standard trie enrichment rather than falsely attributed to the handbook's trie section. |
-| 26 | bitwise-trie-xor | repair implementation and source binding | The current prefix-set implementation is not a bitwise trie, while the tutorial/title claim one. Implement the named structure and remove its false Chapter 26 source binding. |
+| 26 | bitwise-trie-xor | repaired as enrichment | The reference now uses an actual high-bit-to-low-bit trie and the verified LeetCode #421 counterpart. The false Chapter 26 binding has been removed. |
 | 27 | sqrt-decomposition, mo-algorithm | repair source binding | The visible labels incorrectly cite Ch9; Mo is §27.3 and integer partitions is §27.2. Correct runner audit metadata. |
 | 28 | segment-tree-lazy | repair fixtures | Source binding is correct; expand runner cases. |
 | 28 | dynamic-segment-tree, persistent-segment-tree | repair source labels | Both are Ch28 but display Ch9 labels. |

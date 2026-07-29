@@ -240,15 +240,24 @@ export const triesAndStringsExecutions = [
       method: "findMaximumXOR",
       arguments: [input()],
     },
-    cases: cases(
-      { label: "Array [3,10,5,25,2,8]", input: [3, 10, 5, 25, 2, 8], expected: 28 },
-      {
-        label: "Array [14,70,53,83,49,91,36,80,92,51]",
-        input: [14, 70, 53, 83, 49, 91, 36, 80, 92, 51],
-        expected: 127,
-      },
-      { label: "Array [8,10]", input: [8, 10], expected: 2 },
-    ),
+    cases: [
+      ...cases(
+        { label: "Classic maximum pair", input: [3, 10, 5, 25, 2, 8], expected: 28 },
+        {
+          label: "Larger mixed set",
+          input: [14, 70, 53, 83, 49, 91, 36, 80, 92, 51],
+          expected: 127,
+        },
+        { label: "Two values", input: [8, 10], expected: 2 },
+      ),
+      ...extraCases(
+        { label: "Single value", input: [0], expected: 0 },
+        { label: "Equal values", input: [7, 7, 7], expected: 0 },
+        { label: "Zero and all set bits", input: [0, 1023], expected: 1023 },
+        { label: "High differing bit", input: [1 << 30, 0, 5], expected: (1 << 30) | 5 },
+        { label: "Greedy branch choice", input: [2, 4, 8, 16], expected: 24 },
+      ),
+    ],
     audit: {
       signature: "Solution().findMaximumXOR(nums: list[int]) -> int",
       defaultInputShape: "number[]",
