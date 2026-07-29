@@ -45,7 +45,7 @@ This ledger is the decision record for the catalog migration initiated on 2026-0
 | 27 | sqrt-decomposition, mo-algorithm | repaired | Both bindings now cite Ch27 precisely (§27.1 and §27.3). Their runners retain three scenario fixtures and add five deterministic boundary/adversarial cases each. |
 | 28 | segment-tree-lazy | repair fixtures | Source binding is correct; expand runner cases. |
 | 28 | dynamic-segment-tree, persistent-segment-tree | repair source labels | Both are Ch28 but display Ch9 labels. |
-| 28 | merge-sort-tree, segment-tree-2d | repair runner | Invocation parameters and fixture shapes disagree. Add specific §28 source sections. |
+| 28 | merge-sort-tree, segment-tree-2d | repaired | Runner invocation and fixture shapes now match the actual scalar functions, both have eight cases, and bindings cite the applicable Ch28 data-structure and two-dimensionality sections. |
 | 29 | line-segment-intersection, point-in-polygon, pick-theorem | remove and repair | #223 is rectangle area, #1037 is boomerang; two runner interfaces also wrap inputs incorrectly. |
 | 29/30 | rectangle-area-union, skyline-problem | correct binding/contract | Rectangle area is an application, not a direct §29 item; skyline belongs with Ch30. #218 is a verified skyline counterpart if the displayed contract matches. |
 | 29 | polygon-area, manhattan-distance-rotation | repair fixtures | Correct conceptual placement; runner input wrappers disagree with entrypoints. |

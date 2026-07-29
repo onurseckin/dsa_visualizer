@@ -501,6 +501,7 @@ export const segmentTree2d: AlgorithmDefinition<SegmentTree2dInput> = {
       label: "Competitive Programmer Handbook",
       bookTitle: "Competitive Programmer Handbook",
       chapter: 28,
+      section: "28.4 Two-dimensionality",
     },
   ],
   defaultInput: DEFAULT_SEGMENT_TREE_2D_INPUT,
