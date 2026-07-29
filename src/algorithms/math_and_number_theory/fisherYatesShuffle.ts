@@ -18,11 +18,12 @@ class Solution:
     def __init__(self):
         pass
 
-    def shuffle(self, nums: list[int]) -> list[int]:
+    def shuffle(self, nums: list[int], seed: int = 0) -> list[int]:
         arr = list(nums)
+        rng = random.Random(seed)
         n = len(arr)
         for i in range(n - 1, 0, -1):
-            j = random.randint(0, i)
+            j = rng.randint(0, i)
             arr[i], arr[j] = arr[j], arr[i]
         return arr`;
 

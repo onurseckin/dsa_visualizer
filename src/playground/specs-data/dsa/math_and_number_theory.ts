@@ -1407,27 +1407,42 @@ export const mathAndNumberTheoryExecutions = [
       kind: "class-method",
       constructor: [],
       method: "shuffle",
-      arguments: [input()],
+      arguments: [input("nums"), input("seed")],
     },
-    cases: cases(
-      {
-        label: "Array of 5 elements",
-        input: [1, 2, 3, 4, 5],
-        expected: [1, 2, 3, 4, 5],
-        comparison: "unordered",
-      },
-      { label: "Array of 1 element", input: [42], expected: [42] },
-      {
-        label: "Array of 3 elements",
-        input: [10, 20, 30],
-        expected: [10, 20, 30],
-        comparison: "unordered",
-      },
-    ),
+    cases: [
+      ...cases(
+        {
+          label: "Five values, seed zero",
+          input: { nums: [1, 2, 3, 4, 5], seed: 0 },
+          expected: [3, 2, 1, 5, 4],
+        },
+        { label: "Single element", input: { nums: [1], seed: 42 }, expected: [1] },
+        {
+          label: "Repeated values",
+          input: { nums: [1, 1, 2, 2], seed: 3 },
+          expected: [2, 1, 2, 1],
+        },
+      ),
+      ...extraCases(
+        { label: "Empty input", input: { nums: [], seed: 7 }, expected: [] },
+        { label: "Three values", input: { nums: [1, 2, 3], seed: 1 }, expected: [2, 3, 1] },
+        {
+          label: "Identity permutation seed",
+          input: { nums: [1, 2, 3, 4], seed: 9 },
+          expected: [1, 2, 3, 4],
+        },
+        {
+          label: "Six values",
+          input: { nums: [10, 20, 30, 40, 50, 60], seed: 11 },
+          expected: [30, 10, 20, 60, 50, 40],
+        },
+        { label: "Two values", input: { nums: [0, 1], seed: 5 }, expected: [0, 1] },
+      ),
+    ],
     audit: {
-      signature: "Solution().shuffle(nums: list[int]) -> list[int]",
-      defaultInputShape: "number[]",
-      argumentMapping: ["nums <- $"],
+      signature: "Solution().shuffle(nums: list[int], seed: int = 0) -> list[int]",
+      defaultInputShape: "{ nums: number[]; seed: number }",
+      argumentMapping: ["nums <- $.nums", "seed <- $.seed"],
       mutation: "No input mutation.",
       returnBehavior: "Returns shuffled array.",
     },
