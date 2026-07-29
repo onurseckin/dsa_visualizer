@@ -1,4 +1,5 @@
 import type { LearningItemPlayground } from "../../../types";
+import type { DifficultyProfile } from "../../../difficulty";
 import {
   arraySteps,
   defineCalculatorItem,
@@ -13,6 +14,21 @@ import {
 
 type Case = Parameters<typeof functionExecution>[0]["cases"][number];
 type RecordInput = Record<string, unknown>;
+
+const COMPUTE_DIFFICULTY_BY_ID: Readonly<Record<string, DifficultyProfile>> = {
+  "roofline-bound-estimator": profile(1, 2, 1, 1),
+  "tiled-gemm-memory-trace": profile(2, 3, 2, 2),
+  "profiler-optimization-decision": profile(2, 2, 3, 3),
+  "ring-allreduce-trace": profile(3, 3, 3, 3),
+  "distributed-parallelism-selection": profile(2, 2, 3, 3),
+  "distributed-memory-straggler": profile(3, 3, 3, 3),
+  "quantization-deployment-plan": profile(2, 3, 2, 3),
+  "compiler-graph-compatibility": profile(3, 2, 3, 3),
+  "portable-runtime-selection": profile(2, 2, 3, 3),
+  "bpe-token-budget": profile(2, 3, 2, 2),
+  "causal-attention-trace": profile(3, 3, 3, 2),
+  "kv-cache-memory-policy": profile(2, 3, 2, 3),
+};
 
 interface ItemInput {
   readonly id: string;
@@ -68,7 +84,7 @@ function common(input: ItemInput) {
     id: input.id,
     title: input.title,
     topicIds: [input.topicId] as const,
-    difficultyProfile: profile(3, 3, 3, 3),
+    difficultyProfile: COMPUTE_DIFFICULTY_BY_ID[input.id] ?? profile(3, 3, 3, 3),
     description: `Use a transparent ${input.title.toLowerCase()} model with supplied values; it does not claim a device, compiler, or service execution.`,
     objective:
       "Interpret the displayed modeled quantities, preserve their invariant, and name the measurement needed before making an operational claim.",

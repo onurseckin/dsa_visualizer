@@ -1,6 +1,7 @@
 import {
   defineScenarioItem,
   functionExecution,
+  inputEvidenceSteps,
   matrixSteps,
   profile,
   semanticStarter,
@@ -190,65 +191,70 @@ export const mlObservabilitySignals = defineScenarioItem({
         "Return five category lists plus immediate and delayed counts from authored signal records.",
     }),
     execution,
-    generateSteps: () =>
-      matrixSteps([
-        {
-          codeLine: 2,
-          what: "Create distinct service, data, model, fairness, and business lanes.",
-          why: "Each lane answers a different health question.",
-          values: [
-            ["service", "unassigned"],
-            ["data", "unassigned"],
-            ["model", "unassigned"],
-            ["fairness", "unassigned"],
-            ["business", "unassigned"],
-          ],
-          colHeaders: ["signal class", "owner/evidence"],
-          activeCells: [[0, 0]],
-        },
-        {
-          codeLine: 6,
-          what: "Assign each signal to exactly one semantic class.",
-          why: "Clear ownership prevents a green service dashboard from hiding model harm.",
-          values: [
-            ["service", "SRE"],
-            ["data", "data platform"],
-            ["model", "ML"],
-            ["fairness", "risk"],
-            ["business", "product"],
-          ],
-          colHeaders: ["signal class", "owner/evidence"],
-          activeCells: [
-            [0, 1],
-            [1, 1],
-            [2, 1],
-            [3, 1],
-            [4, 1],
-          ],
-        },
-        {
-          codeLine: 7,
-          what: "Separate immediate leading signals from delayed outcomes.",
-          why: "Alert policy must represent when ground truth becomes available.",
-          values: [
-            ["service", "immediate"],
-            ["data", "immediate"],
-            ["model", "delayed labels"],
-            ["fairness", "delayed slices"],
-            ["business", "delayed outcome"],
-          ],
-          colHeaders: ["signal class", "latency"],
-          completedCells: [
-            [0, 1],
-            [1, 1],
-          ],
-          activeCells: [
-            [2, 1],
-            [3, 1],
-            [4, 1],
-          ],
-        },
-      ]),
+    generateSteps: (input) =>
+      inputEvidenceSteps(
+        matrixSteps([
+          {
+            codeLine: 2,
+            what: "Create distinct service, data, model, fairness, and business lanes.",
+            why: "Each lane answers a different health question.",
+            values: [
+              ["service", "unassigned"],
+              ["data", "unassigned"],
+              ["model", "unassigned"],
+              ["fairness", "unassigned"],
+              ["business", "unassigned"],
+            ],
+            colHeaders: ["signal class", "owner/evidence"],
+            activeCells: [[0, 0]],
+          },
+          {
+            codeLine: 6,
+            what: "Assign each signal to exactly one semantic class.",
+            why: "Clear ownership prevents a green service dashboard from hiding model harm.",
+            values: [
+              ["service", "SRE"],
+              ["data", "data platform"],
+              ["model", "ML"],
+              ["fairness", "risk"],
+              ["business", "product"],
+            ],
+            colHeaders: ["signal class", "owner/evidence"],
+            activeCells: [
+              [0, 1],
+              [1, 1],
+              [2, 1],
+              [3, 1],
+              [4, 1],
+            ],
+          },
+          {
+            codeLine: 7,
+            what: "Separate immediate leading signals from delayed outcomes.",
+            why: "Alert policy must represent when ground truth becomes available.",
+            values: [
+              ["service", "immediate"],
+              ["data", "immediate"],
+              ["model", "delayed labels"],
+              ["fairness", "delayed slices"],
+              ["business", "delayed outcome"],
+            ],
+            colHeaders: ["signal class", "latency"],
+            completedCells: [
+              [0, 1],
+              [1, 1],
+            ],
+            activeCells: [
+              [2, 1],
+              [3, 1],
+              [4, 1],
+            ],
+          },
+        ]),
+        input,
+        ["signals"],
+        execution.cases,
+      ),
   },
   assessmentPayload: {
     variant: "changed-signal-delay",

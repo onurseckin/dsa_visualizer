@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineDebuggingItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -80,32 +81,37 @@ export const stableSoftmaxRepair = defineDebuggingItem({
   code,
   starterCode,
   execution,
-  generateSteps: () =>
-    arraySteps([
-      {
-        codeLine: 6,
-        what: "Find the largest logit before exponentiation.",
-        why: "Subtracting this constant preserves softmax ratios and caps the largest exponent at one.",
-        values: [1000, 1001],
-        activeIndices: [1],
-        variables: { maximum: 1001 },
-      },
-      {
-        codeLine: 7,
-        what: "Exponentiate shifted logits [-1, 0].",
-        why: "The bounded exponentials avoid overflow while retaining their relative weight.",
-        values: [0.36787944, 1],
-        activeIndices: [0, 1],
-      },
-      {
-        codeLine: 9,
-        what: "Normalize by the finite exponential sum.",
-        why: "The resulting probabilities preserve order and sum to one within rounding.",
-        values: [0.26894142, 0.73105858],
-        completedIndices: [0, 1],
-        variables: { probabilitySum: 1 },
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      arraySteps([
+        {
+          codeLine: 6,
+          what: "Find the largest logit before exponentiation.",
+          why: "Subtracting this constant preserves softmax ratios and caps the largest exponent at one.",
+          values: [1000, 1001],
+          activeIndices: [1],
+          variables: { maximum: 1001 },
+        },
+        {
+          codeLine: 7,
+          what: "Exponentiate shifted logits [-1, 0].",
+          why: "The bounded exponentials avoid overflow while retaining their relative weight.",
+          values: [0.36787944, 1],
+          activeIndices: [0, 1],
+        },
+        {
+          codeLine: 9,
+          what: "Normalize by the finite exponential sum.",
+          why: "The resulting probabilities preserve order and sum to one within rounding.",
+          values: [0.26894142, 0.73105858],
+          completedIndices: [0, 1],
+          variables: { probabilitySum: 1 },
+        },
+      ]),
+      input,
+      ["values"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "overflowing-logits",
     changedContext: true,

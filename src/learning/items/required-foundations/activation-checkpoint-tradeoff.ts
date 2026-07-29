@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineCalculatorItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -81,32 +82,37 @@ export const activationCheckpointTradeoff = defineCalculatorItem({
   code,
   starterCode,
   execution,
-  generateSteps: () =>
-    arraySteps([
-      {
-        codeLine: 2,
-        what: "Lay out twelve activation-producing layers.",
-        why: "Without checkpointing, every layer activation remains available to the backward pass.",
-        values: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
-        activeIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      },
-      {
-        codeLine: 4,
-        what: "Retain one activation every three layers.",
-        why: "Four retained boundaries reduce stored activation memory under the exercise estimator.",
-        values: ["recompute", "recompute", "store", "recompute", "recompute", "store"],
-        activeIndices: [2, 5],
-        variables: { storedActivations: 4 },
-      },
-      {
-        codeLine: 6,
-        what: "Account for retained memory and recomputed layers.",
-        why: "The memory reduction is purchased with eight additional forward-layer computations.",
-        values: ["memory=32 MB", "recomputed=8"],
-        completedIndices: [0, 1],
-        variables: { checkpointEvery: 3, invariant: "less storage ↔ more recomputation" },
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      arraySteps([
+        {
+          codeLine: 2,
+          what: "Lay out twelve activation-producing layers.",
+          why: "Without checkpointing, every layer activation remains available to the backward pass.",
+          values: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+          activeIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+        },
+        {
+          codeLine: 4,
+          what: "Retain one activation every three layers.",
+          why: "Four retained boundaries reduce stored activation memory under the exercise estimator.",
+          values: ["recompute", "recompute", "store", "recompute", "recompute", "store"],
+          activeIndices: [2, 5],
+          variables: { storedActivations: 4 },
+        },
+        {
+          codeLine: 6,
+          what: "Account for retained memory and recomputed layers.",
+          why: "The memory reduction is purchased with eight additional forward-layer computations.",
+          values: ["memory=32 MB", "recomputed=8"],
+          completedIndices: [0, 1],
+          variables: { checkpointEvery: 3, invariant: "less storage ↔ more recomputation" },
+        },
+      ]),
+      input,
+      ["layers", "checkpoint_every", "activation_mb"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "periodic-checkpoint-estimator",
     changedContext: true,

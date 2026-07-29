@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineDebuggingItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -97,33 +98,38 @@ export const leakageProxyDebugging = defineDebuggingItem({
   code,
   starterCode,
   execution,
-  generateSteps: () =>
-    arraySteps([
-      {
-        codeLine: 4,
-        what: "Inspect each feature at the declared prediction time.",
-        why: "Training-time presence does not imply serving-time availability.",
-        values: ["safe_history", "post_outcome_code", "future_balance"],
-        activeIndices: [0, 1, 2],
-        variables: { predictionTime: 50 },
-      },
-      {
-        codeLine: 5,
-        what: "Mark features from the future or derived from the outcome.",
-        why: "Either condition exposes information unavailable to the real decision.",
-        values: ["safe", "target-derived", "future"],
-        activeIndices: [1, 2],
-        completedIndices: [0],
-      },
-      {
-        codeLine: 9,
-        what: "Return leaking names in canonical order.",
-        why: "Stable evidence makes the contract suitable for automated promotion checks.",
-        values: ["future_balance", "post_outcome_code"],
-        completedIndices: [0, 1],
-        variables: { leakCount: 2 },
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      arraySteps([
+        {
+          codeLine: 4,
+          what: "Inspect each feature at the declared prediction time.",
+          why: "Training-time presence does not imply serving-time availability.",
+          values: ["safe_history", "post_outcome_code", "future_balance"],
+          activeIndices: [0, 1, 2],
+          variables: { predictionTime: 50 },
+        },
+        {
+          codeLine: 5,
+          what: "Mark features from the future or derived from the outcome.",
+          why: "Either condition exposes information unavailable to the real decision.",
+          values: ["safe", "target-derived", "future"],
+          activeIndices: [1, 2],
+          completedIndices: [0],
+        },
+        {
+          codeLine: 9,
+          what: "Return leaking names in canonical order.",
+          why: "Stable evidence makes the contract suitable for automated promotion checks.",
+          values: ["future_balance", "post_outcome_code"],
+          completedIndices: [0, 1],
+          variables: { leakCount: 2 },
+        },
+      ]),
+      input,
+      ["prediction_time", "features"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "prediction-time-proxy",
     changedContext: true,

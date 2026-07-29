@@ -55,6 +55,7 @@ describe("ML platform capstone contract", () => {
       "publication",
       "delayed-evaluation",
       "governance-cost",
+      "tradeoff-reasoning",
     ]);
     expect(realtimeMlPlatformCapstone.rubric.criteria.map(({ id }) => id)).toEqual([
       "decision-slo",
@@ -63,6 +64,8 @@ describe("ML platform capstone contract", () => {
       "canary-compatibility",
       "rollback-fallback",
       "delayed-evaluation",
+      "governance-security-cost",
+      "tradeoff-reasoning",
     ]);
     expect(
       batchMlPlatformCapstone.rubric.criteria
@@ -73,7 +76,12 @@ describe("ML platform capstone contract", () => {
       realtimeMlPlatformCapstone.rubric.criteria
         .filter(({ critical }) => critical)
         .map(({ id }) => id),
-    ).toEqual(["feature-consistency", "canary-compatibility", "rollback-fallback"]);
+    ).toEqual([
+      "feature-consistency",
+      "canary-compatibility",
+      "rollback-fallback",
+      "governance-security-cost",
+    ]);
   });
 
   it.each(ML_PLATFORM_CAPSTONES)("executes $id canonical Python cases", (item) => {

@@ -1,6 +1,7 @@
 import {
   defineCalculatorItem,
   functionExecution,
+  inputEvidenceSteps,
   matrixSteps,
   profile,
   semanticStarter,
@@ -146,73 +147,78 @@ export const driftAlertCalibration = defineCalculatorItem({
       "Return PSI, sample eligibility, drift decision, label readiness, and alerted segments.",
   }),
   execution,
-  generateSteps: () =>
-    matrixSteps([
-      {
-        codeLine: 4,
-        what: "Normalize reference and current histogram counts.",
-        why: "PSI compares proportions rather than raw window sizes.",
-        values: [
-          ["bin A", "reference proportion", "current proportion"],
-          ["bin B", "reference proportion", "current proportion"],
-        ],
-        colHeaders: ["bin", "reference", "current"],
-        activeCells: [
-          [0, 1],
-          [0, 2],
-          [1, 1],
-          [1, 2],
-        ],
-      },
-      {
-        codeLine: 10,
-        what: "Sum per-bin log-ratio contributions.",
-        why: "The PSI statistic measures the magnitude of the distribution shift.",
-        values: [
-          ["bin A", "positive contribution", "sum pending"],
-          ["bin B", "positive contribution", "sum pending"],
-        ],
-        colHeaders: ["bin", "contribution", "PSI"],
-        completedCells: [
-          [0, 1],
-          [1, 1],
-        ],
-        activeCells: [
-          [0, 2],
-          [1, 2],
-        ],
-      },
-      {
-        codeLine: 15,
-        what: "Gate the statistic on minimum current samples.",
-        why: "An unstable small window should not page operators.",
-        values: [
-          ["aggregate", "PSI", "sample eligible"],
-          ["labels", "available", "performance ready"],
-        ],
-        colHeaders: ["window", "signal", "gate"],
-        activeCells: [
-          [0, 2],
-          [1, 2],
-        ],
-      },
-      {
-        codeLine: 18,
-        what: "Repeat the gate independently for each segment.",
-        why: "Aggregate stability can hide an eligible slice regression.",
-        values: [
-          ["aggregate", "stable", "no alert"],
-          ["region-west", "drift", "alert"],
-          ["region-small", "drift", "underpowered"],
-        ],
-        colHeaders: ["scope", "PSI result", "decision"],
-        completedCells: [[0, 2]],
-        activeCells: [
-          [1, 2],
-          [2, 2],
-        ],
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      matrixSteps([
+        {
+          codeLine: 4,
+          what: "Normalize reference and current histogram counts.",
+          why: "PSI compares proportions rather than raw window sizes.",
+          values: [
+            ["bin A", "reference proportion", "current proportion"],
+            ["bin B", "reference proportion", "current proportion"],
+          ],
+          colHeaders: ["bin", "reference", "current"],
+          activeCells: [
+            [0, 1],
+            [0, 2],
+            [1, 1],
+            [1, 2],
+          ],
+        },
+        {
+          codeLine: 10,
+          what: "Sum per-bin log-ratio contributions.",
+          why: "The PSI statistic measures the magnitude of the distribution shift.",
+          values: [
+            ["bin A", "positive contribution", "sum pending"],
+            ["bin B", "positive contribution", "sum pending"],
+          ],
+          colHeaders: ["bin", "contribution", "PSI"],
+          completedCells: [
+            [0, 1],
+            [1, 1],
+          ],
+          activeCells: [
+            [0, 2],
+            [1, 2],
+          ],
+        },
+        {
+          codeLine: 15,
+          what: "Gate the statistic on minimum current samples.",
+          why: "An unstable small window should not page operators.",
+          values: [
+            ["aggregate", "PSI", "sample eligible"],
+            ["labels", "available", "performance ready"],
+          ],
+          colHeaders: ["window", "signal", "gate"],
+          activeCells: [
+            [0, 2],
+            [1, 2],
+          ],
+        },
+        {
+          codeLine: 18,
+          what: "Repeat the gate independently for each segment.",
+          why: "Aggregate stability can hide an eligible slice regression.",
+          values: [
+            ["aggregate", "stable", "no alert"],
+            ["region-west", "drift", "alert"],
+            ["region-small", "drift", "underpowered"],
+          ],
+          colHeaders: ["scope", "PSI result", "decision"],
+          completedCells: [[0, 2]],
+          activeCells: [
+            [1, 2],
+            [2, 2],
+          ],
+        },
+      ]),
+      input,
+      ["reference_counts", "current_counts", "minimum_samples"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "changed-reference-window-and-segments",
     changedContext: true,

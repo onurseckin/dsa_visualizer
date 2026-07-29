@@ -1,6 +1,7 @@
 import {
   defineScenarioItem,
   functionExecution,
+  inputEvidenceSteps,
   matrixSteps,
   profile,
   semanticStarter,
@@ -147,73 +148,78 @@ export const modelPromotionGate = defineScenarioItem({
       contract: "Return decision, ordered blockers, passed, and required for all six gates.",
     }),
     execution,
-    generateSteps: () =>
-      matrixSteps([
-        {
-          codeLine: 2,
-          what: "Evaluate quality and compatibility independently.",
-          why: "A better metric cannot offset an unusable serving signature.",
-          values: [
-            ["quality", "pending"],
-            ["compatibility", "pending"],
-            ["lineage", "pending"],
-            ["policy", "pending"],
-            ["vulnerability", "pending"],
-            ["reproducibility", "pending"],
-          ],
-          colHeaders: ["gate", "status"],
-          activeCells: [
-            [0, 1],
-            [1, 1],
-          ],
-        },
-        {
-          codeLine: 5,
-          what: "Evaluate provenance and policy evidence.",
-          why: "Release evidence must identify what was built and whether its use is permitted.",
-          values: [
-            ["quality", "pass"],
-            ["compatibility", "pass"],
-            ["lineage", "fail"],
-            ["policy", "pass"],
-            ["vulnerability", "pending"],
-            ["reproducibility", "pending"],
-          ],
-          colHeaders: ["gate", "status"],
-          completedCells: [
-            [0, 1],
-            [1, 1],
-          ],
-          activeCells: [
-            [2, 1],
-            [3, 1],
-          ],
-        },
-        {
-          codeLine: 8,
-          what: "Finish security and reproducibility checks.",
-          why: "All critical gates must pass; counts never dilute a blocker.",
-          values: [
-            ["quality", "pass"],
-            ["compatibility", "pass"],
-            ["lineage", "fail"],
-            ["policy", "pass"],
-            ["vulnerability", "fail"],
-            ["reproducibility", "pass"],
-          ],
-          colHeaders: ["gate", "status"],
-          completedCells: [
-            [0, 1],
-            [1, 1],
-            [3, 1],
-            [5, 1],
-          ],
-          activeCells: [
-            [2, 1],
-            [4, 1],
-          ],
-        },
-      ]),
+    generateSteps: (input) =>
+      inputEvidenceSteps(
+        matrixSteps([
+          {
+            codeLine: 2,
+            what: "Evaluate quality and compatibility independently.",
+            why: "A better metric cannot offset an unusable serving signature.",
+            values: [
+              ["quality", "pending"],
+              ["compatibility", "pending"],
+              ["lineage", "pending"],
+              ["policy", "pending"],
+              ["vulnerability", "pending"],
+              ["reproducibility", "pending"],
+            ],
+            colHeaders: ["gate", "status"],
+            activeCells: [
+              [0, 1],
+              [1, 1],
+            ],
+          },
+          {
+            codeLine: 5,
+            what: "Evaluate provenance and policy evidence.",
+            why: "Release evidence must identify what was built and whether its use is permitted.",
+            values: [
+              ["quality", "pass"],
+              ["compatibility", "pass"],
+              ["lineage", "fail"],
+              ["policy", "pass"],
+              ["vulnerability", "pending"],
+              ["reproducibility", "pending"],
+            ],
+            colHeaders: ["gate", "status"],
+            completedCells: [
+              [0, 1],
+              [1, 1],
+            ],
+            activeCells: [
+              [2, 1],
+              [3, 1],
+            ],
+          },
+          {
+            codeLine: 8,
+            what: "Finish security and reproducibility checks.",
+            why: "All critical gates must pass; counts never dilute a blocker.",
+            values: [
+              ["quality", "pass"],
+              ["compatibility", "pass"],
+              ["lineage", "fail"],
+              ["policy", "pass"],
+              ["vulnerability", "fail"],
+              ["reproducibility", "pass"],
+            ],
+            colHeaders: ["gate", "status"],
+            completedCells: [
+              [0, 1],
+              [1, 1],
+              [3, 1],
+              [5, 1],
+            ],
+            activeCells: [
+              [2, 1],
+              [4, 1],
+            ],
+          },
+        ]),
+        input,
+        ["quality", "minimum_quality", "critical_vulnerabilities"],
+        execution.cases,
+      ),
   },
   assessmentPayload: {
     variant: "changed-promotion-evidence",

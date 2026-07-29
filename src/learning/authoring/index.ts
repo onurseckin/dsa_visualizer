@@ -1,5 +1,6 @@
 export { authoredDifficulty, profile, type AuthoredDifficulty } from "./difficulty";
 export { functionExecution, type FunctionExecutionInput } from "./execution";
+export { inputEvidenceSteps } from "./inputEvidence";
 export {
   defineCalculatorItem,
   defineCapstoneItem,

@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineScenarioItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -145,32 +146,37 @@ export const mlTargetFeedbackLoop = defineScenarioItem({
     code,
     starterCode,
     execution,
-    generateSteps: () =>
-      arraySteps([
-        {
-          codeLine: 2,
-          what: "Enumerate the prediction-to-decision contract.",
-          why: "A model output has no product value until it changes an explicit action.",
-          values: targetFields,
-          activeIndices: [0, 1, 2, 3],
-        },
-        {
-          codeLine: 6,
-          what: "Attach feedback source, delay, and guardrail.",
-          why: "Delayed and selectively observed outcomes shape what can be learned next.",
-          values: targetFields,
-          activeIndices: [4, 5, 6],
-          completedIndices: [0, 1, 2, 3],
-        },
-        {
-          codeLine: 10,
-          what: "Emit every missing field as an actionable framing gap.",
-          why: "Promotion should stop until the full decision and feedback boundary is observable.",
-          values: targetFields,
-          completedIndices: [0, 1, 2, 3, 4, 5, 6],
-          variables: { invariant: "prediction → decision → feedback" },
-        },
-      ]),
+    generateSteps: (input) =>
+      inputEvidenceSteps(
+        arraySteps([
+          {
+            codeLine: 2,
+            what: "Enumerate the prediction-to-decision contract.",
+            why: "A model output has no product value until it changes an explicit action.",
+            values: targetFields,
+            activeIndices: [0, 1, 2, 3],
+          },
+          {
+            codeLine: 6,
+            what: "Attach feedback source, delay, and guardrail.",
+            why: "Delayed and selectively observed outcomes shape what can be learned next.",
+            values: targetFields,
+            activeIndices: [4, 5, 6],
+            completedIndices: [0, 1, 2, 3],
+          },
+          {
+            codeLine: 10,
+            what: "Emit every missing field as an actionable framing gap.",
+            why: "Promotion should stop until the full decision and feedback boundary is observable.",
+            values: targetFields,
+            completedIndices: [0, 1, 2, 3, 4, 5, 6],
+            variables: { invariant: "prediction → decision → feedback" },
+          },
+        ]),
+        input,
+        ["prediction", "decision", "feedback_delay_days"],
+        execution.cases,
+      ),
   },
   assessmentPayload: {
     variant: "capacity-constrained-support-routing",

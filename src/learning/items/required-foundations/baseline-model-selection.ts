@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineScenarioItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -143,32 +144,37 @@ export const baselineModelSelection = defineScenarioItem({
     code,
     starterCode,
     execution,
-    generateSteps: () =>
-      arraySteps([
-        {
-          codeLine: 2,
-          what: "Evaluate every candidate against quality and latency constraints.",
-          why: "An infeasible candidate cannot serve as the production baseline.",
-          values: ["rule", "linear", "tree"],
-          activeIndices: [0, 1, 2],
-        },
-        {
-          codeLine: 8,
-          what: "Remove candidates that miss either release gate.",
-          why: "The selection set contains only deployable alternatives.",
-          values: ["linear", "tree"],
-          activeIndices: [0, 1],
-          variables: { minMetric: 0.8, maxLatencyMs: 10 },
-        },
-        {
-          codeLine: 10,
-          what: "Select the least complex feasible candidate.",
-          why: "A simpler baseline makes later incremental value and failure modes easier to measure.",
-          values: ["linear"],
-          completedIndices: [0],
-          variables: { selectedComplexity: 1 },
-        },
-      ]),
+    generateSteps: (input) =>
+      inputEvidenceSteps(
+        arraySteps([
+          {
+            codeLine: 2,
+            what: "Evaluate every candidate against quality and latency constraints.",
+            why: "An infeasible candidate cannot serve as the production baseline.",
+            values: ["rule", "linear", "tree"],
+            activeIndices: [0, 1, 2],
+          },
+          {
+            codeLine: 8,
+            what: "Remove candidates that miss either release gate.",
+            why: "The selection set contains only deployable alternatives.",
+            values: ["linear", "tree"],
+            activeIndices: [0, 1],
+            variables: { minMetric: 0.8, maxLatencyMs: 10 },
+          },
+          {
+            codeLine: 10,
+            what: "Select the least complex feasible candidate.",
+            why: "A simpler baseline makes later incremental value and failure modes easier to measure.",
+            values: ["linear"],
+            completedIndices: [0],
+            variables: { selectedComplexity: 1 },
+          },
+        ]),
+        input,
+        ["min_metric", "max_latency_ms", "candidates"],
+        execution.cases,
+      ),
   },
   assessmentPayload: {
     variant: "latency-constrained-ranking",
