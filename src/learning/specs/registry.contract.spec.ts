@@ -13,6 +13,7 @@ import {
   getAllLearningItems,
   getLearningItem,
   getTriviaLearningItems,
+  LEGACY_LEARNING_ITEMS,
   LEARNING_ITEMS,
   LEARNING_ITEM_REGISTRY,
   TRANSITIONAL_LEARNING_REGISTRY_STATE,
@@ -125,11 +126,15 @@ describe("learning item registry contract", () => {
 
   it("reports execution readiness honestly while legacy specs are still pending", () => {
     for (const item of CODE_LEARNING_ITEMS) {
-      const execution = getPythonExecutionSpec(item.id);
-      expect(item.execution).toBe(execution);
-      expect(hasExecutionSpec(item)).toBe(execution !== undefined);
-      if (execution !== undefined) {
-        expect(validatePythonExecutionSpec(execution).ok).toBe(true);
+      if (isAlgorithmLearningItem(item)) {
+        const execution = getPythonExecutionSpec(item.id);
+        expect(item.execution).toBe(execution);
+        expect(hasExecutionSpec(item)).toBe(execution !== undefined);
+      } else {
+        expect(hasExecutionSpec(item)).toBe(true);
+      }
+      if (item.execution !== undefined) {
+        expect(validatePythonExecutionSpec(item.execution).ok).toBe(true);
       }
     }
   });
@@ -141,23 +146,28 @@ describe("learning item registry contract", () => {
       true,
     );
     expect(CODE_LEARNING_ITEMS.every(isCodeLearningItem)).toBe(true);
-    expect(LEARNING_ITEMS.some(isRubricLearningItem)).toBe(false);
+    expect(LEARNING_ITEMS.filter(isRubricLearningItem)).toHaveLength(5);
     expect(getTriviaLearningItems().map((item) => item.id)).toEqual(eligibleIds);
   });
 
-  it("codifies the one temporary 320-item migration state", () => {
+  it("codifies the additive temporary 320 legacy plus 18 required-foundation state", () => {
     expect(TRANSITIONAL_LEARNING_REGISTRY_STATE).toEqual({
       enabled: true,
-      expectedItemCount: 320,
+      legacyExpectedItemCount: 320,
+      requiredFoundationsExpectedItemCount: 18,
+      expectedItemCount: 338,
       removalTask: 16,
     });
-    expect(ALGORITHMS).toHaveLength(TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount);
+    expect(ALGORITHMS).toHaveLength(TRANSITIONAL_LEARNING_REGISTRY_STATE.legacyExpectedItemCount);
+    expect(LEGACY_LEARNING_ITEMS).toHaveLength(
+      TRANSITIONAL_LEARNING_REGISTRY_STATE.legacyExpectedItemCount,
+    );
     expect(LEARNING_ITEMS).toHaveLength(TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount);
     expect(Object.keys(LEARNING_ITEM_REGISTRY)).toHaveLength(
       TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount,
     );
     expect(() => assertTransitionalLearningItemCount(LEARNING_ITEMS.slice(1))).toThrow(
-      /expected 320 items, received 319/,
+      /expected 338 items, received 337/,
     );
   });
 

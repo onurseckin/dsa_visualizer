@@ -1,5 +1,6 @@
 import { ALGORITHMS } from "../algorithms/registry";
 import { adaptAlgorithmDefinition } from "./algorithmAdapters";
+import { REQUIRED_FOUNDATION_ITEMS } from "./items/required-foundations";
 import {
   isCodeLearningItem,
   isTriviaEligibleLearningItem,
@@ -13,13 +14,20 @@ import {
  */
 export const TRANSITIONAL_LEARNING_REGISTRY_STATE = Object.freeze({
   enabled: true,
-  expectedItemCount: 320,
+  legacyExpectedItemCount: 320,
+  requiredFoundationsExpectedItemCount: 18,
+  expectedItemCount: 338,
   removalTask: 16,
 } as const);
 
-export const LEARNING_ITEMS: readonly LearningItem[] = Object.freeze(
+export const LEGACY_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze(
   ALGORITHMS.map(adaptAlgorithmDefinition),
 );
+
+export const LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
+  ...LEGACY_LEARNING_ITEMS,
+  ...REQUIRED_FOUNDATION_ITEMS,
+]);
 
 export function assertTransitionalLearningItemCount(items: readonly LearningItem[]): void {
   if (items.length !== TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount) {
