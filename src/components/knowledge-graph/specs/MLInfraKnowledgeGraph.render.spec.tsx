@@ -1,203 +1,164 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { MLInfraKnowledgeGraph, ML_INFRA_TREE_PLACEMENTS } from "../MLInfraKnowledgeGraph";
 
+const originalResizeObserver = window.ResizeObserver;
+
+afterEach(() => {
+  window.ResizeObserver = originalResizeObserver;
+  vi.restoreAllMocks();
+});
+
 describe("MLInfraKnowledgeGraph Component Render Spec", () => {
-  it("renders knowledge graph container with topic family legend", () => {
+  it("renders the lifecycle-first family legend", () => {
     render(<MLInfraKnowledgeGraph />);
 
-    const rootRegion = screen.getByRole("region", {
-      name: /ML Infrastructure Knowledge Tree/i,
-    });
-    expect(rootRegion).toBeInTheDocument();
-
-    const legend = screen.getByRole("list", { name: /Topic family colors/i });
-    expect(legend).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: /ML Infrastructure Knowledge Tree/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: /Topic family colors/i })).toBeInTheDocument();
     expect(screen.getByText("Foundations")).toBeInTheDocument();
-    expect(screen.getByText("Core Math & DAGs")).toBeInTheDocument();
-    expect(screen.getByText("Advanced Kernels")).toBeInTheDocument();
+    expect(screen.getByText("Training & Data Lifecycle")).toBeInTheDocument();
+    expect(screen.getByText("Production Systems")).toBeInTheDocument();
+    expect(screen.getByText("Operations & Governance")).toBeInTheDocument();
+    expect(screen.getByText("Capstone")).toBeInTheDocument();
+    expect(screen.getByText("Advanced Electives")).toBeInTheDocument();
   });
 
-  it("adheres strictly to Canvas Law with width 100%, height 100%, and viewBox", () => {
-    const { container } = render(<MLInfraKnowledgeGraph />);
-
-    const svgs = container.querySelectorAll("svg");
-    const canvasSvg = Array.from(svgs).find((s) => s.getAttribute("width") === "100%");
-    expect(canvasSvg).toBeInTheDocument();
-    expect(canvasSvg?.getAttribute("height")).toBe("100%");
-    expect(canvasSvg?.getAttribute("viewBox")).toBe("-40 -60 1680 1150");
-  });
-
-  it("ensures distinct node positions and vertical gap >= 100px between rows", () => {
-    const nodes = ML_INFRA_TREE_PLACEMENTS;
-
-    const rowLevels: number[] = [];
-    nodes.forEach((n) => {
-      if (!rowLevels.some((y) => Math.abs(y - n.y) < 50)) {
-        rowLevels.push(n.y);
-      }
+  it("uses the measured canvas box for the SVG viewBox", () => {
+    const widthDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    const heightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientHeight");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", {
+      configurable: true,
+      get: () => 960,
     });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get: () => 720,
+    });
+    window.ResizeObserver = vi.fn().mockImplementation(() => ({
+      observe: vi.fn(),
+      disconnect: vi.fn(),
+    }));
 
-    const sortedYs = rowLevels.sort((a, b) => a - b);
+    try {
+      const { container } = render(<MLInfraKnowledgeGraph />);
+      const canvasSvg = container.querySelector("svg");
 
-    for (let i = 0; i < sortedYs.length - 1; i++) {
-      const verticalGap = sortedYs[i + 1] - sortedYs[i];
-      expect(verticalGap).toBeGreaterThanOrEqual(100);
+      expect(canvasSvg).toHaveAttribute("width", "100%");
+      expect(canvasSvg).toHaveAttribute("height", "100%");
+      expect(canvasSvg).toHaveAttribute("viewBox", "0 0 960 720");
+    } finally {
+      if (widthDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, "clientWidth", widthDescriptor);
+      } else {
+        delete (HTMLElement.prototype as { clientWidth?: number }).clientWidth;
+      }
+      if (heightDescriptor) {
+        Object.defineProperty(HTMLElement.prototype, "clientHeight", heightDescriptor);
+      } else {
+        delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight;
+      }
     }
   });
 
-  it("renders nodes for all 13 topic clusters with clean title and subtitle", () => {
+  it("renders all 23 target topic nodes and no transitional legacy nodes", () => {
     render(<MLInfraKnowledgeGraph />);
 
-    expect(ML_INFRA_TREE_PLACEMENTS.length).toBe(13);
-
-    // Verify presence of nodes by title
+    expect(ML_INFRA_TREE_PLACEMENTS).toHaveLength(23);
     expect(
-      screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i }),
+      screen.getByRole("button", { name: /Python, Environments & Scientific Computing/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Autograd & Computational DAGs/i }),
+      screen.getByRole("button", { name: /End-to-End ML Platform Capstone/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /FlashAttention & Triton Hardware Kernels/i }),
+      screen.getByRole("button", {
+        name: /Accelerator Performance, Roofline & Kernel Fundamentals/i,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /LLM Serving, PagedAttention & Speculative Decoding/i }),
-    ).toBeInTheDocument();
-
-    // Verify subtitle pattern: {count} Problems • {difficulty}
-    expect(screen.getAllByText(/\d+ Problems • (Easy|Medium|Hard)/i).length).toBeGreaterThan(0);
+      screen.queryByRole("button", { name: /FlashAttention & Triton Hardware Kernels/i }),
+    ).not.toBeInTheDocument();
   });
 
-  it("renders smooth cubic bezier curve connectors between prerequisite topics", () => {
+  it("renders cubic connectors for every authored prerequisite edge", () => {
     const { container } = render(<MLInfraKnowledgeGraph />);
+    const paths = container.querySelector(".connectors")?.querySelectorAll("path");
+    const expectedEdgeCount = ML_INFRA_TREE_PLACEMENTS.reduce(
+      (count, placement) => count + placement.prerequisites.length,
+      0,
+    );
 
-    const connectorGroup = container.querySelector(".connectors");
-    expect(connectorGroup).toBeInTheDocument();
-
-    const paths = connectorGroup?.querySelectorAll("path");
-    expect(paths && paths.length).toBeGreaterThan(0);
-
-    // Verify cubic bezier command pattern M startX startY C startX midY, endX midY, endX endY
+    expect(paths).toHaveLength(expectedEdgeCount);
     paths?.forEach((path) => {
-      const d = path.getAttribute("d") || "";
-      expect(d).toMatch(
+      expect(path.getAttribute("d") ?? "").toMatch(
         /^M\s+[\d.]+\s+[\d.]+\s+C\s+[\d.]+\s+[\d.]+,\s+[\d.]+\s+[\d.]+,\s+[\d.]+\s+[\d.]+$/,
       );
     });
   });
 
-  it("calculates dynamic node widths based on title length and centers text elements", () => {
-    const { container } = render(<MLInfraKnowledgeGraph />);
-
-    const nodesGroup = container.querySelector(".nodes");
-    expect(nodesGroup).toBeInTheDocument();
-
-    ML_INFRA_TREE_PLACEMENTS.forEach((node) => {
-      const expectedWidth = Math.max(190, node.title.length * 8.5 + 40);
-      const expectedTransform = `translate(${node.x - expectedWidth / 2}, ${node.y - 32})`;
-
-      // Find the g element for this node title
-      const titleElement = screen.getByText(node.title);
-      const gElement = titleElement.closest("g");
-      expect(gElement).not.toBeNull();
-      expect(gElement?.getAttribute("transform")).toBe(expectedTransform);
-
-      const rectElement = gElement?.querySelector("rect");
-      expect(rectElement?.getAttribute("width")).toBe(String(expectedWidth));
-
-      const textElements = gElement?.querySelectorAll("text");
-      textElements?.forEach((textEl) => {
-        expect(textEl.getAttribute("x")).toBe(String(expectedWidth / 2));
-      });
-    });
-  });
-
-  it("opens slide-over topic sidebar drawer on node click and lists inner questions with difficulty and type badges", () => {
+  it("opens and closes a target topic drawer and reports its canonical topic ID", () => {
     const onSelectTopic = vi.fn();
     render(<MLInfraKnowledgeGraph onSelectTopic={onSelectTopic} />);
 
-    const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
-    fireEvent.click(tensorNode);
-
-    expect(onSelectTopic).toHaveBeenCalledWith("ml_tensor_algebra");
-
-    const drawer = screen.getByRole("dialog", {
-      name: /Tensor Algebra & Memory Layout Drawer/i,
-    });
-    expect(drawer).toBeInTheDocument();
-
-    expect(screen.getAllByText(/PyTorch-Style Tensor Contiguity Verifier/i).length).toBeGreaterThan(
-      0,
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Python, Environments & Scientific Computing/i,
+      }),
     );
-    expect(screen.getAllByText(/Strided 1D Vector Dot Product/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Anti-Diagonal Matrix Traversal/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/In-Place Square Matrix Transpose/i).length).toBeGreaterThan(0);
 
-    expect(screen.getAllByText(/ML Systems Implementation/i).length).toBeGreaterThan(0);
-
+    expect(onSelectTopic).toHaveBeenCalledWith("ml_python_scientific_computing");
     expect(
-      screen.getByRole("button", { name: /Visualize tensor-contiguity-verifier in Workspace →/i }),
+      screen.getByRole("dialog", {
+        name: /Python, Environments & Scientific Computing Drawer/i,
+      }),
     ).toBeInTheDocument();
-  });
+    expect(screen.getByText("Curated Problems (0)")).toBeInTheDocument();
 
-  it("navigates to workspace when clicking question action button inside drawer", () => {
-    const onNavigateToAlgorithm = vi.fn();
-    render(<MLInfraKnowledgeGraph onNavigateToAlgorithm={onNavigateToAlgorithm} />);
-
-    const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
-    fireEvent.click(tensorNode);
-
-    const visButton = screen.getByRole("button", {
-      name: /Visualize tensor-contiguity-verifier in Workspace →/i,
-    });
-    fireEvent.click(visButton);
-
-    expect(onNavigateToAlgorithm).toHaveBeenCalledWith("tensor-contiguity-verifier");
-  });
-
-  it("closes slide-over topic sidebar drawer when close button is clicked", () => {
-    render(<MLInfraKnowledgeGraph />);
-
-    const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
-    fireEvent.click(tensorNode);
-
+    fireEvent.click(screen.getByRole("button", { name: "Close Topic Drawer" }));
     expect(
-      screen.getByRole("dialog", { name: /Tensor Algebra & Memory Layout Drawer/i }),
-    ).toBeInTheDocument();
-
-    const closeButton = screen.getByRole("button", { name: "Close Topic Drawer" });
-    fireEvent.click(closeButton);
-
-    expect(
-      screen.queryByRole("dialog", { name: /Tensor Algebra & Memory Layout Drawer/i }),
+      screen.queryByRole("dialog", {
+        name: /Python, Environments & Scientific Computing Drawer/i,
+      }),
     ).not.toBeInTheDocument();
   });
 
-  it("invokes onSelectTopic with the exact topicId when clicking node cards or drawer category buttons", () => {
+  it("supports keyboard selection and the drawer topic action", () => {
     const onSelectTopic = vi.fn();
     render(<MLInfraKnowledgeGraph onSelectTopic={onSelectTopic} />);
-
-    const tensorNode = screen.getByRole("button", { name: /Tensor Algebra & Memory Layout/i });
-    fireEvent.click(tensorNode);
-
-    expect(onSelectTopic).toHaveBeenCalledWith("ml_tensor_algebra");
-
-    const drawerCategoryBtn = screen.getByRole("button", {
-      name: /View Tensor Algebra & Memory Layout Problems in Problem List/i,
+    const node = screen.getByRole("button", {
+      name: /ML Problem Framing & Success Metrics/i,
     });
-    fireEvent.click(drawerCategoryBtn);
 
-    expect(onSelectTopic).toHaveBeenLastCalledWith("ml_tensor_algebra");
+    fireEvent.keyDown(node, { key: "Enter" });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /View ML Problem Framing & Success Metrics Problems in Problem List/i,
+      }),
+    );
+
+    expect(onSelectTopic).toHaveBeenNthCalledWith(1, "ml_problem_framing");
+    expect(onSelectTopic).toHaveBeenNthCalledWith(2, "ml_problem_framing");
   });
 
-  it("displays exact problem count without double counting for Graph Compilers node", () => {
-    render(<MLInfraKnowledgeGraph />);
-
-    const compilersNode = screen.getByRole("button", {
-      name: /Graph Compilers & IR Lowering/i,
+  it("tracks pointer and focus states without changing node geometry", () => {
+    const { container } = render(<MLInfraKnowledgeGraph />);
+    const node = screen.getByRole("button", {
+      name: /Inference Deployment & Serving Reliability/i,
     });
-    expect(compilersNode).toBeInTheDocument();
-    expect(compilersNode).toHaveTextContent("4 Problems • Hard");
+    const transform = node.getAttribute("transform");
+
+    fireEvent.mouseEnter(node);
+    expect(node).toHaveClass("scale-[1.02]");
+    fireEvent.mouseLeave(node);
+    expect(node).not.toHaveClass("scale-[1.02]");
+    fireEvent.focus(node);
+    expect(node).toHaveClass("scale-[1.02]");
+    fireEvent.blur(node);
+    expect(node).not.toHaveClass("scale-[1.02]");
+    expect(node).toHaveAttribute("transform", transform);
+    expect(container.querySelector(".nodes")).toContainElement(node);
   });
 });
