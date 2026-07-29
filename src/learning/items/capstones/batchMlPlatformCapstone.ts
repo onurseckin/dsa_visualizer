@@ -6,7 +6,7 @@ import {
   capstoneStarter,
   lifecycleGraphSteps,
   platformChecklist,
-  platformRubric,
+  batchPlatformRubric,
   platformTimeline,
 } from "./shared";
 
@@ -131,7 +131,7 @@ export const batchMlPlatformCapstone = defineCapstoneItem({
       "Model-quality evaluation is delayed, so service success alone cannot prove correctness.",
     ],
   },
-  rubric: platformRubric,
+  rubric: batchPlatformRubric,
   playground: {
     code,
     starterCode: capstoneStarter("plan_batch_platform", outputContract),
