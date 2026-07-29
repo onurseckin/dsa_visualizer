@@ -6,8 +6,18 @@ export const backtrackingExecutions = [
     entrypoint: "solve_n_queens",
     invocation: { kind: "function", arguments: [input()] },
     cases: cases(
-      { label: "Single queen", input: 1, expected: [["Q"]] },
-      { label: "Unsatisfiable two board", input: 2, expected: [] },
+      {
+        label: "Single queen",
+        input: 1,
+        expected: [["Q"]],
+        comparison: "unordered-outer",
+      },
+      {
+        label: "Unsatisfiable two board",
+        input: 2,
+        expected: [],
+        comparison: "unordered-outer",
+      },
       {
         label: "Two four-board solutions",
         input: 4,
@@ -15,6 +25,7 @@ export const backtrackingExecutions = [
           [".Q..", "...Q", "Q...", "..Q."],
           ["..Q.", "Q...", "...Q", ".Q.."],
         ],
+        comparison: "unordered-outer",
       },
     ),
     audit: {
@@ -37,8 +48,14 @@ export const backtrackingExecutions = [
           [1, 2],
           [2, 1],
         ],
+        comparison: "unordered-outer",
       },
-      { label: "Empty permutation", input: { elements: [] }, expected: [[]] },
+      {
+        label: "Empty permutation",
+        input: { elements: [] },
+        expected: [[]],
+        comparison: "unordered-outer",
+      },
       {
         label: "Three elements",
         input: { elements: [1, 2, 3] },
@@ -50,6 +67,7 @@ export const backtrackingExecutions = [
           [3, 1, 2],
           [3, 2, 1],
         ],
+        comparison: "unordered-outer",
       },
     ),
     audit: {
@@ -105,7 +123,8 @@ export const backtrackingExecutions = [
       defaultInputShape: "{ size: number; startRow: number; startCol: number }",
       argumentMapping: ["n <- $.size", "start_r <- $.startRow", "start_c <- $.startCol"],
       mutation: "Writes visit order into an internal board.",
-      returnBehavior: "Returns completion status and the deterministic Warnsdorff board.",
+      returnBehavior:
+        "Returns completion status and the deterministic Warnsdorff board selected by degree then fixed candidate-move order.",
     },
   }),
   defineDsaExecution({

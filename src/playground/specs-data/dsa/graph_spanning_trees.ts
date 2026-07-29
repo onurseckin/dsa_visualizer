@@ -129,7 +129,8 @@ export const graphSpanningTreesExecutions = [
       defaultInputShape: "{ numNodes: number; operations: DsuOperation[] }",
       argumentMapping: ["n <- $.n", "two setup unions", "find <- $.query"],
       mutation: "Setup unions mutate parent/rank state; find may compress paths.",
-      returnBehavior: "Returns the representative after the authored union chain.",
+      returnBehavior:
+        "Returns the deterministic union-by-rank representative after processing authored unions in order.",
     },
   }),
 ] as const;

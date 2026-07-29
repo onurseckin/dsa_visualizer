@@ -152,7 +152,8 @@ export const graphDirectedAndSccExecutions = [
       defaultInputShape: "{ alphabetSize: number; subsequenceLength: number }",
       argumentMapping: ["k <- $.k", "n <- $.n"],
       mutation: "Consumes internal de Bruijn adjacency lists.",
-      returnBehavior: "Returns a linearized sequence containing every length-n word.",
+      returnBehavior:
+        "Returns the canonical linearization chosen by reverse edge-insertion order, containing every length-n word.",
     },
   }),
   defineDsaExecution({

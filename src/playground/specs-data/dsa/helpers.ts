@@ -72,6 +72,7 @@ export const defineDsaExecution = (definition: {
     entrypoint: definition.entrypoint,
     invocation: definition.invocation,
     packages: [],
+    outputContract: definition.audit.returnBehavior,
     cases: definition.cases,
   };
 

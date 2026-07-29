@@ -715,6 +715,8 @@ def _compare(actual: Any, expected: Any, comparison: str, tolerance: Any) -> boo
         return _json_equal(actual, expected)
     if comparison == "unordered":
         return _unordered_signature(actual) == _unordered_signature(expected)
+    if comparison == "unordered-outer":
+        return _unordered_outer_signature(actual) == _unordered_outer_signature(expected)
     if comparison == "float":
         if isinstance(actual, bool) or not isinstance(actual, (int, float)):
             return False
@@ -785,6 +787,37 @@ def _unordered_signature(value: Any) -> Any:
             ),
         )
     return ("invalid", type(value).__name__)
+
+
+def _ordered_signature(value: Any) -> Any:
+    if value is None:
+        return ("null",)
+    if isinstance(value, bool):
+        return ("boolean", value)
+    if isinstance(value, (int, float)) and math.isfinite(value):
+        return ("number", value)
+    if isinstance(value, str):
+        return ("string", value)
+    if _is_json_array(value):
+        return ("array", tuple(_ordered_signature(item) for item in value))
+    if isinstance(value, Mapping) and all(isinstance(key, str) for key in value):
+        return (
+            "object",
+            tuple(
+                sorted(
+                    ((key, _ordered_signature(item)) for key, item in value.items()),
+                    key=repr,
+                )
+            ),
+        )
+    return ("invalid", type(value).__name__)
+
+
+def _unordered_outer_signature(value: Any) -> Any:
+    if not _is_json_array(value):
+        return ("invalid-outer", type(value).__name__)
+    signatures = [_ordered_signature(item) for item in value]
+    return ("array", tuple(sorted(signatures, key=repr)))
 
 
 def _is_json_array(value: Any) -> bool:

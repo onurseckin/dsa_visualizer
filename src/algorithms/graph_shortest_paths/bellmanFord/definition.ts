@@ -98,7 +98,9 @@ const BELLMAN_FORD_TRIVIA: TriviaMeta = {
     13: "Records that the graph is unsafe: some reachable cycle can be looped forever to drive a distance toward negative infinity.",
     14: "Stops immediately once one negative cycle is confirmed — a single one is enough to invalidate the shortest-path question for the vertices it touches.",
     15: "Blank line separating negative cycle loop from return statement.",
-    16: "Hands back both the distance table and whether it can actually be trusted.",
+    16: "Branches on the negative-cycle flag so an untrustworthy distance table is never exposed as an answer.",
+    17: "Returns the stable (None, True) sentinel because no finite shortest-distance map exists.",
+    18: "Returns the settled distance table with False when no reachable negative cycle exists.",
   },
 };
 
@@ -175,7 +177,7 @@ export const bellmanFord: AlgorithmDefinition<BellmanFordInput> = {
       },
       output: "Negative Cycle Detected: True",
       explanation:
-        "Cycle A -> B -> C -> A has total weight 1 + (-2) + (-1) = -2. The 11th pass detects ongoing relaxation and flags a negative cycle.",
+        "Cycle A -> B -> C -> A has total weight 1 + (-2) + (-1) = -2. Detection returns the stable (None, True) sentinel instead of schedule-dependent finite distances.",
     },
   ],
   code: BELLMAN_FORD_CODE,

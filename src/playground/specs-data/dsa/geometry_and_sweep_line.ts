@@ -43,7 +43,8 @@ export const geometryAndSweepLineExecutions = [
       defaultInputShape: "Array<{ id: string; x: number; y: number }>",
       argumentMapping: ["points <- $"],
       mutation: "Does not mutate points; sorts a copy.",
-      returnBehavior: "Returns strict hull vertices in counter-clockwise monotone-chain order.",
+      returnBehavior:
+        "Returns strict hull vertices counter-clockwise from the lexicographically smallest point, as fixed by monotone-chain order.",
     },
   }),
   defineDsaExecution({

@@ -23,7 +23,8 @@ export const greedyAlgorithmsExecutions = [
       defaultInputShape: "{ text: string }",
       argumentMapping: ["text <- $.text"],
       mutation: "Consumes the canonical Huffman heap/tree; does not mutate text.",
-      returnBehavior: "Returns a deterministic prefix-free code map derived from the built tree.",
+      returnBehavior:
+        "Returns the canonical prefix-free map fixed by stable heap insertion and left-zero/right-one tree construction.",
     },
   }),
   defineDsaExecution({

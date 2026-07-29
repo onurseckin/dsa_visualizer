@@ -55,7 +55,8 @@ export const treeQueriesAndDiameterExecutions = [
       defaultInputShape: "{ n: number; edges: Array<[number, number]>; values: number[] }",
       argumentMapping: ["n <- $.n", "edges <- $.edges", "values <- $.values"],
       mutation: "Builds adjacency and timestamp arrays without mutating the authored input.",
-      returnBehavior: "Returns entry times, inclusive exit times, and DFS flattening order.",
+      returnBehavior:
+        "Returns entry times, inclusive exit times, and DFS flattening order using authored edge order.",
     },
   }),
   defineDsaExecution({

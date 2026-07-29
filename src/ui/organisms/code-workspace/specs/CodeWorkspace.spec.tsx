@@ -39,6 +39,7 @@ const SPEC: PythonExecutionSpec = {
   entrypoint: "solve",
   invocation: { kind: "function", arguments: [{ from: "input", path: [] }] },
   packages: [],
+  outputContract: "Return the first matching pair in ascending index order.",
   cases: [
     {
       id: "public",
@@ -254,6 +255,17 @@ describe("CodeWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reset draft" }));
     expect(drafts.reset).toHaveBeenCalledWith("binary-search");
     expect(editor).toHaveValue(baseProps.starterCode);
+  });
+
+  it("shows the public output contract beside authored playground tests", () => {
+    render(<CodeWorkspace {...baseProps} executionSpec={SPEC} draftStorage={createDrafts()} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Playground" }));
+
+    expect(screen.getByRole("note", { name: "Output contract" })).toHaveTextContent(
+      "Return the first matching pair in ascending index order.",
+    );
+    expect(screen.getByRole("heading", { name: "Output contract" })).toBeInTheDocument();
   });
 
   it("does not fabricate grading when an item has no execution spec", () => {

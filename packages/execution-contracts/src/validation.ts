@@ -31,6 +31,7 @@ export const PYTHON_ID_PATTERN_SOURCE = "[A-Za-z0-9._:-]+";
 export const PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES = PYTHON_RUN_ID_MAX_BYTES + 128;
 export const PYTHON_INVOCATION_PATH_MAX_SEGMENTS = 32;
 export const PYTHON_INVOCATION_SETUP_MAX_STEPS = 32;
+export const PYTHON_OUTPUT_CONTRACT_MAX_BYTES = 2_048;
 const PYTHON_INVOCATION_PATH_STRING_MAX_BYTES = 128;
 
 export interface ValidationIssue {
@@ -163,6 +164,22 @@ function validateSpec(
   }
   if (!isPythonIdentifier(input.entrypoint)) {
     issue(issues, `${path}.entrypoint`, "must be a non-keyword Python identifier");
+  }
+  if (input.outputContract !== undefined) {
+    const outputContractBytes =
+      typeof input.outputContract === "string" ? utf8ByteLength(input.outputContract) : undefined;
+    if (typeof input.outputContract !== "string" || input.outputContract.trim().length === 0) {
+      issue(issues, `${path}.outputContract`, "must be a non-empty string");
+    } else if (
+      outputContractBytes === undefined ||
+      outputContractBytes > PYTHON_OUTPUT_CONTRACT_MAX_BYTES
+    ) {
+      issue(
+        issues,
+        `${path}.outputContract`,
+        `must be at most ${PYTHON_OUTPUT_CONTRACT_MAX_BYTES} UTF-8 bytes`,
+      );
+    }
   }
 
   validateInvocation(input.invocation, `${path}.invocation`, issues);
@@ -450,12 +467,15 @@ function validateCases(
     if (
       testCase.comparison !== "deep-equal" &&
       testCase.comparison !== "unordered" &&
+      testCase.comparison !== "unordered-outer" &&
       testCase.comparison !== "float" &&
       testCase.comparison !== "stdout"
     ) {
       issue(issues, `${casePath}.comparison`, "is not supported");
     }
-    if (testCase.comparison === "float") {
+    if (testCase.comparison === "unordered-outer" && !Array.isArray(expected)) {
+      issue(issues, `${casePath}.expected`, "must be an array for unordered-outer comparison");
+    } else if (testCase.comparison === "float") {
       if (typeof expected !== "number" || !Number.isFinite(expected)) {
         issue(issues, `${casePath}.expected`, "must be a finite number for float comparison");
       }

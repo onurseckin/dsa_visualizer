@@ -52,7 +52,8 @@ export const twoPointersExecutions = [
       defaultInputShape: "{ array: number[]; target: number }",
       argumentMapping: ["arr <- $.array", "target <- $.target"],
       mutation: "Does not mutate arr.",
-      returnBehavior: "Returns inclusive bounds for a positive-value target window, or [-1, -1].",
+      returnBehavior:
+        "Returns the first matching positive-value window encountered by the left-to-right scan, or [-1, -1].",
     },
   }),
   defineDsaExecution({

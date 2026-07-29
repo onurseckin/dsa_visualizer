@@ -58,7 +58,7 @@ export interface PythonExecutionLimits {
   readonly maxCases: number;
 }
 
-export type PythonComparison = "deep-equal" | "unordered" | "float" | "stdout";
+export type PythonComparison = "deep-equal" | "unordered" | "unordered-outer" | "float" | "stdout";
 
 export interface PythonTestCase {
   readonly id: string;
@@ -74,6 +74,7 @@ export interface PythonExecutionSpec {
   readonly entrypoint: string;
   readonly invocation: PythonInvocation;
   readonly packages: readonly PythonPackage[];
+  readonly outputContract?: string;
   readonly cases: readonly PythonTestCase[];
   readonly limits?: Partial<PythonExecutionLimits>;
 }
@@ -118,6 +119,7 @@ export {
   PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES,
   PYTHON_INVOCATION_PATH_MAX_SEGMENTS,
   PYTHON_INVOCATION_SETUP_MAX_STEPS,
+  PYTHON_OUTPUT_CONTRACT_MAX_BYTES,
   PYTHON_EXECUTION_POLICY_CEILINGS,
   PYTHON_ID_PATTERN_SOURCE,
   PYTHON_RUN_ID_MAX_BYTES,

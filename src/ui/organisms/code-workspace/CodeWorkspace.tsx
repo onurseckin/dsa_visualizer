@@ -341,6 +341,16 @@ export function CodeWorkspace({
                 onRun={() => void runCode()}
               />
             </div>
+            {executionSpec?.outputContract && (
+              <aside
+                className="code-workspace__output-contract"
+                role="note"
+                aria-labelledby={outputContractHeadingId(itemId)}
+              >
+                <h4 id={outputContractHeadingId(itemId)}>Output contract</h4>
+                <p>{executionSpec.outputContract}</p>
+              </aside>
+            )}
             <TestCaseList
               cases={executionSpec?.cases}
               selectedIds={selectedCaseIds}
@@ -417,4 +427,8 @@ function codeWorkspaceTabId(itemId: string, tab: CodeWorkspaceTab): string {
 
 function codeWorkspacePanelId(itemId: string, tab: CodeWorkspaceTab): string {
   return `code-workspace-${itemId}-${tab}-panel`;
+}
+
+function outputContractHeadingId(itemId: string): string {
+  return `code-workspace-${itemId}-output-contract`;
 }

@@ -64,17 +64,18 @@ export const treeFundamentalsExecutions = [
     invocation: {
       kind: "function",
       arguments: [input("n"), input("adj"), input("start")],
+      result: result("return", [2]),
     },
     cases: cases(
       {
         label: "Three-node chain",
         input: { n: 3, adj: { A: ["B"], B: ["A", "C"], C: ["B"] }, start: "A" },
-        expected: ["C", "A", 2],
+        expected: 2,
       },
       {
         label: "Single node",
         input: { n: 1, adj: { A: [] }, start: "A" },
-        expected: ["A", "A", 0],
+        expected: 0,
       },
       {
         label: "Branched tree",
@@ -90,7 +91,7 @@ export const treeFundamentalsExecutions = [
           },
           start: "A",
         },
-        expected: ["D", "F", 4],
+        expected: 4,
       },
     ),
     audit: {
@@ -98,7 +99,8 @@ export const treeFundamentalsExecutions = [
       defaultInputShape: "{ rootId: string; nodes: TreeNode[] }",
       argumentMapping: ["n <- $.n", "adj <- $.adj", "start_node <- $.start"],
       mutation: "Does not mutate adjacency lists.",
-      returnBehavior: "Returns the two discovered diameter endpoints and edge length.",
+      returnBehavior:
+        "Returns discovered endpoints and edge length; grading projects the endpoint-independent length.",
     },
   }),
 ] as const;

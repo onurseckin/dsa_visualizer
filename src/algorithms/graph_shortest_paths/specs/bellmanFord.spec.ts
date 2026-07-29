@@ -73,6 +73,8 @@ describe("bellmanFord algorithm logic spec", () => {
     const lastStep = steps[steps.length - 1];
 
     expect(lastStep.variables.hasNegativeCycle).toBe(true);
+    expect(lastStep.variables.returnedDistances).toBe("None");
+    expect(lastStep.auxiliaryState.customState?.Output).toBe("(None, True)");
     expect(lastStep.explanation.what).toContain("negative cycle");
   });
 
