@@ -117,4 +117,65 @@ describe("E5-E8 serving and model-system electives manifest", () => {
       });
     }
   });
+
+  test("derives every visualization from the submitted record", () => {
+    for (const item of SERVING_MODEL_ELECTIVE_ITEMS) {
+      const playground = getLearningItemPlayground(item);
+      if (!playground) throw new Error(`${item.id}: missing playground`);
+      const first = playground.generateSteps(playground.execution.cases[0].input);
+      const second = playground.generateSteps(playground.execution.cases[1].input);
+      expect(first.map((step) => step.primarySnapshot)).not.toEqual(
+        second.map((step) => step.primarySnapshot),
+      );
+    }
+  });
+
+  test("keeps late requests pending and records admitted, completed, and cancelled states", () => {
+    const batching = SERVING_MODEL_ELECTIVE_ITEMS.find(
+      (item) => item.id === "continuous-batching-trace",
+    );
+    if (!batching) throw new Error("continuous-batching-trace: missing item");
+    const playground = getLearningItemPlayground(batching);
+    if (!playground) throw new Error("continuous-batching-trace: missing playground");
+    const regression = playground.execution.cases.find(
+      (testCase) => testCase.id === "late-arrival-pending",
+    );
+    expect(regression).toMatchObject({
+      expected: {
+        pending: ["late"],
+        admitted: [],
+        completed: [],
+        cancelled: [],
+      },
+    });
+  });
+
+  test("uses canonical source metadata for PagedAttention and recurrent-gradient claims", () => {
+    const paged = SERVING_MODEL_ELECTIVE_ITEMS.find(
+      (item) => item.id === "paged-kv-cache-allocation",
+    );
+    const bptt = SERVING_MODEL_ELECTIVE_ITEMS.find((item) => item.id === "recurrent-bptt-trace");
+    expect(paged?.sources).toContainEqual(
+      expect.objectContaining({
+        label: "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+        url: "https://arxiv.org/abs/2309.06180",
+      }),
+    );
+    for (const item of SERVING_MODEL_ELECTIVE_ITEMS) {
+      for (const source of item.sources) {
+        if (source.url === "https://arxiv.org/abs/2309.06180") {
+          expect(source.label).toBe(
+            "Efficient Memory Management for Large Language Model Serving with PagedAttention",
+          );
+        }
+      }
+    }
+    expect(bptt?.sources).toContainEqual(
+      expect.objectContaining({
+        label: "Learning Long-Term Dependencies with Gradient Descent is Difficult",
+        url: "https://doi.org/10.1109/72.279181",
+      }),
+    );
+    expect(bptt?.sources.some((source) => source.url?.includes("researchgate.net"))).toBe(false);
+  });
 });

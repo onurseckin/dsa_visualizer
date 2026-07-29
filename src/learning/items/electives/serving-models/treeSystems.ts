@@ -75,6 +75,45 @@ const gainExecution = functionExecution({
   ],
 });
 
+interface HistogramInput {
+  readonly bins: readonly { readonly pos: number; readonly neg: number }[];
+}
+
+function histogramTrace(record: HistogramInput) {
+  const gini = (positive: number, negative: number) => {
+    const total = positive + negative;
+    return total === 0 ? 0 : 1 - (positive / total) ** 2 - (negative / total) ** 2;
+  };
+  const totalPositive = record.bins.reduce((total, bin) => total + bin.pos, 0);
+  const totalNegative = record.bins.reduce((total, bin) => total + bin.neg, 0);
+  const total = totalPositive + totalNegative;
+  const parent = gini(totalPositive, totalNegative);
+  let leftPositive = 0;
+  let leftNegative = 0;
+  const candidates = record.bins.slice(0, -1).map((bin, index) => {
+    leftPositive += bin.pos;
+    leftNegative += bin.neg;
+    const rightPositive = totalPositive - leftPositive;
+    const rightNegative = totalNegative - leftNegative;
+    const weighted =
+      ((leftPositive + leftNegative) * gini(leftPositive, leftNegative) +
+        (rightPositive + rightNegative) * gini(rightPositive, rightNegative)) /
+      total;
+    return {
+      index,
+      leftPositive,
+      leftNegative,
+      rightPositive,
+      rightNegative,
+      gain: parent - weighted,
+    };
+  });
+  const best = [...candidates].sort(
+    (left, right) => right.gain - left.gain || left.index - right.index,
+  )[0];
+  return { totalPositive, totalNegative, parent, candidates, best };
+}
+
 export const histogramSplitGain = defineCalculatorItem({
   id: "histogram-split-gain",
   title: "Histogram split gain",
@@ -103,21 +142,29 @@ export const histogramSplitGain = defineCalculatorItem({
     contract: "Compute parent Gini and the highest-gain split between adjacent histogram bins.",
   }),
   execution: gainExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as HistogramInput;
+    const trace = histogramTrace(record);
+    return arraySteps([
       {
         codeLine: 2,
         what: "Sum positive and negative examples across all bins.",
         why: "The parent impurity must describe the full node before any threshold partitions it.",
-        values: ["bin positives", "bin negatives", "parent totals"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: [
+          ...record.bins.map((bin, index) => `b${index}:p${bin.pos}/n${bin.neg}`),
+          `total:p${trace.totalPositive}/n${trace.totalNegative}`,
+        ],
+        activeIndices: [record.bins.length],
       },
       {
         codeLine: 4,
         what: "Compute Gini from class proportions in a node.",
         why: "Impurity is zero only when a nonempty node is pure, not merely because one count is absent from a partial calculation.",
-        values: ["positive share", "negative share", "Gini"],
+        values: [
+          `positive=${trace.totalPositive}`,
+          `negative=${trace.totalNegative}`,
+          `gini=${trace.parent.toFixed(6)}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
@@ -125,19 +172,24 @@ export const histogramSplitGain = defineCalculatorItem({
         codeLine: 10,
         what: "Move one histogram bin into the left child at each legal boundary.",
         why: "Histogram training evaluates aggregate candidate boundaries without revisiting every raw feature value.",
-        values: ["left counts", "right counts", "boundary"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: trace.candidates.map(
+          (candidate) =>
+            `after${candidate.index}:L${candidate.leftPositive}/${candidate.leftNegative};R${candidate.rightPositive}/${candidate.rightNegative}`,
+        ),
+        activeIndices: trace.candidates.map((_, index) => index),
       },
       {
         codeLine: 14,
         what: "Select the boundary with the highest weighted impurity reduction.",
         why: "Child quality must be weighted by support so a tiny pure child cannot dominate the split decision.",
-        values: ["parent", "weighted children", "gain"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: trace.candidates.map(
+          (candidate) =>
+            `after${candidate.index}:gain=${candidate.gain.toFixed(6)}${candidate === trace.best ? ":best" : ""}`,
+        ),
+        activeIndices: trace.best ? [trace.best.index] : [],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-class-histogram",
     changedContext: true,
@@ -211,6 +263,31 @@ const selectionExecution = functionExecution({
     },
   ],
 });
+
+interface TabularPlanInput {
+  readonly family: string;
+  readonly latency_ms: number;
+  readonly latency_budget_ms: number;
+  readonly evaluation_slices: readonly string[];
+  readonly update_cadence: string;
+  readonly interpretability_required: boolean;
+  readonly explanation_method?: string;
+}
+
+function tabularPlanFailures(plan: TabularPlanInput): string[] {
+  const missing: string[] = [];
+  if (!["tree", "linear", "deep"].includes(plan.family)) missing.push("family");
+  if (plan.latency_ms > plan.latency_budget_ms) missing.push("latency_budget");
+  if (plan.evaluation_slices.length === 0) missing.push("evaluation_slices");
+  if (!["batch", "online", "periodic"].includes(plan.update_cadence)) {
+    missing.push("update_cadence");
+  }
+  if (plan.interpretability_required && !plan.explanation_method) {
+    missing.push("explanation_method");
+  }
+  return missing.sort();
+}
+
 export const treeModelSystemSelection = defineScenarioItem({
   id: "tree-model-system-selection",
   title: "Tree-model system selection",
@@ -273,20 +350,30 @@ export const treeModelSystemSelection = defineScenarioItem({
         "Validate measurable plan fields while leaving the model-family rationale to the scenario rubric.",
     }),
     execution: selectionExecution,
-    generateSteps: () =>
-      arraySteps([
+    generateSteps: (input) => {
+      const plan = input as TabularPlanInput;
+      const failures = tabularPlanFailures(plan);
+      return arraySteps([
         {
           codeLine: 3,
           what: "Check that the plan makes a model-family choice explicit.",
           why: "A reviewable decision starts with an alternative that can be compared or falsified.",
-          values: ["tree", "linear", "deep"],
+          values: [
+            `family=${plan.family}`,
+            `supported=${["tree", "linear", "deep"].includes(plan.family)}`,
+            `cadence=${plan.update_cadence}`,
+          ],
           activeIndices: [0],
         },
         {
           codeLine: 4,
           what: "Compare measured latency with the stated deployment budget.",
           why: "Offline quality cannot erase a hard serving constraint.",
-          values: ["measured latency", "budget", "within limit"],
+          values: [
+            `measured=${plan.latency_ms}ms`,
+            `budget=${plan.latency_budget_ms}ms`,
+            `within=${plan.latency_ms <= plan.latency_budget_ms}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
@@ -294,7 +381,11 @@ export const treeModelSystemSelection = defineScenarioItem({
           codeLine: 5,
           what: "Require named evaluation slices before rollout.",
           why: "Aggregate performance can conceal a regression on a consequential subpopulation.",
-          values: ["overall", "slices", "guardrails"],
+          values: [
+            `slices=${plan.evaluation_slices.join(",") || "none"}`,
+            `interpretability=${plan.interpretability_required}`,
+            `explanation=${plan.explanation_method || "none"}`,
+          ],
           activeIndices: [1],
           completedIndices: [0, 2],
         },
@@ -302,11 +393,16 @@ export const treeModelSystemSelection = defineScenarioItem({
           codeLine: 9,
           what: "Return a checklist result rather than a recommended architecture.",
           why: "Qualitative selection remains a rubric-scored engineering decision.",
-          values: ["valid", "missing", "plan artifact"],
+          values: [
+            `valid=${failures.length === 0}`,
+            `missing=${failures.join(",") || "none"}`,
+            `family=${plan.family}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
-      ]),
+      ]);
+    },
   },
   assessmentPayload: {
     variant: "changed-data-and-latency-constraints",
@@ -382,6 +478,32 @@ const pipelineExecution = functionExecution({
     },
   ],
 });
+
+interface TabularPipelineInput {
+  readonly train_feature_names: readonly string[];
+  readonly serve_feature_names: readonly string[];
+  readonly train_missing_policy: string;
+  readonly serve_missing_policy: string;
+  readonly train_category_map: string;
+  readonly serve_category_map: string;
+  readonly leakage_feature_present: boolean;
+  readonly feature_version: string;
+}
+
+function tabularPipelineFailures(record: TabularPipelineInput): string[] {
+  const failures: string[] = [];
+  if (JSON.stringify(record.train_feature_names) !== JSON.stringify(record.serve_feature_names)) {
+    failures.push("feature_schema");
+  }
+  if (record.train_missing_policy !== record.serve_missing_policy) failures.push("missingness");
+  if (record.train_category_map !== record.serve_category_map) {
+    failures.push("categorical_encoding");
+  }
+  if (record.leakage_feature_present) failures.push("leakage");
+  if (!record.feature_version) failures.push("feature_version");
+  return failures.sort();
+}
+
 export const tabularPipelineDebugging = defineDebuggingItem({
   id: "tabular-pipeline-debugging",
   title: "Tabular pipeline debugging",
@@ -406,13 +528,19 @@ export const tabularPipelineDebugging = defineDebuggingItem({
     contract: "Return sorted training-serving tabular contract failures.",
   }),
   execution: pipelineExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as TabularPipelineInput;
+    const failures = tabularPipelineFailures(record);
+    return arraySteps([
       {
         codeLine: 3,
         what: "Compare the feature schemas used for training and serving.",
         why: "Model inputs are only compatible when names, ordering, and meanings are governed together.",
-        values: ["train schema", "serve schema", "match"],
+        values: [
+          `train=${record.train_feature_names.join(",")}`,
+          `serve=${record.serve_feature_names.join(",")}`,
+          `match=${JSON.stringify(record.train_feature_names) === JSON.stringify(record.serve_feature_names)}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
@@ -420,7 +548,11 @@ export const tabularPipelineDebugging = defineDebuggingItem({
         codeLine: 4,
         what: "Compare missing-value policy across both paths.",
         why: "A model trained on one imputation semantic can fail when online defaults mean something different.",
-        values: ["training missing", "serving missing", "match"],
+        values: [
+          `train=${record.train_missing_policy}`,
+          `serve=${record.serve_missing_policy}`,
+          `match=${record.train_missing_policy === record.serve_missing_policy}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
@@ -428,7 +560,12 @@ export const tabularPipelineDebugging = defineDebuggingItem({
         codeLine: 5,
         what: "Compare categorical-map versions explicitly.",
         why: "Category IDs are a learned representation contract, not harmless preprocessing detail.",
-        values: ["train map", "serve map", "compatible"],
+        values: [
+          `train=${record.train_category_map}`,
+          `serve=${record.serve_category_map}`,
+          `compatible=${record.train_category_map === record.serve_category_map}`,
+          `version=${record.feature_version || "missing"}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
@@ -436,11 +573,16 @@ export const tabularPipelineDebugging = defineDebuggingItem({
         codeLine: 8,
         what: "Return each independently broken invariant.",
         why: "A useful debugging result supports targeted remediation rather than an untestable model rewrite.",
-        values: ["healthy", "failures", "repair"],
+        values: [
+          `healthy=${failures.length === 0}`,
+          `failures=${failures.join(",") || "none"}`,
+          `leakage=${record.leakage_feature_present}`,
+        ],
         activeIndices: [1],
         completedIndices: [0, 2],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-feature-contract-evidence",
     changedContext: true,

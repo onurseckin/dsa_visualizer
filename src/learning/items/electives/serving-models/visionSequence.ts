@@ -85,6 +85,32 @@ const convolutionExecution = functionExecution({
     },
   ],
 });
+
+interface ConvolutionInput {
+  readonly image: readonly (readonly number[])[];
+  readonly kernel: number;
+  readonly stride?: number;
+}
+
+function convolutionTrace(record: ConvolutionInput) {
+  const stride = record.stride ?? 1;
+  const outputHeight = Math.floor((record.image.length - record.kernel) / stride) + 1;
+  const outputWidth = Math.floor((record.image[0].length - record.kernel) / stride) + 1;
+  const windows: { row: number; col: number; values: number[] }[] = [];
+  for (let row = 0; row < outputHeight; row += 1) {
+    for (let col = 0; col < outputWidth; col += 1) {
+      const values: number[] = [];
+      for (let kernelRow = 0; kernelRow < record.kernel; kernelRow += 1) {
+        for (let kernelCol = 0; kernelCol < record.kernel; kernelCol += 1) {
+          values.push(record.image[row * stride + kernelRow][col * stride + kernelCol]);
+        }
+      }
+      windows.push({ row, col, values });
+    }
+  }
+  return { stride, outputHeight, outputWidth, windows };
+}
+
 export const convolutionLoweringTrace = defineTraceItem({
   id: "convolution-lowering-trace",
   title: "Convolution lowering trace",
@@ -114,13 +140,20 @@ export const convolutionLoweringTrace = defineTraceItem({
       "Compute valid convolution output geometry and row-major im2col windows using only list operations.",
   }),
   execution: convolutionExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as ConvolutionInput;
+    const trace = convolutionTrace(record);
+    return arraySteps([
       {
         codeLine: 6,
         what: "Derive the valid output-grid dimensions from image, kernel, and stride.",
         why: "Output positions define which receptive fields exist before any lowering is materialized.",
-        values: ["input", "kernel", "stride", "output shape"],
+        values: [
+          `input=${record.image.length}x${record.image[0].length}`,
+          `kernel=${record.kernel}`,
+          `stride=${trace.stride}`,
+          `output=${trace.outputHeight}x${trace.outputWidth}`,
+        ],
         activeIndices: [3],
         completedIndices: [0, 1, 2],
       },
@@ -128,27 +161,35 @@ export const convolutionLoweringTrace = defineTraceItem({
         codeLine: 9,
         what: "Select one output position and its receptive-field origin.",
         why: "Each output coordinate maps to a specific overlapping patch of the input image.",
-        values: ["output row", "output column", "input origin"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values: trace.windows.map(
+          (window) =>
+            `out(${window.row},${window.col})->in(${window.row * trace.stride},${window.col * trace.stride})`,
+        ),
+        activeIndices: trace.windows.map((_, index) => index),
       },
       {
         codeLine: 12,
         what: "Flatten that receptive field into one lowered column.",
         why: "Lowering exposes duplicate values explicitly so its memory cost can be counted.",
-        values: ["patch", "flattened column", "matrix multiply input"],
-        activeIndices: [1],
-        completedIndices: [0, 2],
+        values: trace.windows.map(
+          (window) => `(${window.row},${window.col})=[${window.values.join(",")}]`,
+        ),
+        activeIndices: trace.windows.map((_, index) => index),
       },
       {
         codeLine: 16,
         what: "Report all lowered elements alongside the output shape.",
         why: "The count distinguishes logical convolution output from the temporary lowered representation.",
-        values: ["output positions", "kernel area", "lowered elements"],
+        values: [
+          `positions=${trace.windows.length}`,
+          `kernel-area=${record.kernel * record.kernel}`,
+          `lowered=${trace.windows.length * record.kernel * record.kernel}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-image-kernel-stride",
     changedContext: true,
@@ -201,6 +242,23 @@ const bpttExecution = functionExecution({
     },
   ],
 });
+
+interface BpttInput {
+  readonly local_gradients: readonly number[];
+  readonly loss_gradient: number;
+  readonly vanishing_threshold: number;
+}
+
+function bpttGradients(record: BpttInput): number[] {
+  let current = record.loss_gradient;
+  const reversed: number[] = [];
+  for (const local of [...record.local_gradients].reverse()) {
+    current *= local;
+    reversed.push(Number(current.toFixed(6)));
+  }
+  return reversed.reverse();
+}
+
 export const recurrentBpttTrace = defineTraceItem({
   id: "recurrent-bptt-trace",
   title: "Recurrent BPTT trace",
@@ -218,8 +276,8 @@ export const recurrentBpttTrace = defineTraceItem({
       url: "https://www.deeplearningbook.org/contents/rnn.html",
     }),
     verifiedSource({
-      label: "Learning long-term dependencies paper",
-      url: "https://www.researchgate.net/publication/13853244_Learning_Long-Term_Dependencies_with_Gradient_Descent_Is_Difficult",
+      label: "Learning Long-Term Dependencies with Gradient Descent is Difficult",
+      url: "https://doi.org/10.1109/72.279181",
     }),
   ],
   code: bpttCode,
@@ -230,21 +288,30 @@ export const recurrentBpttTrace = defineTraceItem({
       "Multiply supplied local derivatives backward through a recurrent chain and report state gradients.",
   }),
   execution: bpttExecution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (input) => {
+    const record = input as BpttInput;
+    const gradients = bpttGradients(record);
+    const initial = gradients[0] ?? record.loss_gradient;
+    return arraySteps([
       {
         codeLine: 2,
         what: "Read the local derivative associated with each unrolled state transition.",
         why: "BPTT carries loss sensitivity through every temporal transition in reverse order.",
-        values: ["t0", "t1", "t2", "local derivatives"],
-        activeIndices: [3],
-        completedIndices: [0, 1, 2],
+        values:
+          record.local_gradients.length > 0
+            ? record.local_gradients.map((gradient, index) => `t${index}:local=${gradient}`)
+            : ["no recurrent transitions"],
+        activeIndices: record.local_gradients.map((_, index) => index),
       },
       {
         codeLine: 5,
         what: "Start from the final loss gradient.",
         why: "Reverse-mode differentiation begins with the sensitivity supplied by the loss at the end of the unroll.",
-        values: ["loss", "upstream", "last state"],
+        values: [
+          `loss-gradient=${record.loss_gradient}`,
+          `steps=${record.local_gradients.length}`,
+          `threshold=${record.vanishing_threshold}`,
+        ],
         activeIndices: [1],
         completedIndices: [0, 2],
       },
@@ -252,19 +319,26 @@ export const recurrentBpttTrace = defineTraceItem({
         codeLine: 7,
         what: "Multiply by each local derivative while walking backward.",
         why: "Repeated values below one shrink gradient magnitude across long temporal paths.",
-        values: ["current gradient", "local derivative", "previous state"],
-        activeIndices: [2],
-        completedIndices: [0, 1],
+        values:
+          gradients.length > 0
+            ? gradients.map((gradient, index) => `state${index}:gradient=${gradient}`)
+            : [`upstream-only=${record.loss_gradient}`],
+        activeIndices: gradients.map((_, index) => index),
       },
       {
         codeLine: 10,
         what: "Compare the earliest gradient with an explicit threshold.",
         why: "A threshold makes the trace's vanishing observation inspectable rather than a qualitative label.",
-        values: ["initial gradient", "threshold", "vanishing"],
+        values: [
+          `initial=${initial}`,
+          `threshold=${record.vanishing_threshold}`,
+          `vanishing=${gradients.length > 0 && Math.abs(initial) < record.vanishing_threshold}`,
+        ],
         activeIndices: [2],
         completedIndices: [0, 1],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-local-gradient-chain",
     changedContext: true,
@@ -343,6 +417,32 @@ const familyExecution = functionExecution({
     },
   ],
 });
+
+interface VisionSequencePlanInput {
+  readonly family: string;
+  readonly latency_ms: number;
+  readonly latency_budget_ms: number;
+  readonly state_requirement: string;
+  readonly evaluation_slices: readonly string[];
+  readonly input_contract_version: string;
+}
+
+function visionSequencePlanFailures(plan: VisionSequencePlanInput): string[] {
+  const missing: string[] = [];
+  if (
+    !["convolutional", "recurrent", "transformer", "temporal-convolution"].includes(plan.family)
+  ) {
+    missing.push("family");
+  }
+  if (plan.latency_ms > plan.latency_budget_ms) missing.push("latency_budget");
+  if (!["stateless", "session-state", "windowed"].includes(plan.state_requirement)) {
+    missing.push("state_requirement");
+  }
+  if (plan.evaluation_slices.length === 0) missing.push("evaluation_slices");
+  if (!plan.input_contract_version) missing.push("input_contract_version");
+  return missing.sort();
+}
+
 export const visionSequenceSystemSelection = defineScenarioItem({
   id: "vision-sequence-system-selection",
   title: "Vision and sequence system selection",
@@ -409,20 +509,30 @@ export const visionSequenceSystemSelection = defineScenarioItem({
         "Validate measurable representation-plan fields while leaving the qualitative family choice to the rubric.",
     }),
     execution: familyExecution,
-    generateSteps: () =>
-      arraySteps([
+    generateSteps: (input) => {
+      const plan = input as VisionSequencePlanInput;
+      const failures = visionSequencePlanFailures(plan);
+      return arraySteps([
         {
           codeLine: 3,
           what: "Check that the plan names a model-family alternative.",
           why: "An engineering decision cannot be reviewed when the representation is left implicit.",
-          values: ["convolutional", "recurrent", "transformer", "temporal convolution"],
+          values: [
+            `family=${plan.family}`,
+            `supported=${["convolutional", "recurrent", "transformer", "temporal-convolution"].includes(plan.family)}`,
+            `input=${plan.input_contract_version || "missing"}`,
+          ],
           activeIndices: [0],
         },
         {
           codeLine: 4,
           what: "Compare measured latency against the serving budget.",
           why: "Architecture quality must be evaluated at the boundary where the product has a response-time obligation.",
-          values: ["latency", "budget", "feasible"],
+          values: [
+            `measured=${plan.latency_ms}ms`,
+            `budget=${plan.latency_budget_ms}ms`,
+            `feasible=${plan.latency_ms <= plan.latency_budget_ms}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
@@ -430,7 +540,11 @@ export const visionSequenceSystemSelection = defineScenarioItem({
           codeLine: 5,
           what: "Declare whether state is stateless, session-scoped, or windowed.",
           why: "State ownership determines recovery, privacy, and scaling behavior for sequence workloads.",
-          values: ["input", "state policy", "serving boundary"],
+          values: [
+            `state=${plan.state_requirement}`,
+            `slices=${plan.evaluation_slices.join(",") || "none"}`,
+            `input=${plan.input_contract_version || "missing"}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
@@ -438,11 +552,16 @@ export const visionSequenceSystemSelection = defineScenarioItem({
           codeLine: 9,
           what: "Return a structural plan result instead of an architecture verdict.",
           why: "The rubric evaluates the changed-context rationale and the scratchpad validates its quantifiable artifacts.",
-          values: ["valid", "missing", "plan artifact"],
+          values: [
+            `valid=${failures.length === 0}`,
+            `missing=${failures.join(",") || "none"}`,
+            `family=${plan.family}`,
+          ],
           activeIndices: [2],
           completedIndices: [0, 1],
         },
-      ]),
+      ]);
+    },
   },
   assessmentPayload: {
     variant: "changed-input-state-latency",
