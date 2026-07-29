@@ -1,4 +1,4 @@
-import { cases, defineDsaExecution, input } from "./helpers";
+import { cases, defineDsaExecution, extraCases, input } from "./helpers";
 
 export const triesAndStringsExecutions = [
   defineDsaExecution({
@@ -89,20 +89,62 @@ export const triesAndStringsExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "shortestPalindrome",
-      arguments: [input()],
+      method: "findMatches",
+      arguments: [input("text"), input("pattern"), input("p"), input("mod")],
     },
-    cases: cases(
-      { label: "String 'aacecaaa'", input: "aacecaaa", expected: "aaacecaaa" },
-      { label: "String 'abcd'", input: "abcd", expected: "dcbabcd" },
-      { label: "Empty string", input: "", expected: "" },
-    ),
+    cases: [
+      ...cases(
+        {
+          label: "Two matches",
+          input: { text: "abracadabra", pattern: "abra", p: 31, mod: 1_000_000_007 },
+          expected: [0, 7],
+        },
+        {
+          label: "No match",
+          input: { text: "abcd", pattern: "ef", p: 31, mod: 1_000_000_007 },
+          expected: [],
+        },
+        {
+          label: "Overlapping matches",
+          input: { text: "aaaa", pattern: "aa", p: 31, mod: 1_000_000_007 },
+          expected: [0, 1, 2],
+        },
+      ),
+      ...extraCases(
+        {
+          label: "Empty text",
+          input: { text: "", pattern: "a", p: 31, mod: 1_000_000_007 },
+          expected: [],
+        },
+        {
+          label: "Pattern equals text",
+          input: { text: "hash", pattern: "hash", p: 31, mod: 1_000_000_007 },
+          expected: [0],
+        },
+        {
+          label: "Pattern longer than text",
+          input: { text: "hi", pattern: "long", p: 31, mod: 1_000_000_007 },
+          expected: [],
+        },
+        {
+          label: "Empty pattern",
+          input: { text: "abc", pattern: "", p: 31, mod: 1_000_000_007 },
+          expected: [0, 1, 2, 3],
+        },
+        {
+          label: "Small modulus with verification",
+          input: { text: "abcabc", pattern: "abc", p: 5, mod: 7 },
+          expected: [0, 3],
+        },
+      ),
+    ],
     audit: {
-      signature: "Solution().shortestPalindrome(s: str) -> str",
-      defaultInputShape: "string",
-      argumentMapping: ["s <- $"],
+      signature:
+        "Solution().findMatches(text: str, pattern: str, base: int, mod: int) -> list[int]",
+      defaultInputShape: "{ text: string; pattern: string; p: number; mod: number }",
+      argumentMapping: ["text <- $.text", "pattern <- $.pattern", "base <- $.p", "mod <- $.mod"],
       mutation: "Does not mutate inputs.",
-      returnBehavior: "Returns shortest palindrome.",
+      returnBehavior: "Returns every matching start index using a verified rolling hash.",
     },
   }),
   defineDsaExecution({
