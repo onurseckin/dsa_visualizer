@@ -71,7 +71,8 @@ export const mathAndNumberTheoryExecutions = [
       defaultInputShape: "{ a: number; b: number }",
       argumentMapping: ["a <- $.a", "b <- $.b"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns [gcd, x, y] satisfying ax + by = gcd.",
+      returnBehavior:
+        "Returns the canonical [gcd, x, y] produced by the recursive quotient recurrence, satisfying ax + by = gcd.",
     },
   }),
   defineDsaExecution({

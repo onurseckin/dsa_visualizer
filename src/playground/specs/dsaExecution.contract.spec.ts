@@ -10,6 +10,7 @@ import {
   DSA_EXECUTION_SPECS,
   DSA_STARTER_CODE,
 } from "../specs-data/dsa";
+import { DSA_OUTPUT_SEMANTICS_AUDIT } from "../specs-data/dsa/outputSemantics";
 import { getPythonExecutionSpec, getPythonStarterCode } from "../executionSpecs";
 
 const topicTracks = new Map(TOPIC_CATALOG.map((topic) => [topic.id, topic.track]));
@@ -63,6 +64,85 @@ function hasUniqueTopologicalOrder(input: unknown): boolean {
     }
   }
   return visited === nodes.length;
+}
+
+function countEulerTrails(input: unknown): number {
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    !("nodes" in input) ||
+    !Array.isArray(input.nodes) ||
+    !("edges" in input) ||
+    !Array.isArray(input.edges)
+  ) {
+    return 0;
+  }
+  const nodes = input.nodes.filter((node): node is string => typeof node === "string");
+  const edges = input.edges.filter(
+    (edge): edge is [string, string] =>
+      Array.isArray(edge) &&
+      edge.length === 2 &&
+      typeof edge[0] === "string" &&
+      typeof edge[1] === "string",
+  );
+  if (nodes.length !== input.nodes.length || edges.length !== input.edges.length) return 0;
+  const used = Array.from({ length: edges.length }, () => false);
+  let count = 0;
+  const visit = (node: string, usedCount: number): void => {
+    if (count > 1) return;
+    if (usedCount === edges.length) {
+      count += 1;
+      return;
+    }
+    edges.forEach(([from, to], index) => {
+      if (!used[index] && from === node) {
+        used[index] = true;
+        visit(to, usedCount + 1);
+        used[index] = false;
+      }
+    });
+  };
+  if (nodes[0] !== undefined) visit(nodes[0], 0);
+  return count;
+}
+
+function countMaximumSchedules(input: unknown): number {
+  if (!Array.isArray(input)) return 0;
+  const intervals = input.filter(
+    (interval): interval is [number, number] =>
+      Array.isArray(interval) &&
+      interval.length === 2 &&
+      typeof interval[0] === "number" &&
+      typeof interval[1] === "number",
+  );
+  if (intervals.length !== input.length || intervals.length > 20) return 0;
+  let maximum = -1;
+  let count = 0;
+  for (let mask = 0; mask < 1 << intervals.length; mask += 1) {
+    const selected = intervals
+      .filter((_, index) => (mask & (1 << index)) !== 0)
+      .slice()
+      .sort((left, right) => left[1] - right[1] || left[0] - right[0]);
+    const compatible = selected.every(
+      (interval, index) => index === 0 || interval[0] >= (selected[index - 1]?.[1] ?? Infinity),
+    );
+    if (!compatible) continue;
+    if (selected.length > maximum) {
+      maximum = selected.length;
+      count = 1;
+    } else if (selected.length === maximum) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function countWinningNimMoves(input: unknown): number {
+  if (!Array.isArray(input) || input.some((pile) => !Number.isInteger(pile) || pile < 0)) return -1;
+  const piles = input as number[];
+  const nimSum = piles.reduce((value, pile) => value ^ pile, 0);
+  if (nimSum === 0) return 0;
+  return piles.filter((pile) => (pile ^ nimSum) < pile).length;
 }
 
 describe("DSA Python execution catalog", () => {
@@ -129,29 +209,57 @@ describe("DSA Python execution catalog", () => {
     }
   });
 
-  test("uses semantic comparison or uniquely determined fixtures for order-ambiguous results", () => {
-    const topologicalSort = DSA_EXECUTION_SPECS.get("topological-sort");
-    expect(topologicalSort).toBeDefined();
-    for (const testCase of topologicalSort?.cases ?? []) {
-      expect(testCase.comparison).toBe("deep-equal");
+  test("audits all 88 output-equivalence strategies and enforces each grading contract", () => {
+    expect(Object.keys(DSA_OUTPUT_SEMANTICS_AUDIT).sort()).toEqual(dsaIds);
+    const auditsById = new Map(DSA_EXECUTION_AUDIT.map((entry) => [entry.id, entry]));
+
+    for (const [id, semantics] of Object.entries(DSA_OUTPUT_SEMANTICS_AUDIT)) {
+      const spec = DSA_EXECUTION_SPECS.get(id);
+      const audit = auditsById.get(id);
+      expect(spec, `missing audited execution spec ${id}`).toBeDefined();
+      expect(semantics.rationale.trim().length, `${id} needs an audit rationale`).toBeGreaterThan(
+        20,
+      );
+      if (!spec || !audit) continue;
+
+      const comparisons = spec.cases.map((testCase) => testCase.comparison);
+      if (semantics.strategy === "unordered-recursive") {
+        expect(comparisons).toEqual(["unordered", "unordered", "unordered"]);
+      } else if (semantics.strategy === "unordered-outer") {
+        expect(comparisons).toEqual(["unordered-outer", "unordered-outer", "unordered-outer"]);
+      } else {
+        expect(comparisons).toEqual(["deep-equal", "deep-equal", "deep-equal"]);
+      }
+
+      if (semantics.contractMarker !== undefined) {
+        expect(spec.outputContract).toContain(semantics.contractMarker);
+      }
+      expect(spec.outputContract).toBe(audit.returnBehavior);
+    }
+
+    for (const testCase of DSA_EXECUTION_SPECS.get("topological-sort")?.cases ?? []) {
       expect(hasUniqueTopologicalOrder(testCase.input)).toBe(true);
     }
-
-    for (const id of [
-      "generating-subsets",
-      "kosaraju-scc",
-      "kruskal-mst",
-      "sweep-line-intersections",
-    ]) {
-      const spec = DSA_EXECUTION_SPECS.get(id);
-      expect(spec, `missing audited execution spec ${id}`).toBeDefined();
-      expect(
-        spec?.cases.map((testCase) => testCase.comparison),
-        `${id} has order-insensitive mathematical output`,
-      ).toEqual(["unordered", "unordered", "unordered"]);
+    for (const testCase of DSA_EXECUTION_SPECS.get("hierholzer-eulerian-path")?.cases ?? []) {
+      expect(countEulerTrails(testCase.input)).toBe(1);
     }
+    for (const testCase of DSA_EXECUTION_SPECS.get("interval-scheduling")?.cases ?? []) {
+      expect(countMaximumSchedules(testCase.input)).toBe(1);
+    }
+    for (const testCase of DSA_EXECUTION_SPECS.get("nim-game")?.cases ?? []) {
+      expect([0, 1]).toContain(countWinningNimMoves(testCase.input));
+    }
+    expect(
+      DSA_EXECUTION_SPECS.get("bellman-ford")?.cases.map((testCase) => testCase.expected),
+    ).toEqual([
+      [expect.any(Object), false],
+      [expect.any(Object), false],
+      [null, true],
+    ]);
 
-    expect(DSA_EXECUTION_SPECS.size).toBe(88);
+    expect(DSA_EXECUTION_SPECS.get("tree-diameter")?.invocation).toMatchObject({
+      result: { from: "return", path: [2] },
+    });
   });
 
   test("provides parseable starter code with canonical semantic Python signatures", () => {

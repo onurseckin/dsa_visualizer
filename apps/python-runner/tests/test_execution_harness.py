@@ -250,10 +250,11 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertEqual(result["cases"][0]["actual"], "MACHINE LEARNING\n")
         self.assertEqual(result["stdout"], "MACHINE LEARNING\n")
 
-    def test_supports_deep_unordered_float_and_stdout_comparisons(self):
+    def test_supports_deep_unordered_outer_unordered_float_and_stdout_comparisons(self):
         code = (
             "def solve(value):\n"
             "    if value == 'unordered': return [3, {'a': [2, 1]}, 3]\n"
+            "    if value == 'unordered-outer': return [[2, 1], [4, 3]]\n"
             "    if value == 'float': return 0.1 + 0.2\n"
             "    if value == 'stdout': print('observable')\n"
             "    return {'nested': [1, {'ok': True}]}"
@@ -264,6 +265,12 @@ class ExecutionHarnessTests(unittest.TestCase):
                 [
                     case("deep", "deep", {"nested": [1, {"ok": True}]}),
                     case("unordered", "unordered", [3, 3, {"a": [1, 2]}], "unordered"),
+                    case(
+                        "unordered-outer",
+                        "unordered-outer",
+                        [[4, 3], [2, 1]],
+                        "unordered-outer",
+                    ),
                     case("float", "float", 0.3, "float", 1e-9),
                     case("stdout", "stdout", "observable\n", "stdout"),
                 ],
@@ -271,7 +278,25 @@ class ExecutionHarnessTests(unittest.TestCase):
         )
 
         self.assertEqual(result["status"], "passed")
-        self.assertEqual([item["status"] for item in result["cases"]], ["passed"] * 4)
+        self.assertEqual([item["status"] for item in result["cases"]], ["passed"] * 5)
+
+    def test_outer_unordered_comparison_preserves_nested_sequence_order(self):
+        result = execute_request(
+            request_for(
+                "def solve(value):\n    return [[2, 1], [4, 3]]",
+                [
+                    case(
+                        "nested-order",
+                        None,
+                        [[4, 3], [1, 2]],
+                        "unordered-outer",
+                    )
+                ],
+            )
+        )
+
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["cases"][0]["status"], "failed")
 
     def test_json_comparisons_do_not_treat_booleans_as_numbers(self):
         result = execute_request(

@@ -81,7 +81,7 @@ export const graphShortestPathsExecutions = [
         expected: [{ A: 0 }, false],
       },
       {
-        label: "Reachable negative cycle",
+        label: "Reachable negative cycle sentinel",
         input: {
           nodes: ["A", "B", "C"],
           edges: [
@@ -91,15 +91,16 @@ export const graphShortestPathsExecutions = [
           ],
           start: "A",
         },
-        expected: [{ A: 0, B: -7, C: -5 }, true],
+        expected: [null, true],
       },
     ),
     audit: {
-      signature: "bellman_ford(nodes, edges, start_node) -> tuple[dict, bool]",
+      signature: "bellman_ford(nodes, edges, start_node) -> tuple[dict | None, bool]",
       defaultInputShape: "{ startNodeId: string; nodes: GraphNode[]; edges: WeightedGraphEdge[] }",
       argumentMapping: ["nodes <- $.nodes", "edges <- $.edges", "start_node <- $.start"],
       mutation: "Mutates only an internal distance map.",
-      returnBehavior: "Returns distances after relaxation and a reachable-negative-cycle flag.",
+      returnBehavior:
+        "Returns (None, True) for a reachable negative cycle; otherwise returns the settled distance map with False.",
     },
   }),
   defineDsaExecution({

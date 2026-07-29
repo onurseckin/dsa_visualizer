@@ -17,9 +17,9 @@ export const gameTheoryExecutions = [
         expected: { winner: "Second Player", winning_pile: -1, target_size: 0 },
       },
       {
-        label: "Large winning reduction",
-        input: [7, 4, 5],
-        expected: { winner: "First Player", winning_pile: 0, target_size: 1, remove: 6 },
+        label: "Unique winning reduction",
+        input: [1, 2, 4],
+        expected: { winner: "First Player", winning_pile: 2, target_size: 3, remove: 1 },
       },
     ),
     audit: {
@@ -27,7 +27,8 @@ export const gameTheoryExecutions = [
       defaultInputShape: "{ piles: number[] }",
       argumentMapping: ["piles <- $"],
       mutation: "Does not mutate piles.",
-      returnBehavior: "Returns the winner and one canonical winning reduction when available.",
+      returnBehavior:
+        "Returns the winner and the uniquely determined winning reduction in the authored fixtures.",
     },
   }),
   defineDsaExecution({

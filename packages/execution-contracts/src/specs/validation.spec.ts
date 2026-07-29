@@ -342,6 +342,42 @@ describe("execution contract validation", () => {
     expect(validatePythonExecutionSpec(invalidTolerance).ok).toBe(false);
   });
 
+  it("accepts outer-only unordered comparison without weakening nested order", () => {
+    const spec = {
+      ...functionRequest.spec,
+      cases: [
+        {
+          ...functionRequest.spec.cases[0],
+          expected: [
+            [".Q..", "...Q", "Q...", "..Q."],
+            ["..Q.", "Q...", "...Q", ".Q.."],
+          ],
+          comparison: "unordered-outer",
+        },
+      ],
+    };
+
+    expect(validatePythonExecutionSpec(spec).ok).toBe(true);
+  });
+
+  it("accepts a bounded public output contract and rejects blank or oversized text", () => {
+    expect(
+      validatePythonExecutionSpec({
+        ...functionRequest.spec,
+        outputContract: "Return the first matching pair in ascending index order.",
+      }).ok,
+    ).toBe(true);
+    expect(validatePythonExecutionSpec({ ...functionRequest.spec, outputContract: "   " }).ok).toBe(
+      false,
+    );
+    expect(
+      validatePythonExecutionSpec({
+        ...functionRequest.spec,
+        outputContract: "x".repeat(2_049),
+      }).ok,
+    ).toBe(false);
+  });
+
   it("enforces comparison-specific expected values and stdin input", () => {
     const stdoutWithNonStringExpected = {
       ...functionRequest.spec,

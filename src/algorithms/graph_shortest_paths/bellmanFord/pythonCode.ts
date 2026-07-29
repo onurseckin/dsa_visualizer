@@ -13,4 +13,6 @@ export const BELLMAN_FORD_CODE = `def bellman_ford(nodes, edges, start_node):
             has_negative_cycle = True
             break
 
-    return dist, has_negative_cycle`;
+    if has_negative_cycle:
+        return None, True
+    return dist, False`;

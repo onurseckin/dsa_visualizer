@@ -48,6 +48,7 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
     variables: Record<string, string | number | boolean>,
     activeNodeId?: string,
     activeEdge?: { from: string; to: string },
+    extraCustomState?: Record<string, string | number | boolean>,
   ) => {
     const distTableFormatted: Record<string, number> = {};
     for (const n of rawNodes) {
@@ -70,6 +71,7 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
           "Start Node": startNode,
           "Node Count": rawNodes.length,
           "Edge Count": rawEdges.length,
+          ...extraCustomState,
         },
       },
       variables,
@@ -85,7 +87,7 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
 
   if (rawNodes.length === 0) {
     addStep(
-      16,
+      18,
       "Bellman-Ford complete",
       "The graph has no vertices, so there is nothing to relax — we return an empty distance table.",
       { completed: true },
@@ -267,28 +269,43 @@ export const generateBellmanFordSteps = (input: BellmanFordInput): AlgorithmStep
 
   if (!hasNegativeCycle) {
     addStep(
-      16,
+      18,
       "Bellman-Ford complete",
       `No edge can improve any distance, so the table now holds the true shortest path from '${startNode}' to every reachable vertex. In total we ran up to V - 1 passes over all E edges — completing in O(V * E) time.`,
       { hasNegativeCycle: false, completed: true },
     );
   } else {
     addStep(
-      16,
+      17,
       "Bellman-Ford complete: negative cycle found",
       'Because a reachable cycle has negative total weight, "shortest path" is not well-defined — looping around that cycle infinitely lowers the cost without bound.',
-      { hasNegativeCycle: true, completed: true },
+      {
+        hasNegativeCycle: true,
+        returnedDistances: "None",
+        returnedHasNegativeCycle: true,
+        completed: true,
+      },
+      undefined,
+      undefined,
+      { Output: "(None, True)" },
     );
   }
 
   while (steps.length < 20) {
     addStep(
-      16,
+      hasNegativeCycle ? 17 : 18,
       !hasNegativeCycle
         ? `Bellman-Ford complete (step ${steps.length + 1})`
         : `Bellman-Ford complete: negative cycle found (step ${steps.length + 1})`,
       `Finalizing algorithm state and confirming shortest paths.`,
-      { hasNegativeCycle, completed: true },
+      {
+        hasNegativeCycle,
+        ...(hasNegativeCycle ? { returnedDistances: "None", returnedHasNegativeCycle: true } : {}),
+        completed: true,
+      },
+      undefined,
+      undefined,
+      hasNegativeCycle ? { Output: "(None, True)" } : undefined,
     );
   }
 

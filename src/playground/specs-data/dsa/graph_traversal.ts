@@ -38,7 +38,8 @@ export const graphTraversalExecutions = [
       defaultInputShape: "{ startNodeId: string; nodes: GraphNode[]; edges: GraphEdge[] }",
       argumentMapping: ["graph <- $.graph", "start_node <- $.start"],
       mutation: "Mutates internal visited, queue, and traversal state.",
-      returnBehavior: "Returns nodes in first-visit breadth-first order.",
+      returnBehavior:
+        "Returns first-visit breadth-first order using the authored adjacency-list order for frontier ties.",
     },
   }),
   defineDsaExecution({
@@ -112,7 +113,8 @@ export const graphTraversalExecutions = [
       defaultInputShape: "{ startNodeId: string; nodes: GraphNode[]; edges: GraphEdge[] }",
       argumentMapping: ["graph <- $.graph", "start_node <- $.start"],
       mutation: "Mutates internal stack and visited state.",
-      returnBehavior: "Returns iterative LIFO first-visit order.",
+      returnBehavior:
+        "Returns iterative LIFO first-visit order after pushing neighbors in authored adjacency-list order.",
     },
   }),
   defineDsaExecution({

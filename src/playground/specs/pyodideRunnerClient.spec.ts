@@ -608,11 +608,12 @@ describe("browser execution harness parity", () => {
     return JSON.parse(output) as PythonRunResult;
   }
 
-  it("matches strict JSON, unordered, float, and stdout comparisons", () => {
+  it("matches strict JSON, unordered, outer-unordered, float, and stdout comparisons", () => {
     const parityRequest = request("run-parity", {
       code: [
         "def solve(value):",
         "    if value == 'unordered': return [3, {'a': [2, 1]}, 3]",
+        "    if value == 'unordered-outer': return [[2, 1], [4, 3]]",
         "    if value == 'float': return 0.1 + 0.2",
         "    if value == 'stdout': print('observable')",
         "    return {'nested': [1, {'ok': True}]}",
@@ -632,6 +633,16 @@ describe("browser execution harness parity", () => {
             input: "unordered",
             expected: [3, 3, { a: [1, 2] }],
             comparison: "unordered",
+          },
+          {
+            id: "unordered-outer",
+            label: "Unordered outer collection",
+            input: "unordered-outer",
+            expected: [
+              [4, 3],
+              [2, 1],
+            ],
+            comparison: "unordered-outer",
           },
           {
             id: "float",
@@ -661,8 +672,36 @@ describe("browser execution harness parity", () => {
       "passed",
       "passed",
       "passed",
+      "passed",
     ]);
     expect(parity.stdout).toBe("observable\n");
+  });
+
+  it("keeps nested item order significant for outer-unordered comparison", () => {
+    const nestedOrder = executeWithCpython(
+      request("run-outer-order", {
+        code: "def solve(value):\n    return [[2, 1], [4, 3]]",
+        spec: executionSpec({
+          cases: [
+            {
+              id: "nested-order",
+              label: "Nested item order",
+              input: null,
+              expected: [
+                [4, 3],
+                [1, 2],
+              ],
+              comparison: "unordered-outer",
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(nestedOrder.status).toBe("failed");
+    expect(nestedOrder.cases).toEqual([
+      expect.objectContaining({ id: "nested-order", status: "failed" }),
+    ]);
   });
 
   it("invokes function, class-method, and stdin contracts with server-parity bindings", () => {

@@ -212,7 +212,7 @@ describe("MainLayoutPanelsContent Component Spec", () => {
     renderLayout();
 
     expect(codeWorkspaceCapture.starterCode).toBe(getPythonStarterCode(dummyAlgorithm.id));
-    expect(codeWorkspaceCapture.starterCode).toContain("def bubble_sort(arr):");
+    expect(codeWorkspaceCapture.starterCode).toContain("def bubble_sort(arr: list[int]):");
   });
 
   it("omits playback controls when neither controlProps nor playback callbacks are provided", () => {
