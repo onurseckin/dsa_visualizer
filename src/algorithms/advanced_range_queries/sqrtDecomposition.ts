@@ -590,7 +590,7 @@ export const sqrtDecomposition: AlgorithmDefinition<SqrtDecompositionInput> = {
       kind: "book",
       bookTitle: "Competitive Programmer's Handbook",
       chapter: 27,
-      section: "Chapter introduction: square-root range structure",
+      section: "27.1 Combining algorithms",
       label: "Competitive Programmer's Handbook, Ch 27",
     },
   ],
