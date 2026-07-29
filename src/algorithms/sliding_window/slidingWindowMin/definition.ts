@@ -90,9 +90,10 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "nums = [4, 2, 12, 11, 5, 8, 3, 9], k = 3",
       outputDisplay: "[2, 2, 5, 5, 3, 3]",
-      title: "Basic Example",
+      title: "Standard 8-Element Array with k = 3",
       input: DEFAULT_SLIDING_WINDOW_MIN_INPUT,
       output: "[2, 2, 5, 5, 3, 3]",
       explanation:
@@ -100,9 +101,10 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "nums = [9, 7, 5, 3, 1, 2, 4, 6, 8], k = 4",
       outputDisplay: "[3, 1, 1, 1, 1, 2]",
-      title: "Complex Decreasing-Increasing Sequence",
+      title: "Adversarial Decreasing-Increasing Sequence",
       input: { nums: [9, 7, 5, 3, 1, 2, 4, 6, 8], k: 4 },
       output: "[3, 1, 1, 1, 1, 2]",
       explanation:
@@ -110,9 +112,10 @@ export const slidingWindowMin: AlgorithmDefinition<SlidingWindowMinInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: "nums = [10, 20, 30, 40], k = 4",
       outputDisplay: "[10]",
-      title: "Full Window Boundary Case",
+      title: "Boundary Full Window k = N",
       input: { nums: [10, 20, 30, 40], k: 4 },
       output: "[10]",
       explanation: "Window size k equals total length; produces a single window minimum [10].",
