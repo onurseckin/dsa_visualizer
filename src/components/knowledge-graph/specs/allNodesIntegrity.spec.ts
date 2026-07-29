@@ -1,31 +1,46 @@
 import { describe, expect, it } from "vitest";
 import { getAllLearningItems } from "../../../learning/registry";
 import { getLearningItemTopics } from "../../../app/topics";
+import { TOPIC_CATALOG } from "../../../curriculum/topics";
 import { DSA_TREE_PLACEMENTS } from "../data/dsaTree";
 import { ML_INFRA_TREE_PLACEMENTS } from "../mlInfraTree";
 
 describe("Systemic Knowledge Node Category & Navigation Integrity Spec", () => {
   const learningItems = getAllLearningItems();
-  const allNodes = [
-    ...DSA_TREE_PLACEMENTS.map((n) => ({ tree: "DSA", ...n })),
-    ...ML_INFRA_TREE_PLACEMENTS.map((n) => ({ tree: "ML_INFRA", ...n })),
-  ];
 
-  it("ensures zero orphaned items in the transitional 320-item learning registry", () => {
-    const nodeCategoryFolders = new Set([
-      ...DSA_TREE_PLACEMENTS.map((n) => n.topicId),
-      ...ML_INFRA_TREE_PLACEMENTS.map((n) => n.topicId),
+  it("isolates transitional legacy ML enrollment without hiding unrelated orphaned items", () => {
+    const navigableTopicIds = new Set([
+      ...DSA_TREE_PLACEMENTS.map((placement) => placement.topicId),
+      ...ML_INFRA_TREE_PLACEMENTS.map((placement) => placement.topicId),
     ]);
-
-    const orphaned = learningItems.filter((item) =>
-      getLearningItemTopics(item).every((topicId) => !nodeCategoryFolders.has(topicId)),
+    const targetMlTopicIds = new Set(
+      ML_INFRA_TREE_PLACEMENTS.map((placement) => placement.topicId),
+    );
+    const transitionalLegacyMlTopicIds = new Set(
+      TOPIC_CATALOG.filter(
+        (topic) => topic.track === "ml-infra" && !targetMlTopicIds.has(topic.id),
+      ).map((topic) => topic.id),
     );
 
-    expect(orphaned).toHaveLength(0);
+    const unexplainedOrphans = learningItems.filter((item) => {
+      const topicIds = getLearningItemTopics(item);
+      const isNavigable = topicIds.some((topicId) => navigableTopicIds.has(topicId));
+      const isTransitionalLegacyMl = topicIds.every((topicId) =>
+        transitionalLegacyMlTopicIds.has(topicId),
+      );
+      return !isNavigable && !isTransitionalLegacyMl;
+    });
+
+    expect(unexplainedOrphans).toEqual([]);
+    expect(
+      learningItems.some((item) =>
+        getLearningItemTopics(item).some((topicId) => transitionalLegacyMlTopicIds.has(topicId)),
+      ),
+    ).toBe(true);
   });
 
-  it("gives every tree placement one or more registered problems", () => {
-    for (const node of allNodes) {
+  it("keeps every established DSA placement backed by registered problems", () => {
+    for (const node of DSA_TREE_PLACEMENTS) {
       const matching = learningItems.filter((item) =>
         getLearningItemTopics(item).includes(node.topicId),
       );

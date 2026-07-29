@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Button } from "../../ui";
 import { getAllLearningItems } from "../../learning/registry";
 import { getLearningItemTopics, isMlInfraLearningItem } from "../../app/topics";
+import { boxViewBox, spreadToBox, useCanvasBox, viewBoxAttr } from "../primitives/vizGeometry";
 import {
   ML_INFRA_FAMILIES,
   ML_INFRA_TREE_PLACEMENTS,
@@ -29,6 +30,9 @@ export interface MLInfraKnowledgeGraphProps {
   onNavigateToAlgorithm?: (algorithmId: string) => void;
 }
 
+const ML_INFRA_CANVAS_FALLBACK = { width: 1800, height: 1800 };
+const ML_INFRA_LAYOUT_PADDING = 250;
+
 export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   onSelectTopic,
   onNavigateToAlgorithm,
@@ -36,6 +40,7 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [drawerTopicId, setDrawerTopicId] = useState<string | null>(null);
+  const { ref: canvasRef, box: measuredBox } = useCanvasBox(ML_INFRA_CANVAS_FALLBACK);
 
   const problemCountByTopicId = useMemo(() => {
     const counts = new Map<string, number>();
@@ -79,6 +84,21 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   };
 
   const hoveredNode = hoveredNodeId ? ML_INFRA_TREE_PLACEMENT_MAP.get(hoveredNodeId) : undefined;
+  const positionedPlacements = useMemo(() => {
+    const positions = spreadToBox(
+      ML_INFRA_TREE_PLACEMENTS.map(({ x, y }) => ({ x, y })),
+      measuredBox,
+      ML_INFRA_LAYOUT_PADDING,
+    );
+    return ML_INFRA_TREE_PLACEMENTS.map((placement, index) => ({
+      ...placement,
+      ...positions[index],
+    }));
+  }, [measuredBox]);
+  const positionedPlacementMap = useMemo(
+    () => new Map(positionedPlacements.map((placement) => [placement.id, placement])),
+    [positionedPlacements],
+  );
 
   return (
     <div
@@ -217,207 +237,219 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
       )}
 
       {/* Main Card Container */}
-      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-3xl p-8 shadow-2xl relative overflow-hidden mx-auto">
-        <svg
-          width="100%"
-          height="100%"
-          viewBox="-40 -60 1680 1150"
-          preserveAspectRatio="xMidYMid meet"
-          className="w-full h-auto max-w-full mx-auto block relative z-0 drop-shadow-sm"
+      <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-3xl p-8 shadow-2xl relative overflow-x-auto mx-auto">
+        <div
+          ref={canvasRef}
+          data-testid="ml-infra-canvas"
+          style={{
+            width: "100%",
+            minWidth: "1500px",
+            height: "1800px",
+            minHeight: 0,
+            overflow: "hidden",
+          }}
         >
-          <defs>
-            {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
+          <svg
+            width="100%"
+            height="100%"
+            viewBox={viewBoxAttr(boxViewBox(measuredBox))}
+            className="block relative z-0 drop-shadow-sm"
+          >
+            <defs>
+              {ML_INFRA_FAMILIES.map((family: MLInfraFamily) => (
+                <marker
+                  key={family.id}
+                  id={`ml-arrow-${family.id}`}
+                  viewBox="0 0 10 10"
+                  refX="6"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path
+                    d="M 0 1.5 L 8 5 L 0 8.5 z"
+                    fill={mlInfraFamilyColor(family.id)}
+                    opacity="0.85"
+                  />
+                </marker>
+              ))}
               <marker
-                key={family.id}
-                id={`ml-arrow-${family.id}`}
+                id="ml-arrow-active"
                 viewBox="0 0 10 10"
                 refX="6"
                 refY="5"
-                markerWidth="6"
-                markerHeight="6"
+                markerWidth="7"
+                markerHeight="7"
                 orient="auto-start-reverse"
               >
-                <path
-                  d="M 0 1.5 L 8 5 L 0 8.5 z"
-                  fill={mlInfraFamilyColor(family.id)}
-                  opacity="0.85"
-                />
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
               </marker>
-            ))}
-            <marker
-              id="ml-arrow-active"
-              viewBox="0 0 10 10"
-              refX="6"
-              refY="5"
-              markerWidth="7"
-              markerHeight="7"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--accent)" />
-            </marker>
-          </defs>
+            </defs>
 
-          {/* Connectors Group */}
-          <g className="connectors">
-            {ML_INFRA_TREE_PLACEMENTS.map((node: MLInfraCurriculumPlacement) =>
-              node.prerequisites.map((prereqId: string) => {
-                const parent = ML_INFRA_TREE_PLACEMENT_MAP.get(prereqId);
-                if (!parent) return null;
+            {/* Connectors Group */}
+            <g className="connectors">
+              {positionedPlacements.map((node: MLInfraCurriculumPlacement) =>
+                node.prerequisites.map((prereqId: string) => {
+                  const parent = positionedPlacementMap.get(prereqId);
+                  if (!parent) return null;
 
-                const isConnectedToDrawer =
-                  drawerTopicId === node.id || drawerTopicId === parent.id;
-                const isHovered = hoveredNodeId === node.id || hoveredNodeId === parent.id;
-                const isHighlighted = isConnectedToDrawer || isHovered;
+                  const isConnectedToDrawer =
+                    drawerTopicId === node.id || drawerTopicId === parent.id;
+                  const isHovered = hoveredNodeId === node.id || hoveredNodeId === parent.id;
+                  const isHighlighted = isConnectedToDrawer || isHovered;
 
-                const strokeColor = isHighlighted
-                  ? "var(--accent)"
-                  : mlInfraFamilyColor(node.family);
-                const strokeWidth = isHighlighted ? 2.5 : 1.75;
-                const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
+                  const strokeColor = isHighlighted
+                    ? "var(--accent)"
+                    : mlInfraFamilyColor(node.family);
+                  const strokeWidth = isHighlighted ? 2.5 : 1.75;
+                  const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
-                let startX = parent.x;
-                let startY = parent.y + 32;
-                let endX = node.x;
-                let endY = node.y - 32;
+                  let startX = parent.x;
+                  let startY = parent.y + 32;
+                  let endX = node.x;
+                  let endY = node.y - 32;
 
-                if (parent.y === node.y) {
-                  const parentWidth = Math.max(190, parent.title.length * 8.5 + 40);
-                  const nodeWidth = Math.max(190, node.title.length * 8.5 + 40);
-                  if (parent.x < node.x) {
-                    startX = parent.x + parentWidth / 2;
-                    startY = parent.y;
-                    endX = node.x - nodeWidth / 2;
-                    endY = node.y;
-                  } else {
-                    startX = parent.x - parentWidth / 2;
-                    startY = parent.y;
-                    endX = node.x + nodeWidth / 2;
-                    endY = node.y;
+                  if (parent.y === node.y) {
+                    const parentWidth = Math.max(190, parent.title.length * 8.5 + 40);
+                    const nodeWidth = Math.max(190, node.title.length * 8.5 + 40);
+                    if (parent.x < node.x) {
+                      startX = parent.x + parentWidth / 2;
+                      startY = parent.y;
+                      endX = node.x - nodeWidth / 2;
+                      endY = node.y;
+                    } else {
+                      startX = parent.x - parentWidth / 2;
+                      startY = parent.y;
+                      endX = node.x + nodeWidth / 2;
+                      endY = node.y;
+                    }
                   }
-                }
 
-                const midY = (startY + endY) / 2;
+                  const midY = (startY + endY) / 2;
 
-                const pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+                  const pathD = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
+
+                  return (
+                    <path
+                      key={`${prereqId}->${node.id}`}
+                      d={pathD}
+                      fill="none"
+                      stroke={strokeColor}
+                      strokeWidth={strokeWidth}
+                      strokeDasharray={isHighlighted ? "none" : "5 5"}
+                      markerEnd={
+                        isHighlighted ? "url(#ml-arrow-active)" : `url(#ml-arrow-${node.family})`
+                      }
+                      style={{
+                        opacity: strokeOpacity,
+                        transition: "all var(--transition-normal)",
+                      }}
+                    />
+                  );
+                }),
+              )}
+            </g>
+
+            {/* Nodes Group */}
+            <g className="nodes">
+              {positionedPlacements.map((node: MLInfraCurriculumPlacement) => {
+                const isHovered = hoveredNodeId === node.id;
+                const isFocused = focusedNodeId === node.id;
+                const activeFocusOrHover = isHovered || isFocused;
+                const isRelated =
+                  hoveredNodeId !== null &&
+                  (node.prerequisites.includes(hoveredNodeId) ||
+                    (hoveredNode?.prerequisites.includes(node.id) ?? false));
+
+                const width = Math.max(190, node.title.length * 8.5 + 40);
+
+                const handleKeyDown = (e: React.KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleSelectNode(node);
+                  }
+                };
+
+                const problemCount = problemCountByTopicId.get(node.topicId) ?? 0;
 
                 return (
-                  <path
-                    key={`${prereqId}->${node.id}`}
-                    d={pathD}
-                    fill="none"
-                    stroke={strokeColor}
-                    strokeWidth={strokeWidth}
-                    strokeDasharray={isHighlighted ? "none" : "5 5"}
-                    markerEnd={
-                      isHighlighted ? "url(#ml-arrow-active)" : `url(#ml-arrow-${node.family})`
-                    }
-                    style={{
-                      opacity: strokeOpacity,
-                      transition: "all var(--transition-normal)",
+                  <g
+                    key={node.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
+                    transform={`translate(${node.x - width / 2}, ${node.y - 32})`}
+                    onClick={() => handleSelectNode(node)}
+                    onKeyDown={handleKeyDown}
+                    onMouseEnter={() => setHoveredNodeId(node.id)}
+                    onMouseLeave={() => setHoveredNodeId(null)}
+                    onFocus={() => {
+                      setFocusedNodeId(node.id);
+                      setHoveredNodeId(node.id);
                     }}
-                  />
+                    onBlur={() => {
+                      setFocusedNodeId(null);
+                      setHoveredNodeId(null);
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      outline: "none",
+                      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                    className={isHovered ? "scale-[1.02]" : ""}
+                  >
+                    <rect
+                      width={width}
+                      height="64"
+                      rx="12"
+                      fill={
+                        activeFocusOrHover
+                          ? mlInfraFamilyFillHover(node.family)
+                          : mlInfraFamilyFill(node.family)
+                      }
+                      stroke={
+                        activeFocusOrHover
+                          ? "var(--border-accent)"
+                          : isRelated
+                            ? mlInfraFamilyColor(node.family)
+                            : "var(--border-default)"
+                      }
+                      strokeWidth={activeFocusOrHover ? 2.5 : 1.5}
+                      style={{
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        filter: activeFocusOrHover
+                          ? "drop-shadow(0 12px 24px rgba(0,0,0,0.5))"
+                          : "drop-shadow(0 4px 12px rgba(0,0,0,0.3))",
+                      }}
+                    />
+
+                    <text
+                      x={width / 2}
+                      y="28"
+                      textAnchor="middle"
+                      fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
+                      className="font-bold text-[13px] transition-all duration-300"
+                    >
+                      {node.title}
+                    </text>
+
+                    <text
+                      x={width / 2}
+                      y="48"
+                      textAnchor="middle"
+                      fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
+                      className="font-mono text-[11px] transition-all duration-300"
+                    >
+                      {problemCount} {problemCount === 1 ? "Problem" : "Problems"} •{" "}
+                      {node.difficulty}
+                    </text>
+                  </g>
                 );
-              }),
-            )}
-          </g>
-
-          {/* Nodes Group */}
-          <g className="nodes">
-            {ML_INFRA_TREE_PLACEMENTS.map((node: MLInfraCurriculumPlacement) => {
-              const isHovered = hoveredNodeId === node.id;
-              const isFocused = focusedNodeId === node.id;
-              const activeFocusOrHover = isHovered || isFocused;
-              const isRelated =
-                hoveredNodeId !== null &&
-                (node.prerequisites.includes(hoveredNodeId) ||
-                  (hoveredNode?.prerequisites.includes(node.id) ?? false));
-
-              const width = Math.max(190, node.title.length * 8.5 + 40);
-
-              const handleKeyDown = (e: React.KeyboardEvent) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  handleSelectNode(node);
-                }
-              };
-
-              const problemCount = problemCountByTopicId.get(node.topicId) ?? 0;
-
-              return (
-                <g
-                  key={node.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${node.title}. ${node.description}. Difficulty: ${node.difficulty}. Click or press Enter to view topics.`}
-                  transform={`translate(${node.x - width / 2}, ${node.y - 32})`}
-                  onClick={() => handleSelectNode(node)}
-                  onKeyDown={handleKeyDown}
-                  onMouseEnter={() => setHoveredNodeId(node.id)}
-                  onMouseLeave={() => setHoveredNodeId(null)}
-                  onFocus={() => {
-                    setFocusedNodeId(node.id);
-                    setHoveredNodeId(node.id);
-                  }}
-                  onBlur={() => {
-                    setFocusedNodeId(null);
-                    setHoveredNodeId(null);
-                  }}
-                  style={{
-                    cursor: "pointer",
-                    outline: "none",
-                    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                  }}
-                  className={isHovered ? "scale-[1.02]" : ""}
-                >
-                  <rect
-                    width={width}
-                    height="64"
-                    rx="12"
-                    fill={
-                      activeFocusOrHover
-                        ? mlInfraFamilyFillHover(node.family)
-                        : mlInfraFamilyFill(node.family)
-                    }
-                    stroke={
-                      activeFocusOrHover
-                        ? "var(--border-accent)"
-                        : isRelated
-                          ? mlInfraFamilyColor(node.family)
-                          : "var(--border-default)"
-                    }
-                    strokeWidth={activeFocusOrHover ? 2.5 : 1.5}
-                    style={{
-                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                      filter: activeFocusOrHover
-                        ? "drop-shadow(0 12px 24px rgba(0,0,0,0.5))"
-                        : "drop-shadow(0 4px 12px rgba(0,0,0,0.3))",
-                    }}
-                  />
-
-                  <text
-                    x={width / 2}
-                    y="28"
-                    textAnchor="middle"
-                    fill={isHovered ? "var(--accent)" : "var(--text-primary)"}
-                    className="font-bold text-[13px] transition-all duration-300"
-                  >
-                    {node.title}
-                  </text>
-
-                  <text
-                    x={width / 2}
-                    y="48"
-                    textAnchor="middle"
-                    fill={isHovered ? "var(--text-secondary)" : "var(--text-muted)"}
-                    className="font-mono text-[11px] transition-all duration-300"
-                  >
-                    {problemCount} {problemCount === 1 ? "Problem" : "Problems"} • {node.difficulty}
-                  </text>
-                </g>
-              );
-            })}
-          </g>
-        </svg>
+              })}
+            </g>
+          </svg>
+        </div>
       </div>
     </div>
   );

@@ -69,6 +69,121 @@ export const TOPIC_CATALOG = [
     track: "dsa",
   },
   {
+    id: "ml_python_scientific_computing",
+    label: "Python, Environments & Scientific Computing",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_problem_framing",
+    label: "ML Problem Framing & Success Metrics",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_data_contracts_splits",
+    label: "Data Contracts, Datasets & Splits",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_numerical_tensors",
+    label: "Numerical Computing, Tensors & Stability",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_model_evaluation",
+    label: "Baseline Models, Evaluation & Error Analysis",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_training_autodiff",
+    label: "Training Loops, Autodiff & Optimization",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_experiment_lineage",
+    label: "Experiment Reproducibility, Metadata & Lineage",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_feature_pipelines",
+    label: "Feature/Data Pipelines & Offline–Online Consistency",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_workflow_orchestration",
+    label: "ML Workflow Orchestration, Testing & CI",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_training_platform",
+    label: "Training Platform, Compute & Scheduling",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_model_registry",
+    label: "Model Packaging, Registry & Release Promotion",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_inference_serving",
+    label: "Inference Deployment & Serving Reliability",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_observability_incidents",
+    label: "Production Evaluation, Observability & Incident Response",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_governance_security_cost",
+    label: "ML Security, Governance, Privacy & Cost",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_platform_capstone",
+    label: "End-to-End ML Platform Capstone",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_accelerator_performance",
+    label: "Accelerator Performance, Roofline & Kernel Fundamentals",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_distributed_training",
+    label: "Distributed Training & Parallelism",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_compilation_quantization",
+    label: "Inference Compilation, Quantization & Portable Runtimes",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_transformer_internals",
+    label: "Transformer Internals & Tokenization",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_llm_serving",
+    label: "LLM Serving Systems",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_vector_retrieval",
+    label: "Retrieval & Vector Data Systems",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_tree_ensemble_systems",
+    label: "Tree-Ensemble Systems",
+    track: "ml-infra",
+  },
+  {
+    id: "ml_vision_sequence_models",
+    label: "Vision & Sequence Model Internals",
+    track: "ml-infra",
+  },
+  {
     id: "ml_tensor_algebra",
     label: "Tensor Algebra & Memory Strides",
     track: "ml-infra",
@@ -131,11 +246,6 @@ export const TOPIC_CATALOG = [
   {
     id: "ml_distributed_systems",
     label: "Distributed ML & Interconnects",
-    track: "ml-infra",
-  },
-  {
-    id: "ml_llm_serving",
-    label: "LLM Serving & Continuous Batching",
     track: "ml-infra",
   },
 ] as const satisfies readonly TopicDefinitionShape[];
