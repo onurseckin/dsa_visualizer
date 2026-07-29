@@ -49,7 +49,9 @@ describe("clean-break target catalog", () => {
 
   it("backs every required and elective ML topic with exactly three complementary items", () => {
     expect(ML_INFRA_TREE_PLACEMENTS).toHaveLength(23);
-    expect(ML_INFRA_TREE_PLACEMENTS.filter(({ family }) => family !== "electives")).toHaveLength(15);
+    expect(ML_INFRA_TREE_PLACEMENTS.filter(({ family }) => family !== "electives")).toHaveLength(
+      15,
+    );
     expect(ML_INFRA_TREE_PLACEMENTS.filter(({ family }) => family === "electives")).toHaveLength(8);
 
     for (const { topicId } of ML_INFRA_TREE_PLACEMENTS) {
