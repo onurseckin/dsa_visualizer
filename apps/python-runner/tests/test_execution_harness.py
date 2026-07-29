@@ -100,6 +100,142 @@ class ExecutionHarnessTests(unittest.TestCase):
         self.assertEqual(result["status"], "passed")
         self.assertEqual(result["cases"][0]["actual"], 14)
 
+    def test_selects_mutated_input_and_projects_safe_namespace_results(self):
+        mutated = execute_request(
+            request_for(
+                "def sort_in_place(values):\n    values.sort()",
+                [
+                    case(
+                        "mutated",
+                        {"values": [3, 1, 2]},
+                        [1, 2, 3],
+                    )
+                ],
+                entrypoint="sort_in_place",
+                invocation={
+                    "kind": "function",
+                    "arguments": [{"from": "input", "path": ["values"]}],
+                    "result": {"from": "input", "path": ["values"]},
+                },
+            )
+        )
+        projected = execute_request(
+            request_for(
+                (
+                    "def reverse(head):\n"
+                    "    previous = None\n"
+                    "    while head:\n"
+                    "        following = head.next\n"
+                    "        head.next = previous\n"
+                    "        previous = head\n"
+                    "        head = following\n"
+                    "    return previous"
+                ),
+                [
+                    case(
+                        "namespace",
+                        {
+                            "head": {
+                                "val": 1,
+                                "next": {"val": 2, "next": None},
+                            }
+                        },
+                        {"val": 2, "next": {"val": 1, "next": None}},
+                    )
+                ],
+                entrypoint="reverse",
+                invocation={
+                    "kind": "function",
+                    "arguments": [
+                        {
+                            "from": "input",
+                            "path": ["head"],
+                            "convert": "namespace",
+                        }
+                    ],
+                    "result": {
+                        "from": "return",
+                        "path": [],
+                        "project": "json",
+                    },
+                },
+            )
+        )
+
+        self.assertEqual(mutated["status"], "passed")
+        self.assertEqual(mutated["cases"][0]["actual"], [1, 2, 3])
+        self.assertEqual(projected["status"], "passed")
+        self.assertEqual(
+            projected["cases"][0]["actual"],
+            {"val": 2, "next": {"val": 1, "next": None}},
+        )
+
+    def test_runs_bounded_class_setup_with_safe_instance_bindings(self):
+        result = execute_request(
+            request_for(
+                (
+                    "class Store:\n"
+                    "    def __init__(self):\n"
+                    "        self.root = {'total': 0}\n"
+                    "    def add(self, node, value):\n"
+                    "        node['total'] += value\n"
+                    "    def read(self, node):\n"
+                    "        return node['total']"
+                ),
+                [case("setup", {"first": 4, "second": 7}, 11)],
+                entrypoint="Store",
+                invocation={
+                    "kind": "class-method",
+                    "constructor": [],
+                    "setup": [
+                        {
+                            "method": "add",
+                            "arguments": [
+                                {"from": "instance", "path": ["root"]},
+                                {"from": "input", "path": ["first"]},
+                            ],
+                        },
+                        {
+                            "method": "add",
+                            "arguments": [
+                                {"from": "instance", "path": ["root"]},
+                                {"from": "input", "path": ["second"]},
+                            ],
+                        },
+                    ],
+                    "method": "read",
+                    "arguments": [{"from": "instance", "path": ["root"]}],
+                },
+            )
+        )
+
+        self.assertEqual(result["status"], "passed")
+        self.assertEqual(result["cases"][0]["actual"], 11)
+
+    def test_refuses_to_project_arbitrary_learner_objects(self):
+        result = execute_request(
+            request_for(
+                (
+                    "class Dangerous:\n"
+                    "    def __init__(self): self.value = 1\n"
+                    "def solve(value): return Dangerous()"
+                ),
+                [case("unsafe-projection", 1, {"value": 1})],
+                invocation={
+                    "kind": "function",
+                    "arguments": [{"from": "input", "path": []}],
+                    "result": {
+                        "from": "return",
+                        "path": [],
+                        "project": "json",
+                    },
+                },
+            )
+        )
+
+        self.assertEqual(result["status"], "error")
+        self.assertIn("safe namespace", result["cases"][0]["stderr"])
+
     def test_invokes_stdin_script_and_compares_stdout(self):
         result = execute_request(
             request_for(

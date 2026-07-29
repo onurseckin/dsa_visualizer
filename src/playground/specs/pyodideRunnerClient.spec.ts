@@ -721,6 +721,131 @@ describe("browser execution harness parity", () => {
     });
   });
 
+  it("matches server semantics for setup, instance bindings, mutation selection, and namespaces", () => {
+    const mutated = executeWithCpython(
+      request("run-mutated", {
+        code: "def sort_in_place(values):\n    values.sort()",
+        spec: executionSpec({
+          entrypoint: "sort_in_place",
+          invocation: {
+            kind: "function",
+            arguments: [{ from: "input", path: ["values"] }],
+            result: { from: "input", path: ["values"] },
+          },
+          cases: [
+            {
+              id: "mutated",
+              label: "Mutated",
+              input: { values: [3, 1, 2] },
+              expected: [1, 2, 3],
+              comparison: "deep-equal",
+            },
+          ],
+        }),
+      }),
+    );
+    const stateful = executeWithCpython(
+      request("run-stateful", {
+        code: [
+          "class Store:",
+          "    def __init__(self): self.root = {'total': 0}",
+          "    def add(self, node, value): node['total'] += value",
+          "    def read(self, node): return node['total']",
+        ].join("\n"),
+        spec: executionSpec({
+          entrypoint: "Store",
+          invocation: {
+            kind: "class-method",
+            constructor: [],
+            setup: [
+              {
+                method: "add",
+                arguments: [
+                  { from: "instance", path: ["root"] },
+                  { from: "input", path: ["first"] },
+                ],
+              },
+              {
+                method: "add",
+                arguments: [
+                  { from: "instance", path: ["root"] },
+                  { from: "input", path: ["second"] },
+                ],
+              },
+            ],
+            method: "read",
+            arguments: [{ from: "instance", path: ["root"] }],
+          },
+          cases: [
+            {
+              id: "setup",
+              label: "Setup",
+              input: { first: 4, second: 7 },
+              expected: 11,
+              comparison: "deep-equal",
+            },
+          ],
+        }),
+      }),
+    );
+    const projected = executeWithCpython(
+      request("run-namespace", {
+        code: [
+          "def reverse(head):",
+          "    previous = None",
+          "    while head:",
+          "        following = head.next",
+          "        head.next = previous",
+          "        previous = head",
+          "        head = following",
+          "    return previous",
+        ].join("\n"),
+        spec: executionSpec({
+          entrypoint: "reverse",
+          invocation: {
+            kind: "function",
+            arguments: [
+              {
+                from: "input",
+                path: ["head"],
+                convert: "namespace",
+              },
+            ],
+            result: {
+              from: "return",
+              path: [],
+              project: "json",
+            },
+          },
+          cases: [
+            {
+              id: "namespace",
+              label: "Namespace",
+              input: {
+                head: {
+                  val: 1,
+                  next: { val: 2, next: null },
+                },
+              },
+              expected: {
+                val: 2,
+                next: { val: 1, next: null },
+              },
+              comparison: "deep-equal",
+            },
+          ],
+        }),
+      }),
+    );
+
+    expect(mutated.cases[0]).toMatchObject({ status: "passed", actual: [1, 2, 3] });
+    expect(stateful.cases[0]).toMatchObject({ status: "passed", actual: 11 });
+    expect(projected.cases[0]).toMatchObject({
+      status: "passed",
+      actual: { val: 2, next: { val: 1, next: null } },
+    });
+  });
+
   it("shares one retained output budget while comparing stdout independently", () => {
     const bounded = executeWithCpython(
       request("run-aggregate-output", {

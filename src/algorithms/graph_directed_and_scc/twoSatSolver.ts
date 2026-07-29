@@ -36,7 +36,45 @@ export const TWO_SAT_CODE = `def solve_2sat(variables, clauses):
             return False, {}
             
     assignment = {var: scc[var] > scc[f"~{var}"] for var in variables}
-    return True, assignment`;
+    return True, assignment
+
+def kosaraju_scc(variables, graph):
+    literals = list(graph)
+    visited = set()
+    finish_order = []
+
+    def dfs1(literal):
+        visited.add(literal)
+        for neighbor in graph[literal]:
+            if neighbor not in visited:
+                dfs1(neighbor)
+        finish_order.append(literal)
+
+    for literal in literals:
+        if literal not in visited:
+            dfs1(literal)
+
+    reverse_graph = {literal: [] for literal in literals}
+    for literal, neighbors in graph.items():
+        for neighbor in neighbors:
+            reverse_graph[neighbor].append(literal)
+
+    components = {}
+
+    def dfs2(literal, component_id):
+        components[literal] = component_id
+        for neighbor in reverse_graph[literal]:
+            if neighbor not in components:
+                dfs2(neighbor, component_id)
+
+    component_id = 0
+    while finish_order:
+        literal = finish_order.pop()
+        if literal not in components:
+            dfs2(literal, component_id)
+            component_id += 1
+
+    return components`;
 
 export const TWO_SAT_TRIVIA: TriviaMeta = {
   skipLines: [6, 9, 13, 15, 19],
@@ -81,6 +119,36 @@ export const TWO_SAT_TRIVIA: TriviaMeta = {
     18: "Returns False and empty dict when formula is unsatisfiable.",
     20: "Assigns boolean values based on topological order of SCC indices.",
     21: "Returns True and the satisfying boolean truth assignment.",
+    23: "Defines the SCC helper used by the 2-SAT implication graph.",
+    24: "Captures literals in deterministic graph insertion order.",
+    25: "Initializes visitation state for the first DFS pass.",
+    26: "Initializes the literal finish-order stack.",
+    28: "Defines the first DFS pass over implication edges.",
+    29: "Marks the current literal visited.",
+    30: "Explores each outgoing implication.",
+    31: "Checks whether the implication target is new.",
+    32: "Recurses into an unseen implication target.",
+    33: "Records the literal after all descendants finish.",
+    35: "Sweeps every literal, including disconnected implication components.",
+    36: "Starts a first-pass DFS only for an unseen literal.",
+    37: "Runs the first-pass DFS.",
+    39: "Allocates the reversed implication graph.",
+    40: "Walks every original adjacency list.",
+    41: "Walks every outgoing implication edge.",
+    42: "Adds its reversed edge.",
+    44: "Initializes the literal-to-component map.",
+    46: "Defines the second DFS pass on the reversed graph.",
+    47: "Assigns the current literal to its SCC.",
+    48: "Explores reversed implication edges.",
+    49: "Checks whether the neighbor already belongs to an SCC.",
+    50: "Recurses within the current SCC.",
+    52: "Starts component numbering in reverse finish order.",
+    53: "Processes every literal on the finish stack.",
+    54: "Pops the latest-finishing literal.",
+    55: "Checks whether a prior second-pass DFS already claimed it.",
+    56: "Collects a newly discovered SCC.",
+    57: "Advances the SCC topological rank.",
+    59: "Returns component ranks for every positive and negative literal.",
   },
 };
 

@@ -5,21 +5,44 @@ export type PythonRuntime = "browser" | "server";
 
 export type PythonPackage = "numpy" | "torch";
 
-export interface ValueBinding {
-  readonly from: "input";
-  readonly path: readonly (number | string)[];
+export type PythonValuePath = readonly (number | string)[];
+
+export type ValueBinding =
+  | {
+      readonly from: "input";
+      readonly path: PythonValuePath;
+      readonly convert?: "namespace";
+    }
+  | {
+      readonly from: "instance";
+      readonly path: PythonValuePath;
+      readonly convert?: never;
+    };
+
+export interface PythonSetupCall {
+  readonly method: string;
+  readonly arguments: readonly ValueBinding[];
+}
+
+export interface PythonResultSelection {
+  readonly from: "return" | "input" | "instance";
+  readonly path: PythonValuePath;
+  readonly project?: "json";
 }
 
 export type PythonInvocation =
   | {
       readonly kind: "function";
       readonly arguments: readonly ValueBinding[];
+      readonly result?: PythonResultSelection;
     }
   | {
       readonly kind: "class-method";
       readonly constructor: readonly ValueBinding[];
+      readonly setup?: readonly PythonSetupCall[];
       readonly method: string;
       readonly arguments: readonly ValueBinding[];
+      readonly result?: PythonResultSelection;
     }
   | {
       readonly kind: "stdin";
@@ -93,6 +116,8 @@ export {
   isPythonRunId,
   PYTHON_CASE_ID_MAX_BYTES,
   PYTHON_CANCEL_REQUEST_BODY_CEILING_BYTES,
+  PYTHON_INVOCATION_PATH_MAX_SEGMENTS,
+  PYTHON_INVOCATION_SETUP_MAX_STEPS,
   PYTHON_EXECUTION_POLICY_CEILINGS,
   PYTHON_ID_PATTERN_SOURCE,
   PYTHON_RUN_ID_MAX_BYTES,

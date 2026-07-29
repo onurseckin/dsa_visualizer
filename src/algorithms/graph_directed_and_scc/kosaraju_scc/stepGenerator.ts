@@ -91,7 +91,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   );
 
   addStep(
-    2,
+    8,
     "Begin Pass 1 DFS on G",
     "We run DFS on the original graph and push each vertex onto a stack the moment it finishes. Vertices that finish late end up on top — exactly the order Pass 2 will want to start from.",
     undefined,
@@ -106,7 +106,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
 
     addStep(
-      5,
+      11,
       `Visit node '${u}'`,
       `We mark '${u}' as visited and explore its unvisited out-neighbors first — in Pass 1 a vertex only finishes once everything reachable from it is done.`,
       u,
@@ -121,7 +121,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
 
       if (!pass1Visited.has(v)) {
         addStep(
-          8,
+          14,
           `Follow edge '${u}' -> '${v}'`,
           `Neighbor '${v}' hasn't been visited yet, so we dive into it now — '${u}' has to wait for all of its descendants before it can join the finish stack.`,
           v,
@@ -138,7 +138,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
 
     addStep(
-      9,
+      15,
       `Finish '${u}' and push it`,
       `Everything reachable from '${u}' has been explored, so '${u}' is done and goes on the finish stack. The later a vertex finishes, the higher it sits.`,
       u,
@@ -154,7 +154,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   }
 
   addStep(
-    13,
+    19,
     "Complete Pass 1",
     `The finish order came out as [${[...finishStack].reverse().join(", ")}], top first. The vertex on top finished last, which means its component can reach everything below it — a fact Pass 2 will exploit.`,
     undefined,
@@ -170,7 +170,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   }));
 
   addStep(
-    15,
+    6,
     "Reverse every edge to build G^T",
     "We flip all the edges. Each SCC survives intact — a cycle reversed is still a cycle — but reachability between components inverts, and that is what will keep the next DFS trapped inside a single component.",
     undefined,
@@ -179,7 +179,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   );
 
   addStep(
-    24,
+    30,
     "Begin Pass 2 on G^T",
     "Now we pop vertices in reverse finish order and DFS on the reversed graph. Starting from the latest finisher, each DFS can only reach vertices in its own component — the reversed edges block every escape route.",
     undefined,
@@ -196,7 +196,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     }
 
     addStep(
-      19,
+      25,
       `Add '${u}' to SCC #${sccs.length + 1}`,
       `We reached '${u}' along reversed edges, which means '${u}' can reach this component's root in the original graph — and the finish order guarantees the reverse direction too, so they belong together.`,
       u,
@@ -219,7 +219,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
     const u = finishStack.pop()!;
 
     addStep(
-      25,
+      31,
       `Pop '${u}' from the stack`,
       `We take '${u}' off the top of the finish stack. If it hasn't been claimed by a component yet, it anchors a brand-new SCC; if it has, we simply move on.`,
       u,
@@ -249,7 +249,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
       });
 
       addStep(
-        29,
+        35,
         `Complete SCC #${sccs.length}`,
         `The DFS ran out of reversed edges, so this component is sealed: {${component.join(", ")}}. Every vertex inside it can reach every other one in both directions.`,
         undefined,
@@ -260,7 +260,7 @@ export const generateKosarajuSccSteps = (input: KosarajuSccInput): AlgorithmStep
   }
 
   addStep(
-    30,
+    36,
     `Finish with ${sccs.length} component(s)`,
     `Every vertex now belongs to exactly one strongly connected component. Two linear DFS sweeps plus one edge reversal did all the work, which is why the whole algorithm runs in O(V + E).`,
     undefined,

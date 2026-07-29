@@ -102,6 +102,39 @@ BLOCKED_OS_PROCESS_NAMES = frozenset(
         "system",
     }
 )
+INVOCATION_MAX_PATH_SEGMENTS = 32
+INVOCATION_MAX_SETUP_STEPS = 32
+INVOCATION_MAX_GRAPH_DEPTH = 64
+INVOCATION_MAX_GRAPH_NODES = 10_000
+
+
+class SafeNamespace:
+    """Attribute view created only from authored JSON object primitives."""
+
+    __slots__ = ("_values",)
+
+    def __init__(self, values: Mapping[str, Any]) -> None:
+        object.__setattr__(self, "_values", dict(values))
+
+    def __getattr__(self, name: str) -> Any:
+        _require_public_name(name)
+        values = object.__getattribute__(self, "_values")
+        try:
+            return values[name]
+        except KeyError as error:
+            raise AttributeError(name) from error
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        _require_public_name(name)
+        values = object.__getattribute__(self, "_values")
+        values[name] = value
+
+    def public_value(self, name: str) -> Any:
+        _require_public_name(name)
+        return object.__getattribute__(self, "_values")[name]
+
+    def public_items(self) -> Any:
+        return object.__getattribute__(self, "_values").items()
 
 
 class OutputBudget:
@@ -452,27 +485,229 @@ def _invoke(code: str, spec: Mapping[str, Any], case_input: Any) -> Any:
         raise NameError(f"Entrypoint {entrypoint!r} was not defined.")
 
     if kind == "function":
-        return target(*_bound_values(invocation.get("arguments"), case_input))
+        returned = target(*_bound_values(invocation.get("arguments"), case_input))
+        return _select_invocation_result(invocation, returned, case_input, None)
     if kind == "class-method":
         instance = target(*_bound_values(invocation.get("constructor"), case_input))
+        setup = invocation.get("setup", [])
+        if not isinstance(setup, Sequence) or isinstance(setup, (str, bytes)):
+            raise ValueError("Setup must be an array.")
+        if len(setup) > INVOCATION_MAX_SETUP_STEPS:
+            raise ValueError("Setup exceeds the authored step limit.")
+        for step in setup:
+            if not isinstance(step, Mapping):
+                raise ValueError("Each setup step must be an object.")
+            method = _public_method(instance, step.get("method"))
+            method(*_bound_values(step.get("arguments"), case_input, instance))
         method_name = invocation.get("method")
-        method = getattr(instance, method_name)
-        return method(*_bound_values(invocation.get("arguments"), case_input))
+        method = _public_method(instance, method_name)
+        returned = method(*_bound_values(invocation.get("arguments"), case_input, instance))
+        return _select_invocation_result(invocation, returned, case_input, instance)
     raise ValueError(f"Unsupported invocation kind: {kind!r}.")
 
 
-def _bound_values(bindings: Any, case_input: Any) -> list[Any]:
+def _bound_values(bindings: Any, case_input: Any, instance: Any = None) -> list[Any]:
     if not isinstance(bindings, Sequence) or isinstance(bindings, (str, bytes)):
         raise ValueError("Bindings must be an array.")
     values = []
     for binding in bindings:
-        if not isinstance(binding, Mapping) or binding.get("from") != "input":
-            raise ValueError("Only authored input bindings are supported.")
-        value = case_input
-        for segment in binding.get("path", []):
-            value = value[segment]
+        if not isinstance(binding, Mapping):
+            raise ValueError("Each binding must be an object.")
+        source = binding.get("from")
+        if source == "input":
+            value = _value_at_path(case_input, binding.get("path"), allow_learner_objects=False)
+            if binding.get("convert") == "namespace":
+                value = _to_safe_namespace(value)
+            elif binding.get("convert") is not None:
+                raise ValueError("Unsupported input conversion.")
+        elif source == "instance" and instance is not None:
+            if binding.get("convert") is not None:
+                raise ValueError("Instance bindings cannot convert values.")
+            value = _value_at_path(instance, binding.get("path"), allow_learner_objects=True)
+        else:
+            raise ValueError("Only authored input and instance bindings are supported.")
         values.append(value)
     return values
+
+
+def _select_invocation_result(
+    invocation: Mapping[str, Any],
+    returned: Any,
+    case_input: Any,
+    instance: Any,
+) -> Any:
+    selection = invocation.get("result")
+    if selection is None:
+        return returned
+    if not isinstance(selection, Mapping):
+        raise ValueError("Result selection must be an object.")
+    source = selection.get("from")
+    if source == "return":
+        value = returned
+        allow_learner_objects = True
+    elif source == "input":
+        value = case_input
+        allow_learner_objects = False
+    elif source == "instance" and instance is not None:
+        value = instance
+        allow_learner_objects = True
+    else:
+        raise ValueError("Unsupported result source.")
+    value = _value_at_path(
+        value,
+        selection.get("path"),
+        allow_learner_objects=allow_learner_objects,
+    )
+    if selection.get("project") == "json":
+        return _project_safe_json(value)
+    if selection.get("project") is not None:
+        raise ValueError("Unsupported result projection.")
+    return value
+
+
+def _value_at_path(value: Any, path: Any, *, allow_learner_objects: bool) -> Any:
+    if not isinstance(path, Sequence) or isinstance(path, (str, bytes)):
+        raise ValueError("Binding paths must be arrays.")
+    if len(path) > INVOCATION_MAX_PATH_SEGMENTS:
+        raise ValueError("Binding path exceeds the segment limit.")
+    current = value
+    for segment in path:
+        if isinstance(segment, str):
+            _require_public_name(segment)
+            if isinstance(current, Mapping):
+                current = current[segment]
+            elif isinstance(current, SafeNamespace):
+                current = current.public_value(segment)
+            elif allow_learner_objects:
+                values = object.__getattribute__(current, "__dict__")
+                if not isinstance(values, Mapping):
+                    raise ValueError("Learner object fields must use a plain attribute dictionary.")
+                current = values[segment]
+            else:
+                raise ValueError("String paths require an object value.")
+        elif isinstance(segment, int) and not isinstance(segment, bool) and segment >= 0:
+            if not isinstance(current, (list, tuple)):
+                raise ValueError("Numeric paths require an array value.")
+            current = current[segment]
+        else:
+            raise ValueError("Binding path segments must be public strings or non-negative integers.")
+    return current
+
+
+def _public_method(instance: Any, name: Any) -> Any:
+    _require_public_name(name)
+    method = getattr(instance, name)
+    if not callable(method):
+        raise TypeError(f"Authored method {name!r} is not callable.")
+    return method
+
+
+def _require_public_name(name: Any) -> None:
+    if (
+        not isinstance(name, str)
+        or not name
+        or name.startswith("_")
+        or not name.isidentifier()
+    ):
+        raise ValueError("Authored names and paths must use public identifiers.")
+
+
+def _to_safe_namespace(value: Any) -> Any:
+    return _convert_safe_namespace(value, 0, set(), [0])
+
+
+def _convert_safe_namespace(
+    value: Any,
+    depth: int,
+    active: set[int],
+    count: list[int],
+) -> Any:
+    _consume_graph_node(depth, count)
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (list, tuple)):
+        identity = id(value)
+        _enter_graph(identity, active)
+        try:
+            return [
+                _convert_safe_namespace(item, depth + 1, active, count)
+                for item in value
+            ]
+        finally:
+            active.remove(identity)
+    if isinstance(value, Mapping):
+        if not all(isinstance(key, str) for key in value):
+            raise ValueError("Namespace conversion requires string object keys.")
+        identity = id(value)
+        _enter_graph(identity, active)
+        try:
+            converted = {}
+            for key, item in value.items():
+                _require_public_name(key)
+                converted[key] = _convert_safe_namespace(item, depth + 1, active, count)
+            return SafeNamespace(converted)
+        finally:
+            active.remove(identity)
+    raise ValueError("Namespace conversion accepts only JSON primitives.")
+
+
+def _project_safe_json(value: Any) -> Any:
+    return _convert_safe_json(value, 0, set(), [0])
+
+
+def _convert_safe_json(
+    value: Any,
+    depth: int,
+    active: set[int],
+    count: list[int],
+) -> Any:
+    _consume_graph_node(depth, count)
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, (list, tuple)):
+        identity = id(value)
+        _enter_graph(identity, active)
+        try:
+            return [_convert_safe_json(item, depth + 1, active, count) for item in value]
+        finally:
+            active.remove(identity)
+    if isinstance(value, SafeNamespace):
+        identity = id(value)
+        _enter_graph(identity, active)
+        try:
+            return {
+                key: _convert_safe_json(item, depth + 1, active, count)
+                for key, item in value.public_items()
+            }
+        finally:
+            active.remove(identity)
+    if type(value) is dict:
+        if not all(isinstance(key, str) for key in value):
+            raise ValueError("Safe JSON projection requires string object keys.")
+        identity = id(value)
+        _enter_graph(identity, active)
+        try:
+            return {
+                key: _convert_safe_json(item, depth + 1, active, count)
+                for key, item in value.items()
+            }
+        finally:
+            active.remove(identity)
+    raise ValueError("JSON projection accepts only safe namespace, list, and dict primitives.")
+
+
+def _consume_graph_node(depth: int, count: list[int]) -> None:
+    if depth > INVOCATION_MAX_GRAPH_DEPTH:
+        raise ValueError("Safe namespace graph exceeds the depth limit.")
+    count[0] += 1
+    if count[0] > INVOCATION_MAX_GRAPH_NODES:
+        raise ValueError("Safe namespace graph exceeds the node limit.")
+
+
+def _enter_graph(identity: int, active: set[int]) -> None:
+    if identity in active:
+        raise ValueError("Safe namespace graph must not contain cycles.")
+    active.add(identity)
 
 
 def _compare(actual: Any, expected: Any, comparison: str, tolerance: Any) -> bool:

@@ -53,7 +53,23 @@ def query(node: Node, l: int, r: int, ql: int, qr: int) -> int:
     if ql <= l and r <= qr:
         return node.val
     mid = (l + r) // 2
-    return query(node.left, l, mid, ql, qr) + query(node.right, mid + 1, r, ql, qr)`;
+    return query(node.left, l, mid, ql, qr) + query(node.right, mid + 1, r, ql, qr)
+
+def persistent_segment_tree_operations(
+    arr: list[int],
+    index: int,
+    value: int,
+    left: int,
+    right: int,
+) -> dict[str, int]:
+    original = build(arr, 0, len(arr) - 1)
+    updated = update(original, 0, len(arr) - 1, index, value)
+    return {
+        "before": query(original, 0, len(arr) - 1, left, right),
+        "after": query(updated, 0, len(arr) - 1, left, right),
+        "originalTotal": original.val,
+        "updatedTotal": updated.val,
+    }`;
 
 export const DEFAULT_PERSISTENT_SEGMENT_TREE_INPUT: PersistentSegmentTreeInput = {
   array: [1, 3, 5, 7],
@@ -597,6 +613,22 @@ export const PERSISTENT_SEGMENT_TREE_TRIVIA: TriviaMeta = {
     31: "Returns cached node value directly for complete range match.",
     32: "Calculates interval midpoint: mid = (l + r) // 2.",
     33: "Recursively queries left and right subtrees and returns their sum.",
+    34: "Blank line separating canonical primitives from the executable version adapter.",
+    35: "Begins the persistent version-operation adapter signature.",
+    36: "Accepts the original array.",
+    37: "Accepts the point-update index.",
+    38: "Accepts the replacement value.",
+    39: "Accepts the inclusive query's left boundary.",
+    40: "Accepts the inclusive query's right boundary.",
+    41: "Declares a mapping of old/new query and total results.",
+    42: "Builds the original version root.",
+    43: "Path-copies an updated version while preserving the original root.",
+    44: "Begins the result mapping for both versions.",
+    45: "Queries the requested range on the original version.",
+    46: "Queries the same range on the updated version.",
+    47: "Exposes the unchanged original full-range total.",
+    48: "Exposes the updated version's full-range total.",
+    49: "Closes and returns the version-comparison mapping.",
   },
 };
 

@@ -5,7 +5,7 @@ export interface ReverseLinkedListInput {
   nodes: number[];
 }
 
-export const REVERSE_LINKED_LIST_CODE = `def reverse_linked_list(head: Optional[ListNode]) -> Optional[ListNode]:
+export const REVERSE_LINKED_LIST_CODE = `def reverse_linked_list(head: "Optional[ListNode]") -> "Optional[ListNode]":
     prev = None
     curr = head
     while curr:
