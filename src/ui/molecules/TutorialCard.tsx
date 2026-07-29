@@ -31,9 +31,9 @@ export const TutorialCard: React.FC<TutorialCardProps> = ({ narrative, stepIndex
   return (
     <Card
       data-testid="tutorial-card"
-      className="h-auto min-h-fit overflow-visible border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)]"
+      className="h-full min-h-[160px] overflow-visible border border-[var(--border-default)] rounded-xl bg-[var(--bg-surface)] flex flex-col"
     >
-      <Card.Body className="py-2 px-4 flex flex-col gap-1.5 min-w-0">
+      <Card.Body className="py-3 px-4 flex flex-col justify-start gap-2 min-w-0 flex-1">
         <div
           style={{
             display: "flex",

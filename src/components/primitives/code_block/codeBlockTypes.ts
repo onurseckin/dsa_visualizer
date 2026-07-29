@@ -3,6 +3,7 @@ import type { DisplayValue } from "../../../types/dsa";
 export interface CodeBlockViewerProps {
   code: string;
   activeLine?: number;
+  isPinned?: boolean;
   variables?: Record<string, DisplayValue>;
   lineExplanations?: Record<number, string>;
 }

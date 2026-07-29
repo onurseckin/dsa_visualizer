@@ -11,8 +11,6 @@ import { MainLayoutState } from "../hooks/useMainLayoutState";
 import { PrimaryVisualizerCanvas } from "./PrimaryVisualizerCanvas";
 import { MainLayoutEmptyStage } from "./MainLayoutEmptyStage";
 
-const DEFAULT_STAGE_HEIGHT = "max(var(--stage-min-h), 50vh)";
-
 export interface MainStageProps {
   algorithm: AlgorithmDefinition;
   currentStep?: AlgorithmStep | null;
@@ -35,13 +33,14 @@ export const MainStage: React.FC<MainStageProps> = ({
 
   const stagePinned = layoutState.stagePinned;
   const visualizerPinned = layoutState.layout.panelHeights.visualizer;
+  const isCodePinned = layoutState.layout.panelHeights.code !== null;
 
   const stageHeight =
     stagePinned !== null
       ? `${stagePinned}px`
       : visualizerPinned !== null
         ? `${visualizerPinned}px`
-        : DEFAULT_STAGE_HEIGHT;
+        : undefined;
 
   const leftRows: ResizableRow[] = [
     {
@@ -51,7 +50,7 @@ export const MainStage: React.FC<MainStageProps> = ({
       greedy: !panels.visualizer,
       height: layoutState.layout.panelHeights.tutorial,
       content: narrative ? (
-        <div className="h-full overflow-auto">
+        <div className="h-full min-h-[160px] overflow-auto">
           <TutorialCard
             narrative={narrative}
             stepIndex={currentStep?.stepIndex}
@@ -67,10 +66,18 @@ export const MainStage: React.FC<MainStageProps> = ({
       greedy: true,
       height: layoutState.layout.panelHeights.visualizer,
       content: (
-        <PrimaryVisualizerCanvas
-          currentStep={currentStep}
-          resolvedControlProps={resolvedControlProps}
-        />
+        <div
+          className="w-full h-full bg-[var(--bg-inset)]"
+          style={{
+            height: visualizerPinned !== null ? "100%" : "65vh",
+            minHeight: "65vh",
+          }}
+        >
+          <PrimaryVisualizerCanvas
+            currentStep={currentStep}
+            resolvedControlProps={resolvedControlProps}
+          />
+        </div>
       ),
     },
   ];
@@ -80,10 +87,15 @@ export const MainStage: React.FC<MainStageProps> = ({
       id: "code",
       label: "code",
       visible: panels.code,
-      greedy: !panels.complexity,
+      greedy: false,
       height: layoutState.layout.panelHeights.code,
       content: (
-        <div className="h-full w-full bg-[var(--bg-inset)]">
+        <div
+          className="w-full bg-[var(--bg-inset)]"
+          style={{
+            height: isCodePinned ? "100%" : "75vh",
+          }}
+        >
           <CodeWorkspace
             itemId={algorithm.id}
             itemTitle={algorithm.title}
@@ -141,7 +153,9 @@ export const MainStage: React.FC<MainStageProps> = ({
       <div
         ref={layoutState.stageRef}
         data-stage="workspace"
-        className="flex flex-col overflow-hidden h-full shrink-0"
+        className={`flex flex-col shrink-0 w-full ${
+          stageHeight !== undefined ? "overflow-hidden h-full" : "h-auto overflow-visible"
+        }`}
         style={{
           height: stageHeight,
         }}

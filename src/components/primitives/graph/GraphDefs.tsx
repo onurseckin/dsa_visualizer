@@ -46,6 +46,28 @@ export const GraphDefs: React.FC<GraphDefsProps> = ({ markerScope, arrowW, arrow
       >
         <polygon points={`0 0, ${arrowW} ${arrowH / 2}, 0 ${arrowH}`} fill="var(--state-path)" />
       </marker>
+      <marker
+        id={`arrowhead-candidate-${markerScope}`}
+        markerUnits="userSpaceOnUse"
+        markerWidth={arrowW}
+        markerHeight={arrowH}
+        refX={arrowRefX}
+        refY={arrowH / 2}
+        orient="auto"
+      >
+        <polygon points={`0 0, ${arrowW} ${arrowH / 2}, 0 ${arrowH}`} fill="var(--state-compare)" />
+      </marker>
+      <marker
+        id={`arrowhead-rejected-${markerScope}`}
+        markerUnits="userSpaceOnUse"
+        markerWidth={arrowW}
+        markerHeight={arrowH}
+        refX={arrowRefX}
+        refY={arrowH / 2}
+        orient="auto"
+      >
+        <polygon points={`0 0, ${arrowW} ${arrowH / 2}, 0 ${arrowH}`} fill="var(--danger)" />
+      </marker>
     </defs>
   );
 };

@@ -111,6 +111,8 @@ Agents authoring new items or updating existing algorithm/learning items MUST st
    - **Phase 1 (Inputless Intro)**: Conceptual mental model, problem setup, and naive bottleneck explanation *before* operating on specific input arrays.
    - **Phase 2 (Concrete Walkthrough)**: Step-by-step visual execution on representative default inputs.
    - **Phase 3 (3-Scenario Matrix)**: Define 3 distinct input scenarios (Scenario 1: Standard Path, Scenario 2: Boundary/Edge Case like $N=1$, Scenario 3: Complex/Adversarial Case).
+   - The guide is the canonical teaching contract: each narrative claim needs same-frame canvas evidence; primitives and HUDs must be necessary, non-duplicative, and non-occluding; and each selected scenario's walkthrough, termination, output, and implementation must agree.
+   - Once an input-aware walkthrough introduces a structure that will later change, retain it with its latest state in every relevant later frame; focused narration does not justify hiding causal state. Use a compact measured composite when necessary.
 3. **Single Fluid Narrative Paragraph Rule**:
    - Step captions MUST be authored as a **single, fluid, conversational narrative paragraph**.
    - Strictly ban mechanical `{ what, why }` object splits, bulleted checklists, or line-number references.
@@ -118,6 +120,7 @@ Agents authoring new items or updating existing algorithm/learning items MUST st
    - Visualizer SVGs MUST follow Canvas Law: `viewBox = boxViewBox(measuredBox)` with `width="100%" height="100%"`.
    - All auxiliary data structures (stacks, queues, hash maps, DP matrices, visited sets) MUST be rendered natively **INSIDE the SVG canvas** (`CanvasAuxiliaryOverlay` or in-canvas HUDs). Floating HTML side panels are strictly prohibited.
    - Use canonical reusable primitives from `src/components/primitives/` (Array, Matrix, Graph, Tree, Grid, Vector, Quantization, Interval, Heap, DSU, HashTable, StateSpace, CallStack, Bitmask, AttentionMap, Trie) or `CompositeCanvasSnapshot` for multi-primitive views.
+   - For weighted graphs, keep numeric weights legible and collision-free. Prefer the graph primitive's weighted layout over an accidental symmetric layout; visual edge length is not a replacement for the displayed numeric weight unless explicitly taught.
 5. **Code Decoupling (`codeLine: undefined`)**:
    - Visualizer step snapshots MUST set `codeLine: undefined`. Visual transitions tell an intuitive story independent of source code line numbers.
 6. **Narrative and Names**:

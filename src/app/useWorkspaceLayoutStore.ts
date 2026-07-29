@@ -9,32 +9,32 @@ import { WorkspaceLayout, WorkspaceLayoutPatch } from "./workspaceLayoutTypes";
 
 export interface WorkspaceLayoutStoreState {
   layout: WorkspaceLayout;
-  patchLayout: (patch: WorkspaceLayoutPatch) => void;
-  resetLayout: () => WorkspaceLayout;
-  clearLayout: () => void;
-  refreshFromStorage: () => void;
+  patchLayout: (patch: WorkspaceLayoutPatch, algorithmId?: string) => void;
+  resetLayout: (algorithmId?: string) => WorkspaceLayout;
+  clearLayout: (algorithmId?: string) => void;
+  refreshFromStorage: (algorithmId?: string) => void;
 }
 
 export const useWorkspaceLayoutStore = create<WorkspaceLayoutStoreState>((set) => ({
   layout: readWorkspaceLayout(),
 
-  patchLayout: (patch: WorkspaceLayoutPatch) => {
-    const updated = writeWorkspaceLayout(patch);
+  patchLayout: (patch: WorkspaceLayoutPatch, algorithmId?: string) => {
+    const updated = writeWorkspaceLayout(patch, algorithmId);
     set({ layout: updated });
   },
 
-  resetLayout: () => {
-    const defaultLayout = resetWorkspaceLayout();
+  resetLayout: (algorithmId?: string) => {
+    const defaultLayout = resetWorkspaceLayout(algorithmId);
     set({ layout: defaultLayout });
     return defaultLayout;
   },
 
-  clearLayout: () => {
-    clearWorkspaceLayout();
-    set({ layout: readWorkspaceLayout() });
+  clearLayout: (algorithmId?: string) => {
+    clearWorkspaceLayout(algorithmId);
+    set({ layout: readWorkspaceLayout(algorithmId) });
   },
 
-  refreshFromStorage: () => {
-    set({ layout: readWorkspaceLayout() });
+  refreshFromStorage: (algorithmId?: string) => {
+    set({ layout: readWorkspaceLayout(algorithmId) });
   },
 }));

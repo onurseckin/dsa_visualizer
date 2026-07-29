@@ -17,6 +17,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   width = 900,
   height = 560,
   isDirected = false,
+  layout,
   name,
   title,
   auxiliaryState,
@@ -26,7 +27,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
   const markerScope = React.useId().replace(/:/g, "");
   const caption = resolvePrimitiveLabel("graph", name) ?? (title?.trim() || undefined);
 
-  const metrics = computeGraphLayout(nodes, edges, box);
+  const metrics = computeGraphLayout(nodes, edges, box, layout);
 
   return (
     <div
@@ -103,6 +104,7 @@ export const GraphVisualizer: React.FC<GraphVisualizerProps> = ({
                 weightFont={metrics.weightFont}
                 weightW={metrics.weightW}
                 weightH={metrics.weightH}
+                weightPosition={metrics.weightPositions.get(idx)}
               />
             );
           })}

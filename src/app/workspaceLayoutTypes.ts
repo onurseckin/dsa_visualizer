@@ -1,5 +1,9 @@
 export const WORKSPACE_LAYOUT_KEY = "dsa_visualizer_workspace_layout_v8";
 
+export function getWorkspaceLayoutKey(algorithmId?: string): string {
+  return algorithmId ? `${WORKSPACE_LAYOUT_KEY}_${algorithmId}` : WORKSPACE_LAYOUT_KEY;
+}
+
 export const WORKSPACE_LAYOUT_VERSION = 8;
 
 /* Reset is a navbar action but the layout state lives in the workspace, so the

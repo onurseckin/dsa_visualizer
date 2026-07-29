@@ -32,10 +32,10 @@ export const CodeBlockViewer: React.FC<CodeBlockViewerProps> = ({
       padding="none"
       variant="inset"
       style={{ background: "var(--bg-inset)" }}
-      className="border border-[var(--border-default)] bg-[var(--bg-inset)] h-full flex flex-col p-0"
+      className="border border-[var(--border-default)] bg-[var(--bg-inset)] p-0 h-full flex flex-col min-h-0"
     >
       <div
-        className="flex-1 min-h-0 overflow-y-auto bg-[var(--bg-inset)] p-0"
+        className="bg-[var(--bg-inset)] p-0 flex-1 min-h-0 overflow-y-auto"
         style={{ background: "var(--bg-inset)" }}
       >
         {lines.map((lineText, idx) => {

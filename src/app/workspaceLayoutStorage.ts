@@ -4,7 +4,6 @@ import {
   MAX_SPLIT_PERCENT,
   MIN_PANEL_HEIGHT_PX,
   MIN_SPLIT_PERCENT,
-  WORKSPACE_LAYOUT_KEY,
   WORKSPACE_LAYOUT_RESET_EVENT,
   WORKSPACE_LAYOUT_VERSION,
   WORKSPACE_PANEL_KEYS,
@@ -14,6 +13,7 @@ import {
   clampPanelHeight,
   clampSplitPercent,
   cloneWorkspaceLayout,
+  getWorkspaceLayoutKey,
 } from "./workspaceLayoutTypes";
 import { syncKeyToSqlite } from "./sqliteSync";
 
@@ -58,13 +58,14 @@ const getStorage = (): Storage | null => {
 };
 
 /** Never throws: any unreadable, stale, malformed or out-of-range value yields defaults. */
-export function readWorkspaceLayout(): WorkspaceLayout {
+export function readWorkspaceLayout(algorithmId?: string): WorkspaceLayout {
   const storage = getStorage();
   if (!storage) return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 
+  const storageKey = getWorkspaceLayoutKey(algorithmId);
   let raw: string | null = null;
   try {
-    raw = storage.getItem(WORKSPACE_LAYOUT_KEY);
+    raw = storage.getItem(storageKey);
   } catch {
     return cloneWorkspaceLayout(DEFAULT_LAYOUT);
   }
@@ -99,8 +100,12 @@ export function readWorkspaceLayout(): WorkspaceLayout {
 }
 
 /** Merges the patch onto whatever is stored, clamps it, writes best-effort, returns the result. */
-export function writeWorkspaceLayout(patch: WorkspaceLayoutPatch): WorkspaceLayout {
-  const current = readWorkspaceLayout();
+export function writeWorkspaceLayout(
+  patch: WorkspaceLayoutPatch,
+  algorithmId?: string,
+): WorkspaceLayout {
+  const storageKey = getWorkspaceLayoutKey(algorithmId);
+  const current = readWorkspaceLayout(algorithmId);
 
   const panelHeights = {} as WorkspacePanelHeights;
   for (const key of WORKSPACE_PANEL_KEYS) {
@@ -123,37 +128,40 @@ export function writeWorkspaceLayout(patch: WorkspaceLayoutPatch): WorkspaceLayo
   const value = JSON.stringify(merged);
   if (storage) {
     try {
-      storage.setItem(WORKSPACE_LAYOUT_KEY, value);
+      storage.setItem(storageKey, value);
     } catch {
       // Storage full or blocked: the in-memory layout still applies this session.
     }
   }
-  void syncKeyToSqlite(WORKSPACE_LAYOUT_KEY, value);
+  void syncKeyToSqlite(storageKey, value);
 
   return merged;
 }
 
 /** Only ever called from a confirmed "reset layout" action. */
-export function clearWorkspaceLayout(): void {
+export function clearWorkspaceLayout(algorithmId?: string): void {
+  const storageKey = getWorkspaceLayoutKey(algorithmId);
   const storage = getStorage();
   if (storage) {
     try {
-      storage.removeItem(WORKSPACE_LAYOUT_KEY);
+      storage.removeItem(storageKey);
     } catch {
       // Nothing to recover from — the caller restores defaults in memory anyway.
     }
   }
-  void syncKeyToSqlite(WORKSPACE_LAYOUT_KEY, null);
+  void syncKeyToSqlite(storageKey, null);
 }
 
 /**
  * The whole confirmed reset: drop the stored state, then tell every mounted
  * reader to re-read it.
  */
-export function resetWorkspaceLayout(): WorkspaceLayout {
-  clearWorkspaceLayout();
+export function resetWorkspaceLayout(algorithmId?: string): WorkspaceLayout {
+  clearWorkspaceLayout(algorithmId);
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(WORKSPACE_LAYOUT_RESET_EVENT));
+    window.dispatchEvent(
+      new CustomEvent(WORKSPACE_LAYOUT_RESET_EVENT, { detail: { algorithmId } }),
+    );
   }
   return cloneWorkspaceLayout(DEFAULT_LAYOUT);
 }

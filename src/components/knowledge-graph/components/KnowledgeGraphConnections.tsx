@@ -36,20 +36,20 @@ export const KnowledgeGraphConnections: React.FC<KnowledgeGraphConnectionsProps>
           const parentHeight = parent.height ?? 64;
           const nodeWidth = node.width ?? 190;
           const nodeHeight = node.height ?? 64;
-          let startY = parent.y + Math.min(parentHeight / 2, 30);
+          let startY = parent.y + parentHeight / 2;
           let endX = node.x;
-          let endY = node.y - Math.min(nodeHeight / 2, 30);
+          let endY = node.y - nodeHeight / 2;
 
           if (parent.y === node.y) {
             if (parent.x < node.x) {
-              startX = parent.x + Math.min(parentWidth / 2, 90);
+              startX = parent.x + parentWidth / 2;
               startY = parent.y;
-              endX = node.x - Math.min(nodeWidth / 2, 90);
+              endX = node.x - nodeWidth / 2;
               endY = node.y;
             } else {
-              startX = parent.x - Math.min(parentWidth / 2, 90);
+              startX = parent.x - parentWidth / 2;
               startY = parent.y;
-              endX = node.x + Math.min(nodeWidth / 2, 90);
+              endX = node.x + nodeWidth / 2;
               endY = node.y;
             }
           }
