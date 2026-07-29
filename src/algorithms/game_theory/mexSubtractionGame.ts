@@ -15,8 +15,15 @@ export const PYTHON_MEX_SUBTRACTION_GAME_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def stoneGame(self, piles: list[int]) -> bool:
-        return True`;
+    def grundy(self, n: int, moves: list[int]) -> int:
+        values = [0] * (n + 1)
+        for stones in range(1, n + 1):
+            reachable = {values[stones - move] for move in moves if move <= stones}
+            mex = 0
+            while mex in reachable:
+                mex += 1
+            values[stones] = mex
+        return values[n]`;
 
 export const DEFAULT_MEX_SUBTRACTION_GAME_INPUT: MexSubtractionGameInput = {
   n: 5,
