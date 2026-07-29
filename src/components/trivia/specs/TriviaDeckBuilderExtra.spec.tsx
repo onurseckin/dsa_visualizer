@@ -2,7 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { TriviaDeckBuilder } from "../../../ui";
 import type { AlgorithmDefinition } from "../../../types/dsa";
-import * as registry from "../../../algorithms/registry";
+import * as registry from "../../../learning/registry";
+import { adaptAlgorithmDefinition } from "../../../learning/algorithmAdapters";
 
 describe("TriviaDeckBuilder extra coverage", () => {
   it("allows filtering by topic, difficulty, search term, and resetting filters", () => {
@@ -50,8 +51,8 @@ describe("TriviaDeckBuilder extra coverage", () => {
   });
 
   it("handles algorithms with a canonical topic in search query matching", () => {
-    const spy = vi.spyOn(registry, "getAllAlgorithms").mockReturnValue([
-      {
+    const spy = vi.spyOn(registry, "getTriviaLearningItems").mockReturnValue([
+      adaptAlgorithmDefinition({
         id: "custom-alg",
         title: "Custom Alg",
         topicIds: ["arrays_and_hashing"],
@@ -60,7 +61,7 @@ describe("TriviaDeckBuilder extra coverage", () => {
         constraints: [],
         examples: [],
         code: "pass",
-      } as unknown as AlgorithmDefinition<unknown>,
+      } as unknown as AlgorithmDefinition<unknown>),
     ]);
     render(<TriviaDeckBuilder deck={[]} onChange={vi.fn()} />);
     const searchInput = screen.getByRole("textbox", { name: "Filter algorithms" });
@@ -70,8 +71,8 @@ describe("TriviaDeckBuilder extra coverage", () => {
   });
 
   it("renders correctly when TOPICS entries are matched", () => {
-    const spy = vi.spyOn(registry, "getAllAlgorithms").mockReturnValue([
-      {
+    const spy = vi.spyOn(registry, "getTriviaLearningItems").mockReturnValue([
+      adaptAlgorithmDefinition({
         id: "two-sum",
         title: "Two Sum",
         topicIds: ["arrays_and_hashing"],
@@ -80,7 +81,7 @@ describe("TriviaDeckBuilder extra coverage", () => {
         constraints: [],
         examples: [],
         code: "pass",
-      } as unknown as AlgorithmDefinition<unknown>,
+      } as unknown as AlgorithmDefinition<unknown>),
     ]);
     render(<TriviaDeckBuilder deck={["two-sum"]} onChange={vi.fn()} />);
     expect(screen.getAllByText("Arrays & Hashing")[0]).toBeInTheDocument();

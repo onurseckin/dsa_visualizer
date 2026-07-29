@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { PanelKey, PanelVisibility } from "../types/dsa";
+import { LEARNING_ITEM_REGISTRY } from "../learning/registry";
 
 const STORAGE_PREFIX = "dsa_visualizer_";
 
@@ -34,7 +35,11 @@ function writeStored(key: string, value: boolean | string | number): void {
 }
 
 const isBoolean = (value: unknown): value is boolean => typeof value === "boolean";
-const isString = (value: unknown): value is string => typeof value === "string";
+const isLearningItemId = (value: unknown): value is string =>
+  typeof value === "string" && Object.hasOwn(LEARNING_ITEM_REGISTRY, value);
+
+const LAST_ITEM_STORAGE_KEY = "last_item_id_v2";
+const DEFAULT_ITEM_ID = "bubble-sort";
 
 export const MIN_PLAYBACK_SPEED_MS = 50;
 export const MAX_PLAYBACK_SPEED_MS = 1000;
@@ -61,18 +66,18 @@ export function readPanelVisibility(): PanelVisibility {
 
 export interface SettingsState {
   panels: PanelVisibility;
-  lastAlgorithmId: string;
+  lastItemId: string;
   speed: number;
   setPanel: (key: PanelKey, visible: boolean) => void;
   togglePanel: (key: PanelKey) => void;
-  setLastAlgorithmId: (id: string) => void;
+  setLastItemId: (id: string) => void;
   setSpeed: (speed: number) => void;
   refreshFromStorage: () => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   panels: readPanelVisibility(),
-  lastAlgorithmId: readStored("last_algorithm_id", "bubble-sort", isString),
+  lastItemId: readStored(LAST_ITEM_STORAGE_KEY, DEFAULT_ITEM_ID, isLearningItemId),
   speed: readStored("playback_speed", DEFAULT_PLAYBACK_SPEED_MS, isPlaybackSpeed),
 
   setPanel: (key: PanelKey, visible: boolean) => {
@@ -91,9 +96,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     });
   },
 
-  setLastAlgorithmId: (id: string) => {
-    writeStored("last_algorithm_id", id);
-    set({ lastAlgorithmId: id });
+  setLastItemId: (id: string) => {
+    const validId = isLearningItemId(id) ? id : DEFAULT_ITEM_ID;
+    writeStored(LAST_ITEM_STORAGE_KEY, validId);
+    set({ lastItemId: validId });
   },
 
   setSpeed: (speed: number) => {
@@ -105,7 +111,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   refreshFromStorage: () => {
     set({
       panels: readPanelVisibility(),
-      lastAlgorithmId: readStored("last_algorithm_id", "bubble-sort", isString),
+      lastItemId: readStored(LAST_ITEM_STORAGE_KEY, DEFAULT_ITEM_ID, isLearningItemId),
       speed: readStored("playback_speed", DEFAULT_PLAYBACK_SPEED_MS, isPlaybackSpeed),
     });
   },

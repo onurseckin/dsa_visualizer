@@ -13,6 +13,7 @@ import type { BadgeSize } from "./Badge";
 import { Badge } from "./Badge";
 import { LeetCodeBadge } from "./LeetCodeBadge";
 import { cx } from "../cx";
+import type { LearningSource } from "../../learning/types";
 
 export type {
   ProblemSource,
@@ -156,7 +157,7 @@ export const MlInfraBadge: React.FC<MlInfraBadgeProps> = ({
 };
 
 export interface SourceBadgeProps {
-  source?: ProblemSource;
+  source?: ProblemSource | LearningSource;
   size?: BadgeSize;
   className?: string;
 }
@@ -166,7 +167,7 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({ source, size = "sm", c
     return null;
   }
 
-  const kind = getSourceKind(source);
+  const kind = "kind" in source && source.kind ? source.kind : getSourceKind(source);
 
   if (kind === "leetcode") {
     const leetcodeSource = source as LeetCodeSource;
@@ -196,7 +197,7 @@ export const SourceBadge: React.FC<SourceBadgeProps> = ({ source, size = "sm", c
 };
 
 export interface SourceBadgeListProps {
-  sources?: ProblemSource[];
+  sources?: readonly (ProblemSource | LearningSource)[];
   leetcode?: { id: number; url: string };
   size?: BadgeSize;
   className?: string;
@@ -208,7 +209,7 @@ export const SourceBadgeList: React.FC<SourceBadgeListProps> = ({
   size = "sm",
   className = "inline-flex items-center gap-1.5 flex-wrap",
 }) => {
-  const effectiveSources: ProblemSource[] =
+  const effectiveSources: readonly (ProblemSource | LearningSource)[] =
     sources && sources.length > 0
       ? sources
       : leetcode

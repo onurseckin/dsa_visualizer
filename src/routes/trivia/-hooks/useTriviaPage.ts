@@ -26,8 +26,8 @@ import {
   writeActiveSessionId,
 } from "../../../trivia/triviaSessions";
 import type { SourceKind } from "../../../types/dsa";
-import { getAlgorithmSources, getSourceKind } from "../../../types/dsa";
-import { getAlgorithm, getAllAlgorithms } from "../../../algorithms/registry";
+import { CODE_LEARNING_ITEMS, getLearningItem } from "../../../learning/registry";
+import { isTriviaEligibleLearningItem } from "../../../learning/types";
 import { DeckSources, reviveProgressForConfig } from "../-triviaPageUtils";
 import { useTriviaPageLayout } from "./useTriviaPageLayout";
 
@@ -65,10 +65,10 @@ export function useTriviaPage() {
     const nextSources = new Map<string, PuzzleLine[]>();
     const nextMeta = new Map<string, TriviaMeta | undefined>();
     (config?.deck ?? []).forEach((id) => {
-      const algorithm = getAlgorithm(id);
-      if (algorithm === undefined) return;
-      nextSources.set(id, parsePuzzleLines(algorithm.code, algorithm.trivia));
-      nextMeta.set(id, algorithm.trivia);
+      const item = getLearningItem(id);
+      if (!item || !isTriviaEligibleLearningItem(item)) return;
+      nextSources.set(id, parsePuzzleLines(item.code, item.trivia));
+      nextMeta.set(id, item.trivia);
     });
     return { sources: nextSources, meta: nextMeta };
   }, [config]);
@@ -183,18 +183,16 @@ export function useTriviaPage() {
 
   const handleFilterDeckBySource = (sourceFilter: "ALL" | SourceKind) => {
     if (!config || !progress) return;
-    const allAlgs = getAllAlgorithms();
+    const triviaItems = CODE_LEARNING_ITEMS.filter(isTriviaEligibleLearningItem);
     const filtered =
       sourceFilter === "ALL"
-        ? allAlgs
-        : allAlgs.filter((alg) =>
-            getAlgorithmSources(alg).some((s) => getSourceKind(s) === sourceFilter),
-          );
-    applyConfig({ deck: filtered.map((a) => a.id) });
+        ? triviaItems
+        : triviaItems.filter((item) => item.sources.some((source) => source.kind === sourceFilter));
+    applyConfig({ deck: filtered.map((item) => item.id) });
   };
 
   const activeTitle =
-    round === null ? "" : (getAlgorithm(round.algorithmId)?.title ?? round.algorithmId);
+    round === null ? "" : (getLearningItem(round.algorithmId)?.title ?? round.algorithmId);
 
   const { layout, sessionListPanel, deckBuilderPanel, settingsPanel } = useTriviaPageLayout();
 

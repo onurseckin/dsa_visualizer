@@ -1,14 +1,15 @@
 import React from "react";
 import { ArrowUpDown, Code2, Play } from "lucide-react";
-import { AlgorithmDefinition, getAlgorithmSources } from "../../types/dsa";
+import type { LearningItem } from "../../learning/types";
+import { isAlgorithmLearningItem } from "../../learning/types";
 
-import { getAlgorithmTopicLabels } from "../../app/topics";
+import { getLearningItemTopicLabels } from "../../app/topics";
 import { ProblemListSortField } from "../../components/problem-list/problemListUtils";
 import { Badge, difficultyBadgeVariant, SourceBadgeList } from "../index";
 
 interface ProblemTableProps {
-  filteredAlgorithms: AlgorithmDefinition[];
-  paginatedAlgorithms?: AlgorithmDefinition[];
+  filteredAlgorithms: LearningItem[];
+  paginatedAlgorithms?: LearningItem[];
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
@@ -83,7 +84,8 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
               </tr>
             ) : (
               displayAlgorithms.map((alg, index) => {
-                const topicLabels = getAlgorithmTopicLabels(alg);
+                const topicLabels = getLearningItemTopicLabels(alg);
+                const implementation = isAlgorithmLearningItem(alg) ? alg.algorithm : undefined;
                 const rowNum = (currentPage - 1) * itemsPerPage + index + 1;
 
                 return (
@@ -112,7 +114,7 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                           className="text-[var(--text-muted)] shrink-0"
                         />
                         <span>{alg.title}</span>
-                        <SourceBadgeList sources={getAlgorithmSources(alg)} size="sm" />
+                        <SourceBadgeList sources={alg.sources} size="sm" />
                       </span>
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)]">
@@ -132,10 +134,10 @@ export const ProblemTable: React.FC<ProblemTableProps> = ({
                       )}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">
-                      {alg.timeComplexity?.average || "O(N)"}
+                      {implementation?.timeComplexity.average || "O(N)"}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm font-mono text-[var(--text-muted)]">
-                      {alg.spaceComplexity || "O(1)"}
+                      {implementation?.spaceComplexity || "O(1)"}
                     </td>
                     <td className="bg-[var(--bg-inset)] group-hover:bg-[var(--bg-surface-hover)] group-focus:bg-[var(--bg-surface-hover)] py-4 px-6 border-b border-[var(--border-subtle)] text-sm text-[var(--text-primary)] text-center">
                       <button

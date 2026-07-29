@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProblemTable } from "../../../ui";
 import { AlgorithmDefinition } from "../../../types/dsa";
+import { adaptAlgorithmDefinition } from "../../../learning/algorithmAdapters";
 
 const sampleAlgorithm: AlgorithmDefinition = {
   id: "bubble-sort",
@@ -32,6 +33,9 @@ const sampleAlgorithmSparse: AlgorithmDefinition = {
   generateSteps: () => [],
 };
 
+const sampleItem = adaptAlgorithmDefinition(sampleAlgorithm);
+const sampleItemSparse = adaptAlgorithmDefinition(sampleAlgorithmSparse);
+
 describe("ProblemTable render spec", () => {
   it("renders table headers and problem row details", () => {
     const onToggleSort = vi.fn();
@@ -39,7 +43,7 @@ describe("ProblemTable render spec", () => {
 
     render(
       <ProblemTable
-        filteredAlgorithms={[sampleAlgorithm]}
+        filteredAlgorithms={[sampleItem]}
         sortBy="title"
         onToggleSort={onToggleSort}
         onSelectAlgorithm={onSelectAlgorithm}
@@ -59,7 +63,7 @@ describe("ProblemTable render spec", () => {
   it("renders fallback complexity strings when omitted", () => {
     render(
       <ProblemTable
-        filteredAlgorithms={[sampleAlgorithmSparse]}
+        filteredAlgorithms={[sampleItemSparse]}
         sortBy="title"
         onToggleSort={vi.fn()}
         onSelectAlgorithm={vi.fn()}
@@ -89,7 +93,7 @@ describe("ProblemTable render spec", () => {
 
     render(
       <ProblemTable
-        filteredAlgorithms={[sampleAlgorithm]}
+        filteredAlgorithms={[sampleItem]}
         sortBy="title"
         onToggleSort={vi.fn()}
         onSelectAlgorithm={onSelectAlgorithm}
@@ -126,7 +130,7 @@ describe("ProblemTable render spec", () => {
 
     render(
       <ProblemTable
-        filteredAlgorithms={[topicAlgorithm]}
+        filteredAlgorithms={[adaptAlgorithmDefinition(topicAlgorithm)]}
         sortBy="title"
         onToggleSort={vi.fn()}
         onSelectAlgorithm={vi.fn()}

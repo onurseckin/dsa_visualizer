@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { ALGORITHM_REGISTRY } from "../algorithms/registry";
+import { getLearningItem } from "../learning/registry";
+import { isAlgorithmLearningItem, isRubricLearningItem } from "../learning/types";
+import type { AlgorithmLearningItem } from "../learning/types";
 import { useStepEngine } from "../engine/stepEngine";
 import { MainLayout } from "../ui/templates/MainLayout";
 import { useSettings } from "../app/SettingsContext";
@@ -15,7 +17,7 @@ const activatesOnSpace = (target: EventTarget | null): boolean =>
 
 export const Route = createFileRoute("/workspace/$algorithmId")({
   beforeLoad: ({ params }) => {
-    if (!ALGORITHM_REGISTRY[params.algorithmId]) {
+    if (!getLearningItem(params.algorithmId)) {
       throw redirect({ to: "/workspace/$algorithmId", params: { algorithmId: "bubble-sort" } });
     }
   },
@@ -24,10 +26,36 @@ export const Route = createFileRoute("/workspace/$algorithmId")({
 
 function WorkspacePage(): React.ReactElement {
   const { algorithmId } = Route.useParams();
+  const item = getLearningItem(algorithmId);
+
+  if (!isAlgorithmLearningItem(item)) {
+    const message =
+      item && isRubricLearningItem(item)
+        ? "This rubric-based item needs its assessment workspace."
+        : "This learning item is not available in the algorithm workspace.";
+    return (
+      <main
+        aria-label="Learning item unavailable"
+        className="m-auto max-w-xl rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 text-[var(--text-secondary)]"
+      >
+        {message}
+      </main>
+    );
+  }
+
+  return <AlgorithmWorkspacePage item={item} />;
+}
+
+function AlgorithmWorkspacePage({
+  item,
+}: {
+  readonly item: AlgorithmLearningItem;
+}): React.ReactElement {
+  const algorithmId = item.id;
   const {
     panels,
     setPanel,
-    setLastAlgorithmId,
+    setLastItemId,
     speed: persistedSpeed,
     setSpeed: setPersistedSpeed,
   } = useSettings();
@@ -35,8 +63,7 @@ function WorkspacePage(): React.ReactElement {
   const [dataSize, setDataSize] = useState<number>(10);
   const [inputSeed, setInputSeed] = useState<number>(1);
 
-  // beforeLoad redirected unknown ids, so the registry lookup always hits.
-  const algorithm = ALGORITHM_REGISTRY[algorithmId];
+  const algorithm = item.algorithm;
 
   const [selectedInput, setSelectedInput] = useState<unknown>(
     () => algorithm.examples?.[0]?.input ?? algorithm.defaultInput,
@@ -52,8 +79,8 @@ function WorkspacePage(): React.ReactElement {
 
   // Keep the persisted "last visited" id in sync for navbar/drawer navigation.
   useEffect(() => {
-    setLastAlgorithmId(algorithmId);
-  }, [algorithmId, setLastAlgorithmId]);
+    setLastItemId(algorithmId);
+  }, [algorithmId, setLastItemId]);
 
   // Random sized inputs only fit algorithms that consume a plain number array;
   // object-shaped inputs (e.g. Two Sum's {nums, target}) keep their curated default.

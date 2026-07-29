@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge, Button, FieldLabel, Well, MarkdownRenderer } from "../../../ui";
-import { getAlgorithm } from "../../../algorithms/registry";
+import { getLearningItem } from "../../../learning/registry";
+import { isAlgorithmLearningItem } from "../../../learning/types";
 import { getTopicLabel } from "../../../app/topics";
 import type { TriviaLayout, TriviaPanelVisibility } from "../../../trivia/triviaLayout";
 import type { TriviaMode } from "../../../types/trivia";
@@ -31,7 +32,8 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
   onTogglePanel,
   mode,
 }) => {
-  const algorithm = getAlgorithm(algorithmId);
+  const item = getLearningItem(algorithmId);
+  const algorithm = isAlgorithmLearningItem(item) ? item.algorithm : undefined;
   const isExpanded = layout.panelVisibility.problem;
 
   return (
@@ -39,14 +41,14 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">{algorithmTitle}</h2>
         <Badge size="md">{hiddenLabel}</Badge>
-        {algorithm?.topicIds.map((topicId) => (
+        {item?.topicIds.map((topicId) => (
           <Badge key={topicId} variant="neutral" size="sm">
             {getTopicLabel(topicId)}
           </Badge>
         ))}
-        {algorithm?.difficulty && (
+        {item?.difficulty && (
           <Badge variant="info" size="sm">
-            {algorithm.difficulty}
+            {item.difficulty}
           </Badge>
         )}
 
@@ -93,7 +95,7 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
         </div>
       </div>
 
-      {isExpanded && algorithm && (
+      {isExpanded && item && (
         <div
           id="problem-description-details"
           data-testid="problem-description-details"
@@ -102,11 +104,11 @@ export const TriviaSessionHeader: React.FC<TriviaSessionHeaderProps> = ({
           <section>
             <FieldLabel label="Problem" />
             <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">
-              <MarkdownRenderer content={algorithm.description} />
+              <MarkdownRenderer content={item.description} />
             </Well>
           </section>
 
-          {algorithm.constraints && algorithm.constraints.length > 0 && (
+          {algorithm?.constraints && algorithm.constraints.length > 0 && (
             <section>
               <FieldLabel label="Constraints" />
               <Well className="bg-[var(--bg-inset)] border border-[var(--border-default)] rounded-xl p-5 shadow-inner text-[var(--text-secondary)]">

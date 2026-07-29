@@ -12,7 +12,7 @@ describe("Zustand stores suite", () => {
   });
 
   describe("useSettingsStore", () => {
-    it("manages panel visibility, playback speed, and last algorithm id", () => {
+    it("manages panel visibility, playback speed, and last learning item id", () => {
       const store = useSettingsStore.getState();
       expect(store.panels.visualizer).toBe(true);
 
@@ -22,8 +22,8 @@ describe("Zustand stores suite", () => {
       store.setPanel("visualizer", true);
       expect(useSettingsStore.getState().panels.visualizer).toBe(true);
 
-      store.setLastAlgorithmId("quick-sort");
-      expect(useSettingsStore.getState().lastAlgorithmId).toBe("quick-sort");
+      store.setLastItemId("quick-sort");
+      expect(useSettingsStore.getState().lastItemId).toBe("quick-sort");
 
       store.setSpeed(500);
       expect(useSettingsStore.getState().speed).toBe(500);

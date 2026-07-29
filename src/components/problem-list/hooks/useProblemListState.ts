@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { TopicId, getAlgorithmSources, getSourceKind } from "../../../types/dsa";
-import { getAllAlgorithms } from "../../../algorithms/registry";
+import { TopicId } from "../../../types/dsa";
+import { getAllLearningItems } from "../../../learning/registry";
 import {
-  getAlgorithmTopicLabels,
-  getAlgorithmTopics,
-  isMlInfraAlgorithm,
+  getLearningItemTopicLabels,
+  getLearningItemTopics,
+  isMlInfraLearningItem,
 } from "../../../app/topics";
 import {
   ProblemListDifficulty,
@@ -72,26 +72,26 @@ export function useProblemListState({
     writeStoredProblemListValue("sort_order", next);
   };
 
-  const algorithms = useMemo(() => getAllAlgorithms(), []);
+  const learningItems = useMemo(() => getAllLearningItems(), []);
 
   const stats = useMemo(() => {
     let easy = 0;
     let medium = 0;
     let hard = 0;
-    algorithms.forEach((a) => {
+    learningItems.forEach((a) => {
       if (a.difficulty === "Easy") easy++;
       else if (a.difficulty === "Medium") medium++;
       else if (a.difficulty === "Hard") hard++;
     });
-    return { total: algorithms.length, easy, medium, hard };
-  }, [algorithms]);
+    return { total: learningItems.length, easy, medium, hard };
+  }, [learningItems]);
 
   const filteredAlgorithms = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
 
     // First filter by topic.
-    const topicFiltered = algorithms.filter((alg) => {
-      const topics = getAlgorithmTopics(alg);
+    const topicFiltered = learningItems.filter((item) => {
+      const topics = getLearningItemTopics(item);
       if (selectedTopic !== "All") {
         if (!topics.includes(selectedTopic)) return false;
       }
@@ -105,24 +105,23 @@ export function useProblemListState({
     const effectiveSource = isTopicScoped ? "All" : selectedSource;
     const effectiveDifficulty = isTopicScoped ? "All" : selectedDifficulty;
 
-    const filtered = topicFiltered.filter((alg) => {
-      if (effectiveDifficulty !== "All" && alg.difficulty !== effectiveDifficulty) return false;
+    const filtered = topicFiltered.filter((item) => {
+      if (effectiveDifficulty !== "All" && item.difficulty !== effectiveDifficulty) return false;
 
-      const isMlAlg = isMlInfraAlgorithm(alg);
+      const isMlItem = isMlInfraLearningItem(item);
 
       if (effectiveSource !== "All") {
-        const sources = getAlgorithmSources(alg);
-        const matchesSource = sources.some((s) => getSourceKind(s) === effectiveSource);
-        const matchesMlSource = effectiveSource === "ml_infra" && isMlAlg;
+        const matchesSource = item.sources.some((source) => source.kind === effectiveSource);
+        const matchesMlSource = effectiveSource === "ml_infra" && isMlItem;
 
         if (!matchesSource && !matchesMlSource) return false;
       }
 
       if (!q) return true;
-      if (alg.title.toLowerCase().includes(q)) return true;
-      if (getAlgorithmTopicLabels(alg).some((label) => label.toLowerCase().includes(q)))
+      if (item.title.toLowerCase().includes(q)) return true;
+      if (getLearningItemTopicLabels(item).some((label) => label.toLowerCase().includes(q)))
         return true;
-      return alg.description.toLowerCase().includes(q);
+      return item.description.toLowerCase().includes(q);
     });
 
     return filtered.sort((a, b) => {
@@ -130,9 +129,9 @@ export function useProblemListState({
       if (sortBy === "title") {
         comp = a.title.localeCompare(b.title);
       } else if (sortBy === "topic") {
-        comp = getAlgorithmTopicLabels(a)
+        comp = getLearningItemTopicLabels(a)
           .join("\u0000")
-          .localeCompare(getAlgorithmTopicLabels(b).join("\u0000"));
+          .localeCompare(getLearningItemTopicLabels(b).join("\u0000"));
       } else if (sortBy === "difficulty") {
         const order: Record<string, number | undefined> = { Easy: 1, Medium: 2, Hard: 3 };
         comp = (order[a.difficulty ?? ""] ?? 1) - (order[b.difficulty ?? ""] ?? 1);
@@ -140,7 +139,7 @@ export function useProblemListState({
       return sortOrder === "asc" ? comp : -comp;
     });
   }, [
-    algorithms,
+    learningItems,
     searchTerm,
     selectedDifficulty,
     selectedTopic,

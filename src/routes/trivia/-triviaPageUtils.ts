@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { PuzzleLine, TriviaConfig, TriviaMeta, TriviaProgress } from "../../types/trivia";
-import { getAlgorithm } from "../../algorithms/registry";
+import { getLearningItem } from "../../learning/registry";
+import { isTriviaEligibleLearningItem } from "../../learning/types";
 import { isLevelCovered, parsePuzzleLines } from "../../trivia/triviaEngine";
 import type { TriviaPanelHeights } from "../../trivia/triviaLayout";
 
@@ -36,9 +37,9 @@ export const reviveProgressForConfig = (
 
   const nextSources = new Map<string, PuzzleLine[]>();
   nextConfig.deck.forEach((id) => {
-    const algorithm = getAlgorithm(id);
-    if (algorithm === undefined) return;
-    nextSources.set(id, parsePuzzleLines(algorithm.code, algorithm.trivia));
+    const item = getLearningItem(id);
+    if (!item || !isTriviaEligibleLearningItem(item)) return;
+    nextSources.set(id, parsePuzzleLines(item.code, item.trivia));
   });
   if (nextSources.size === 0) return priorProgress;
 

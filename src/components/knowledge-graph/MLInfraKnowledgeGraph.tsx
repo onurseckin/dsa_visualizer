@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Button } from "../../ui";
-import { getAllAlgorithms } from "../../algorithms/registry";
-import { getAlgorithmTopics, isMlInfraAlgorithm } from "../../app/topics";
+import { getAllLearningItems } from "../../learning/registry";
+import { getLearningItemTopics, isMlInfraLearningItem } from "../../app/topics";
 import {
   ML_INFRA_FAMILIES,
   ML_INFRA_TREE_PLACEMENTS,
@@ -39,8 +39,8 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
 
   const problemCountByTopicId = useMemo(() => {
     const counts = new Map<string, number>();
-    getAllAlgorithms().forEach((algorithm) => {
-      getAlgorithmTopics(algorithm).forEach((topicId) => {
+    getAllLearningItems().forEach((item) => {
+      getLearningItemTopics(item).forEach((topicId) => {
         counts.set(topicId, (counts.get(topicId) ?? 0) + 1);
       });
     });
@@ -54,18 +54,16 @@ export const MLInfraKnowledgeGraph: React.FC<MLInfraKnowledgeGraphProps> = ({
   const drawerQuestions = useMemo(() => {
     if (!activeDrawerTopic) return [];
     const topicId = activeDrawerTopic.topicId;
-    const allAlgs = getAllAlgorithms();
-    const matchingAlgs = allAlgs.filter((algorithm) =>
-      getAlgorithmTopics(algorithm).includes(topicId),
-    );
+    const allItems = getAllLearningItems();
+    const matchingItems = allItems.filter((item) => getLearningItemTopics(item).includes(topicId));
 
-    return matchingAlgs.map((alg) => ({
-      id: alg.id,
-      title: alg.title,
-      algorithmId: alg.id,
-      difficulty: alg.difficulty ?? "Medium",
-      type: isMlInfraAlgorithm(alg) ? "ML Systems Implementation" : "Foundational Math & DSA",
-      description: alg.description,
+    return matchingItems.map((item) => ({
+      id: item.id,
+      title: item.title,
+      algorithmId: item.id,
+      difficulty: item.difficulty,
+      type: isMlInfraLearningItem(item) ? "ML Systems Implementation" : "Foundational Math & DSA",
+      description: item.description,
     }));
   }, [activeDrawerTopic]);
 

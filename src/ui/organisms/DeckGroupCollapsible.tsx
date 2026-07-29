@@ -1,5 +1,6 @@
 import React from "react";
 import type { TopicId, DifficultyLevel, ProblemSource } from "../../types/dsa";
+import type { LearningSource } from "../../learning/types";
 import { Badge, Button, difficultyBadgeVariant, SourceBadgeList } from "../index";
 import { Collapsible } from "@base-ui-components/react/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -8,7 +9,7 @@ export interface DeckEntry {
   id: string;
   title: string;
   difficulty?: DifficultyLevel;
-  sources?: ProblemSource[];
+  sources?: readonly (ProblemSource | LearningSource)[];
   leetcode?: { id: number; url: string };
 }
 

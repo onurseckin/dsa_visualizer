@@ -23,7 +23,7 @@ export const Route = createFileRoute("/problems")({
 function ProblemsPage(): React.ReactElement {
   const { topic } = Route.useSearch();
   const navigate = Route.useNavigate();
-  const { setLastAlgorithmId } = useSettings();
+  const { setLastItemId } = useSettings();
 
   return (
     <ProblemList
@@ -33,7 +33,7 @@ function ProblemsPage(): React.ReactElement {
         navigate({ search: next === "All" ? {} : { topic: next } });
       }}
       onSelectAlgorithm={(algorithmId) => {
-        setLastAlgorithmId(algorithmId);
+        setLastItemId(algorithmId);
         navigate({ to: "/workspace/$algorithmId", params: { algorithmId } });
       }}
     />

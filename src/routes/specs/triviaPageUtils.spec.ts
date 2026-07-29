@@ -9,7 +9,8 @@ import {
   reviveProgressForConfig,
 } from "../trivia/-triviaPageUtils";
 import type { TriviaConfig, TriviaProgress } from "../../types/trivia";
-import { getAlgorithm } from "../../algorithms/registry";
+import { getLearningItem } from "../../learning/registry";
+import { isTriviaEligibleLearningItem } from "../../learning/types";
 import { blankableLines, parsePuzzleLines } from "../../trivia/triviaEngine";
 
 describe("triviaPageUtils", () => {
@@ -24,8 +25,13 @@ describe("triviaPageUtils", () => {
   });
 
   describe("reviveProgressForConfig", () => {
-    const bubbleSortAlg = getAlgorithm("bubble-sort")!;
-    const allBlankable = blankableLines(parsePuzzleLines(bubbleSortAlg.code, bubbleSortAlg.trivia));
+    const bubbleSortItem = getLearningItem("bubble-sort")!;
+    if (!isTriviaEligibleLearningItem(bubbleSortItem)) {
+      throw new Error("bubble-sort must remain eligible for Trivia");
+    }
+    const allBlankable = blankableLines(
+      parsePuzzleLines(bubbleSortItem.code, bubbleSortItem.trivia),
+    );
 
     const uncompletedProgress: TriviaProgress = {
       level: 1,
