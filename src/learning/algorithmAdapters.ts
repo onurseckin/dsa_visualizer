@@ -1,4 +1,4 @@
-import { getPythonExecutionSpec } from "../playground/executionSpecs";
+import { getPythonExecutionSpec, getPythonStarterCode } from "../playground/executionSpecs";
 import {
   getAlgorithmSources,
   getSourceKind,
@@ -123,6 +123,9 @@ export function adaptAlgorithmDefinition(algorithm: AlgorithmDefinition): Algori
     },
     get execution() {
       return getPythonExecutionSpec(algorithm.id);
+    },
+    get starterCode() {
+      return getPythonStarterCode(algorithm.id);
     },
     get generateSteps() {
       return algorithm.generateSteps;

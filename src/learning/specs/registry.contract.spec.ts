@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ALGORITHMS, ALGORITHM_REGISTRY } from "../../algorithms/registry";
 import { TOPIC_CATALOG } from "../../curriculum/topics";
-import { getPythonExecutionSpec } from "../../playground/executionSpecs";
+import { getPythonExecutionSpec, getPythonStarterCode } from "../../playground/executionSpecs";
 import { validatePythonExecutionSpec } from "@dsa-visualizer/execution-contracts";
 import { hasAssessmentRenderer, isAssessmentForLearningItemKind } from "../assessment";
 import { adaptAlgorithmDefinition } from "../algorithmAdapters";
@@ -205,6 +205,8 @@ describe("learning item registry contract", () => {
       expect(item.difficulty).toBe(definition.difficulty ?? "Medium");
       expect(item.description).toBe(definition.description);
       expect(item.code).toBe(definition.code);
+      expect(item.starterCode).toBe(getPythonStarterCode(definition.id));
+      expect(item.starterCode).not.toBe(item.code);
       expect(item.generateSteps).toBe(definition.generateSteps);
       expect(item.defaultInput).toBe(definition.defaultInput);
       expect(item.trivia).toBe(definition.trivia);
