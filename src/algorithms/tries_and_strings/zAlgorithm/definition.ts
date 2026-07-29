@@ -47,13 +47,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns an array of integers representing the starting 0-based text indices of all pattern matches.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
-  <li><code>1 &le; M &le; 10<sup>4</sup></code>.</li>
-  <li>Strings consist of printable ASCII characters.</li>
-  <li>Pattern longer than text (<em>M &gt; N</em>) returns an empty array <code>[]</code>.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= text.length <= 10^5",
     "1 <= pattern.length <= 10^4",
@@ -61,6 +55,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: 'text = "ababaaba", pattern = "aba"',
@@ -73,6 +68,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: 'text = "aaaaa", pattern = "aa"',
       outputDisplay: "[0, 1, 2, 3]",
@@ -83,6 +79,7 @@ export const zAlgorithm: AlgorithmDefinition<ZAlgorithmInput> = {
         "Overlapping pattern occurrences in uniform text, reusing Z-box right boundaries.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'text = "abcdef", pattern = "xyz"',

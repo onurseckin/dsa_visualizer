@@ -224,15 +224,12 @@ export const generateReverseLinkedListSteps = (input: ReverseLinkedListInput): A
   };
 
   if (n === 0) {
-    addStep(
-      "The input linked list is empty (head is null); returning null immediately.",
-      {
-        kind: "array",
-        name: "nodes",
-        mode: "box",
-        elements: [],
-      },
-    );
+    addStep("The input linked list is empty (head is null); returning null immediately.", {
+      kind: "array",
+      name: "nodes",
+      mode: "box",
+      elements: [],
+    });
     return steps;
   }
 
@@ -311,16 +308,11 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns the head of the reversed singly linked list.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>0 &le; N &le; 5000</code>.</li>
-  <li><code>-5000 &le; Node.val &le; 5000</code>.</li>
-  <li>Empty list (<code>head == null</code>) returns <code>null</code>.</li>
-  <li>Single-node list returns <code>head</code> untouched.</li>
-</ul>`,
+`,
   constraints: ["0 <= number of nodes <= 5000", "-5000 <= Node.val <= 5000"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       title: "Standard 6-Node List",
@@ -332,6 +324,7 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       title: "Adversarial 2-Node List",
       input: { nodes: [1, 2] },
@@ -341,6 +334,7 @@ export const reverseLinkedList: AlgorithmDefinition<ReverseLinkedListInput> = {
       explanation: "Reverses two-node linked list.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       title: "Boundary Empty List Case",

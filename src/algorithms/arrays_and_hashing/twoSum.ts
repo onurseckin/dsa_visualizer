@@ -455,14 +455,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns a 2-element array containing indices <code>[i, j]</code> such that <code>nums[i] + nums[j] == target</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>2 &le; nums.length &le; 10<sup>4</sup></code>.</li>
-  <li><code>-10<sup>9</sup> &le; nums[i] &le; 10<sup>9</sup></code>.</li>
-  <li><code>-10<sup>9</sup> &le; target &le; 10<sup>9</sup></code>.</li>
-  <li>Only one valid answer exists.</li>
-  <li>Cannot use the same element twice.</li>
-</ul>`,
+`,
   constraints: [
     "2 <= nums.length <= 10^4",
     "-10^9 <= nums[i] <= 10^9",
@@ -471,6 +464,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [3, 5, 2, 8, 11, 14, 7], target = 15",
@@ -483,6 +477,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [3, 2, 4, 1, 9, 8], target = 12",
       outputDisplay: "[2, 5]",
@@ -493,6 +488,7 @@ export const twoSum: AlgorithmDefinition<TwoSumInput> = {
         "Looking up complement 12 - 8 = 4 in the hash map finds index 2 (value 4), returning [2, 5].",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [4], target = 4",

@@ -374,13 +374,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns a 2-element array containing indices <code>[left, right]</code> of the two matching numbers.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>2 &le; nums.length &le; 3 &times; 10<sup>4</sup></code>.</li>
-  <li><code>-1000 &le; nums[i] &le; 1000</code>.</li>
-  <li><code>nums</code> is sorted in non-decreasing order.</li>
-  <li>Exactly one valid solution exists.</li>
-</ul>`,
+`,
   constraints: [
     "2 <= nums.length <= 3 * 10^4",
     "-1000 <= nums[i] <= 1000",
@@ -389,6 +383,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [1, 3, 4, 6, 8, 10, 13], target = 11",
@@ -400,6 +395,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [2, 7, 11, 15], target = 9",
       outputDisplay: "[0, 1]",
@@ -409,6 +405,7 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
       explanation: "First pair 2 + 7 equals 9, returning [0, 1].",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [-8, -3, 0, 4, 7], target = -11",

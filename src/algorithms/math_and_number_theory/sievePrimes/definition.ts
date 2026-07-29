@@ -45,7 +45,7 @@ export const sievePrimes: AlgorithmDefinition<SieveInput> = {
     "<ul><li><code>limit</code> (<code>n &ge; 0</code>): Upper bound inclusive limit.</li></ul>" +
     "<h3>Output</h3>" +
     "<ul><li><code>list[int]</code>: List of all prime numbers <code>p &le; n</code>.</li></ul>" +
-    "<h3>Edge Cases &amp; Constraints</h3>" +
+    "" +
     "<ul><li><code>limit &lt; 2</code>: Returns empty list <code>[]</code>.</li>" +
     "<li>Large <code>limit</code>: Memory scales linearly with limit <span>O(n)</span>.</li></ul>",
   constraints: ["0 <= limit <= 10^5"],

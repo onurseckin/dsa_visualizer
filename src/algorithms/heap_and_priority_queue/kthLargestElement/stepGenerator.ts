@@ -165,15 +165,12 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
   }
 
   if (!Array.isArray(rawNums) || rawNums.length === 0) {
-    addStep(
-      "The input array is empty, so no k-th largest element exists; returning -1.",
-      {
-        kind: "array",
-        name: "Min-Heap",
-        mode: "box",
-        elements: [],
-      },
-    );
+    addStep("The input array is empty, so no k-th largest element exists; returning -1.", {
+      kind: "array",
+      name: "Min-Heap",
+      mode: "box",
+      elements: [],
+    });
     return steps;
   }
 

@@ -229,4 +229,243 @@ export const geometryAndSweepLineExecutions = [
       returnBehavior: "Returns the minimum Euclidean distance.",
     },
   }),
-] as const;
+  defineDsaExecution({
+    id: "pick-theorem",
+    entrypoint: "pick_theorem",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "Square (0,0)-(2,2)",
+        input: {
+          points: [
+            [0, 0],
+            [2, 0],
+            [2, 2],
+            [0, 2],
+          ],
+        },
+        expected: { area: 4, boundary: 8, interior: 1 },
+      },
+      {
+        label: "Triangle (0,0)-(2,0)-(0,2)",
+        input: {
+          points: [
+            [0, 0],
+            [2, 0],
+            [0, 2],
+          ],
+        },
+        expected: { area: 2, boundary: 4, interior: 1 },
+      },
+      {
+        label: "Unit square",
+        input: {
+          points: [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1],
+          ],
+        },
+        expected: { area: 1, boundary: 4, interior: 0 },
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> dict",
+      defaultInputShape: "{ points: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns area, boundary, and interior point count via Pick's theorem.",
+    },
+  }),
+  defineDsaExecution({
+    id: "manhattan-distance-rotation",
+    entrypoint: "manhattan_distance_rotation",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "Points [[1,1],[3,4],[-1,0]]",
+        input: {
+          points: [
+            [1, 1],
+            [3, 4],
+            [-1, 0],
+          ],
+        },
+        expected: 7,
+      },
+      {
+        label: "Two points [[0,0],[1,1]]",
+        input: {
+          points: [
+            [0, 0],
+            [1, 1],
+          ],
+        },
+        expected: 2,
+      },
+      {
+        label: "Three points [[0,0],[1,0],[0,1]]",
+        input: {
+          points: [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+          ],
+        },
+        expected: 2,
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> int",
+      defaultInputShape: "{ points: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns max Manhattan distance after rotation.",
+    },
+  }),
+  defineDsaExecution({
+    id: "point-in-polygon",
+    entrypoint: "point_in_polygon",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "Inside square",
+        input: {
+          point: [1, 1],
+          polygon: [
+            [0, 0],
+            [2, 0],
+            [2, 2],
+            [0, 2],
+          ],
+        },
+        expected: true,
+      },
+      {
+        label: "Outside square",
+        input: {
+          point: [3, 3],
+          polygon: [
+            [0, 0],
+            [2, 0],
+            [2, 2],
+            [0, 2],
+          ],
+        },
+        expected: false,
+      },
+      {
+        label: "Inside triangle",
+        input: {
+          point: [0.5, 0.5],
+          polygon: [
+            [0, 0],
+            [2, 0],
+            [0, 2],
+          ],
+        },
+        expected: true,
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> bool",
+      defaultInputShape: "{ point: number[]; polygon: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Checks if point is inside polygon via ray casting.",
+    },
+  }),
+  defineDsaExecution({
+    id: "skyline-problem",
+    entrypoint: "skyline_problem",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "Buildings",
+        input: {
+          buildings: [
+            [2, 9, 10],
+            [3, 7, 15],
+            [5, 12, 12],
+            [15, 20, 10],
+            [19, 24, 8],
+          ],
+        },
+        expected: [
+          [2, 10],
+          [3, 15],
+          [7, 12],
+          [12, 0],
+          [15, 10],
+          [20, 8],
+          [24, 0],
+        ],
+      },
+      {
+        label: "Single building",
+        input: { buildings: [[0, 2, 3]] },
+        expected: [
+          [0, 3],
+          [2, 0],
+        ],
+      },
+      {
+        label: "Two adjacent buildings",
+        input: {
+          buildings: [
+            [0, 2, 3],
+            [2, 4, 3],
+          ],
+        },
+        expected: [
+          [0, 3],
+          [4, 0],
+        ],
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> list[list[int]]",
+      defaultInputShape: "{ buildings: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns skyline key points.",
+    },
+  }),
+  defineDsaExecution({
+    id: "rectangle-area-union",
+    entrypoint: "rectangle_area_union",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      {
+        label: "Overlapping rectangles",
+        input: {
+          rectangles: [
+            [0, 0, 2, 2],
+            [1, 0, 2, 3],
+            [1, 0, 3, 1],
+          ],
+        },
+        expected: 6,
+      },
+      { label: "Single rectangle", input: { rectangles: [[0, 0, 1, 1]] }, expected: 1 },
+      {
+        label: "Disjoint rectangles",
+        input: {
+          rectangles: [
+            [0, 0, 1, 1],
+            [2, 2, 3, 3],
+          ],
+        },
+        expected: 2,
+      },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> int",
+      defaultInputShape: "{ rectangles: number[][] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns total union area of rectangles.",
+    },
+  }),
+];

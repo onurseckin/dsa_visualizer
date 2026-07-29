@@ -349,16 +349,11 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
 </ul>
 <h3>Output</h3>
 <p>Returns an integer representing the maximum sum of any non-empty contiguous subarray.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
-  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
-  <li>All negative numbers: Returns the single least-negative (maximum) element.</li>
-  <li>Single element input (N=1): Returns <code>nums[0]</code>.</li>
-</ul>`,
+`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]",
@@ -370,6 +365,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
       inputDisplay: "nums = [5, 4, -1, 7, 8]",
       outputDisplay: "23",
@@ -380,6 +376,7 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
         "All positive elements except -1; the maximum subarray spans the entire array with sum 23.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "nums = [-8, -3, -6, -2, -5]",

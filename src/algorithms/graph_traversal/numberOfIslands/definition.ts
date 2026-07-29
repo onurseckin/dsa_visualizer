@@ -127,12 +127,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns an integer representing the total count of distinct connected islands.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; m, n &le; 300</code>.</li>
-  <li><code>grid[i][j]</code> is either <code>'0'</code> (water) or <code>'1'</code> (land).</li>
-  <li>Grid containing only water (<code>'0'</code>) returns 0.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= m, n <= 300",
     'grid[i][j] is either "0" (water) or "1" (land)',
@@ -141,8 +136,10 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
   examples: [
     {
       kind: "basic",
+      kind: "basic",
       scenario: "standard",
-      inputDisplay: 'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
+      inputDisplay:
+        'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
       outputDisplay: "3",
       title: "Standard Multi-Island Grid Flood Fill",
       input: DEFAULT_NUMBER_OF_ISLANDS_INPUT,
@@ -152,9 +149,9 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
-      inputDisplay:
-        'grid = [["1","0","1"],["0","1","0"],["1","0","1"]]',
+      inputDisplay: 'grid = [["1","0","1"],["0","1","0"],["1","0","1"]]',
       outputDisplay: "5",
       title: "Adversarial Checkerboard Corner-Touching Islands",
       input: {
@@ -169,6 +166,7 @@ export const numberOfIslands: AlgorithmDefinition<NumberOfIslandsInput> = {
         "Diagonal land cells touch only at corners. Under 4-directional connectivity, none of them share edges, forming 5 distinct isolated islands.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'grid = [["0","0"],["0","0"]]',

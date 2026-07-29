@@ -169,9 +169,10 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawGrid = Array.isArray(input?.grid) && input.grid.length > 0
-    ? input.grid
-    : DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid;
+  const rawGrid =
+    Array.isArray(input?.grid) && input.grid.length > 0
+      ? input.grid
+      : DEFAULT_NUMBER_OF_ISLANDS_INPUT.grid;
 
   const addStep = (
     narrative: string,
@@ -198,14 +199,11 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
   }
 
   if (!rawGrid || rawGrid.length === 0 || rawGrid[0].length === 0) {
-    addStep(
-      "The input grid is empty: returning 0 islands immediately.",
-      {
-        kind: "grid",
-        name: "Empty Grid",
-        grid: [],
-      },
-    );
+    addStep("The input grid is empty: returning 0 islands immediately.", {
+      kind: "grid",
+      name: "Empty Grid",
+      grid: [],
+    });
     return steps;
   }
 
@@ -260,7 +258,11 @@ export const generateNumberOfIslandsSteps = (input: NumberOfIslandsInput): Algor
       }
       gridNodes.push(rowNodes);
     }
-    return { kind: "grid", name: `Grid (${rows}x${cols}) - Islands: ${islandCount}`, grid: gridNodes };
+    return {
+      kind: "grid",
+      name: `Grid (${rows}x${cols}) - Islands: ${islandCount}`,
+      grid: gridNodes,
+    };
   };
 
   addStep(

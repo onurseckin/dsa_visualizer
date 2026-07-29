@@ -120,14 +120,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
 </ul>
 <h3>Output</h3>
 <p>Returns boolean <code>true</code> if target exists in matrix, otherwise <code>false</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>m == matrix.length</code>, <code>n == matrix[i].length</code></li>
-  <li><code>1 &le; m, n &le; 100</code></li>
-  <li><code>-10<sup>4</sup> &le; matrix[i][j], target &le; 10<sup>4</sup></code></li>
-  <li>Degenerate empty matrices (<code>m == 0</code> or <code>n == 0</code>) return <code>false</code>.</li>
-  <li>Single element matrices (1 &times; 1).</li>
-</ul>`,
+`,
   constraints: [
     "m == matrix.length",
     "n == matrix[i].length",
@@ -136,6 +129,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay:
@@ -147,6 +141,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
       explanation: "5x5 matrix search; flat index 17 maps to row 3, col 2 where 34 is located.",
     },
     {
+      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay:
@@ -166,6 +161,7 @@ export const binarySearchMatrix: AlgorithmDefinition<BinarySearchMatrixInput> = 
       explanation: "4x4 matrix search; flat index 11 maps to row 2, col 3 where 50 is located.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13",

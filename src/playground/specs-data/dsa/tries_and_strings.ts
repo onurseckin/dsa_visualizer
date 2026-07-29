@@ -125,4 +125,80 @@ export const triesAndStringsExecutions = [
       returnBehavior: "Returns collision-verified rolling-hash match starts.",
     },
   }),
+  defineDsaExecution({
+    id: "bitwise-trie-xor",
+    entrypoint: "find_maximum_xor",
+    invocation: { kind: "function", arguments: [input("nums")] },
+    cases: cases(
+      { label: "[3,10,5,25,2,8]", input: { nums: [3, 10, 5, 25, 2, 8] }, expected: 28 },
+      {
+        label: "[14,70,53,83,49,91,36]",
+        input: { nums: [14, 70, 53, 83, 49, 91, 36] },
+        expected: 127,
+      },
+      { label: "[0]", input: { nums: [0] }, expected: 0 },
+    ),
+    audit: {
+      signature: "find_maximum_xor(nums: list[int]) -> int",
+      defaultInputShape: "{ nums: number[] }",
+      argumentMapping: ["nums <- $.nums"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns max XOR pair value.",
+    },
+  }),
+  defineDsaExecution({
+    id: "aho-corasick",
+    entrypoint: "aho_corasick",
+    invocation: { kind: "function", arguments: [input("patterns"), input("text")] },
+    cases: cases(
+      {
+        label: "Patterns and text",
+        input: { patterns: ["he", "she", "his", "hers"], text: "ushers" },
+        expected: ["she", "he", "hers"],
+      },
+      { label: "No match", input: { patterns: ["abc"], text: "xyz" }, expected: [] },
+      { label: "Single char", input: { patterns: ["a"], text: "aaa" }, expected: ["a", "a", "a"] },
+    ),
+    audit: {
+      signature: "aho_corasick(patterns: list[str], text: str) -> list[str]",
+      defaultInputShape: "{ patterns: string[]; text: string }",
+      argumentMapping: ["patterns <- $.patterns", "text <- $.text"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns matches in text.",
+    },
+  }),
+  defineDsaExecution({
+    id: "manacher-algorithm",
+    entrypoint: "manachers_algorithm",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "babad", input: "babad", expected: "bab" },
+      { label: "cbbd", input: "cbbd", expected: "bb" },
+      { label: "a", input: "a", expected: "a" },
+    ),
+    audit: {
+      signature: "manachers_algorithm(s: str) -> str",
+      defaultInputShape: "string",
+      argumentMapping: ["s <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns longest palindromic substring.",
+    },
+  }),
+  defineDsaExecution({
+    id: "suffix-array-lcp",
+    entrypoint: "build_suffix_array",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "banana", input: "banana", expected: [5, 3, 1, 0, 4, 2] },
+      { label: "ab", input: "ab", expected: [0, 1] },
+      { label: "a", input: "a", expected: [0] },
+    ),
+    audit: {
+      signature: "build_suffix_array(s: str) -> list[int]",
+      defaultInputShape: "string",
+      argumentMapping: ["s <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns suffix array indices.",
+    },
+  }),
 ] as const;

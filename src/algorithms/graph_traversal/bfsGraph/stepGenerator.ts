@@ -166,9 +166,8 @@ export const generateBFSGraphSteps = (input: BFSGraphInput): AlgorithmStep[] => 
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawNodes = Array.isArray(input?.nodes) && input.nodes.length > 0
-    ? input.nodes
-    : DEFAULT_BFS_INPUT.nodes;
+  const rawNodes =
+    Array.isArray(input?.nodes) && input.nodes.length > 0 ? input.nodes : DEFAULT_BFS_INPUT.nodes;
   const rawEdges = Array.isArray(input?.edges) ? input.edges : DEFAULT_BFS_INPUT.edges;
   const startId =
     typeof input?.startNodeId === "string" ? input.startNodeId : DEFAULT_BFS_INPUT.startNodeId;

@@ -432,7 +432,7 @@ export const closestPairOfPoints: AlgorithmDefinition<ClosestPairOfPointsInput> 
   topicIds: ["geometry_and_sweep_line"],
   difficulty: "Hard",
   description:
-    "<p>Find the minimum Euclidean distance between any pair of 2D points in <code>O(N log N)</code> time using a vertical sweep line and active Y-interval candidate set:</p><p><code>d = √((x₂ - x₁)² + (y₂ - y₁)²)</code></p><h3>Graph Snapshot Representation</h3><p>The 2D points, active bounding strip, and current closest pair line are displayed on a coordinate grid.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of 2D coordinate points.</li></ul><h3>Output</h3><ul><li><code>float</code>: Minimum Euclidean distance between any pair.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Base Case:</strong> N = 2 ⇒ return d(P₁, P₂).</li><li><strong>Duplicate Points:</strong> Yield minimum distance 0.0.</li></ul>",
+    "<p>Find the minimum Euclidean distance between any pair of 2D points in <code>O(N log N)</code> time using a vertical sweep line and active Y-interval candidate set:</p><p><code>d = √((x₂ - x₁)² + (y₂ - y₁)²)</code></p><h3>Graph Snapshot Representation</h3><p>The 2D points, active bounding strip, and current closest pair line are displayed on a coordinate grid.</p><h3>Input Parameters</h3><ul><li><code>points</code> (<code>Point2D[]</code>): Array of 2D coordinate points.</li></ul><h3>Output</h3><ul><li><code>float</code>: Minimum Euclidean distance between any pair.</li></ul>",
   constraints: ["2 <= points.length <= 50", "0 <= x, y <= 500"],
   examples: [
     {

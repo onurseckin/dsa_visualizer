@@ -263,14 +263,11 @@ export const generateTreeDiameterSteps = (input: TreeDiameterInput): AlgorithmSt
   };
 
   if (!rootId || !nodeMap.has(rootId)) {
-    addStep(
-      "The input tree root is null or empty, so tree diameter is 0 edges; returning 0.",
-      {
-        kind: "tree",
-        rootId: "",
-        nodes: [],
-      },
-    );
+    addStep("The input tree root is null or empty, so tree diameter is 0 edges; returning 0.", {
+      kind: "tree",
+      rootId: "",
+      nodes: [],
+    });
     return steps;
   }
 

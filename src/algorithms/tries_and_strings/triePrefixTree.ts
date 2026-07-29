@@ -30,12 +30,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
 </ul>
 <h3>Output</h3>
 <p>Boolean results for <code>search(searchWord)</code> and <code>startsWith(prefixToSearch)</code>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>1 &le; word.length, prefix.length &le; 2000</code>.</li>
-  <li>Strings consist only of lowercase English letters (<code>'a'</code> to <code>'z'</code>).</li>
-  <li>At most 3 &times; 10<sup>4</sup> calls in total will be made to <code>insert</code>, <code>search</code>, and <code>startsWith</code>.</li>
-</ul>`,
+`,
   constraints: [
     "1 <= wordsToInsert.length <= 100",
     "1 <= word.length <= 20",
@@ -43,6 +38,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: 'words = ["cat", "car", "dog"], search("car"), startsWith("ca")',
@@ -54,8 +50,10 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
     },
     {
       kind: "complex",
+      kind: "complex",
       scenario: "adversarial",
-      inputDisplay: 'words = ["apple", "app", "apricot", "banana"], search("app"), startsWith("apr")',
+      inputDisplay:
+        'words = ["apple", "app", "apricot", "banana"], search("app"), startsWith("apr")',
       outputDisplay: 'search("app") -> true, startsWith("apr") -> true',
       title: "Adversarial Multi-Prefix & Substring Words",
       input: {
@@ -68,6 +66,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
         '"app" is a prefix of "apple" as well as a standalone word; "apr" matches prefix of "apricot".',
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: 'words = ["tree", "trie"], search("trip"), startsWith("tra")',

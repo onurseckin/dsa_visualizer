@@ -51,9 +51,60 @@ export const gameTheoryExecutions = [
     audit: {
       signature: "sprague_grundy(pile_sizes, allowed_moves) -> tuple[list[int], int]",
       defaultInputShape: "{ pileSizes: number[]; allowedMoves: number[] }",
-      argumentMapping: ["pile_sizes <- $.piles", "allowed_moves <- $.moves"],
-      mutation: "Does not mutate authored arrays.",
-      returnBehavior: "Returns the Grundy table through the largest pile and the combined nim sum.",
+      argumentMapping: ["piles <- $.pileSizes", "moves <- $.allowedMoves"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns Grundy values.",
     },
   }),
-] as const;
+  defineDsaExecution({
+    id: "game-state-minimax",
+    entrypoint: "game_state_minimax",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "String++++", input: { currentState: "++++" }, expected: true },
+      { label: "String++", input: { currentState: "++" }, expected: true },
+      { label: "String--", input: { currentState: "--" }, expected: false },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> bool",
+      defaultInputShape: "{ currentState: string }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Evaluates game state winning outcome.",
+    },
+  }),
+  defineDsaExecution({
+    id: "stone-game-dp",
+    entrypoint: "stone_game_dp",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "Piles [5,3,4,5]", input: { piles: [5, 3, 4, 5] }, expected: true },
+      { label: "Piles [3,7,2,3]", input: { piles: [3, 7, 2, 3] }, expected: true },
+      { label: "Piles [1,2]", input: { piles: [1, 2] }, expected: true },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> bool",
+      defaultInputShape: "{ piles: number[] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Evaluates stone game DP outcome.",
+    },
+  }),
+  defineDsaExecution({
+    id: "mex-subtraction-game",
+    entrypoint: "mex_subtraction_game",
+    invocation: { kind: "function", arguments: [input()] },
+    cases: cases(
+      { label: "Heap 10 moves [1,2,3]", input: { n: 10, moves: [1, 2, 3] }, expected: 2 },
+      { label: "Heap 0", input: { n: 0, moves: [1, 2, 3] }, expected: 0 },
+      { label: "Heap 5 moves [1,4]", input: { n: 5, moves: [1, 4] }, expected: 1 },
+    ),
+    audit: {
+      signature: "solve(input: dict) -> int",
+      defaultInputShape: "{ n: number; moves: number[] }",
+      argumentMapping: ["input <- $"],
+      mutation: "No input mutation.",
+      returnBehavior: "Returns Grundy value of subtraction game.",
+    },
+  }),
+];

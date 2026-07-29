@@ -179,7 +179,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <ChevronDown
                 className={cx(
                   "w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-200",
-                  isVisibilityOpen && "rotate-180"
+                  isVisibilityOpen && "rotate-180",
                 )}
               />
             </Button>
@@ -207,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         "w-full px-2.5 py-2 rounded-lg text-sm font-medium flex items-center justify-between transition-colors cursor-pointer select-none",
                         isVisible
                           ? "bg-[var(--bg-pressed)] text-[var(--text-primary)]"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]",
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -219,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                           "w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ml-2",
                           isVisible
                             ? "bg-[var(--accent)] border-[var(--accent)] text-[var(--text-on-accent)]"
-                            : "border-[var(--border-strong)] bg-transparent"
+                            : "border-[var(--border-strong)] bg-transparent",
                         )}
                       >
                         {isVisible && <Check className="w-3 h-3 stroke-[3]" />}
@@ -272,4 +272,3 @@ export const Navbar: React.FC<NavbarProps> = ({
     </header>
   );
 };
-

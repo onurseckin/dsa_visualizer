@@ -40,14 +40,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
 </ul>
 <h3>Output</h3>
 <p>Returns the node reference or node ID corresponding to the lowest common ancestor of <em>p</em> and <em>q</em>.</p>
-<h3>Constraints &amp; Edge Cases</h3>
-<ul>
-  <li><code>2 &le; N &le; 10<sup>5</sup></code> (number of nodes).</li>
-  <li>All <code>Node.val</code> are unique.</li>
-  <li><code>p != q</code>.</li>
-  <li>Both nodes <em>p</em> and <em>q</em> are guaranteed to exist in the tree.</li>
-  <li>One node may be a direct ancestor of the other (e.g. <em>p</em> is ancestor of <em>q</em>).</li>
-</ul>`,
+`,
   constraints: [
     "2 <= Number of nodes N <= 10^5",
     "-10^9 <= Node.val <= 10^9",
@@ -57,6 +50,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
   ],
   examples: [
     {
+      kind: "basic",
       kind: "basic",
       scenario: "standard",
       inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8], p = 5, q = 1",
@@ -68,6 +62,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
         "Node 5 is in the left subtree and Node 1 is in the right subtree of Root 3. The lowest common ancestor is Node 3.",
     },
     {
+      kind: "complex",
       kind: "complex",
       scenario: "adversarial",
       inputDisplay: "root = [3, 5, 1, 6, 2, 0, 8, null, null, 7, 4], p = 7, q = 4",
@@ -94,6 +89,7 @@ export const binaryTreeLca: AlgorithmDefinition<BinaryTreeLcaInput> = {
         "Both Node 7 and Node 4 lie deep within the subtree rooted at Node 2. Their paths diverge at Node 2, making Node 2 the LCA.",
     },
     {
+      kind: "negative",
       kind: "negative",
       scenario: "boundary",
       inputDisplay: "root = [1, 2], p = 1, q = 2",

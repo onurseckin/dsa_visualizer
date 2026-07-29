@@ -29,11 +29,7 @@ export const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ onSelectTopic })
   const { scale, pan, isPanning, containerProps, controls } = usePanZoom();
 
   const layout = useMemo(
-    () =>
-      layoutResponsiveGraph(
-        DSA_TREE_PLACEMENTS,
-        { width: measuredBox.width, height: 0 },
-      ),
+    () => layoutResponsiveGraph(DSA_TREE_PLACEMENTS, { width: measuredBox.width, height: 0 }),
     [measuredBox.width],
   );
   const positionedPlacements = layout.nodes;
