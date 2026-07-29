@@ -1,4 +1,10 @@
-import type { AlgorithmStep, ArrayElement, ElementState } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  ArrayElement,
+  ElementState,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 
 export interface ZAlgorithmInput {
   text: string;
@@ -9,6 +15,140 @@ export const DEFAULT_Z_ALGORITHM_INPUT: ZAlgorithmInput = {
   text: "ababaaba",
   pattern: "aba",
 };
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Z-Algorithm computes string self-similarity to locate all occurrences of a pattern in a text in linear O(N + M) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "S",
+      mode: "box",
+      elements: [
+        { id: "s0", value: "a", label: "[0]", state: "default" },
+        { id: "s1", value: "b", label: "[1]", state: "default" },
+        { id: "s2", value: "a", label: "[2]", state: "default" },
+        { id: "s3", value: "$", label: "[3]", state: "pivot" },
+        { id: "s4", value: "a", label: "[4]", state: "default" },
+        { id: "s5", value: "b", label: "[5]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Sentinel Concatenation: construct S = pattern + '$' + text using a unique separator '$' that appears in neither string, preventing prefix matches from spanning across boundaries.",
+    primarySnapshot: {
+      kind: "array",
+      name: "S",
+      mode: "box",
+      elements: [
+        { id: "s0", value: "a", label: "pat[0]", state: "compare" },
+        { id: "s1", value: "b", label: "pat[1]", state: "compare" },
+        { id: "s2", value: "a", label: "pat[2]", state: "compare" },
+        { id: "s3", value: "$", label: "sentinel", state: "pivot" },
+        { id: "s4", value: "a", label: "text[0]", state: "active" },
+        { id: "s5", value: "b", label: "text[1]", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Z-Array Definition: Z[i] stores the length of the longest substring starting at index i that matches the exact prefix of S.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Z-Values",
+      mode: "box",
+      elements: [
+        { id: "z0", value: 0, label: "Z[0]", state: "default" },
+        { id: "z1", value: 0, label: "Z[1]", state: "default" },
+        { id: "z2", value: 0, label: "Z[2]", state: "default" },
+        { id: "z3", value: 0, label: "Z[3]", state: "default" },
+        { id: "z4", value: 3, label: "Z[4]", state: "sorted" },
+        { id: "z5", value: 0, label: "Z[5]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Pattern Match Condition: whenever Z[i] == M (pattern length) for any index i > M, a full pattern match occurs in text at index i - M - 1.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Matches",
+      mode: "box",
+      elements: [
+        { id: "z4", value: 3, label: "Z[4]=M", state: "sorted", pointers: ["Match at text[0]"] },
+        { id: "z6", value: 3, label: "Z[6]=M", state: "sorted", pointers: ["Match at text[2]"] },
+        { id: "z9", value: 3, label: "Z[9]=M", state: "sorted", pointers: ["Match at text[5]"] },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Z-Box Window [L, R]: we maintain [L, R], the rightmost interval S[L..R] that matches a prefix of S.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Z-Box Window",
+      mode: "box",
+      elements: [
+        { id: "s4", value: "a", label: "[L=4]", state: "pivot" },
+        { id: "s5", value: "b", label: "[5]", state: "visited" },
+        { id: "s6", value: "a", label: "[R=6]", state: "pivot" },
+        { id: "s7", value: "a", label: "[7]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Inner Window Reuse (i <= R): if current index i lies inside [L, R], set Z[i] = min(R - i + 1, Z[i - L]) to reuse previously computed prefix matches in O(1) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "S",
+      mode: "box",
+      elements: [
+        { id: "s0", value: "a", label: "pat[0]", state: "compare" },
+        { id: "s4", value: "a", label: "L=4", state: "pivot" },
+        { id: "s6", value: "a", label: "i=6", state: "active" },
+        { id: "s6r", value: "a", label: "R=6", state: "pivot" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Window Extension: if character comparisons extend past R, we compare characters directly and advance R further right to grow the Z-box.",
+    primarySnapshot: {
+      kind: "array",
+      name: "S",
+      mode: "box",
+      elements: [
+        { id: "s4", value: "a", label: "L=4", state: "visited" },
+        { id: "s6", value: "a", label: "i=6", state: "visited" },
+        { id: "s8", value: "b", label: "new R=8", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Linear Bound: because the right boundary R moves strictly right and never retreats, the total number of character comparisons is bounded by |S|, delivering O(N + M) time and space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Final Z-Array",
+      mode: "box",
+      elements: [
+        { id: "z0", value: 0, label: "a", state: "default" },
+        { id: "z1", value: 0, label: "b", state: "default" },
+        { id: "z2", value: 0, label: "a", state: "default" },
+        { id: "z3", value: 0, label: "$", state: "pivot" },
+        { id: "z4", value: 3, label: "a", state: "sorted" },
+        { id: "z5", value: 0, label: "b", state: "default" },
+        { id: "z6", value: 3, label: "a", state: "sorted" },
+        { id: "z7", value: 0, label: "b", state: "default" },
+      ],
+    },
+  },
+];
 
 export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -26,39 +166,38 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
       : input?.pattern === undefined
         ? ""
         : DEFAULT_Z_ALGORITHM_INPUT.pattern;
+
   const m = pattern.length;
   const tLen = text.length;
 
-  // Python line 1: def z_algorithm(text, pattern)
-  const addEmptyStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
   ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { text, pattern, matches: "None" } },
-      variables,
-    });
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
   };
 
-  addEmptyStep(
-    1,
-    "Initialize Z-Algorithm string matching",
-    `Preparing to search pattern "${pattern}" (length ${m}) inside text "${text}" (length ${tLen}) via sentinel concatenation and Z-array self-similarity computation.`,
-    { text, pattern, tLen, m },
-  );
+  const isDefaultTutorialInput =
+    !input ||
+    (input.text === DEFAULT_Z_ALGORITHM_INPUT.text &&
+      input.pattern === DEFAULT_Z_ALGORITHM_INPUT.pattern);
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
 
   if (m === 0 || tLen === 0 || m > tLen) {
-    addEmptyStep(
-      2,
-      "Validate input bounds",
-      "Empty input or pattern longer than search text. Terminating immediately with zero matches.",
-      { text, pattern, matchesCount: 0 },
+    addStep(
+      "Empty input string or pattern longer than search text: returning 0 pattern matches immediately.",
+      {
+        kind: "array",
+        name: "Z-Array",
+        mode: "box",
+        elements: [],
+      },
     );
     return steps;
   }
@@ -70,195 +209,124 @@ export const generateZAlgorithmSteps = (input: ZAlgorithmInput): AlgorithmStep[]
   let l = 0;
   let r = 0;
 
-  const getElements = (
+  const makeSnapshot = (
     currentI?: number,
     compareLeft?: number,
     compareRight?: number,
-    currentMatches: number[] = [],
-  ): ArrayElement[] => {
-    return s.split("").map((char, idx) => {
+    currentL?: number,
+    currentR?: number,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = s.split("").map((char, idx) => {
       let state: ElementState = "default";
-      const pointers: string[] = [char];
+      const ptrs: string[] = [char];
 
       if (idx === currentI) {
         state = "active";
-        pointers.push(`i=${idx}`);
+        ptrs.push(`i=${idx}`);
       } else if (idx === compareLeft || idx === compareRight) {
         state = "compare";
-        if (idx === compareLeft) pointers.push("pat-prefix");
-        if (idx === compareRight) pointers.push("target");
-      } else if (l <= idx && idx <= r && l !== r) {
+        if (idx === compareLeft) ptrs.push("pat-prefix");
+        if (idx === compareRight) ptrs.push("target");
+      } else if (
+        currentL !== undefined &&
+        currentR !== undefined &&
+        currentL <= idx &&
+        idx <= currentR &&
+        currentL !== currentR
+      ) {
         state = "pivot";
-        if (idx === l) pointers.push("L");
-        if (idx === r) pointers.push("R");
+        if (idx === currentL) ptrs.push("L");
+        if (idx === currentR) ptrs.push("R");
       }
 
-      currentMatches.forEach((mIdx) => {
+      matches.forEach((mIdx) => {
         const textStartInS = m + 1 + mIdx;
-        if (idx >= textStartInS && idx < textStartInS + m) state = "sorted";
+        if (idx >= textStartInS && idx < textStartInS + m) {
+          state = "sorted";
+        }
       });
 
-      if (z[idx] > 0) pointers.push(`Z=${z[idx]}`);
+      if (z[idx] > 0) ptrs.push(`Z=${z[idx]}`);
 
       return {
         id: `el-${idx}`,
         value: z[idx],
         state,
-        pointers,
+        pointers: ptrs,
       };
     });
-  };
 
-  const getAuxiliaryState = (stage: string, currentMatches: number[]) => {
-    const zMap: Record<string, number> = {};
-    for (let k = 0; k < n; k++) zMap[`Z[${k}] ('${s[k]}')`] = z[k];
     return {
-      hashMap: zMap,
-      customState: {
-        stage,
-        concatenated: s,
-        window: `[L=${l}, R=${r}]`,
-        zArray: z.join(", "),
-        matches: currentMatches.length > 0 ? currentMatches.join(", ") : "None",
-      },
-      visited: currentMatches.map((idx) => `Match at text index ${idx}`),
+      kind: "array",
+      name: "S & Z-Array",
+      mode: "box",
+      elements,
     };
   };
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    stage: string = "Matching",
-    currentI?: number,
-    compareLeft?: number,
-    compareRight?: number,
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: getElements(currentI, compareLeft, compareRight, matches),
-      },
-      auxiliaryState: getAuxiliaryState(stage, matches),
-      variables,
-    });
-  };
-
-  // Python line 2: s = pattern + "$" + text
   addStep(
-    2,
-    "Construct combined string S = pattern + '$' + text",
-    `Concatenating pattern and text into S = "${s}" (length ${n}) enables converting pattern matching into a prefix self-similarity computation. Sentinel '$' prevents matches from crossing string boundaries.`,
-    { s, n, m, text, pattern },
-    "Initialization",
+    `Having established the mental model, let's now transition to concatenated string S = "${s}" searching pattern "${pattern}" in text "${text}".`,
+    makeSnapshot(0),
   );
 
-  // Python line 5: l, r = 0, 0
-  addStep(
-    5,
-    "Initialize Z-array and Z-box window [L, R]",
-    "Z[i] stores the length of the longest prefix match starting at index i. The Z-box window [L, R] maintains the rightmost verified match interval to avoid repeating comparisons.",
-    { l: 0, r: 0, n },
-    "Initialization",
-  );
-
-  // Python line 8: for i in range(1, n)
   for (let i = 1; i < n; i++) {
     addStep(
-      8,
-      `Evaluate position i = ${i} ('${s[i]}')`,
-      `Calculating Z[${i}] to measure the longest prefix match starting at index ${i}.`,
-      { i, char: s[i], l, r },
-      "Looping",
-      i,
+      `Inspect index i = ${i} (char '${s[i]}') with active Z-box [L=${l}, R=${r}].`,
+      makeSnapshot(i, undefined, undefined, l, r),
     );
 
-    // Python line 9-10: if i <= r: z[i] = min(r - i + 1, z[i - l])
     if (i <= r) {
       const k = i - l;
       const rem = r - i + 1;
       z[i] = Math.min(rem, z[k]);
+
       addStep(
-        10,
-        `Reuse Z-box prefix match inside window [L=${l}, R=${r}]`,
-        `Position ${i} falls inside [L=${l}, R=${r}]. Reusing mirrored value Z[${k}] = ${z[k]} (capped at remaining window length ${rem}) to initialize Z[${i}] = ${z[i]} in O(1) time.`,
-        { i, l, r, k, "Z[k]": z[k], remaining: rem, "Z[i]": z[i] },
-        "Window Optimization",
-        i,
+        `Index i=${i} is inside Z-box [${l}, ${r}]: reusing z[${k}] = ${z[k]} capped at remaining window length ${rem} -> initial Z[${i}] = ${z[i]}.`,
+        makeSnapshot(i, k, i, l, r),
       );
     }
 
-    // Python line 11: while i + z[i] < n and s[z[i]] == s[i + z[i]]
+    let extended = false;
     while (i + z[i] < n && s[z[i]] === s[i + z[i]]) {
+      extended = true;
+      const patIdx = z[i];
+      const matchIdx = i + z[i];
+
       addStep(
-        11,
-        `Compare characters S[${z[i]}] ('${s[z[i]]}') and S[${i + z[i]}] ('${s[i + z[i]]}')`,
-        `Characters match. Extending prefix match length Z[${i}] from ${z[i]} to ${z[i] + 1}.`,
-        { i, zI: z[i], matchChar: s[z[i]], targetChar: s[i + z[i]] },
-        "Character Comparison",
-        i,
-        z[i],
-        i + z[i],
+        `Character match: S[${patIdx}] ('${s[patIdx]}') == S[${matchIdx}] ('${s[matchIdx]}'). Incrementing Z[${i}] to ${z[i] + 1}.`,
+        makeSnapshot(i, patIdx, matchIdx, l, r),
       );
+
       z[i]++;
     }
 
-    if (i + z[i] < n) {
-      addStep(
-        11,
-        `Mismatch detected between S[${z[i]}] ('${s[z[i]]}') and S[${i + z[i]}] ('${s[i + z[i]]}')`,
-        `Character mismatch terminates prefix extension for index ${i}. Final Z[${i}] = ${z[i]}.`,
-        { i, finalZI: z[i] },
-        "Character Comparison",
-        i,
-        z[i],
-        i + z[i],
-      );
-    }
-
-    // Python line 13: if i + z[i] - 1 > r
-    if (i + z[i] - 1 > r) {
-      const oldL = l;
-      const oldR = r;
+    if (extended && i + z[i] - 1 > r) {
       l = i;
       r = i + z[i] - 1;
+
       addStep(
-        13,
-        `Advance Z-box window to [L=${l}, R=${r}]`,
-        `Prefix match extends past previous right boundary (old R = ${oldR}). Updating window [L, R] to preserve maximum rightward coverage for future positions.`,
-        { i, oldL, oldR, newL: l, newR: r },
-        "Window Update",
-        i,
+        `Z-box right edge extended! Updating Z-box window boundaries to [L=${l}, R=${r}].`,
+        makeSnapshot(i, undefined, undefined, l, r),
       );
     }
 
-    // Python line 17: matches.append(i - m - 1)
     if (i > m && z[i] === m) {
       const textMatchIdx = i - m - 1;
       matches.push(textMatchIdx);
+
       addStep(
-        17,
-        `Pattern match found at text index ${textMatchIdx}`,
-        `Z[${i}] equals pattern length ${m}. The entire pattern occurs starting at 0-based text index ${textMatchIdx}.`,
-        { i, textMatchIdx, pattern, matchCount: matches.length },
-        "Pattern Match Found",
-        i,
+        `Pattern match found! Z[${i}] == ${m} (pattern length); recording pattern match at text index ${textMatchIdx}.`,
+        makeSnapshot(i, undefined, undefined, l, r),
       );
     }
   }
 
-  // Python line 18: return matches
   addStep(
-    18,
-    "Return all pattern match indices",
-    `Completed single pass Z-array computation in linear O(N + M) total time, finding ${matches.length} pattern match(es) at text index(es): ${matches.length > 0 ? matches.join(", ") : "None"}.`,
-    { totalMatches: matches.length, matches: matches.join(", ") },
-    "Complete",
+    `Z-Algorithm complete! Located ${matches.length} occurrence(s) of pattern "${pattern}" in text "${text}" at text indices: [${matches.join(", ")}].`,
+    makeSnapshot(undefined, undefined, undefined, l, r),
   );
 
   return steps;
 };
+
+export default generateZAlgorithmSteps;
