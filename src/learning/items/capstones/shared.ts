@@ -167,8 +167,47 @@ export function lifecycleGraphSteps(activeNodeIds: readonly string[]) {
       edges,
       activeNodeIds: [activeNodeId],
       completedNodeIds: activeNodeIds.slice(0, index),
-      traversedEdgeIndexes: index === 0 ? [] : [index - 1],
+      traversedEdgeIndexes:
+        index === 0
+          ? []
+          : edges.flatMap((edge, edgeIndex) =>
+              edge.from === activeNodeIds[index - 1] && edge.to === activeNodeId ? [edgeIndex] : [],
+            ),
       variables: { phase: activeNodeId },
+    })),
+  );
+}
+
+export function incidentGraphSteps() {
+  const nodes = [
+    { id: "detect", label: "Detect" },
+    { id: "contain", label: "Contain" },
+    { id: "preserve", label: "Preserve" },
+    { id: "diagnose", label: "Diagnose" },
+    { id: "recover", label: "Recover" },
+    { id: "learn", label: "Learn" },
+  ] as const;
+  const edges = nodes.slice(0, -1).map((node, index) => ({
+    from: node.id,
+    to: nodes[index + 1]!.id,
+  }));
+
+  return graphSteps(
+    nodes.map((node, index) => ({
+      codeLine: Math.min(index + 2, 7),
+      what: incidentTimeline[index]!.label,
+      why:
+        node.id === "contain"
+          ? "Containment must reduce decision harm while preserving evidence for diagnosis."
+          : node.id === "recover"
+            ? "Recovery requires outcome-aware verification, not only healthy service telemetry."
+            : "An auditable incident response advances only after the current evidence gate is met.",
+      nodes,
+      edges,
+      activeNodeIds: [node.id],
+      completedNodeIds: nodes.slice(0, index).map(({ id }) => id),
+      traversedEdgeIndexes: index === 0 ? [] : [index - 1],
+      variables: { phase: node.id },
     })),
   );
 }

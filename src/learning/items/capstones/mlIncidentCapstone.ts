@@ -4,9 +4,9 @@ import {
   CAPSTONE_TOPIC_IDS,
   capstoneStarter,
   incidentResponseSource,
+  incidentGraphSteps,
   incidentRubric,
   incidentTimeline,
-  lifecycleGraphSteps,
 } from "./shared";
 
 const code = `def validate_incident_record(spec):
@@ -124,7 +124,7 @@ export const mlIncidentCapstone = defineCapstoneItem({
     code,
     starterCode: capstoneStarter("validate_incident_record", outputContract),
     execution,
-    generateSteps: () => lifecycleGraphSteps(["operate", "data", "release", "operate"]),
+    generateSteps: incidentGraphSteps,
   },
   assessmentPayload: {
     variant: "compound-feature-rollout-incident",
