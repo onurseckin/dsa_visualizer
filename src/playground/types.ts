@@ -10,6 +10,16 @@ import { DEFAULT_PYTHON_EXECUTION_LIMITS } from "@dsa-visualizer/execution-contr
 
 export type PythonRuntimePreference = "auto" | PythonRuntime;
 
+export const PYTHON_RUNNER_INFRASTRUCTURE_ERRORS = Object.freeze({
+  browserInvalidResponse: "Browser Python runtime returned an invalid response.",
+  browserUnavailable: "Browser Python runtime is unavailable.",
+  serverInvalidResponse: "Python runner returned an invalid response.",
+  serverUnavailable: "Python runner is unavailable.",
+});
+
+export const BROWSER_INITIALIZATION_TIMEOUT_PREFIX =
+  "Browser Python runtime initialization exceeded the ";
+
 export interface PythonRunnerRunOptions {
   readonly runtime?: PythonRuntimePreference;
   readonly signal?: AbortSignal;
@@ -37,6 +47,43 @@ export function executionErrorResult(
     durationMs: Math.max(0, durationMs),
     runtime,
   };
+}
+
+export function browserInitializationTimeoutMessage(timeoutMs: number): string {
+  return `${BROWSER_INITIALIZATION_TIMEOUT_PREFIX}${timeoutMs} ms timeout.`;
+}
+
+export function isPythonRunnerInfrastructureFailure(result: PythonRunResult): boolean {
+  if (result.status !== "error" || result.cases.length > 0) return false;
+  if (result.runtime === "browser") {
+    return (
+      result.stderr === PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserUnavailable ||
+      result.stderr === PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserInvalidResponse ||
+      result.stderr.startsWith(BROWSER_INITIALIZATION_TIMEOUT_PREFIX)
+    );
+  }
+  return (
+    result.stderr === PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.serverUnavailable ||
+    result.stderr === PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.serverInvalidResponse
+  );
+}
+
+export function createPythonRunRequestSnapshot(request: PythonRunRequest): PythonRunRequest {
+  const serialized = JSON.stringify(request);
+  if (typeof serialized !== "string") {
+    throw new TypeError("Validated Python run request could not be serialized.");
+  }
+  const snapshot = JSON.parse(serialized) as PythonRunRequest;
+  const pending: object[] = [snapshot];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current || Object.isFrozen(current)) continue;
+    for (const value of Object.values(current)) {
+      if (typeof value === "object" && value !== null) pending.push(value);
+    }
+    Object.freeze(current);
+  }
+  return snapshot;
 }
 
 const RESULT_KEYS = new Set([

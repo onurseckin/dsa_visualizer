@@ -4,6 +4,7 @@ import {
   type PythonRunRequest,
   type PythonRunResult,
 } from "@dsa-visualizer/execution-contracts";
+import { PYTHON_RUNNER_INFRASTRUCTURE_ERRORS } from "./types";
 
 export const PYODIDE_VERSION = "314.0.3";
 export const PYODIDE_CORE_BASE_PATH = `assets/pyodide/${PYODIDE_VERSION}/`;
@@ -703,16 +704,23 @@ async function getPyodide(): Promise<BrowserPyodide> {
       `Pyodide package version ${installedPyodideVersion} does not match ${PYODIDE_VERSION}.`,
     );
   }
-  pyodidePromise ??= loadPyodide({
-    indexURL: `${import.meta.env.BASE_URL}${PYODIDE_CORE_BASE_PATH}`,
-    packageBaseUrl: PYODIDE_PACKAGE_BASE_URL,
-  }) as unknown as Promise<BrowserPyodide>;
+  if (!pyodidePromise) {
+    const initialization = loadPyodide({
+      indexURL: `${import.meta.env.BASE_URL}${PYODIDE_CORE_BASE_PATH}`,
+      packageBaseUrl: PYODIDE_PACKAGE_BASE_URL,
+    }) as unknown as Promise<BrowserPyodide>;
+    pyodidePromise = initialization.catch((error: unknown) => {
+      pyodidePromise = undefined;
+      loadedPackages.clear();
+      throw error;
+    });
+  }
   return pyodidePromise;
 }
 
 function browserError(
   request: unknown,
-  message = "Browser Python runtime is unavailable.",
+  message: string = PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserUnavailable,
 ): PythonRunResult {
   const runId =
     typeof request === "object" &&

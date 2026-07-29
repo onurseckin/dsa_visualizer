@@ -7,7 +7,10 @@ import {
 
 import { isBrowserCompatible } from "./runnerSelector";
 import {
+  browserInitializationTimeoutMessage,
+  createPythonRunRequestSnapshot,
   executionErrorResult,
+  PYTHON_RUNNER_INFRASTRUCTURE_ERRORS,
   type PythonRunner,
   type PythonRunnerRunOptions,
   validatePythonRunResult,
@@ -103,6 +106,7 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
         return;
       }
       if (!isWorkerResult(message)) return;
+      const initializationOutcome = record.phase === "initializing";
       const validation = validatePythonRunResult(record.request, message.result, "browser");
       if (!validation.ok) {
         settle(
@@ -110,7 +114,7 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
           executionErrorResult(
             record.request.runId,
             "browser",
-            "Browser Python runtime returned an invalid response.",
+            PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserInvalidResponse,
             "error",
             Date.now() - record.startedAt,
           ),
@@ -118,11 +122,11 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
         );
         return;
       }
-      settle(record, validation.value);
+      settle(record, validation.value, initializationOutcome);
     });
     created.addEventListener("error", () => {
       if (!active || active.worker !== created) return;
-      interruptActive("Browser Python runtime is unavailable.");
+      interruptActive(PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserUnavailable);
     });
     worker = created;
     return created;
@@ -143,7 +147,15 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
           executionErrorResult(request.runId, "browser", "Python execution request is invalid."),
         );
       }
-      if (!isBrowserCompatible(validation.value.spec)) {
+      let browserSnapshot: PythonRunRequest;
+      try {
+        browserSnapshot = createPythonRunRequestSnapshot(validation.value);
+      } catch {
+        return Promise.resolve(
+          executionErrorResult(request.runId, "browser", "Python execution request is invalid."),
+        );
+      }
+      if (!isBrowserCompatible(browserSnapshot.spec)) {
         return Promise.resolve(
           executionErrorResult(
             request.runId,
@@ -157,7 +169,11 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
         selectedWorker = ensureWorker();
       } catch {
         return Promise.resolve(
-          executionErrorResult(request.runId, "browser", "Browser Python runtime is unavailable."),
+          executionErrorResult(
+            request.runId,
+            "browser",
+            PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserUnavailable,
+          ),
         );
       }
 
@@ -165,7 +181,7 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
         const startedAt = Date.now();
         const token = `browser-run-${++generation}`;
         const record: ActiveBrowserRun = {
-          request: validation.value,
+          request: browserSnapshot,
           resolve,
           startedAt,
           token,
@@ -173,9 +189,7 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
           phase: "initializing",
           timeout: setTimeout(() => {
             if (active !== record) return;
-            interruptActive(
-              `Browser Python runtime initialization exceeded the ${initializationTimeoutMs} ms timeout.`,
-            );
+            interruptActive(browserInitializationTimeoutMessage(initializationTimeoutMs));
           }, initializationTimeoutMs),
           signal: runOptions.signal,
           settled: false,
@@ -197,12 +211,12 @@ export function createPyodideRunnerClient(options: PyodideRunnerClientOptions = 
           // oxlint-disable unicorn/require-post-message-target-origin -- Web Worker postMessage has no targetOrigin parameter.
           selectedWorker.postMessage({
             type: "run",
-            request: validation.value,
+            request: browserSnapshot,
             token,
           });
           // oxlint-enable unicorn/require-post-message-target-origin
         } catch {
-          interruptActive("Browser Python runtime is unavailable.");
+          interruptActive(PYTHON_RUNNER_INFRASTRUCTURE_ERRORS.browserUnavailable);
         }
       });
     },

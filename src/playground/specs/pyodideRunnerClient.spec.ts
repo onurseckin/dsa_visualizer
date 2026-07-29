@@ -380,6 +380,118 @@ describe("Pyodide runner client", () => {
     expect(workers[2]?.terminate).toHaveBeenCalledOnce();
   });
 
+  it("retires a Worker when initialization fails before readiness", async () => {
+    const workers: FakeWorker[] = [];
+    const client = createPyodideRunnerClient({
+      createWorker: () => {
+        const worker = new FakeWorker();
+        workers.push(worker);
+        return worker;
+      },
+    });
+
+    const initialization = client.run(request("run-init-failure"));
+    workers[0]?.emitResult({
+      runId: "run-init-failure",
+      status: "error",
+      stdout: "",
+      stderr: "Browser Python runtime is unavailable.",
+      cases: [],
+      durationMs: 0,
+      runtime: "browser",
+    });
+    await expect(initialization).resolves.toMatchObject({
+      status: "error",
+      stderr: "Browser Python runtime is unavailable.",
+    });
+    expect(workers[0]?.terminate).toHaveBeenCalledOnce();
+
+    const recovered = client.run(request("run-recovered"));
+    expect(workers).toHaveLength(2);
+    workers[1]?.emitReady("run-recovered");
+    workers[1]?.emitResult(result("run-recovered"));
+    await expect(recovered).resolves.toMatchObject({
+      status: "passed",
+      runId: "run-recovered",
+    });
+  });
+
+  it("uses one deep immutable request snapshot for dispatch, timing, and validation", async () => {
+    vi.useFakeTimers();
+    try {
+      const worker = new FakeWorker();
+      const client = createPyodideRunnerClient({ createWorker: () => worker });
+      const authored = request("run-snapshot", {
+        caseIds: ["public"],
+        spec: executionSpec({
+          limits: { wallTimeMs: 50 },
+          cases: [
+            {
+              id: "public",
+              label: "Public",
+              input: { values: [2] },
+              expected: { doubled: [4] },
+              comparison: "deep-equal",
+            },
+          ],
+        }),
+      });
+
+      const pending = client.run(authored);
+      const posted = (
+        worker.postMessage.mock.lastCall?.[0] as { readonly request?: PythonRunRequest } | undefined
+      )?.request;
+
+      (authored.caseIds as string[])[0] = "mutated";
+      (authored.spec.packages as string[]).push("numpy");
+      (authored.spec.limits as { wallTimeMs: number }).wallTimeMs = 1;
+      (authored.spec.cases as unknown as { id: string }[])[0]!.id = "mutated";
+      (
+        authored.spec.cases[0]!.input as {
+          values: number[];
+        }
+      ).values[0] = 99;
+
+      expect(posted).toMatchObject({
+        caseIds: ["public"],
+        spec: {
+          packages: [],
+          limits: { wallTimeMs: 50 },
+          cases: [{ id: "public", input: { values: [2] } }],
+        },
+      });
+      expect(Object.isFrozen(posted)).toBe(true);
+      expect(Object.isFrozen(posted?.spec.cases[0]?.input)).toBe(true);
+
+      worker.emitReady("run-snapshot");
+      await vi.advanceTimersByTimeAsync(2);
+      worker.emitResult({
+        runId: "run-snapshot",
+        status: "passed",
+        stdout: "",
+        stderr: "",
+        cases: [
+          {
+            id: "public",
+            status: "passed",
+            stdout: "",
+            stderr: "",
+            durationMs: 1,
+            actual: { doubled: [4] },
+          },
+        ],
+        durationMs: 2,
+        runtime: "browser",
+      });
+      await expect(pending).resolves.toMatchObject({
+        status: "passed",
+        runId: "run-snapshot",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("rejects invalid bounded requests before constructing a Worker", async () => {
     const createWorker = vi.fn(() => new FakeWorker());
     const client = createPyodideRunnerClient({ createWorker });

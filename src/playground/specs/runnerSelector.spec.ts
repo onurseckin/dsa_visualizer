@@ -164,6 +164,49 @@ describe("hybrid Python runner", () => {
     expect(authoredSpec.runtime).toBe("browser");
   });
 
+  it.each([
+    "Browser Python runtime returned an invalid response.",
+    "Browser Python runtime initialization exceeded the 500 ms timeout.",
+  ])("falls back automatically for browser infrastructure failure: %s", async (stderr) => {
+    const browser = runner(
+      vi.fn(async (value) =>
+        result("browser", {
+          runId: value.runId,
+          status: "error",
+          stderr,
+        }),
+      ),
+    );
+    const server = runner(vi.fn(async (value) => result("server", { runId: value.runId })));
+    const hybrid = createHybridPythonRunner({ browser, server });
+
+    await expect(hybrid.run(request())).resolves.toMatchObject({
+      status: "passed",
+      runtime: "server",
+    });
+    expect(server.run).toHaveBeenCalledOnce();
+  });
+
+  it("does not fall back from an explicitly selected browser after infrastructure failure", async () => {
+    const browser = runner(
+      vi.fn(async (value) =>
+        result("browser", {
+          runId: value.runId,
+          status: "error",
+          stderr: "Browser Python runtime returned an invalid response.",
+        }),
+      ),
+    );
+    const server = runner(vi.fn());
+    const hybrid = createHybridPythonRunner({ browser, server });
+
+    await expect(hybrid.run(request(), { runtime: "browser" })).resolves.toMatchObject({
+      status: "error",
+      runtime: "browser",
+    });
+    expect(server.run).not.toHaveBeenCalled();
+  });
+
   it("cancels a prior server child and suppresses its late completion when the next same-ID run uses the browser", async () => {
     const serverCompletion = deferred<PythonRunResult>();
     const browserCompletion = deferred<PythonRunResult>();
