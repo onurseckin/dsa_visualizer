@@ -20,22 +20,26 @@ export const PYTHON_STRING_HASHING_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def shortestPalindrome(self, s: str) -> str:
-        if not s:
-            return ""
-        rev_s = s[::-1]
-        new_s = s + "#" + rev_s
-        n = len(new_s)
-        lps = [0] * n
-        for i in range(1, n):
-            j = lps[i - 1]
-            while j > 0 and new_s[i] != new_s[j]:
-                j = lps[j - 1]
-            if new_s[i] == new_s[j]:
-                j += 1
-            lps[i] = j
-        add_len = len(s) - lps[-1]
-        return rev_s[:add_len] + s`;
+    def findMatches(self, text: str, pattern: str, base: int = 31, mod: int = 1_000_000_007) -> list[int]:
+        if pattern == "":
+            return list(range(len(text) + 1))
+        if len(pattern) > len(text):
+            return []
+
+        power = pow(base, len(pattern) - 1, mod)
+        pattern_hash = window_hash = 0
+        for index, char in enumerate(pattern):
+            pattern_hash = (pattern_hash * base + ord(char)) % mod
+            window_hash = (window_hash * base + ord(text[index])) % mod
+
+        matches = []
+        for start in range(len(text) - len(pattern) + 1):
+            if window_hash == pattern_hash and text[start : start + len(pattern)] == pattern:
+                matches.append(start)
+            if start + len(pattern) < len(text):
+                window_hash = (window_hash - ord(text[start]) * power) % mod
+                window_hash = (window_hash * base + ord(text[start + len(pattern)])) % mod
+        return matches`;
 
 export const DEFAULT_STRING_HASHING_INPUT: StringHashingInput = {
   text: "abracadabra",
