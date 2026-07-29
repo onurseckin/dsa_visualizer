@@ -1,14 +1,268 @@
-import type { AlgorithmStep, ArrayElement, ElementState } from "../../../types/dsa";
-
-const DEFAULT_SLIDING_WINDOW_MIN_INPUT = {
-  nums: [1, 3, -1, -3, 5, 3, 6, 7],
-  k: 3,
-};
+import type {
+  AlgorithmStep,
+  ArrayElement,
+  CompositeCanvasSnapshot,
+  ElementState,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 
 export interface SlidingWindowMinInput {
   nums: number[];
   k: number;
 }
+
+export const DEFAULT_SLIDING_WINDOW_MIN_INPUT: SlidingWindowMinInput = {
+  nums: [4, 2, 12, 11, 5, 8, 3, 9],
+  k: 3,
+};
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Sliding Window Minimum problem asks us to compute the minimum element in every contiguous sub-window of size k as it slides across an array from left to right.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 4, label: "[0]", state: "active" },
+        { id: "c2", value: 2, label: "[1]", state: "active" },
+        { id: "c3", value: 12, label: "[2]", state: "active" },
+        { id: "c4", value: 11, label: "[3]", state: "default" },
+        { id: "c5", value: 5, label: "[4]", state: "default" },
+        { id: "c6", value: 8, label: "[5]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A naive approach rescans all k elements for every window, taking O(N · k) time; a min-heap takes O(N log k) time. A monotonic double-ended queue (deque) optimizes this to optimal O(N) linear time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 4, label: "[0]", state: "compare" },
+        { id: "c2", value: 2, label: "[1]", state: "sorted", pointers: ["MIN"] },
+        { id: "c3", value: 12, label: "[2]", state: "compare" },
+        { id: "c4", value: 11, label: "[3]", state: "default" },
+        { id: "c5", value: 5, label: "[4]", state: "default" },
+        { id: "c6", value: 8, label: "[5]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The Domination Principle states that if index i < j belong to the current window and nums[i] ≥ nums[j], then nums[i] can NEVER be the minimum in any future window containing j because nums[j] is smaller and survives longer.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: 4, label: "[0]", state: "visited", pointers: ["dominated"] },
+        { id: "c2", value: 2, label: "[1]", state: "active", pointers: ["smaller & newer"] },
+        { id: "c3", value: 12, label: "[2]", state: "default" },
+        { id: "c4", value: 11, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We maintain a double-ended queue (deque) storing indices whose values strictly increase from front to back: nums[dq[0]] < nums[dq[1]] < ... < nums[dq[-1]].",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-arr",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 4, label: "[0]", state: "visited" },
+              { id: "c2", value: 2, label: "[1]", state: "sorted", pointers: ["dq[0]"] },
+              { id: "c3", value: 12, label: "[2]", state: "active", pointers: ["dq[1]"] },
+              { id: "c4", value: 11, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-dq",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "deque",
+            mode: "box",
+            elements: [
+              { id: "dq-0", value: 2, label: "i:1", state: "sorted" },
+              { id: "dq-1", value: 12, label: "i:2", state: "default" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The front of the deque (dq[0]) is ALWAYS guaranteed to contain the index of the minimum element for the current active sliding window in O(1) time.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-arr",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 4, label: "[0]", state: "visited" },
+              { id: "c2", value: 2, label: "[1]", state: "sorted", pointers: ["MIN"] },
+              { id: "c3", value: 12, label: "[2]", state: "active" },
+              { id: "c4", value: 11, label: "[3]", state: "default" },
+            ],
+          },
+        },
+        {
+          id: "intro-dq",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "deque",
+            mode: "box",
+            elements: [
+              { id: "dq-0", value: 2, label: "i:1", state: "sorted" },
+              { id: "dq-1", value: 12, label: "i:2", state: "default" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Front Eviction: as the window slides rightward, if the front index dq[0] falls behind the left window boundary (dq[0] ≤ i - k), it has expired and is popped via popleft().",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-arr",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 4, label: "[0]", state: "visited", pointers: ["expired"] },
+              { id: "c2", value: 2, label: "[1]", state: "active", pointers: ["left"] },
+              { id: "c3", value: 12, label: "[2]", state: "active" },
+              { id: "c4", value: 11, label: "[3]", state: "active", pointers: ["right"] },
+            ],
+          },
+        },
+        {
+          id: "intro-dq",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "deque",
+            mode: "box",
+            elements: [
+              { id: "dq-0", value: 2, label: "i:1", state: "sorted" },
+              { id: "dq-1", value: 12, label: "i:2", state: "default" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Back Eviction: when a new index i arrives, we pop indices from the back of the deque while nums[dq[-1]] ≥ nums[i] before appending index i to maintain monotonic ordering.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-arr",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 4, label: "[0]", state: "visited" },
+              { id: "c2", value: 2, label: "[1]", state: "visited" },
+              { id: "c3", value: 3, label: "[2]", state: "visited" },
+              { id: "c4", value: 7, label: "[3]", state: "visited" },
+              { id: "c5", value: 5, label: "[4]", state: "active", pointers: ["N steps"] },
+            ],
+          },
+        },
+        {
+          id: "intro-dq",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "deque",
+            mode: "box",
+            elements: [
+              { id: "dq-0", value: 2, label: "i:1", state: "sorted" },
+              { id: "dq-1", value: 5, label: "i:4", state: "default" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Because every index is pushed onto the deque exactly once and popped at most once, total operations across N steps are bounded by 2N, achieving O(N) time and O(k) space.",
+    primarySnapshot: {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "intro-arr",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: [
+              { id: "c1", value: 4, label: "[0]", state: "sorted" },
+              { id: "c2", value: 2, label: "[1]", state: "sorted" },
+              { id: "c3", value: 12, label: "[2]", state: "sorted" },
+              { id: "c4", value: 11, label: "[3]", state: "sorted" },
+              { id: "c5", value: 5, label: "[4]", state: "sorted" },
+            ],
+          },
+        },
+        {
+          id: "intro-dq",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "deque",
+            mode: "box",
+            elements: [
+              { id: "dq-0", value: 2, label: "i:1", state: "sorted" },
+              { id: "dq-1", value: 5, label: "i:4", state: "default" },
+            ],
+          },
+        },
+      ],
+    },
+  },
+];
 
 export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
@@ -20,188 +274,147 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       : DEFAULT_SLIDING_WINDOW_MIN_INPUT.nums;
   const k =
     typeof input?.k === "number" && input.k > 0 ? input.k : DEFAULT_SLIDING_WINDOW_MIN_INPUT.k;
+  const n = nums.length;
 
-  const elements: ArrayElement[] = nums.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input.nums) &&
+      input.nums.length === DEFAULT_SLIDING_WINDOW_MIN_INPUT.nums.length &&
+      input.k === DEFAULT_SLIDING_WINDOW_MIN_INPUT.k &&
+      input.nums.every((val, idx) => val === DEFAULT_SLIDING_WINDOW_MIN_INPUT.nums[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
 
   const deque: number[] = [];
   const result: number[] = [];
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    variables: Record<string, string | number | boolean>,
-    windowRange?: { start: number; end: number },
-  ) => {
-    const dequeValues = deque.map((idx) => nums[idx]);
+  const makeComposite = (
+    currentI?: number,
+    windowStart?: number,
+    highlightIdx?: number,
+    highlightState: ElementState = "compare",
+  ): CompositeCanvasSnapshot => {
+    const arrayElements: ArrayElement[] = nums.map((val, idx) => {
+      const ptrs: string[] = [];
+      if (idx === currentI) ptrs.push("i");
+      if (deque.length > 0 && deque[0] === idx && windowStart !== undefined && idx >= windowStart) {
+        ptrs.push("MIN");
+      } else if (deque.includes(idx)) {
+        ptrs.push("dq");
+      }
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el, idx) => {
-          let st: ElementState = "default";
-          const ptrs: string[] = [];
+      let state: ArrayElement["state"] = "default";
+      if (idx === highlightIdx) {
+        state = highlightState;
+      } else if (deque.length > 0 && deque[0] === idx && windowStart !== undefined && idx >= windowStart) {
+        state = "sorted";
+      } else if (windowStart !== undefined && currentI !== undefined && idx >= windowStart && idx <= currentI) {
+        state = "active";
+      } else if (windowStart !== undefined && idx < windowStart) {
+        state = "visited";
+      }
 
-          if (windowRange && idx >= windowRange.start && idx <= windowRange.end) {
-            st = "active";
-          }
-          if (deque.includes(idx)) {
-            ptrs.push("deque");
-            if (deque[0] === idx && windowRange && idx >= windowRange.start) {
-              st = "sorted";
-              ptrs.push("MIN");
-            }
-          }
-          if (windowRange && idx === windowRange.end) {
-            ptrs.push("i");
-          }
-
-          return {
-            ...el,
-            state: st,
-            pointers: ptrs.length > 0 ? ptrs : undefined,
-          };
-        }),
-      },
-      auxiliaryState: {
-        queue: deque.map((idx) => `idx:${idx}(val:${nums[idx]})`),
-        visited: [...result],
-        customState: {
-          windowSize: String(k),
-          dequeIndices: deque.join(", "),
-          dequeValues: dequeValues.join(", "),
-          result: result.join(", "),
-        },
-      },
-      variables: {
-        ...variables,
-        k,
-        deque: deque.join(", "),
-        result: result.join(", "),
-      },
+      return {
+        id: `el-${idx}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
     });
+
+    return {
+      kind: "composite",
+      layout: "horizontal",
+      items: [
+        {
+          id: "win-arr",
+          role: "primary",
+          snapshot: {
+            kind: "array",
+            name: "nums",
+            mode: "box",
+            elements: arrayElements,
+          },
+        },
+        {
+          id: "win-dq",
+          role: "auxiliary",
+          snapshot: {
+            kind: "array",
+            name: "deque",
+            mode: "box",
+            elements: deque.map((idx, pos) => ({
+              id: `dq-${pos}`,
+              value: nums[idx],
+              label: `i:${idx}`,
+              state: pos === 0 ? "sorted" : "default",
+            })),
+          },
+        },
+      ],
+    };
   };
 
-  addStep(
-    3,
-    "Set up the sliding window minimum",
-    `We track the minimum value in every window of ${k} consecutive elements using a monotonic double-ended queue (deque) of candidate indices to eliminate redundant re-scans.`,
-    { n: nums.length },
-  );
+  if (n === 0) {
+    addStep(
+      "The input array is empty, so no sliding window minimums can be calculated; returning empty result [].",
+      {
+        kind: "array",
+        name: "nums",
+        mode: "box",
+        elements: [],
+      },
+    );
+    return steps;
+  }
 
   addStep(
-    4,
-    "Initialize result list",
-    "Allocating an array to collect the minimum value of each sliding window as the window slides rightward.",
-    { n: nums.length },
+    `Having established the mental model, let's now transition to our selected input array of ${n} elements with sliding window size k = ${k}.`,
+    makeComposite(),
   );
 
-  addStep(
-    5,
-    "Initialize monotonic deque",
-    "Creating an empty double-ended queue. The deque maintains candidate indices whose values strictly increase from front to back, guaranteeing that the current window minimum is always accessible at the front in O(1) time.",
-    { n: nums.length },
-  );
-
-  for (let i = 0; i < nums.length; i++) {
+  for (let i = 0; i < n; i++) {
     const currentVal = nums[i];
     const windowStart = Math.max(0, i - k + 1);
-    const windowRange = { start: windowStart, end: i };
 
     addStep(
-      7,
-      `Inspect Element at Index ${i}`,
-      `Sliding the right window edge to index ${i} (value ${currentVal}) covers the subsegment [${windowStart}..${i}].`,
-      { i, currentVal, windowStart },
-      windowRange,
-    );
-
-    addStep(
-      8,
-      "Check Window Expiry Threshold",
-      deque.length > 0
-        ? `Evaluating whether front index ${deque[0]} has fallen out of the active window boundary (index <= ${i - k}).`
-        : "Deque is empty, no expired front index to remove.",
-      { i, currentVal, frontIdx: deque[0] ?? -1, expiredThreshold: i - k },
-      windowRange,
+      `Inspect index ${i} (nums[${i}] = ${currentVal}): active sliding window is [${windowStart} ... ${i}].`,
+      makeComposite(i, windowStart, i, "compare"),
     );
 
     if (deque.length > 0 && deque[0] <= i - k) {
-      const removedIdx = deque.shift()!;
+      const expiredIdx = deque.shift()!;
       addStep(
-        9,
-        "Evict Expired Index from Front",
-        `Index ${removedIdx} has slid past the left edge of the window. It can no longer serve as a candidate minimum, so it is popped from the front of the deque.`,
-        { i, currentVal, removedIdx, removedVal: nums[removedIdx] },
-        windowRange,
+        `Front index dq[0] = ${expiredIdx} (value ${nums[expiredIdx]}) has fallen behind window left edge (${i - k}); evicting expired front index from deque.`,
+        makeComposite(i, windowStart, expiredIdx, "visited"),
       );
     }
-
-    addStep(
-      11,
-      "Check Domination Principle for New Element",
-      deque.length > 0
-        ? `Comparing back element nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]} against incoming value ${currentVal}.`
-        : "Deque is empty, no back element to check for domination.",
-      {
-        i,
-        currentVal,
-        backIdx: deque[deque.length - 1] ?? -1,
-        backVal: deque.length > 0 ? nums[deque[deque.length - 1]] : -1,
-      },
-      windowRange,
-    );
 
     while (deque.length > 0 && nums[deque[deque.length - 1]] >= currentVal) {
       const poppedIdx = deque.pop()!;
       addStep(
-        12,
-        "Pop Dominated Index from Back",
-        `The older element at index ${poppedIdx} (value ${nums[poppedIdx]}) is >= the new value ${currentVal}, and ${currentVal} will outlive it in future windows. The older element is permanently dominated and discarded.`,
-        { i, currentVal, poppedIdx, poppedVal: nums[poppedIdx] },
-        windowRange,
-      );
-
-      addStep(
-        11,
-        "Check Domination Principle for New Element",
-        deque.length > 0
-          ? `Comparing new back element nums[${deque[deque.length - 1]}] = ${nums[deque[deque.length - 1]]} against incoming value ${currentVal}.`
-          : "Deque is empty, no back element remaining.",
-        {
-          i,
-          currentVal,
-          backIdx: deque[deque.length - 1] ?? -1,
-          backVal: deque.length > 0 ? nums[deque[deque.length - 1]] : -1,
-        },
-        windowRange,
+        `Back index dq[-1] = ${poppedIdx} has value ${nums[poppedIdx]} ≥ current value ${currentVal}; by Domination Principle, pop ${poppedIdx} from back of deque.`,
+        makeComposite(i, windowStart, poppedIdx, "swap"),
       );
     }
 
     deque.push(i);
     addStep(
-      14,
-      `Push Index ${i} onto Monotonic Deque`,
-      `With all dominated larger elements evicted from the back, index ${i} (value ${currentVal}) is appended, preserving monotonic increasing order.`,
-      { i, currentVal },
-      windowRange,
-    );
-
-    addStep(
-      16,
-      "Evaluate Window Maturity (i >= k - 1)",
-      i >= k - 1
-        ? `The window has reached full size ${k}, so the front of the deque holds the guaranteed minimum.`
-        : `The sliding window is still filling up (${i + 1}/${k} elements).`,
-      { i, k, isFullWindow: i >= k - 1 },
-      windowRange,
+      `Append current index ${i} (value ${currentVal}) to back of deque to maintain monotonically increasing candidate values.`,
+      makeComposite(i, windowStart, i, "active"),
     );
 
     if (i >= k - 1) {
@@ -209,21 +422,18 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       const minVal = nums[minIdx];
       result.push(minVal);
       addStep(
-        17,
-        `Record Window Minimum = ${minVal}`,
-        `The front index ${minIdx} in the monotonic deque holds the smallest value ${minVal} in the current window [${windowStart}..${i}]. We bank it in the result list.`,
-        { i, minIdx, minVal },
-        windowRange,
+        `Window [${windowStart} ... ${i}] is full (size ${k}): front of deque dq[0] = ${minIdx} gives window minimum = ${minVal}. Append ${minVal} to result list.`,
+        makeComposite(i, windowStart, i, "sorted"),
       );
     }
   }
 
   addStep(
-    19,
-    "Return the list of minimums",
-    "Completed sliding window scan across all windows. Each index was pushed once and popped at most once, achieving optimal linear O(N) overall runtime.",
-    { totalWindows: result.length },
+    `Sliding Window Minimum complete! Processed all ${n - k + 1} windows of size ${k}, yielding minimums list: [${result.join(", ")}].`,
+    makeComposite(undefined, n - k, deque[0], "sorted"),
   );
 
   return steps;
 };
+
+export default generateSlidingWindowMinSteps;
