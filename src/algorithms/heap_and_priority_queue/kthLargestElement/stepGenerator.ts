@@ -1,4 +1,10 @@
-import type { AlgorithmStep, ArrayElement, ElementState } from "../../../types/dsa";
+import type {
+  AlgorithmStep,
+  ArrayElement,
+  ElementState,
+  PrimaryVisualSnapshot,
+} from "../../../types/dsa";
+import { createTutorialStep } from "../../../learning/authoring/tutorialSteps";
 
 export interface KthLargestInput {
   nums: number[];
@@ -10,33 +16,126 @@ export const DEFAULT_KTH_LARGEST_INPUT: KthLargestInput = {
   k: 2,
 };
 
-function createArrayElements(
-  heap: number[],
-  activeIdx: number = -1,
-  stateOverride: ElementState = "active",
-): ArrayElement[] {
-  return heap.map((val, idx) => {
-    let state: ElementState = "default";
-    if (idx === activeIdx) {
-      state = stateOverride;
-    } else if (idx === 0) {
-      state = "pivot";
-    }
-    const pointers: string[] = [];
-    if (idx === 0) pointers.push("min-root");
-    if (idx === activeIdx) pointers.push("curr");
-
-    return {
-      id: `heap-${idx}-${val}`,
-      value: val,
-      state,
-      pointers,
-    };
-  });
-}
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "The Kth Largest Element problem finds the k-th largest value in an unsorted array of N numbers in O(N log k) time and O(k) memory using a bounded min-heap.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Input Array",
+      mode: "box",
+      elements: [
+        { id: "i0", value: 3, label: "[0]", state: "default" },
+        { id: "i1", value: 2, label: "[1]", state: "default" },
+        { id: "i2", value: 1, label: "[2]", state: "default" },
+        { id: "i3", value: 5, label: "[3]", state: "default" },
+        { id: "i4", value: 6, label: "[4]", state: "default" },
+        { id: "i5", value: 4, label: "[5]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Selection vs Full Sorting: sorting all N numbers costs O(N log N) time and extra space. By maintaining a min-heap capped at capacity k, runtime drops to O(N log k).",
+    primarySnapshot: {
+      kind: "array",
+      name: "Min-Heap (k=2)",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 5, label: "root (min)", state: "pivot" },
+        { id: "h1", value: 6, label: "max", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Bounded Min-Heap Invariant: a min-heap of capacity k holds the k largest numbers seen so far, placing the smallest of those k candidates at the root.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Min-Heap",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 3, label: "root", state: "pivot", pointers: ["k-th candidate"] },
+        { id: "h1", value: 5, label: "node", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Insertion Step (heappush): push each array element into the min-heap, allowing it to sift into place in O(log k) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Min-Heap",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 2, label: "root", state: "pivot" },
+        { id: "h1", value: 3, label: "node", state: "default" },
+        { id: "h2", value: 5, label: "pushed", state: "active" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Capacity Check (len(heap) > k): when pushing an element increases heap size to k + 1, the root element is guaranteed to be smaller than the true top k.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Min-Heap Overflow",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 1, label: "evict root", state: "swap" },
+        { id: "h1", value: 3, label: "node", state: "default" },
+        { id: "h2", value: 5, label: "node", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Eviction Step (heappop): evict the root element via heappop to shrink the heap size back to k in O(log k) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Min-Heap (size k)",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 5, label: "new root", state: "pivot" },
+        { id: "h1", value: 6, label: "node", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Traversal Completion: after processing all N elements, the min-heap contains exactly the k largest values from the original array.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Top K Candidates",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 5, label: "root", state: "pivot" },
+        { id: "h1", value: 6, label: "node", state: "sorted" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Result Extraction: the root of the min-heap (the minimum of the k largest elements) is returned as the exact k-th largest value in O(1) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "Result Kth Largest",
+      mode: "box",
+      elements: [
+        { id: "h0", value: 5, label: "k-th largest = 5", state: "sorted", pointers: ["RESULT"] },
+        { id: "h1", value: 6, label: "larger", state: "default" },
+      ],
+    },
+  },
+];
 
 export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[] {
   const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
+
   const rawNums = Array.isArray(input?.nums)
     ? input.nums
     : input?.nums === undefined
@@ -44,54 +143,45 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
       : DEFAULT_KTH_LARGEST_INPUT.nums;
   const targetK = typeof input?.k === "number" ? input.k : DEFAULT_KTH_LARGEST_INPUT.k;
 
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
+
+  const isDefaultTutorialInput =
+    !input ||
+    (input.k === DEFAULT_KTH_LARGEST_INPUT.k &&
+      Array.isArray(input.nums) &&
+      input.nums.length === DEFAULT_KTH_LARGEST_INPUT.nums.length &&
+      input.nums.every((val, idx) => val === DEFAULT_KTH_LARGEST_INPUT.nums[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
   if (!Array.isArray(rawNums) || rawNums.length === 0) {
-    steps.push({
-      stepIndex: 0,
-      codeLine: 3,
-      explanation: {
-        what: "Validate input bounds",
-        why: "Input array is empty. Terminating algorithm with default invalid rank result.",
+    addStep(
+      "The input array is empty, so no k-th largest element exists; returning -1.",
+      {
+        kind: "array",
+        name: "Min-Heap",
+        mode: "box",
+        elements: [],
       },
-      primarySnapshot: { kind: "array", elements: [] },
-      auxiliaryState: { customState: { k: targetK, heapSize: 0 } },
-      variables: { k: targetK, result: -1 },
-    });
+    );
     return steps;
   }
 
   const nums = rawNums;
   const k = Math.max(1, Math.min(targetK, nums.length));
-
-  let stepIdx = 0;
   const minHeap: number[] = [];
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 1,
-    explanation: {
-      what: "Initialize Bounded Min-Heap filter",
-      why: "A min-heap of capacity k maintains the top k largest values seen so far. Root element corresponds to the minimum of the top k (the current k-th largest candidate).",
-    },
-    primarySnapshot: { kind: "array", elements: createArrayElements(minHeap) },
-    auxiliaryState: { customState: { k, nums: `[${nums.join(", ")}]` } },
-    variables: { k },
-  });
-
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 4,
-    explanation: {
-      what: `Allocate min-heap with target capacity K = ${k}`,
-      why: `The min-heap acts as a sliding window of the top ${k} largest numbers. Any element that drops below root is evicted, guaranteeing O(N log k) total runtime.`,
-    },
-    primarySnapshot: { kind: "array", elements: createArrayElements(minHeap) },
-    auxiliaryState: {
-      customState: { k, heap: "[]", nums: `[${nums.join(", ")}]` },
-    },
-    variables: { k, heapSize: 0, processedCount: 0 },
-  });
-
-  const siftUp = (heap: number[]): number => {
+  const siftUp = (heap: number[]) => {
     let curr = heap.length - 1;
     while (curr > 0) {
       const parent = Math.floor((curr - 1) / 2);
@@ -104,10 +194,9 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
         break;
       }
     }
-    return curr;
   };
 
-  const siftDown = (heap: number[]): void => {
+  const siftDown = (heap: number[]) => {
     let curr = 0;
     const len = heap.length;
     while (curr * 2 + 1 < len) {
@@ -127,123 +216,102 @@ export function generateKthLargestSteps(input: KthLargestInput): AlgorithmStep[]
     }
   };
 
+  const makeSnapshot = (
+    activeVal?: number,
+    activeIdx?: number,
+    stateOverride?: ElementState,
+    isComplete?: boolean,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = minHeap.map((val, idx) => {
+      let state: ElementState = "default";
+      const ptrs: string[] = [];
+
+      if (idx === 0) {
+        state = isComplete ? "sorted" : "pivot";
+        ptrs.push("min-root");
+      }
+
+      if (idx === activeIdx) {
+        state = stateOverride ?? "active";
+        ptrs.push(`pushed:${val}`);
+      }
+
+      return {
+        id: `h-${idx}-${val}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? ptrs : undefined,
+      };
+    });
+
+    if (elements.length === 0 && activeVal !== undefined) {
+      elements.push({
+        id: `inspecting-${activeVal}`,
+        value: activeVal,
+        label: "inspecting",
+        state: stateOverride ?? "compare",
+      });
+    }
+
+    return {
+      kind: "array",
+      name: `Min-Heap (capacity k=${k})`,
+      mode: "box",
+      elements,
+    };
+  };
+
+  addStep(
+    `Having established the mental model, let's now transition to input array [${nums.join(", ")}] searching for k=${k} largest element using a bounded min-heap.`,
+    makeSnapshot(undefined, undefined, undefined),
+  );
+
   for (let i = 0; i < nums.length; i++) {
     const num = nums[i];
 
-    // Step for line 5: loop iteration
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 5,
-      explanation: {
-        what: `Process array element nums[${i}] = ${num}`,
-        why: `Evaluating ${num} against candidate top ${k} values currently in min-heap.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(minHeap),
-      },
-      auxiliaryState: {
-        customState: {
-          currentNum: num,
-          heap: `[${minHeap.join(", ")}]`,
-          rootMin: minHeap[0] ?? "none",
-        },
-      },
-      variables: { i, num, heapSize: minHeap.length, k },
-    });
+    addStep(
+      `Inspect element nums[${i}] = ${num}: prepare to insert into min-heap.`,
+      makeSnapshot(num, undefined, "compare"),
+    );
 
-    // Step for line 6: push into heap
     minHeap.push(num);
-    const activeIdx = siftUp(minHeap);
+    siftUp(minHeap);
+    const pushedIdx = minHeap.indexOf(num);
 
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 6,
-      explanation: {
-        what: `Insert ${num} into min-heap`,
-        why: `Pushing ${num} and performing sift-up to restore min-heap invariant. Smallest candidate moves to root.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(minHeap, activeIdx, "queued"),
-      },
-      auxiliaryState: {
-        customState: { currentNum: num, heap: `[${minHeap.join(", ")}]`, rootMin: minHeap[0] },
-      },
-      variables: { i, num, heapSize: minHeap.length, k },
-    });
+    addStep(
+      `Push ${num} into min-heap (current size ${minHeap.length}): sifted into place at index ${pushedIdx >= 0 ? pushedIdx : 0}.`,
+      makeSnapshot(num, pushedIdx >= 0 ? pushedIdx : undefined, "active"),
+    );
 
-    // Step for line 7: check capacity
-    const exceedsCapacity = minHeap.length > k;
-    steps.push({
-      stepIndex: stepIdx++,
-      codeLine: 7,
-      explanation: {
-        what: `Check heap capacity: size ${minHeap.length} > capacity ${k}? ${exceedsCapacity ? "Yes" : "No"}`,
-        why: exceedsCapacity
-          ? `Heap size (${minHeap.length}) exceeds maximum capacity k (${k}). The root minimum must be evicted.`
-          : `Heap size (${minHeap.length}) is within capacity k (${k}). No eviction needed.`,
-      },
-      primarySnapshot: {
-        kind: "array",
-        elements: createArrayElements(minHeap, 0, exceedsCapacity ? "active" : "default"),
-      },
-      auxiliaryState: {
-        customState: {
-          currentNum: num,
-          heap: `[${minHeap.join(", ")}]`,
-          rootMin: minHeap[0],
-          exceedsCapacity,
-        },
-      },
-      variables: { i, num, heapSize: minHeap.length, k, exceedsCapacity },
-    });
+    if (minHeap.length > k) {
+      const minEvicted = minHeap[0];
+      addStep(
+        `Min-heap size (${minHeap.length}) exceeds capacity k=${k}: root element ${minEvicted} is the smallest of top ${minHeap.length} candidates and must be evicted.`,
+        makeSnapshot(minEvicted, 0, "swap"),
+      );
 
-    if (exceedsCapacity) {
-      const popped = minHeap[0];
-      minHeap[0] = minHeap[minHeap.length - 1];
-      minHeap.pop();
-      siftDown(minHeap);
+      const last = minHeap.pop()!;
+      if (minHeap.length > 0) {
+        minHeap[0] = last;
+        siftDown(minHeap);
+      }
 
-      steps.push({
-        stepIndex: stepIdx++,
-        codeLine: 8,
-        explanation: {
-          what: `Evict root element ${popped} via min-heap pop`,
-          why: `Evicting root value ${popped} (smallest candidate among top ${k + 1}). All remaining heap items are strictly greater than or equal to ${popped}.`,
-        },
-        primarySnapshot: {
-          kind: "array",
-          elements: createArrayElements(minHeap, 0, "swap"),
-        },
-        auxiliaryState: {
-          customState: {
-            poppedElement: popped,
-            heap: `[${minHeap.join(", ")}]`,
-            rootMin: minHeap[0],
-          },
-        },
-        variables: { i, popped, heapSize: minHeap.length, k },
-      });
+      addStep(
+        `Evicted root ${minEvicted}: min-heap size restored to k=${k}. New root is ${minHeap[0]}, maintaining top ${k} largest values.`,
+        makeSnapshot(undefined, 0, "pivot"),
+      );
     }
   }
 
-  const result = minHeap[0];
-  const finalElements = createArrayElements(minHeap, 0, "sorted");
+  const kthLargestVal = minHeap[0];
 
-  steps.push({
-    stepIndex: stepIdx++,
-    codeLine: 9,
-    explanation: {
-      what: `Return K-th largest element: ${result}`,
-      why: `All array elements processed. Min-heap contains the ${k} largest numbers overall. Root value ${result} is the minimum of the top ${k}, which is precisely the ${k}-th largest element.`,
-    },
-    primarySnapshot: { kind: "array", elements: finalElements },
-    auxiliaryState: {
-      customState: { result, k, finalHeap: `[${minHeap.join(", ")}]` },
-    },
-    variables: { k, result, heapSize: minHeap.length },
-  });
+  addStep(
+    `Kth Largest Element complete! Processed all ${nums.length} numbers. Min-heap root contains ${kthLargestVal}, which is the ${k}-th largest element in the array.`,
+    makeSnapshot(kthLargestVal, 0, "sorted", true),
+  );
 
   return steps;
 }
+
+export default generateKthLargestSteps;

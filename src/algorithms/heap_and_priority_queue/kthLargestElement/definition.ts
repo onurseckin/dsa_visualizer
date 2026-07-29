@@ -54,19 +54,21 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "nums = [3, 2, 1, 5, 6, 4], k = 2",
       outputDisplay: "5",
-      title: "Basic Example",
-      input: { nums: [3, 2, 1, 5, 6, 4], k: 2 },
+      title: "Standard Bounded Min-Heap Search",
+      input: DEFAULT_KTH_LARGEST_INPUT,
       output: "5",
       explanation:
         "Sorting the array gives [1,2,3,4,5,6]. Min-heap of size 2 maintains [5, 6], with root 5 being the 2nd largest.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4",
       outputDisplay: "4",
-      title: "Complex Edge Case",
+      title: "Adversarial Duplicates & Larger K Rank",
       input: { nums: [3, 2, 3, 1, 2, 4, 5, 5, 6], k: 4 },
       output: "4",
       explanation:
@@ -74,9 +76,10 @@ export const kthLargestElement: AlgorithmDefinition<KthLargestInput> = {
     },
     {
       kind: "negative",
-      inputDisplay: "nums = [7, 10, 4, 3, 20, 15], k = 6",
-      outputDisplay: "3",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: "nums = [7], k = 1",
+      outputDisplay: "7",
+      title: "Boundary Single Element Case",
       input: { nums: [7], k: 1 },
       output: "7",
       explanation:
