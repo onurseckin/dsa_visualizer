@@ -56,9 +56,18 @@ Server-only Python exercises require the Compose stack.
 Every executable workspace has two code surfaces:
 
 - **Reference** is the immutable, authored solution and remains connected to the
-  step-by-step explanation and visualization.
+  step-by-step explanation and input-aware visualization.
 - **Playground** is an editable starter or draft. Running it executes authored
   cases, reports per-case results, and captures `stdout` from `print`.
+
+Trace, calculator, debugging, scenario, and capstone workspaces also render the
+selected case's input, explicitly labelled conceptual frames, and authored
+expected output. Non-exact responses are stored as pending until the learner
+completes the transparent rubric self-review; that review updates the same
+attempt with a weighted grade. A missed critical criterion remains unresolved
+until the learner submits evidence against a different authored case and passes
+the repair review. Attempts are scheduled automatically onto the 1/7/24-day
+retrieval windows used by mastery evaluation.
 
 The hybrid selector uses browser Pyodide for compatible NumPy exercises and the
 Docker CPython runner for server/PyTorch exercises. A browser infrastructure

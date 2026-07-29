@@ -23,6 +23,7 @@ export type AttemptResetScope =
 export interface AttemptStorage {
   load(): readonly AssessmentAttemptRecord[];
   save(record: AssessmentAttemptRecord): boolean;
+  update(record: AssessmentAttemptRecord): boolean;
   reset(scope: AttemptResetScope): void;
 }
 
@@ -129,7 +130,17 @@ export function createAttemptStorage(options: AttemptStorageOptions = {}): Attem
     load,
     save(record) {
       if (!isAssessmentAttemptRecord(record)) return false;
-      const attempts = [...load(), createSnapshot(record)].slice(-maxAttempts);
+      const current = load();
+      if (findAttemptIndex(current, record) >= 0) return false;
+      const attempts = [...current, createSnapshot(record)].slice(-maxAttempts);
+      return write(attempts);
+    },
+    update(record) {
+      if (!isAssessmentAttemptRecord(record)) return false;
+      const attempts = [...load()];
+      const index = findAttemptIndex(attempts, record);
+      if (index < 0 || record.updatedAt < attempts[index]!.updatedAt) return false;
+      attempts[index] = createSnapshot(record);
       return write(attempts);
     },
     reset(scope) {
@@ -159,6 +170,24 @@ export function createAttemptStorage(options: AttemptStorageOptions = {}): Attem
       write(remaining);
     },
   };
+}
+
+function findAttemptIndex(
+  attempts: readonly AssessmentAttemptRecord[],
+  candidate: AssessmentAttemptRecord,
+): number {
+  for (let index = attempts.length - 1; index >= 0; index -= 1) {
+    const attempt = attempts[index]!;
+    if (
+      attempt.itemId === candidate.itemId &&
+      attempt.mode === candidate.mode &&
+      attempt.variant === candidate.variant &&
+      attempt.createdAt === candidate.createdAt
+    ) {
+      return index;
+    }
+  }
+  return -1;
 }
 
 export const assessmentAttemptStorage = createAttemptStorage();

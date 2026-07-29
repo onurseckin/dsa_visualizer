@@ -74,6 +74,11 @@ each removed item, but it is not a runtime compatibility map.
 The route `/workspace/$algorithmId` resolves from `LEARNING_ITEM_REGISTRY`.
 Algorithm items retain the original visual step engine. Trace, calculator,
 debugging, scenario, and capstone items use their matching assessment renderer.
+When an assessment has an executable playground, its selected authored case is
+also passed to `generateSteps`; the resulting snapshots, explanations,
+variables, and auxiliary state are rendered as an inspectable walkthrough.
+Input-evidence wrappers keep the submitted input and matching authored expected
+output separate from explicitly labelled conceptual teaching frames.
 
 When an item has an execution contract, `CodeWorkspace` presents:
 
@@ -87,6 +92,16 @@ server runtime, executes selected test cases, and returns status, values,
 diagnostics, duration, and bounded `stdout`/`stderr`. Each run supersedes and
 cancels an older run from the same workspace.
 
+Open-ended submissions are persisted immediately with `pending` grading status.
+The transparent self-review checks the authored rubric, calculates normalized
+weighted points, records missed critical criteria, and replaces that same
+attempt with a `graded` record. The first attempt establishes a 1/7/24-day
+retrieval schedule; a submission made on or after a due date records completion.
+An unresolved critical criterion can only be repaired through the dedicated
+changed-context flow: it binds fresh evidence to a distinct authored execution
+case, records a canonical repair variant, and clears the failure only after a
+passing review. Ordinary pending attempts cannot be relabelled as repairs.
+
 The automatic runtime policy chooses browser Pyodide only for a
 browser-compatible spec. PyTorch and explicitly server-authored specs use the
 CPython service. Browser infrastructure failures may fall back to CPython when
@@ -97,7 +112,9 @@ the contract is compatible; learner code failures do not trigger fallback.
 The API stores JSON-serialized key/value state in the `api_data` SQLite volume.
 The client validates persisted records before using them and performs
 best-effort writes. Server hydration fills only absent browser keys so a newer
-local draft cannot be overwritten by a stale response.
+local draft cannot be overwritten by a stale response. Application mounting is
+gated on that initial hydration attempt, with a bounded timeout, so routed
+defaults cannot race ahead of the SQLite snapshot.
 
 The Vite adapter in `src/server` exposes the same `/api/db/*` shape for
 frontend development and degrades safely when native SQLite is unavailable.

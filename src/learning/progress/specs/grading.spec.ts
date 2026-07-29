@@ -6,6 +6,7 @@ import {
   evaluateMastery,
   getUnresolvedCriticalFailures,
   nextRetrieval,
+  retrievalWindowForAttempt,
 } from "../grading";
 import { createAttemptRecord } from "../types";
 
@@ -148,6 +149,33 @@ describe("mastery grading", () => {
 
     expect(evaluateMastery(pending, scope).mastered).toBe(false);
     expect(evaluateMastery(pending, scope).passingModes).toEqual([]);
+  });
+
+  it("schedules authored attempts onto the 1/7/24-day retrieval windows", () => {
+    expect(retrievalWindowForAttempt([], 1_000)).toEqual({
+      dueAt: 1_000 + day,
+    });
+
+    const initial = attempt({ createdAt: 1_000, updatedAt: 1_000 });
+    expect(retrievalWindowForAttempt([initial], 1_000 + day)).toEqual({
+      dueAt: 1_000 + day,
+      completedAt: 1_000 + day,
+    });
+
+    const firstRetrieval = attempt({
+      variant: "day-one",
+      createdAt: 1_000 + day,
+      updatedAt: 1_000 + day,
+      delayedRetrievalDueAt: 1_000 + day,
+      delayedRetrievalCompletedAt: 1_000 + day,
+    });
+    expect(retrievalWindowForAttempt([initial, firstRetrieval], 1_000 + 2 * day)).toEqual({
+      dueAt: 1_000 + 7 * day,
+    });
+  });
+
+  it("rejects an invalid retrieval scheduling timestamp", () => {
+    expect(() => retrievalWindowForAttempt([], -1)).toThrow(/timestamp/i);
   });
 
   it("repairs a critical failure only with an explicit same-item changed-variant isomorphic retest", () => {
