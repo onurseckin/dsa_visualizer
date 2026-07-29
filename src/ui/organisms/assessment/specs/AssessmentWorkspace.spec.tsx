@@ -138,4 +138,90 @@ describe("AssessmentWorkspace", () => {
     expect(screen.getByRole("textbox", { name: "Predicted next state" })).toHaveValue("");
     expect(screen.getByText("1 saved attempt")).toBeInTheDocument();
   });
+
+  it("renders a separate executable playground for a rubric-scored scenario", () => {
+    const scenario = {
+      id: "determinism-triage",
+      kind: "scenario",
+      title: "Determinism triage",
+      description: "Diagnose a reproducibility incident without exact-answer grading.",
+      objective: "Separate deterministic replay from unsupported guarantees.",
+      completionEvidence: "A rubric response and a passing artifact validator.",
+      topicIds: ["ml_python_scientific_computing"],
+      difficultyProfile: {
+        prerequisite: 2,
+        representations: 2,
+        horizon: 3,
+        tradeoffs: 3,
+      },
+      difficultyLabel: "Advanced",
+      difficulty: "Hard",
+      sources: [
+        {
+          kind: "ml_infra",
+          label: "PyTorch reproducibility",
+          provenance: "verified",
+          url: "https://docs.pytorch.org/docs/stable/notes/randomness.html",
+        },
+      ],
+      assessment: {
+        kind: "scenario",
+        renderer: "scenario-assessment",
+        triviaEligible: false,
+        payload: {
+          variant: "incident-triage",
+          changedContext: true,
+          isomorphicRetest: true,
+        },
+      },
+      prompt: {
+        context: "Two runs diverge after an environment change.",
+        question: "What evidence would you collect before promising deterministic replay?",
+      },
+      rubric: {
+        criteria: [
+          {
+            id: "boundary",
+            label: "Boundary",
+            description: "Names the platform and version boundary.",
+            points: 1,
+          },
+        ],
+      },
+      playground: {
+        code: "def validate_replay(record):\n    return record['seeded']",
+        starterCode: "def validate_replay(record):\n    pass",
+        execution: {
+          runtime: "browser",
+          entrypoint: "validate_replay",
+          invocation: {
+            kind: "function",
+            arguments: [{ from: "input", path: [] }],
+          },
+          packages: [],
+          outputContract: "Return whether the replay record declares a seed.",
+          cases: [
+            {
+              id: "basic",
+              label: "Seeded",
+              input: { seeded: true },
+              expected: true,
+              comparison: "deep-equal",
+            },
+          ],
+        },
+        generateSteps: () => [],
+      },
+    } as never;
+
+    render(
+      <AssessmentWorkspace item={scenario} storage={createAttemptStorage({ sync: vi.fn() })} />,
+    );
+
+    expect(screen.getByRole("main", { name: "Determinism triage assessment" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: "Determinism triage code workspace" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/separate from the rubric-scored response/i)).toBeInTheDocument();
+  });
 });

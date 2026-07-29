@@ -197,6 +197,8 @@ describe("learning item model", () => {
       url: "https://example.com/actual-reference",
     });
     expect(item.sources).toEqual(sources);
+    expect(item.objective).toBe("Explain and execute Source normalization.");
+    expect(item.completionEvidence).toContain("source-normalization");
     expect(isTriviaEligibleLearningItem(item)).toBe(true);
   });
 });

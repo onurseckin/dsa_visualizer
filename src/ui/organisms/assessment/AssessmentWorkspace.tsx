@@ -7,7 +7,12 @@ import {
   type AssessmentSubmissionContext,
 } from "../../../learning/progress/types";
 import type { LearningItem } from "../../../learning/types";
-import { isAlgorithmLearningItem } from "../../../learning/types";
+import {
+  getLearningItemPlayground,
+  isAlgorithmLearningItem,
+  isRubricLearningItem,
+} from "../../../learning/types";
+import { CodeWorkspace } from "../code-workspace/CodeWorkspace";
 import { CalculatorAssessment } from "./CalculatorAssessment";
 import { CapstoneAssessment } from "./CapstoneAssessment";
 import { DebuggingAssessment } from "./DebuggingAssessment";
@@ -30,6 +35,7 @@ function ItemAssessmentWorkspace({
   storage = assessmentAttemptStorage,
   now = Date.now,
 }: AssessmentWorkspaceProps): React.ReactElement {
+  const playground = getLearningItemPlayground(item);
   const [confidence, setConfidence] = useState<AssessmentSubmissionContext["confidence"]>(3);
   const [invariantEvidence, setInvariantEvidence] = useState("");
   const [tradeoffEvidence, setTradeoffEvidence] = useState("");
@@ -180,6 +186,20 @@ function ItemAssessmentWorkspace({
         </p>
       </section>
       <div key={item.id}>{content}</div>
+      {playground ? (
+        <>
+          {isRubricLearningItem(item) ? (
+            <p>This executable playground is separate from the rubric-scored response.</p>
+          ) : null}
+          <CodeWorkspace
+            itemId={item.id}
+            itemTitle={item.title}
+            referenceCode={playground.code}
+            starterCode={playground.starterCode}
+            executionSpec={playground.execution}
+          />
+        </>
+      ) : null}
     </main>
   );
 }
