@@ -102,6 +102,45 @@ describe("assessment attempt storage", () => {
     newestSave.resolve();
   });
 
+  it("replaces one pending attempt with its reviewed grade without duplicating history", () => {
+    const attempts = createAttemptStorage({ sync: vi.fn() });
+    const pending = record({
+      gradingStatus: "pending",
+      score: 0,
+      rubric: [{ id: "prediction", score: 0, maxScore: 1, feedback: "Pending review." }],
+    });
+    const reviewed = record({
+      gradingStatus: "graded",
+      score: 1,
+      rubric: [{ id: "prediction", score: 1, maxScore: 1, feedback: "Self-review complete." }],
+      updatedAt: 150,
+    });
+
+    expect(attempts.save(pending)).toBe(true);
+    expect(attempts.update(reviewed)).toBe(true);
+    expect(attempts.load()).toEqual([reviewed]);
+    expect(
+      attempts.update(
+        record({
+          itemId: "missing-attempt",
+          createdAt: 200,
+          updatedAt: 200,
+        }),
+      ),
+    ).toBe(false);
+    expect(attempts.load()).toEqual([reviewed]);
+  });
+
+  it("rejects a duplicate implicit attempt identity instead of creating ambiguous history", () => {
+    const attempts = createAttemptStorage({ sync: vi.fn() });
+    const first = record({ response: { prediction: "first" } });
+    const duplicateIdentity = record({ response: { prediction: "duplicate" } });
+
+    expect(attempts.save(first)).toBe(true);
+    expect(attempts.save(duplicateIdentity)).toBe(false);
+    expect(attempts.load()).toEqual([first]);
+  });
+
   it("serializes save, reset, and a later save so the latest snapshot wins", async () => {
     const firstSave = deferred();
     const reset = deferred();

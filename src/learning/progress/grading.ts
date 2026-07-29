@@ -38,6 +38,11 @@ export interface NextRetrieval {
   readonly intervalDays: number;
 }
 
+export interface AttemptRetrievalWindow {
+  readonly dueAt?: number;
+  readonly completedAt?: number;
+}
+
 export function createMasteryScope(scope: MasteryScope): MasteryScope {
   if (
     !TARGET_ID_PATTERN.test(scope.targetId) ||
@@ -172,6 +177,36 @@ export function nextRetrieval(
     if (!completed) return { dueAt, intervalDays };
   }
   return undefined;
+}
+
+/**
+ * Assigns the next policy-owned retrieval window to a newly created attempt.
+ * The first attempt establishes the schedule; a submission made on or after a
+ * due date records completion, while grading remains a separate review step.
+ */
+export function retrievalWindowForAttempt(
+  attempts: readonly AssessmentAttemptRecord[],
+  timestamp: number,
+  policy: MasteryPolicy = DEFAULT_MASTERY_POLICY,
+): AttemptRetrievalWindow {
+  if (!Number.isSafeInteger(timestamp) || timestamp < 0) {
+    throw new Error("Retrieval scheduling requires a valid timestamp.");
+  }
+  const initialCreatedAt = earliestCreatedAt(attempts);
+  const scheduleOrigin = initialCreatedAt ?? timestamp;
+  const dueAt = policy.delayedRetrievalDays
+    .map((days) => scheduleOrigin + days * DAY_MS)
+    .find(
+      (candidate) =>
+        !attempts.some(
+          (attempt) =>
+            isSuccessful(attempt, policy) &&
+            attempt.delayedRetrievalDueAt === candidate &&
+            isCompletedRetrieval(attempt, candidate),
+        ),
+    );
+  if (dueAt === undefined) return {};
+  return timestamp >= dueAt ? { dueAt, completedAt: timestamp } : { dueAt };
 }
 
 interface CriticalFailure {
