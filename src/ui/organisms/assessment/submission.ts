@@ -43,7 +43,6 @@ export function createAssessmentSubmission({
     invariantEvidence: context.invariantEvidence,
     tradeoffEvidence: context.tradeoffEvidence,
     delayedRetrievalDueAt: metadata.delayedRetrievalDueAt,
-    delayedRetrievalCompletedAt: metadata.delayedRetrievalCompletedAt,
   };
 }
 

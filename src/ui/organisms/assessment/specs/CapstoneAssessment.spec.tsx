@@ -84,7 +84,10 @@ describe("CapstoneAssessment", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save capstone response" }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/could not be saved/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Capstone response was not saved. No analytic review was queued.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/pending/i);
     expect(screen.queryByText(/response saved/i)).toBeNull();
   });
 });

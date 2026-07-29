@@ -80,17 +80,41 @@ describe("AssessmentWorkspace", () => {
         isomorphicRetest: false,
         invariantEvidence: "FIFO selects A first.",
         delayedRetrievalDueAt: 86_400_000,
-        delayedRetrievalCompletedAt: 86_400_000,
         createdAt: 1_000,
         updatedAt: 1_000,
         response: { prediction: "A starts running" },
       }),
     ]);
+    expect(storage.load()[0]).not.toHaveProperty("delayedRetrievalCompletedAt");
     expect(screen.getByText("1 saved attempt")).toBeInTheDocument();
 
     view.unmount();
     render(<AssessmentWorkspace item={item} storage={storage} now={() => 2_000} />);
     expect(screen.getByText("1 saved attempt")).toBeInTheDocument();
+  });
+
+  it("records the workspace clock as retrieval completion only when the attempt is due", () => {
+    const storage = createAttemptStorage({ sync: vi.fn() });
+    const completedAt = 86_400_500;
+    render(
+      <AssessmentWorkspace
+        item={traceItem("queue-retrieval", "Queue retrieval", "ready: [A]", "running: A")}
+        storage={storage}
+        now={() => completedAt}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Predicted next state" }), {
+      target: { value: "A starts running" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reveal next state" }));
+
+    expect(storage.load()[0]).toMatchObject({
+      delayedRetrievalDueAt: 86_400_000,
+      delayedRetrievalCompletedAt: completedAt,
+      createdAt: completedAt,
+      updatedAt: completedAt,
+    });
   });
 
   it("resets same-kind form state on navigation while retaining item-scoped attempts", () => {

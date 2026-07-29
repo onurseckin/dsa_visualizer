@@ -116,6 +116,27 @@ describe("mastery grading", () => {
     expect(evaluateMastery(masteredRecords(), scope).delayedRetrievalCompleted).toBe(true);
   });
 
+  it("does not accept an authored future completion timestamp on a premature attempt", () => {
+    const prematureRecords = [
+      attempt(),
+      attempt({
+        mode: "debugging",
+        variant: "premature-retrieval",
+        changedContext: true,
+        delayedRetrievalDueAt: day,
+        delayedRetrievalCompletedAt: day,
+        createdAt: 0,
+        updatedAt: 0,
+      }),
+    ];
+
+    expect(evaluateMastery(prematureRecords, scope)).toMatchObject({
+      mastered: false,
+      delayedRetrievalCompleted: false,
+    });
+    expect(nextRetrieval(prematureRecords, scope)).toEqual({ dueAt: day, intervalDays: 1 });
+  });
+
   it("keeps pending submissions out of mastery even when their numeric score is high", () => {
     const pending = masteredRecords().map((record) =>
       attempt({

@@ -98,8 +98,7 @@ export function evaluateMastery(
     (attempt) =>
       attempt.delayedRetrievalDueAt !== undefined &&
       scheduledDueDates.includes(attempt.delayedRetrievalDueAt) &&
-      attempt.delayedRetrievalCompletedAt !== undefined &&
-      attempt.delayedRetrievalCompletedAt >= attempt.delayedRetrievalDueAt,
+      isCompletedRetrieval(attempt, attempt.delayedRetrievalDueAt),
   );
   const hasInvariantEvidence = passing.some(
     (attempt) => attempt.invariantEvidence.trim().length > 0,
@@ -168,8 +167,7 @@ export function nextRetrieval(
       (attempt) =>
         isSuccessful(attempt, policy) &&
         attempt.delayedRetrievalDueAt === dueAt &&
-        attempt.delayedRetrievalCompletedAt !== undefined &&
-        attempt.delayedRetrievalCompletedAt >= dueAt,
+        isCompletedRetrieval(attempt, dueAt),
     );
     if (!completed) return { dueAt, intervalDays };
   }
@@ -198,6 +196,15 @@ function isSuccessful(attempt: AssessmentAttemptRecord, policy: MasteryPolicy): 
     attempt.gradingStatus === "graded" &&
     attempt.score >= policy.passingThreshold &&
     attempt.criticalFailures.length === 0
+  );
+}
+
+function isCompletedRetrieval(attempt: AssessmentAttemptRecord, dueAt: number): boolean {
+  return (
+    attempt.delayedRetrievalCompletedAt !== undefined &&
+    attempt.delayedRetrievalCompletedAt >= dueAt &&
+    attempt.createdAt >= dueAt &&
+    attempt.updatedAt >= dueAt
   );
 }
 

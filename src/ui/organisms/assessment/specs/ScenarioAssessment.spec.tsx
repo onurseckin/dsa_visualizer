@@ -82,7 +82,10 @@ describe("ScenarioAssessment", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Save response" }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(/could not be saved/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Response was not saved. No rubric review was queued.",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/pending/i);
     expect(screen.queryByText(/saved for rubric review/i)).toBeNull();
   });
 });

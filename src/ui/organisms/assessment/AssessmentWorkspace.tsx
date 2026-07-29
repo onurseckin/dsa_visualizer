@@ -45,10 +45,13 @@ function ItemAssessmentWorkspace({
 
   const submit = (submission: AssessmentSubmission): boolean => {
     const timestamp = now();
+    const dueAt = submission.delayedRetrievalDueAt;
     try {
       const record = createAttemptRecord({
         ...submission,
         itemId: item.id,
+        delayedRetrievalCompletedAt:
+          dueAt !== undefined && timestamp >= dueAt ? timestamp : undefined,
         createdAt: timestamp,
         updatedAt: timestamp,
       });
