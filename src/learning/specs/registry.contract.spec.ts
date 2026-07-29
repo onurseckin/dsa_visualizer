@@ -6,6 +6,9 @@ import { validatePythonExecutionSpec } from "@dsa-visualizer/execution-contracts
 import { hasAssessmentRenderer, isAssessmentForLearningItemKind } from "../assessment";
 import { adaptAlgorithmDefinition } from "../algorithmAdapters";
 import { deriveDifficultyLabel, isDifficultyProfile } from "../difficulty";
+import { ML_PLATFORM_CAPSTONES } from "../items/capstones";
+import { PRODUCTION_OPERATIONS_ITEMS } from "../items/production-operations";
+import { REPRODUCIBLE_DELIVERY_ITEMS } from "../items/reproducible-delivery";
 import {
   assertTransitionalLearningItemCount,
   buildLearningItemRegistry,
@@ -146,16 +149,19 @@ describe("learning item registry contract", () => {
       true,
     );
     expect(CODE_LEARNING_ITEMS.every(isCodeLearningItem)).toBe(true);
-    expect(LEARNING_ITEMS.filter(isRubricLearningItem)).toHaveLength(5);
+    expect(LEARNING_ITEMS.filter(isRubricLearningItem)).toHaveLength(16);
     expect(getTriviaLearningItems().map((item) => item.id)).toEqual(eligibleIds);
   });
 
-  it("codifies the additive temporary 320 legacy plus 18 required-foundation state", () => {
+  it("codifies the additive temporary required-curriculum checkpoint", () => {
     expect(TRANSITIONAL_LEARNING_REGISTRY_STATE).toEqual({
       enabled: true,
       legacyExpectedItemCount: 320,
       requiredFoundationsExpectedItemCount: 18,
-      expectedItemCount: 338,
+      reproducibleDeliveryExpectedItemCount: 9,
+      productionOperationsExpectedItemCount: 15,
+      capstoneExpectedItemCount: 3,
+      expectedItemCount: 365,
       removalTask: 16,
     });
     expect(ALGORITHMS).toHaveLength(TRANSITIONAL_LEARNING_REGISTRY_STATE.legacyExpectedItemCount);
@@ -166,8 +172,15 @@ describe("learning item registry contract", () => {
     expect(Object.keys(LEARNING_ITEM_REGISTRY)).toHaveLength(
       TRANSITIONAL_LEARNING_REGISTRY_STATE.expectedItemCount,
     );
+    for (const item of [
+      ...REPRODUCIBLE_DELIVERY_ITEMS,
+      ...PRODUCTION_OPERATIONS_ITEMS,
+      ...ML_PLATFORM_CAPSTONES,
+    ]) {
+      expect(LEARNING_ITEM_REGISTRY[item.id]).toBe(item);
+    }
     expect(() => assertTransitionalLearningItemCount(LEARNING_ITEMS.slice(1))).toThrow(
-      /expected 338 items, received 337/,
+      /expected 365 items, received 364/,
     );
   });
 

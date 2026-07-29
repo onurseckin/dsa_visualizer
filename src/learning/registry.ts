@@ -1,6 +1,9 @@
 import { ALGORITHMS } from "../algorithms/registry";
 import { adaptAlgorithmDefinition } from "./algorithmAdapters";
+import { ML_PLATFORM_CAPSTONES } from "./items/capstones";
+import { PRODUCTION_OPERATIONS_ITEMS } from "./items/production-operations";
 import { REQUIRED_FOUNDATION_ITEMS } from "./items/required-foundations";
+import { REPRODUCIBLE_DELIVERY_ITEMS } from "./items/reproducible-delivery";
 import {
   isCodeLearningItem,
   isTriviaEligibleLearningItem,
@@ -16,7 +19,10 @@ export const TRANSITIONAL_LEARNING_REGISTRY_STATE = Object.freeze({
   enabled: true,
   legacyExpectedItemCount: 320,
   requiredFoundationsExpectedItemCount: 18,
-  expectedItemCount: 338,
+  reproducibleDeliveryExpectedItemCount: 9,
+  productionOperationsExpectedItemCount: 15,
+  capstoneExpectedItemCount: 3,
+  expectedItemCount: 365,
   removalTask: 16,
 } as const);
 
@@ -27,6 +33,9 @@ export const LEGACY_LEARNING_ITEMS: readonly LearningItem[] = Object.freeze(
 export const LEARNING_ITEMS: readonly LearningItem[] = Object.freeze([
   ...LEGACY_LEARNING_ITEMS,
   ...REQUIRED_FOUNDATION_ITEMS,
+  ...REPRODUCIBLE_DELIVERY_ITEMS,
+  ...PRODUCTION_OPERATIONS_ITEMS,
+  ...ML_PLATFORM_CAPSTONES,
 ]);
 
 export function assertTransitionalLearningItemCount(items: readonly LearningItem[]): void {
