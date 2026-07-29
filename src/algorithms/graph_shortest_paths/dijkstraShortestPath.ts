@@ -1,11 +1,13 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
-  GraphNodeItem,
   GraphEdgeItem,
+  GraphNodeItem,
+  PrimaryVisualSnapshot,
   TopicGuide,
 } from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface DijkstraInput {
   nodes: string[];
@@ -49,27 +51,229 @@ export const DEFAULT_DIJKSTRA_INPUT: DijkstraInput = {
   startNode: "A",
 };
 
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Single-Source Shortest Path (SSSP) on a weighted graph asks for the minimum total edge weight path from a designated start node to every other reachable node.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "active" },
+        { id: "B", label: "B (∞)", state: "default" },
+        { id: "C", label: "C (∞)", state: "default" },
+        { id: "D", label: "D (∞)", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4 },
+        { from: "A", to: "C", weight: 2 },
+        { from: "B", to: "D", weight: 5 },
+        { from: "C", to: "D", weight: 8 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "In unweighted graphs, Breadth-First Search (BFS) finds shortest paths by counting hops, but when edges carry unequal non-negative weights, a path with fewer hops can have a much larger total cost than a multi-hop path.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "default" },
+        { id: "C", label: "C (2)", state: "active" },
+        { id: "D", label: "D (∞)", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, state: "default" },
+        { from: "A", to: "C", weight: 2, state: "candidate" },
+        { from: "B", to: "D", weight: 5 },
+        { from: "C", to: "D", weight: 8 },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Dijkstra's algorithm solves this by maintaining tentative distances for all vertices, initially setting the start node's distance to 0 and all other vertices to infinity.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "active" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (10)", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, state: "candidate" },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5 },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A min-priority queue (min-heap) stores unfinalized (distance, node) pairs so that the algorithm can instantly extract the unvisited node with the smallest known tentative distance.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "visited" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (9)", state: "compare" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, state: "candidate" },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The greedy choice property guarantees that because all edge weights are non-negative, once the smallest tentative distance node is popped from the min-heap, its shortest distance is permanently finalized and can never be improved further.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "visited" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (9)", state: "active" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, isTraversed: true },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When a node u is finalized, the algorithm relaxes all outgoing edges (u, v, weight). If dist[u] + weight < dist[v], tentative distance dist[v] is updated to the smaller value and pushed into the heap.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "visited" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (9)", state: "swap" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, isTraversed: true },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "With a binary min-heap, each edge relaxation takes O(log V) time and popping a minimum vertex takes O(log V) time, yielding total runtime of O((V + E) log V).",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "visited" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (9)", state: "sorted" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, isTraversed: true },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "If negative-weight edges exist, Dijkstra's greedy assumption breaks down because a future negative edge could reduce a previously finalized distance; Bellman-Ford must be used instead.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "compare" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (9)", state: "sorted" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, state: "candidate" },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, isTraversed: true },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Unreachable vertices remain at distance infinity throughout execution, correctly identifying disconnected components in directed or undirected graphs.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "visited" },
+        { id: "B", label: "B (4)", state: "visited" },
+        { id: "C", label: "C (2)", state: "visited" },
+        { id: "D", label: "D (9)", state: "sorted" },
+        { id: "E", label: "E (∞)", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, isTraversed: true },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Upon queue exhaustion, the distance map contains optimal shortest path costs from the source vertex to all reachable nodes in the graph.",
+    primarySnapshot: {
+      kind: "graph",
+      nodes: [
+        { id: "A", label: "A (0)", state: "sorted" },
+        { id: "B", label: "B (4)", state: "sorted" },
+        { id: "C", label: "C (2)", state: "sorted" },
+        { id: "D", label: "D (9)", state: "sorted" },
+        { id: "E", label: "E (∞)", state: "default" },
+      ],
+      edges: [
+        { from: "A", to: "B", weight: 4, isTraversed: true },
+        { from: "A", to: "C", weight: 2, isTraversed: true },
+        { from: "B", to: "D", weight: 5, isTraversed: true },
+        { from: "C", to: "D", weight: 8, isTraversed: true },
+      ],
+    },
+  },
+];
+
 export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => {
   const rawNodes = Array.isArray(input?.nodes) ? input.nodes : ["A", "B", "C", "D", "E"];
   const rawEdges = Array.isArray(input?.edges) ? input.edges : [];
   const startNode = typeof input?.startNode === "string" ? input.startNode : (rawNodes[0] ?? "A");
 
   const steps: AlgorithmStep[] = [];
-  let stepIndex = 0;
+  let globalStepIndex = 0;
 
-  if (rawNodes.length === 0) {
-    steps.push({
-      stepIndex: 0,
-      codeLine: 3,
-      explanation: {
-        what: "Initialize on an empty graph",
-        why: "There are no nodes to explore, so we finish immediately with an empty distance table.",
-      },
-      primarySnapshot: { kind: "graph", nodes: [], edges: [] },
-      auxiliaryState: { customState: { NodeCount: 0 } },
-      variables: { completed: true },
+  const isDefaultInput =
+    rawNodes.length === 5 &&
+    rawNodes.every((val, idx) => val === DEFAULT_DIJKSTRA_INPUT.nodes[idx]) &&
+    startNode === DEFAULT_DIJKSTRA_INPUT.startNode;
+
+  if (isDefaultInput) {
+    const intros = createIntroSnapshots();
+    intros.forEach((intro) => {
+      steps.push(
+        createTutorialStep({
+          stepIndex: globalStepIndex++,
+          phase: "intro",
+          narrative: intro.narrative,
+          primarySnapshot: intro.primarySnapshot,
+        }),
+      );
     });
-    return steps;
   }
 
   const dist: Record<string, number> = {};
@@ -79,11 +283,19 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
   const visited = new Set<string>();
   const pq: [number, string][] = [[0, startNode]];
 
-  const getGraphNodes = (activeId?: string): GraphNodeItem[] =>
+  const getGraphNodes = (
+    activeId?: string,
+    overrideState?: "active" | "compare" | "visited" | "sorted" | "default",
+  ): GraphNodeItem[] =>
     rawNodes.map((id) => ({
       id,
       label: `${id} (${dist[id] === Infinity ? "∞" : dist[id]})`,
-      state: id === activeId ? "active" : visited.has(id) ? "visited" : "default",
+      state:
+        id === activeId
+          ? (overrideState ?? "active")
+          : visited.has(id)
+            ? "visited"
+            : "default",
     }));
 
   const getGraphEdges = (activeEdge?: { from: string; to: string }): GraphEdgeItem[] =>
@@ -97,368 +309,167 @@ export const generateDijkstraSteps = (input: DijkstraInput): AlgorithmStep[] => 
           : visited.has(e.from) && visited.has(e.to),
     }));
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 1,
-    explanation: {
-      what: `Import heapq for priority queue operations`,
-      why: "Dijkstra's algorithm depends on a min-priority queue. Python's heapq module provides O(log n) heappush and heappop, giving us the efficient greedy extraction we need.",
-    },
-    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
-    auxiliaryState: { queue: [], visited: [], distanceTable: { ...dist } },
-    variables: { startNode },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 4,
-    explanation: {
-      what: `Initialize all distances to infinity`,
-      why: `We set dist[v] = ∞ for every node except the start. ∞ means "no path found yet." Only reachable nodes will get a finite value.`,
-    },
-    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
-    auxiliaryState: { queue: [], visited: [], distanceTable: { ...dist } },
-    variables: { nodeCount: rawNodes.length },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 5,
-    explanation: {
-      what: `Set dist['${startNode}'] to 0`,
-      why: `We only know one distance for sure: '${startNode}' is 0 away from itself, so every other node starts at ∞ until we find a path to it. We seed the priority queue with (0, '${startNode}') so the closest frontier node is always the next one out.`,
-    },
-    primarySnapshot: { kind: "graph", nodes: getGraphNodes(startNode), edges: getGraphEdges() },
-    auxiliaryState: {
-      queue: pq.map(([d, u]) => `${u}:${d}`),
-      visited: Array.from(visited),
-      distanceTable: { ...dist },
-    },
-    variables: { startNode, currentDist: 0 },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 6,
-    explanation: {
-      what: `Initialize priority queue with (0, '${startNode}')`,
-      why: `The min-heap begins with the start node at distance 0. Heapq uses tuple comparison so the smallest-distance node is always at the top.`,
-    },
-    primarySnapshot: { kind: "graph", nodes: getGraphNodes(startNode), edges: getGraphEdges() },
-    auxiliaryState: {
-      queue: pq.map(([d, u]) => `${u}:${d}`),
-      visited: Array.from(visited),
-      distanceTable: { ...dist },
-    },
-    variables: { startNode, pqSize: pq.length },
-  });
-
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 7,
-    explanation: {
-      what: `Initialize visited set`,
-      why: "The visited set tracks finalized nodes. Once a node is popped from the priority queue and added to visited, its shortest distance is permanent.",
-    },
-    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
-    auxiliaryState: {
-      queue: pq.map(([d, u]) => `${u}:${d}`),
-      visited: [],
-      distanceTable: { ...dist },
-    },
-    variables: { visitedSize: 0 },
-  });
+  steps.push(
+    createTutorialStep({
+      stepIndex: globalStepIndex++,
+      phase: "walkthrough",
+      narrative: `Initialize distance table with dist['${startNode}'] = 0 and all other nodes to ∞. Seed priority queue with start node ('${startNode}', 0).`,
+      primarySnapshot: {
+        kind: "graph",
+        nodes: getGraphNodes(startNode, "active"),
+        edges: getGraphEdges(),
+      },
+    }),
+  );
 
   while (pq.length > 0) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 9,
-      explanation: {
-        what: `Check priority queue (${pq.length} items waiting)`,
-        why: "The priority queue holds unfinalized candidate distances. We continue until all reachable vertices are processed.",
-      },
-      primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
-      auxiliaryState: {
-        queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-        visited: Array.from(visited),
-        distanceTable: { ...dist },
-      },
-      variables: { queueSize: pq.length },
-    });
-
     pq.sort((a, b) => a[0] - b[0]);
     const [d, u] = pq.shift()!;
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 10,
-      explanation: {
-        what: `Pop '${u}' with tentative distance ${d}`,
-        why: "We pull the smallest candidate distance from the min-heap. Next we check if this node was already finalized.",
-      },
-      primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
-      auxiliaryState: {
-        queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-        visited: Array.from(visited),
-        distanceTable: { ...dist },
-      },
-      variables: { u, d },
-    });
-
     if (visited.has(u)) {
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 11,
-        explanation: {
-          what: `Check if '${u}' is already in visited set`,
-          why: `With lazy deletion, the heap may hold stale entries. Before processing '${u}', we check if it was already finalized by a shorter path.`,
-        },
-        primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
-        auxiliaryState: {
-          queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-          visited: Array.from(visited),
-          distanceTable: { ...dist },
-        },
-        variables: { u, d, alreadyVisited: true },
-      });
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 12,
-        explanation: {
-          what: `Skip stale entry for '${u}' (dist ${d})`,
-          why: `'${u}' was already visited and finalized by a shorter route earlier. Lazy deletion lets us discard this duplicate entry.`,
-        },
-        primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
-        auxiliaryState: {
-          queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-          visited: Array.from(visited),
-          distanceTable: { ...dist },
-        },
-        variables: { u, d, skipped: true },
-      });
+      steps.push(
+        createTutorialStep({
+          stepIndex: globalStepIndex++,
+          phase: "walkthrough",
+          narrative: `Pop candidate ('${u}', dist ${d}) from min-heap, but '${u}' is already finalized in the visited set. Skip stale heap entry.`,
+          primarySnapshot: {
+            kind: "graph",
+            nodes: getGraphNodes(u, "compare"),
+            edges: getGraphEdges(),
+          },
+        }),
+      );
       continue;
     }
 
     visited.add(u);
 
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 13,
-      explanation: {
-        what: `Mark '${u}' as finalized (distance ${d})`,
-        why: `Of everything left, '${u}' is closest at distance ${d}. Since edge weights are non-negative, no future detour can beat this value.`,
-      },
-      primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
-      auxiliaryState: {
-        queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-        visited: Array.from(visited),
-        distanceTable: { ...dist },
-      },
-      variables: { u, d, finalized: true },
-    });
-
-    const neighbors = rawEdges.filter((e) => e.from === u);
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 15,
-      explanation: {
-        what: `Explore neighbors of '${u}' (${neighbors.length} outgoing edges)`,
-        why: `We iterate over all edges leaving '${u}' to see if routing through it improves any neighbor's recorded distance.`,
-      },
-      primarySnapshot: { kind: "graph", nodes: getGraphNodes(u), edges: getGraphEdges() },
-      auxiliaryState: {
-        queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-        visited: Array.from(visited),
-        distanceTable: { ...dist },
-      },
-      variables: { u, neighborCount: neighbors.length },
-    });
-    for (const edge of neighbors) {
-      const v = edge.to;
-      const oldDist = dist[v];
-      const newDist = dist[u] + edge.weight;
-
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 16,
-        explanation: {
-          what: `Compute new_dist = dist['${u}'] + weight(${u}→${v}) = ${dist[u]} + ${edge.weight} = ${newDist}`,
-          why: `We calculate the candidate distance to '${v}' via '${u}'. If this beats dist['${v}'] = ${oldDist === Infinity ? "∞" : oldDist}, we will relax the edge.`,
-        },
+    steps.push(
+      createTutorialStep({
+        stepIndex: globalStepIndex++,
+        phase: "walkthrough",
+        narrative: `Extract node '${u}' with minimum tentative distance ${d} from min-heap. Lock in dist['${u}'] = ${d} as finalized shortest distance.`,
         primarySnapshot: {
           kind: "graph",
-          nodes: getGraphNodes(v),
-          edges: getGraphEdges({ from: u, to: v }),
+          nodes: getGraphNodes(u, "visited"),
+          edges: getGraphEdges(),
         },
-        auxiliaryState: {
-          queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-          visited: Array.from(visited),
-          distanceTable: { ...dist },
-        },
-        variables: { u, v, weight: edge.weight, newDist, oldDist },
-      });
+      }),
+    );
 
-      steps.push({
-        stepIndex: stepIndex++,
-        codeLine: 17,
-        explanation: {
-          what: `Check edge ${u} → ${v}: is ${newDist} < ${oldDist === Infinity ? "∞" : oldDist}?`,
-          why: `Comparing path via '${u}' (${newDist}) against recorded dist['${v}'] (${oldDist === Infinity ? "∞" : oldDist}).`,
-        },
-        primarySnapshot: {
-          kind: "graph",
-          nodes: getGraphNodes(v),
-          edges: getGraphEdges({ from: u, to: v }),
-        },
-        auxiliaryState: {
-          queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-          visited: Array.from(visited),
-          distanceTable: { ...dist },
-        },
-        variables: { u, v, weight: edge.weight, newDist, oldDist },
-      });
+    const outgoingEdges = rawEdges.filter((e) => e.from === u || e.to === u);
+    for (const edge of outgoingEdges) {
+      const neighbor = edge.from === u ? edge.to : edge.from;
+      if (visited.has(neighbor)) continue;
 
-      if (newDist < dist[v]) {
-        dist[v] = newDist;
-        pq.push([newDist, v]);
+      const newDist = d + edge.weight;
+      if (newDist < dist[neighbor]) {
+        const oldDistStr = dist[neighbor] === Infinity ? "∞" : dist[neighbor].toString();
+        dist[neighbor] = newDist;
+        pq.push([newDist, neighbor]);
 
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 18,
-          explanation: {
-            what: `Relax: dist['${v}'] updated to ${newDist}`,
-            why: `Routing through '${u}' beats previous distance ${oldDist === Infinity ? "∞" : oldDist}. We write the new distance and push (${newDist}, '${v}') to the priority queue.`,
-          },
-          primarySnapshot: {
-            kind: "graph",
-            nodes: getGraphNodes(v),
-            edges: getGraphEdges({ from: u, to: v }),
-          },
-          auxiliaryState: {
-            queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-            visited: Array.from(visited),
-            distanceTable: { ...dist },
-          },
-          variables: { u, v, weight: edge.weight, newDist },
-        });
-
-        steps.push({
-          stepIndex: stepIndex++,
-          codeLine: 19,
-          explanation: {
-            what: `Push (${newDist}, '${v}') onto priority queue`,
-            why: `We add '${v}' with updated distance ${newDist} to the heap so it will be processed before any node with a greater distance.`,
-          },
-          primarySnapshot: {
-            kind: "graph",
-            nodes: getGraphNodes(v),
-            edges: getGraphEdges({ from: u, to: v }),
-          },
-          auxiliaryState: {
-            queue: pq.map(([distVal, nodeVal]) => `${nodeVal}:${distVal}`),
-            visited: Array.from(visited),
-            distanceTable: { ...dist },
-          },
-          variables: { u, v, weight: edge.weight, newDist },
-        });
+        steps.push(
+          createTutorialStep({
+            stepIndex: globalStepIndex++,
+            phase: "walkthrough",
+            narrative: `Relax edge (${u} → ${neighbor}, weight ${edge.weight}): new distance ${d} + ${edge.weight} = ${newDist} improves prior distance ${oldDistStr}. Update dist['${neighbor}'] = ${newDist} and push (${newDist}, '${neighbor}') to min-heap.`,
+            primarySnapshot: {
+              kind: "graph",
+              nodes: getGraphNodes(neighbor, "compare"),
+              edges: getGraphEdges({ from: u, to: neighbor }),
+            },
+          }),
+        );
       }
     }
   }
 
-  steps.push({
-    stepIndex: stepIndex++,
-    codeLine: 21,
-    explanation: {
-      what: "Read off the completed distance table",
-      why: `The queue is empty, so every node reachable from '${startNode}' has been visited and finalized. Binary heap priority queue operations run in O((V + E) log V).`,
-    },
-    primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
-    auxiliaryState: {
-      visited: Array.from(visited),
-      distanceTable: { ...dist },
-    },
-    variables: { completed: true },
-  });
+  const finalSummary = rawNodes
+    .map((n) => `${n}: ${dist[n] === Infinity ? "∞" : dist[n]}`)
+    .join(", ");
 
-  while (steps.length < 20) {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine: 21,
-      explanation: {
-        what: `Read off completed distance table (step ${steps.length + 1})`,
-        why: `Finalized shortest path search from '${startNode}' across all reachable vertices.`,
+  steps.push(
+    createTutorialStep({
+      stepIndex: globalStepIndex++,
+      phase: "walkthrough",
+      narrative: `Priority queue is empty. Single-Source Shortest Path algorithm completes. Finalized shortest distances from '${startNode}': [${finalSummary}].`,
+      primarySnapshot: {
+        kind: "graph",
+        nodes: rawNodes.map((id) => ({
+          id,
+          label: `${id} (${dist[id] === Infinity ? "∞" : dist[id]})`,
+          state: dist[id] === Infinity ? "default" : "sorted",
+        })),
+        edges: getGraphEdges(),
       },
-      primarySnapshot: { kind: "graph", nodes: getGraphNodes(), edges: getGraphEdges() },
-      auxiliaryState: {
-        visited: Array.from(visited),
-        distanceTable: { ...dist },
-      },
-      variables: { completed: true },
-    });
-  }
+    }),
+  );
 
   return steps;
 };
 
 const DIJKSTRA_TOPIC_GUIDE: TopicGuide = {
   overview:
-    "<p>Dijkstra's algorithm solves the Single-Source Shortest Path (SSSP) problem on weighted graphs <code>G = (V, E)</code> with non-negative edge weights (<code>w(u, v) ≥ 0</code>). By prioritizing vertices by tentative distance in a min-priority queue <code>Q</code>, Dijkstra guarantees that when vertex <code>u</code> is extracted from <code>Q</code>, its computed distance <code>dist[u]</code> is optimal.</p>",
+    "<p>Dijkstra's algorithm computes the Single-Source Shortest Path (SSSP) from a source vertex to all other vertices in a directed or undirected graph with non-negative edge weights. Using a min-priority queue, it greedily extracts the unvisited vertex with the smallest tentative distance and relaxes its incident edges in <em>O((V + E) log V)</em> time.</p>",
   sections: [
     {
-      heading: "The greedy frontier",
-      body: "<p>At each step, Dijkstra extracts the unvisited vertex <code>u</code> minimizing <code>dist[u]</code>. Because all edge weights satisfy <code>w(x, y) ≥ 0</code>, no subsequent path through unvisited vertices can produce a shorter distance to <code>u</code>:</p><p><code>dist[v] = dist[u] + w(u, v) ≥ dist[u]</code></p><p>This monotonic non-decreasing distance property ensures that extracted vertices are permanently finalized.</p>",
+      heading: "Greedy Choice & Edge Relaxation",
+      body: "<p>Dijkstra's algorithm relies on non-negative edge weights: once the node with the smallest tentative distance is popped from the min-heap, no future detour can yield a shorter path. Edge relaxation compares <code>dist[u] + weight</code> against <code>dist[v]</code> and updates tentative bounds dynamically.</p>",
     },
     {
-      heading: "Edge Relaxation Mechanics",
-      body: "<p>Relaxing edge <code>(u, v)</code> checks if routing to <code>v</code> via <code>u</code> improves the recorded distance <code>dist[v]</code>:</p><p><code>if dist[u] + w(u, v) &lt; dist[v] ⇒ dist[v] = dist[u] + w(u, v)</code></p><p>If updated, <code>(dist[v], v)</code> is pushed onto the min-heap.</p>",
-    },
-    {
-      heading: "Complexity Analysis",
-      body: "<p>Using a binary min-heap priority queue, extracting the minimum takes <code>O(log V)</code> time across <code>V</code> extractions, and edge relaxations perform up to <code>E</code> heap updates. Overall runtime complexity is <code>O((V + E) log V)</code> with <code>O(V + E)</code> auxiliary space.</p>",
+      heading: "Why Negative Edges Break Dijkstra",
+      body: "<p>If an edge carries a negative weight, a longer multi-edge path could reduce distance after a node is finalized. Because Dijkstra never re-visits finalized nodes, negative edges require the Bellman-Ford algorithm instead.</p>",
     },
   ],
   keyTerms: [
     {
-      term: "Relaxation",
+      term: "Single-Source Shortest Path (SSSP)",
       definition:
-        "The operation dist[v] = min(dist[v], dist[u] + w(u, v)) updating the shortest path distance to neighbor v.",
+        "Finding shortest paths from a single starting node to all other reachable nodes in a graph.",
     },
     {
-      term: "Min-Priority Queue",
+      term: "Edge Relaxation",
       definition:
-        "A binary heap structure maintaining Q ordered by current tentative distance dist[u].",
-    },
-    {
-      term: "Lazy Deletion",
-      definition:
-        "Pushing updated (d, v) pairs without deleting outdated heap entries, skipping duplicate node pops upon extraction.",
+        "Testing whether routing a path through node u improves the tentative shortest distance to node v.",
     },
   ],
 };
 
 const DIJKSTRA_TRIVIA: TriviaMeta = {
+  skipLines: [1, 2],
+  distractors: [
+    "pq = [(start_node, 0)]",
+    "if new_dist > dist[neighbor]:",
+    "dist[neighbor] = weight",
+    "visited.remove(u)",
+  ],
+  hints: [
+    {
+      line: 4,
+      hint: "Initialize distance to start_node as 0, and all other nodes to infinity.",
+    },
+    {
+      line: 9,
+      hint: "Extract the node with the minimum tentative distance from the priority queue.",
+    },
+  ],
   lineExplanations: {
-    1: "Imports heapq for an O(log n) binary min-heap — the priority queue that always hands back the frontier vertex with the smallest tentative distance next.",
-    2: "Blank line separating module import from function signature definition.",
-    3: "Entry point: takes the graph representation and the single source to compute shortest distances from.",
-    4: "Every distance starts unknown (infinity) except where proven otherwise — we only trust a distance once some actual path has produced it.",
-    5: "The one distance known for certain before any work begins: the source is zero away from itself.",
-    6: "Seeds the priority queue with (0, start_node), so the source is the very first vertex popped.",
-    7: "Tracks vertices whose shortest distance is already finalized, so we never waste work relaxing edges out of the same vertex twice.",
-    8: "Blank line separating state initialization from priority queue while loop.",
-    9: "Keeps processing as long as some discovered vertex still awaits finalization in the priority queue.",
-    10: "Pops the smallest tentative distance (d, u) in the whole queue — the greedy choice that is only safe because no edge weight is negative.",
-    11: "Checks if u has already been visited (stale queue entry left behind by an earlier, since-improved distance to u).",
-    12: "Discards that stale entry instead of reprocessing a vertex that has already been finalized.",
-    13: "Marks u visited, locking in u's distance as final: with non-negative weights, no future path could ever beat what was just popped.",
-    14: "Blank line separating node finalization from neighbor edge relaxation loop.",
-    15: "Iterates over each neighbor and edge weight leaving current vertex u.",
-    16: "Calculates candidate path distance through u: current distance d plus edge weight.",
-    17: "The relaxation test: checks if routing through u beats neighbor's recorded shortest distance.",
-    18: "Updates neighbor's shortest distance with the new smaller value.",
-    19: "Pushes the improved (new_dist, neighbor) pair as a new entry onto the min-priority queue (lazy deletion).",
-    20: "Blank line separating neighbor edge relaxation loop from distance table return statement.",
-    21: "Returns the finalized distance dictionary mapping every vertex to its shortest path cost from start_node.",
+    1: "Imports Python heapq module for min-priority queue operations.",
+    3: "Defines dijkstra(graph, start_node) function.",
+    4: "Initializes distance table mapping all graph nodes to infinity.",
+    5: "Sets start_node distance to 0.",
+    6: "Initializes priority queue min-heap with tuple (0, start_node).",
+    7: "Initializes visited set to track finalized vertices.",
+    9: "Main loop runs while priority queue contains unvisited candidates.",
+    10: "Pops (d, u) pair with minimum tentative distance from min-heap.",
+    11: "Skips stale queue entries if u is already in visited set.",
+    13: "Adds u to visited set, locking in its final shortest distance.",
+    15: "Iterates over neighbors and edge weights of node u.",
+    16: "Calculates new candidate distance through node u.",
+    17: "Checks if routing through u yields a strictly shorter path to neighbor.",
+    18: "Updates dist[neighbor] with the shorter distance.",
+    19: "Pushes updated (new_dist, neighbor) onto min-heap.",
+    21: "Returns distance dictionary containing SSSP values.",
   },
 };
 
@@ -467,8 +478,24 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   title: "Dijkstra's Shortest Path Algorithm",
   topicIds: ["graph_shortest_paths"],
   difficulty: "Medium",
-  description:
-    "<p><strong>Dijkstra's algorithm</strong> computes the Single-Source Shortest Path (SSSP) from a source vertex <code>s</code> to all other vertices in a directed or undirected graph <code>G = (V, E)</code> with non-negative edge weights (<code>w(u, v) ≥ 0</code>).</p><p>Using a min-priority queue <code>Q</code>, it greedily extracts the vertex <code>u</code> with the minimum tentative distance <code>dist[u]</code> and relaxes its incident edges. It runs in <code>O((V + E) log V)</code> time using a binary min-heap and <code>O(V + E)</code> space.",
+  description: `<p>Given a weighted graph and a start vertex, find the shortest path distances from the start vertex to all reachable vertices in the graph.</p>
+<h3>Problem Statement</h3>
+<p>Given a directed or undirected graph <code>G = (V, E)</code> with non-negative edge weights and a specified starting node <code>startNode</code>, return the shortest distance from <code>startNode</code> to every other node in the graph. If a node is unreachable, its distance remains <code>&infin;</code>.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nodes</code>: List of string identifiers for graph vertices.</li>
+  <li><code>edges</code>: List of edge objects containing <code>from</code>, <code>to</code>, and non-negative <code>weight</code>.</li>
+  <li><code>startNode</code>: The ID of the starting vertex.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns a dictionary mapping each node ID to its minimum path distance from <code>startNode</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; |V| &le; 10<sup>4</sup></code>, <code>0 &le; |E| &le; 10<sup>5</sup></code>.</li>
+  <li><code>0 &le; weight &le; 10<sup>4</sup></code> (non-negative edge weights).</li>
+  <li>Graph can be directed or undirected.</li>
+  <li>Unreachable nodes remain at distance <code>&infin;</code>.</li>
+</ul>`,
   constraints: [
     "1 <= Vertices V <= 10^4",
     "0 <= Edges E <= 10^5",
@@ -479,31 +506,21 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: 'graph = {A-B:4, A-C:2, B-C:1, B-D:5, C-D:8, C-E:10, D-E:2}, start = "A"',
       outputDisplay: "{A: 0, B: 4, C: 2, D: 9, E: 11}",
-      title: "Basic Example",
-      input: {
-        startNode: "A",
-        nodes: ["A", "B", "C", "D", "E"],
-        edges: [
-          { from: "A", to: "B", weight: 4 },
-          { from: "A", to: "C", weight: 2 },
-          { from: "B", to: "C", weight: 1 },
-          { from: "B", to: "D", weight: 5 },
-          { from: "C", to: "D", weight: 8 },
-          { from: "C", to: "E", weight: 10 },
-          { from: "D", to: "E", weight: 2 },
-        ],
-      },
+      title: "Standard 5-Node Graph",
+      input: DEFAULT_DIJKSTRA_INPUT,
       output: "Distances: A:0, B:4, C:2, D:9, E:11",
       explanation:
         "Dijkstra pops C (dist 2) and B (dist 4) first, then relaxes edges to find optimal distances: D (9) and E (11).",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: 'graph = {A-B:2, B-C:3, A-C:10, C-D:1}, start = "A"',
       outputDisplay: "{A: 0, B: 2, C: 5, D: 6}",
-      title: "Complex Edge Case",
+      title: "Adversarial Multi-Hop Path vs Direct Edge",
       input: {
         startNode: "A",
         nodes: ["A", "B", "C", "D"],
@@ -520,9 +537,10 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
     },
     {
       kind: "negative",
+      scenario: "boundary",
       inputDisplay: 'graph = {A-B:5, C:isolated}, start = "A"',
       outputDisplay: "{A: 0, B: 5, C: ∞}",
-      title: "Failing / Boundary Case",
+      title: "Boundary Unreachable Component",
       input: {
         startNode: "A",
         nodes: ["A", "B", "C"],
@@ -541,9 +559,9 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   },
   spaceComplexity: "O(V + E)",
   complexityAnalysis: {
-    time: "Extracting minimum distance nodes takes $\\mathcal{O}(|V| \\log |V|)$ and edge relaxations take up to $\\mathcal{O}(|E| \\log |V|)$ time, for a total time complexity of $\\mathcal{O}((|V| + |E|) \\log |V|)$.",
+    time: "Extracting minimum distance nodes takes O(|V| log |V|) and edge relaxations take up to O(|E| log |V|) time, for a total time complexity of O((|V| + |E|) log |V|).",
     space:
-      "The distance map, visited set, and min-heap priority queue store up to $\\mathcal{O}(|V| + |E|)$ elements.",
+      "The distance map, visited set, and min-heap priority queue store up to O(|V| + |E|) elements.",
   },
   topicGuide: DIJKSTRA_TOPIC_GUIDE,
   trivia: DIJKSTRA_TRIVIA,
@@ -569,3 +587,5 @@ export const dijkstraShortestPath: AlgorithmDefinition<DijkstraInput> = {
   defaultInput: DEFAULT_DIJKSTRA_INPUT,
   generateSteps: generateDijkstraSteps,
 };
+
+export default dijkstraShortestPath;
