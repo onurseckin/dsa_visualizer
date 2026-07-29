@@ -1,5 +1,11 @@
-import type { AlgorithmDefinition, AlgorithmStep, ArrayElement } from "../../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  ArrayElement,
+  PrimaryVisualSnapshot,
+} from "../../types/dsa";
 import type { TriviaMeta } from "../../types/trivia";
+import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export const KADANE_MAX_SUBARRAY_CODE = `def kadane_max_subarray(nums: list[int]) -> int:
     current_max = nums[0]
@@ -17,285 +23,316 @@ export const KADANE_MAX_SUBARRAY_CODE = `def kadane_max_subarray(nums: list[int]
             end = i
     return global_max`;
 
+export const DEFAULT_KADANE_INPUT: number[] = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+
+const createIntroSnapshots = (): Array<{
+  narrative: string;
+  primarySnapshot: PrimaryVisualSnapshot;
+}> => [
+  {
+    narrative:
+      "Given an array of numbers containing both positive and negative values, Kadane's Algorithm finds the contiguous subarray with the maximum possible sum in a single linear pass.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "default" },
+        { id: "c2", value: 4, label: "[1]", state: "default" },
+        { id: "c3", value: -1, label: "[2]", state: "default" },
+        { id: "c4", value: 3, label: "[3]", state: "default" },
+        { id: "c5", value: -5, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "A naive brute-force solution checks all N × (N + 1) / 2 contiguous subarrays by computing the sum of every possible start and end index pair, requiring O(N²) or O(N³) time.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "default" },
+        { id: "c2", value: 4, label: "[1]", state: "compare", pointers: ["start"] },
+        { id: "c3", value: -1, label: "[2]", state: "compare" },
+        { id: "c4", value: 3, label: "[3]", state: "compare", pointers: ["end"] },
+        { id: "c5", value: -5, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "The key insight of Kadane's algorithm is dynamic programming: at each index i, we decide whether to extend the maximal subarray ending at index i-1 or start a fresh subarray at index i.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "visited" },
+        { id: "c2", value: 4, label: "[1]", state: "active" },
+        { id: "c3", value: -1, label: "[2]", state: "active" },
+        { id: "c4", value: 3, label: "[3]", state: "active", pointers: ["i"] },
+        { id: "c5", value: -5, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "We maintain a running total 'current_max' for the best subarray sum ending at position i. If current_max drops below nums[i], the previous prefix sum is negative and hurts future subtotals.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "compare", pointers: ["negative prefix"] },
+        { id: "c2", value: 4, label: "[1]", state: "active", pointers: ["i"] },
+        { id: "c3", value: -1, label: "[2]", state: "default" },
+        { id: "c4", value: 3, label: "[3]", state: "default" },
+        { id: "c5", value: -5, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "When current_max + nums[i] < nums[i] (meaning current_max < 0), we discard the negative-sum prefix and set temp_start = i to begin a new candidate subarray at index i.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "visited" },
+        { id: "c2", value: 4, label: "[1]", state: "active", pointers: ["temp_start", "i"] },
+        { id: "c3", value: -1, label: "[2]", state: "default" },
+        { id: "c4", value: 3, label: "[3]", state: "default" },
+        { id: "c5", value: -5, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Simultaneously, we maintain 'global_max' to record the highest subarray sum encountered anywhere so far, updating 'start' and 'end' boundary markers whenever global_max is surpassed.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "visited" },
+        { id: "c2", value: 4, label: "[1]", state: "sorted", pointers: ["start"] },
+        { id: "c3", value: -1, label: "[2]", state: "sorted" },
+        { id: "c4", value: 3, label: "[3]", state: "sorted", pointers: ["end"] },
+        { id: "c5", value: -5, label: "[4]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "For arrays with all negative numbers, Kadane's algorithm correctly resolves to the single element with the maximum (least negative) value, preventing empty subarray returns.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -8, label: "[0]", state: "default" },
+        { id: "c2", value: -3, label: "[1]", state: "sorted", pointers: ["max"] },
+        { id: "c3", value: -6, label: "[2]", state: "default" },
+        { id: "c4", value: -5, label: "[3]", state: "default" },
+      ],
+    },
+  },
+  {
+    narrative:
+      "Because each element is visited exactly once and intermediate state is tracked using scalar variables, Kadane's algorithm achieves optimal O(N) linear time and O(1) auxiliary space.",
+    primarySnapshot: {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements: [
+        { id: "c1", value: -2, label: "[0]", state: "visited" },
+        { id: "c2", value: 4, label: "[1]", state: "sorted", pointers: ["start"] },
+        { id: "c3", value: -1, label: "[2]", state: "sorted" },
+        { id: "c4", value: 3, label: "[3]", state: "sorted", pointers: ["end"] },
+        { id: "c5", value: -5, label: "[4]", state: "visited" },
+      ],
+    },
+  },
+];
+
 export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawInput = Array.isArray(input) ? input : [-2, 1, -3, 4, -1, 2, 1, -5, 4];
-  const elements: ArrayElement[] = rawInput.map((val, idx) => ({
-    id: `el-${idx}`,
-    value: val,
-    state: "default",
-  }));
+  const rawInput =
+    Array.isArray(input) && input.length > 0 ? input : DEFAULT_KADANE_INPUT;
 
-  const n = elements.length;
+  const addStep = (
+    narrative: string,
+    primarySnapshot: PrimaryVisualSnapshot,
+    phase: "intro" | "walkthrough" = "walkthrough",
+  ) => {
+    steps.push(createTutorialStep({ stepIndex: stepIndex++, phase, narrative, primarySnapshot }));
+  };
 
-  let currentMax = n > 0 ? Number(elements[0].value) : 0;
-  let globalMax = n > 0 ? Number(elements[0].value) : 0;
+  const isDefaultTutorialInput =
+    !input ||
+    (Array.isArray(input) &&
+      input.length === DEFAULT_KADANE_INPUT.length &&
+      input.every((val, idx) => val === DEFAULT_KADANE_INPUT[idx]));
+
+  if (isDefaultTutorialInput) {
+    for (const intro of createIntroSnapshots()) {
+      addStep(intro.narrative, intro.primarySnapshot, "intro");
+    }
+  }
+
+  const n = rawInput.length;
+  let currentMax = n > 0 ? rawInput[0] : 0;
+  let globalMax = n > 0 ? rawInput[0] : 0;
   let start = 0;
   let end = 0;
   let tempStart = 0;
 
-  const addStep = (
-    codeLine: number,
-    what: string,
-    why: string,
-    stepVars: Record<string, string | number | boolean> = {},
-  ) => {
-    steps.push({
-      stepIndex: stepIndex++,
-      codeLine,
-      explanation: { what, why },
-      primarySnapshot: {
-        kind: "array",
-        elements: elements.map((el) => ({
-          ...el,
-          pointers: el.pointers ? [...el.pointers] : undefined,
-        })),
-      },
-      auxiliaryState: {
-        customState: {
-          currentMax: String(currentMax),
-          globalMax: String(globalMax),
-          start: String(start),
-          end: String(end),
-          tempStart: String(tempStart),
-        },
-      },
-      variables: {
-        currentMax,
-        globalMax,
-        start,
-        end,
-        tempStart,
-        ...stepVars,
-      },
+  const makeSnapshot = (
+    currentI?: number,
+    inTempStart?: number,
+    inStart?: number,
+    inEnd?: number,
+    isRecordUpdate?: boolean,
+  ): PrimaryVisualSnapshot => {
+    const elements: ArrayElement[] = rawInput.map((val, idx) => {
+      const ptrs: string[] = [];
+      if (idx === currentI) ptrs.push("i");
+      if (idx === inTempStart && isRecordUpdate !== true) ptrs.push("temp_start");
+      if (isRecordUpdate === true && idx === inStart) ptrs.push("start");
+      if (isRecordUpdate === true && idx === inEnd && inEnd !== inStart) ptrs.push("end");
+
+      let state: ArrayElement["state"] = "default";
+      if (
+        isRecordUpdate === true &&
+        inStart !== undefined &&
+        inEnd !== undefined &&
+        idx >= inStart &&
+        idx <= inEnd
+      ) {
+        state = "sorted";
+      } else if (idx === currentI) {
+        state = "active";
+      } else if (
+        inTempStart !== undefined &&
+        currentI !== undefined &&
+        idx >= inTempStart &&
+        idx <= currentI
+      ) {
+        state = "compare";
+      }
+
+      return {
+        id: `el-${idx}`,
+        value: val,
+        label: `[${idx}]`,
+        state,
+        pointers: ptrs.length > 0 ? Array.from(new Set(ptrs)) : undefined,
+      };
     });
+
+    return {
+      kind: "array",
+      name: "nums",
+      mode: "box",
+      elements,
+    };
   };
 
   if (n === 0) {
     addStep(
-      1,
-      "Handle empty input",
-      "There are no elements to build a subarray from, so the best sum defaults to 0.",
-      { n: 0 },
+      "The input array is empty, so there are no elements to build a contiguous subarray from; the maximum subarray sum defaults to 0.",
+      {
+        kind: "array",
+        name: "nums",
+        mode: "box",
+        elements: [],
+      },
     );
-    while (steps.length < 20) {
-      addStep(
-        15,
-        `Empty array fallback step ${steps.length + 1}`,
-        "Empty array verification step.",
-        { n: 0 },
-      );
-    }
     return steps;
   }
 
-  const updateElementStatesAndPointers = (currentI: number) => {
-    for (let k = 0; k < n; k++) {
-      const ptrs: string[] = [];
-
-      if (k === currentI) {
-        ptrs.push("i");
-      }
-      if (k === tempStart) {
-        ptrs.push("temp_start");
-      }
-      if (k === start) {
-        ptrs.push("max_start");
-      }
-      if (k === end) {
-        if (!ptrs.includes("max_start")) {
-          ptrs.push("max_end");
-        } else {
-          ptrs.push("max_end");
-        }
-      }
-
-      const uniquePtrs = Array.from(new Set(ptrs));
-      elements[k].pointers = uniquePtrs.length > 0 ? uniquePtrs : undefined;
-
-      if (k === currentI) {
-        elements[k].state = "compare";
-      } else if (k >= tempStart && k < currentI) {
-        elements[k].state = "active";
-      } else if (k >= start && k <= end) {
-        elements[k].state = "sorted";
-      } else {
-        elements[k].state = "default";
-      }
-    }
-  };
-
-  elements[0].state = "active";
-  elements[0].pointers = ["start", "end"];
-
   addStep(
-    1,
-    `Initialize Kadane's algorithm`,
-    `Starting a single linear scan over N = ${n} elements to evaluate local contiguous subarray choices against historical global maximums.`,
-    { n },
-  );
-
-  addStep(
-    2,
-    `Seed current_max with nums[0] = ${currentMax}`,
-    `At index 0, the only contiguous subarray ending at this position consists of element ${elements[0].value} alone.`,
-    { i: 0, "nums[0]": elements[0].value },
-  );
-
-  addStep(
-    3,
-    `Seed global_max with ${globalMax}`,
-    `Setting the initial historical best sum record across all evaluated positions to ${globalMax}.`,
-  );
-
-  addStep(
-    4,
-    "Initialize index pointers",
-    "Setting start = 0, end = 0, and temp_start = 0 to track the exact index bounds of the maximal subarray window.",
+    `Having established the mental model, let's now transition to our selected input array of ${n} elements. We initialize current_max = nums[0] = ${rawInput[0]} and global_max = ${rawInput[0]}.`,
+    makeSnapshot(0, 0, 0, 0),
   );
 
   for (let i = 1; i < n; i++) {
-    const val = Number(elements[i].value);
+    const num = rawInput[i];
+    const extendedSum = currentMax + num;
 
-    updateElementStatesAndPointers(i);
-
-    addStep(
-      5,
-      `Inspect index i = ${i} (value ${val})`,
-      `Evaluating whether carrying the accumulated running sum adds positive value or whether discarding a negative prefix yields a better start at index ${i}.`,
-      { i, "nums[i]": val },
-    );
-
-    const prevSum = currentMax;
-
-    addStep(
-      6,
-      `Evaluate decision condition for nums[${i}]`,
-      `Comparing single element value ${val} against extended running sum ${prevSum + val}.`,
-      { i, "nums[i]": val, extendedSum: prevSum + val, prevSum },
-    );
-
-    if (val > currentMax + val) {
-      currentMax = val;
-
-      addStep(
-        7,
-        `Set current_max = ${currentMax}`,
-        `The accumulated prefix sum ${prevSum} was negative and dragged down total value. Discarding the negative prefix and restarting a fresh subarray at index ${i}.`,
-        { i, "nums[i]": val },
-      );
-
+    if (num > extendedSum) {
+      currentMax = num;
       tempStart = i;
-      updateElementStatesAndPointers(i);
-
       addStep(
-        8,
-        `Update temp_start = ${i}`,
-        `Marking index ${i} as the candidate start boundary for the new subarray.`,
+        `At index ${i} (nums[${i}] = ${num}): extending the previous subarray yields ${extendedSum}, which is smaller than ${num} alone. We discard the negative prefix and set temp_start = ${i} to start a new subarray.`,
+        makeSnapshot(i, tempStart, start, end, false),
       );
     } else {
+      currentMax = extendedSum;
       addStep(
-        9,
-        "Execute else branch",
-        "The preceding running sum is non-negative and contributes positive value, making it advantageous to extend the existing subarray.",
-        { i },
-      );
-
-      currentMax += val;
-
-      addStep(
-        10,
-        `Extend current_max to ${currentMax}`,
-        `Extended the running subarray by incorporating element ${val}, bringing local current_max to ${currentMax}.`,
-        { i, "nums[i]": val },
+        `At index ${i} (nums[${i}] = ${num}): extending the previous subarray with ${num} yields a larger current_max = ${currentMax}.`,
+        makeSnapshot(i, tempStart, start, end, false),
       );
     }
-
-    addStep(
-      11,
-      `Check if current_max (${currentMax}) > global_max (${globalMax})`,
-      `Checking if the local running subarray sum beats the historical global maximum.`,
-      { beatsGlobal: currentMax > globalMax },
-    );
 
     if (currentMax > globalMax) {
       globalMax = currentMax;
-
-      addStep(
-        12,
-        `Update global_max = ${globalMax}`,
-        `A new historical peak sum of ${globalMax} has been discovered.`,
-      );
-
       start = tempStart;
-      updateElementStatesAndPointers(i);
-
-      addStep(
-        13,
-        `Update start = ${start}`,
-        `Confirming record start boundary index to candidate temp_start ${start}.`,
-      );
-
       end = i;
-      updateElementStatesAndPointers(i);
-
       addStep(
-        14,
-        `Update end = ${end}`,
-        `Updating record end boundary index to current position ${end}.`,
+        `Current subarray sum ${currentMax} exceeds global_max (${globalMax})! Update global_max = ${globalMax} and set optimal boundaries to start = ${start}, end = ${end}.`,
+        makeSnapshot(i, tempStart, start, end, true),
       );
-    }
-  }
-
-  for (let k = 0; k < n; k++) {
-    if (k >= start && k <= end) {
-      elements[k].state = "sorted";
-      const ptrs: string[] = [];
-      if (k === start) ptrs.push("max_start");
-      if (k === end) ptrs.push("max_end");
-      elements[k].pointers = ptrs.length > 0 ? ptrs : undefined;
-    } else {
-      elements[k].state = "default";
-      elements[k].pointers = undefined;
     }
   }
 
   addStep(
-    15,
-    `Kadane's scan complete`,
-    `The linear pass is complete. Maximal contiguous subarray spans indices [${start}..${end}] with maximum sum = ${globalMax}.`,
+    `Scan complete! The maximum contiguous subarray sum is ${globalMax}, spanning indices [${start}...${end}] with elements [${rawInput.slice(start, end + 1).join(", ")}].`,
+    makeSnapshot(undefined, undefined, start, end),
   );
-
-  while (steps.length < 20) {
-    addStep(
-      15,
-      `Final invariant verification step ${steps.length + 1}`,
-      `Verifying maximal sum property for optimal subsegment range [${start}..${end}].`,
-    );
-  }
 
   return steps;
 };
 
 const KADANE_MAX_SUBARRAY_TRIVIA: TriviaMeta = {
+  skipLines: [1],
+  distractors: [
+    "current_max = max(nums[i], global_max + nums[i])",
+    "if current_max < 0:",
+    "global_max = current_max + nums[i]",
+    "for i in range(len(nums)):",
+  ],
+  hints: [
+    {
+      line: 9,
+      hint: "Decide whether extending the previous subarray is better than starting a new subarray at current index.",
+    },
+    {
+      line: 10,
+      hint: "Reset current_max to current element when starting a new subarray.",
+    },
+    {
+      line: 14,
+      hint: "Compare local current_max against historical best global_max record.",
+    },
+  ],
   lineExplanations: {
-    1: "Declares the function: given a list of numbers, returns the maximum sum of any contiguous subarray.",
-    2: "Seeds current_max with nums[0], representing the best subarray ending at index 0.",
-    3: "Seeds global_max with nums[0], initializing the historical maximum across all subarrays.",
-    4: "Initializes start, end, and temp_start pointers to index 0 to track the optimal window bounds.",
-    5: "Iterates through nums from index 1 to the end, making an extend-or-restart decision at each step.",
-    6: "Checks if taking nums[i] alone is strictly greater than extending current_max + nums[i], detecting negative prefix drag.",
-    7: "Restarts the running subarray at nums[i], abandoning the previous negative-sum prefix.",
-    8: "Updates temp_start to index i as the potential start of a new maximal subarray.",
-    9: "Else branch executed when extending the previous subarray is beneficial (current_max >= 0).",
-    10: "Extends the running sum by adding nums[i] to current_max.",
-    11: "Compares current_max against global_max to check if a new overall maximum has been achieved.",
-    12: "Updates global_max to current_max upon finding a new peak sum.",
-    13: "Sets start to temp_start, confirming the start boundary of the current record subarray.",
-    14: "Sets end to index i, establishing the closing boundary of the current record subarray.",
-    15: "Returns global_max as the optimal maximum contiguous subarray sum.",
+    1: "Declares function kadane_max_subarray: computes maximum contiguous subarray sum.",
+    2: "Initializes current_max with the first element value nums[0].",
+    3: "Initializes global_max with the first element value nums[0].",
+    4: "Initializes boundary index registers start, end, and temp_start to 0.",
+    5: "Iterates through array from index 1 to N-1.",
+    6: "Checks if starting a new subarray at nums[i] yields a larger sum than extending current_max.",
+    7: "Resets current_max = nums[i] and temp_start = i when starting a new subarray.",
+    8: "Extends running current_max by adding nums[i].",
+    9: "Checks if current running sum exceeds historical best global_max record.",
+    10: "Updates global_max, start, and end indices upon discovering a new record sum.",
+    11: "Returns the global maximum contiguous subarray sum.",
   },
 };
 
@@ -310,18 +347,20 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   examples: [
     {
       kind: "basic",
+      scenario: "standard",
       inputDisplay: "nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]",
       outputDisplay: "6",
-      title: "Basic Example",
-      input: [-2, 1, -3, 4, -1, 2, 1, -5, 4],
+      title: "Standard Array with Mixed Values",
+      input: DEFAULT_KADANE_INPUT,
       output: "6",
       explanation: "The contiguous subarray [4, -1, 2, 1] has the largest sum = 6.",
     },
     {
       kind: "complex",
+      scenario: "adversarial",
       inputDisplay: "nums = [5, 4, -1, 7, 8]",
       outputDisplay: "23",
-      title: "Complex Edge Case",
+      title: "Adversarial All-Positive Dip",
       input: [5, 4, -1, 7, 8],
       output: "23",
       explanation:
@@ -329,9 +368,10 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
     },
     {
       kind: "negative",
-      inputDisplay: "nums = [-5, -2, -8, -1]",
-      outputDisplay: "-1",
-      title: "Failing / Boundary Case",
+      scenario: "boundary",
+      inputDisplay: "nums = [-8, -3, -6, -2, -5]",
+      outputDisplay: "-2",
+      title: "Boundary All-Negative Array",
       input: [-8, -3, -6, -2, -5],
       output: "-2",
       explanation:
@@ -402,6 +442,8 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
       section: "3.1 Sorting theory",
     },
   ],
-  defaultInput: [-2, 1, -3, 4, -1, 2, 1, -5, 4],
+  defaultInput: DEFAULT_KADANE_INPUT,
   generateSteps: generateKadaneMaxSubarraySteps,
 };
+
+export default kadaneMaxSubarray;
