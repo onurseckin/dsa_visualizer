@@ -17,6 +17,18 @@ describe("ml-incident-capstone", () => {
     const playground = mlIncidentCapstone.playground;
     expect(playground).toBeDefined();
     if (!playground) throw new Error("Expected the incident capstone to have a playground");
-    expect(playground.generateSteps({})).toHaveLength(4);
+    const steps = playground.generateSteps({});
+    expect(steps).toHaveLength(6);
+    expect(steps.at(-1)?.primarySnapshot).toMatchObject({
+      nodes: [
+        { id: "detect", label: "Detect", state: "sorted" },
+        { id: "contain", label: "Contain", state: "sorted" },
+        { id: "preserve", label: "Preserve", state: "sorted" },
+        { id: "diagnose", label: "Diagnose", state: "sorted" },
+        { id: "recover", label: "Recover", state: "sorted" },
+        { id: "learn", label: "Learn", state: "active" },
+      ],
+      edges: expect.arrayContaining([{ from: "recover", to: "learn", isTraversed: true }]),
+    });
   });
 });
