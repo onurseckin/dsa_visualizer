@@ -10,29 +10,29 @@ import type { TriviaMeta } from "../../types/trivia";
 import { createTutorialStep } from "../../learning/authoring/tutorialSteps";
 
 export interface StoneGameDpInput {
-  piles?: number[];
-  n?: number;
+  piles: number[];
 }
 
 export const PYTHON_STONE_GAME_DP_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def stoneGameIII(self, stoneValue: list[int]) -> str:
-        n = len(stoneValue)
-        dp = [0] * (n + 1)
-        for i in range(n - 1, -1, -1):
-            dp[i] = float('-inf')
-            take = 0
-            for k in range(1, 4):
-                if i + k <= n:
-                    take += stoneValue[i + k - 1]
-                    dp[i] = max(dp[i], take - dp[i + k])
-        if dp[0] > 0:
-            return "Alice"
-        elif dp[0] < 0:
-            return "Bob"
-        return "Tie"`;
+    def canWin(self, piles: list[int]) -> bool:
+        """Return whether the first player gets a strictly larger total."""
+        n = len(piles)
+        dp = [[0] * n for _ in range(n)]
+
+        for index, stones in enumerate(piles):
+            dp[index][index] = stones
+
+        for length in range(2, n + 1):
+            for left in range(n - length + 1):
+                right = left + length - 1
+                take_left = piles[left] - dp[left + 1][right]
+                take_right = piles[right] - dp[left][right - 1]
+                dp[left][right] = max(take_left, take_right)
+
+        return dp[0][n - 1] > 0`;
 
 export const DEFAULT_STONE_GAME_DP_INPUT: StoneGameDpInput = {
   piles: [5, 3, 4, 5],
@@ -290,7 +290,7 @@ export const stoneGameDp: AlgorithmDefinition<StoneGameDpInput> = {
   difficulty: "Medium",
   description:
     "<p>Given an array of positive integers <code>piles</code> representing stone piles in a row, two players take turns picking all stones from either the beginning or the end of the row. Determine whether the first player can force a win (obtain strictly more total stones than the second player) under optimal play.</p><p><strong>Input:</strong> An array of integers <code>piles</code>.</p><p><strong>Output:</strong> A boolean flag returning <code>true</code> if the first player has a guaranteed winning strategy, and <code>false</code> otherwise.</p>",
-  constraints: ["1 <= n <= 10"],
+  constraints: ["1 <= piles.length <= 200", "1 <= piles[i] <= 10^6"],
   examples: [
     {
       kind: "basic",

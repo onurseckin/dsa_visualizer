@@ -108,20 +108,29 @@ export const gameTheoryExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "stoneGameIII",
+      method: "canWin",
       arguments: [input()],
     },
-    cases: cases(
-      { label: "Piles [1, 2, 3, 7]", input: [1, 2, 3, 7], expected: "Bob" },
-      { label: "Piles [1, 2, 3, -9]", input: [1, 2, 3, -9], expected: "Alice" },
-      { label: "Piles [1, 2, 3, 6]", input: [1, 2, 3, 6], expected: "Tie" },
-    ),
+    cases: [
+      ...cases(
+        { label: "Symmetric four-pile win", input: [5, 3, 4, 5], expected: true },
+        { label: "Equal pair ties", input: [2, 2], expected: false },
+        { label: "Asymmetric four piles", input: [3, 9, 1, 2], expected: true },
+      ),
+      ...extraCases(
+        { label: "Single pile", input: [1], expected: true },
+        { label: "Increasing pair", input: [1, 2], expected: true },
+        { label: "Odd-length losing position", input: [1, 5, 2], expected: false },
+        { label: "Equal endpoints with a central pair", input: [7, 8, 8, 7], expected: false },
+        { label: "Large center pile", input: [8, 15, 3, 7], expected: true },
+      ),
+    ],
     audit: {
-      signature: "Solution().stoneGameIII(stoneValue: list[int]) -> str",
+      signature: "Solution().canWin(piles: list[int]) -> bool",
       defaultInputShape: "number[]",
-      argumentMapping: ["stoneValue <- $"],
+      argumentMapping: ["piles <- $"],
       mutation: "No input mutation.",
-      returnBehavior: "Returns winner name ('Alice', 'Bob', or 'Tie').",
+      returnBehavior: "Returns True when the first player can obtain a strictly larger total.",
     },
   }),
 ];
