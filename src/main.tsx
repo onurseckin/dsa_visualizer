@@ -5,10 +5,12 @@ import { router } from "./router";
 import "./styles/index.css";
 import { initSqliteSync } from "./app/sqliteSync";
 
-void initSqliteSync();
+const mountApplication = () => {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <RouterProvider router={router} />
+    </React.StrictMode>,
+  );
+};
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>,
-);
+void initSqliteSync().then(mountApplication, mountApplication);

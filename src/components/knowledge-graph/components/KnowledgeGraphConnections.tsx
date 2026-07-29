@@ -8,8 +8,10 @@ import {
 
 interface KnowledgeGraphConnectionsProps {
   hoveredNodeId: string | null;
-  placements?: readonly DsaCurriculumPlacement[];
+  placements?: readonly (DsaCurriculumPlacement & { width?: number; height?: number })[];
 }
+
+type PositionedDsaPlacement = DsaCurriculumPlacement & { width?: number; height?: number };
 
 export const KnowledgeGraphConnections: React.FC<KnowledgeGraphConnectionsProps> = ({
   hoveredNodeId,
@@ -18,9 +20,11 @@ export const KnowledgeGraphConnections: React.FC<KnowledgeGraphConnectionsProps>
   const renderConnections = () => {
     const lines: React.ReactNode[] = [];
 
-    placements.forEach((node) => {
+    placements.forEach((node: PositionedDsaPlacement) => {
       node.prerequisites.forEach((prereqId) => {
-        const parent = placements.find((candidate) => candidate.id === prereqId);
+        const parent = placements.find(
+          (candidate): candidate is PositionedDsaPlacement => candidate.id === prereqId,
+        );
         if (parent) {
           const isHighlighted = hoveredNodeId === node.id || hoveredNodeId === parent.id;
           const strokeColor = isHighlighted ? "var(--accent)" : topicFamilyColor(node.family);
@@ -28,20 +32,24 @@ export const KnowledgeGraphConnections: React.FC<KnowledgeGraphConnectionsProps>
           const strokeOpacity = hoveredNodeId ? (isHighlighted ? 1 : 0.25) : 0.8;
 
           let startX = parent.x;
-          let startY = parent.y + 30;
+          const parentWidth = parent.width ?? 190;
+          const parentHeight = parent.height ?? 64;
+          const nodeWidth = node.width ?? 190;
+          const nodeHeight = node.height ?? 64;
+          let startY = parent.y + Math.min(parentHeight / 2, 30);
           let endX = node.x;
-          let endY = node.y - 30;
+          let endY = node.y - Math.min(nodeHeight / 2, 30);
 
           if (parent.y === node.y) {
             if (parent.x < node.x) {
-              startX = parent.x + 90;
+              startX = parent.x + Math.min(parentWidth / 2, 90);
               startY = parent.y;
-              endX = node.x - 90;
+              endX = node.x - Math.min(nodeWidth / 2, 90);
               endY = node.y;
             } else {
-              startX = parent.x - 90;
+              startX = parent.x - Math.min(parentWidth / 2, 90);
               startY = parent.y;
-              endX = node.x + 90;
+              endX = node.x + Math.min(nodeWidth / 2, 90);
               endY = node.y;
             }
           }

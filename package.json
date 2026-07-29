@@ -9,6 +9,18 @@
   "type": "module",
   "scripts": {
     "dev": "bun run scripts/freePort.ts 5173 && vite",
+    "dev:docker": "vite --host 0.0.0.0",
+    "dup": "docker compose up --build --wait",
+    "ddev": "docker compose -f compose.dev.yaml up --build --watch",
+    "ddev:down": "docker compose -f compose.dev.yaml down",
+    "ddev:logs": "docker compose -f compose.dev.yaml logs --follow",
+    "ddev:ps": "docker compose -f compose.dev.yaml ps",
+    "ddown": "docker compose down",
+    "drestart": "docker compose down && docker compose up --build --wait",
+    "dbuild": "docker compose build",
+    "dlogs": "docker compose logs --follow",
+    "dps": "docker compose ps",
+    "dclean": "docker compose down --volumes",
     "typecheck": "tsc --noEmit",
     "generate-routes": "tsr generate",
     "lint": "oxlint --threads 8 --deny-warnings",
@@ -16,6 +28,7 @@
     "format:check": "oxfmt --check --threads 8",
     "intent:check": "bun run scripts/checkIntentSkills.ts",
     "compose:check": "bun run scripts/checkCompose.ts",
+    "compose:dev:check": "docker compose -f compose.dev.yaml config",
     "audit:catalog": "bun run scripts/auditCatalog.ts",
     "test:e2e": "playwright test",
     "test:e2e:docker": "E2E_DOCKER=1 E2E_BASE_URL=http://127.0.0.1:5173 playwright test",
@@ -25,7 +38,7 @@
     "preview": "bun run scripts/freePort.ts 4173 && vite preview",
     "start": "bun run scripts/freePort.ts 4173 && vite preview",
     "kill-ports": "bun run scripts/freePort.ts 5173 4173",
-    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run audit:catalog && bun run test:coverage && bun run build"
+    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run compose:dev:check && bun run audit:catalog && bun run test:coverage && bun run build"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",
