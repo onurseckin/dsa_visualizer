@@ -29,12 +29,21 @@ export const PYTHON_LINE_SEGMENT_INTERSECTION_CODE = `class Solution:
     def __init__(self):
         pass
 
-    def computeArea(self, ax1: int, ay1: int, ax2: int, ay2: int, bx1: int, by1: int, bx2: int, by2: int) -> int:
-        area1 = (ax2 - ax1) * (ay2 - ay1)
-        area2 = (bx2 - bx1) * (by2 - by1)
-        overlap_w = max(0, min(ax2, bx2) - max(ax1, bx1))
-        overlap_h = max(0, min(ay2, by2) - max(ay1, by1))
-        return area1 + area2 - (overlap_w * overlap_h)`;
+    def intersects(self, first: dict, second: dict) -> bool:
+        def cross(a, b, c):
+            return (b["x"] - a["x"]) * (c["y"] - a["y"]) - (b["y"] - a["y"]) * (c["x"] - a["x"])
+
+        def on_segment(a, b, point):
+            return min(a["x"], b["x"]) <= point["x"] <= max(a["x"], b["x"]) and min(a["y"], b["y"]) <= point["y"] <= max(a["y"], b["y"])
+
+        a, b = first["p1"], first["p2"]
+        c, d = second["p1"], second["p2"]
+        ab_c, ab_d, cd_a, cd_b = cross(a, b, c), cross(a, b, d), cross(c, d, a), cross(c, d, b)
+        if ab_c == 0 and on_segment(a, b, c): return True
+        if ab_d == 0 and on_segment(a, b, d): return True
+        if cd_a == 0 and on_segment(c, d, a): return True
+        if cd_b == 0 and on_segment(c, d, b): return True
+        return (ab_c > 0) != (ab_d > 0) and (cd_a > 0) != (cd_b > 0)`;
 
 export const DEFAULT_LINE_SEGMENT_INTERSECTION_INPUT: LineSegmentIntersectionInput = {
   segment1: { p1: { x: 50, y: 50 }, p2: { x: 350, y: 350 } },
