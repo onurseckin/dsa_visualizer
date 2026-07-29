@@ -5,7 +5,7 @@ export const Z_ALGORITHM_CODE = `class Solution:
     def findMatches(self, text: str, pattern: str) -> list[int]:
         if pattern == "":
             return list(range(len(text) + 1))
-        separator = "\x00"
+        separator = "\\u0001"
         s = pattern + separator + text
         n, pattern_length = len(s), len(pattern)
         z = [0] * n
