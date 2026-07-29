@@ -168,8 +168,12 @@ export const generateTwoPointersSteps = (input: TwoPointersInput): AlgorithmStep
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const array = Array.isArray(input?.array) && input.array.length > 0 ? input.array : DEFAULT_TWO_POINTERS_INPUT.array;
-  const target = typeof input?.target === "number" ? input.target : DEFAULT_TWO_POINTERS_INPUT.target;
+  const array =
+    Array.isArray(input?.array) && input.array.length > 0
+      ? input.array
+      : DEFAULT_TWO_POINTERS_INPUT.array;
+  const target =
+    typeof input?.target === "number" ? input.target : DEFAULT_TWO_POINTERS_INPUT.target;
   const n = array.length;
 
   const addStep = (
@@ -351,8 +355,24 @@ export const twoPointers: AlgorithmDefinition<TwoPointersInput> = {
   title: "Two Pointers (Subarray Sum)",
   topicIds: ["two_pointers"],
   difficulty: "Easy",
-  description:
-    "<p>Finds a contiguous subarray that sums to a target value using a variable-size sliding window over non-negative integers.</p><h3>Why It Exists &amp; What It Solves</h3><p>Evaluating all <code>O(N<sup>2</sup>)</code> candidate subarrays by recomputing sums requires <code>O(N<sup>2</sup>)</code> or <code>O(N<sup>3</sup>)</code> operations. The variable-size sliding window solves this problem in amortized <code>O(N)</code> time and <code>O(1)</code> auxiliary space. Non-negative array elements guarantee monotonic window behavior: growing the window increases the sum, while shrinking it decreases the sum.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Expand Right:</strong> Advance <code>right</code> from <code>0</code> to <code>N - 1</code>, adding <code>arr[right]</code> to <code>current_sum</code>.</li><li><strong>Shrink Left:</strong> While <code>current_sum &gt; target</code> and <code>left &le; right</code>, subtract <code>arr[left]</code> from <code>current_sum</code> and increment <code>left</code>.</li><li><strong>Match Verification:</strong> If <code>current_sum == target</code>, return <code>[left, right]</code>.</li><li><strong>Amortized Complexity:</strong> Each element is added once by <code>right</code> and subtracted at most once by <code>left</code>, bounding total operations to <code>2N</code>.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>arr</code> (<code>list[int]</code>), non-negative integer array; <code>target</code> (<code>int</code>), target sum.</li><li><strong>Output:</strong> <code>list[int]</code>, <code>[left, right]</code> 0-based indices or <code>[-1, -1]</code> if not found.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> <code>O(N)</code> amortized linear time.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Non-Negativity Required:</strong> If negative values exist, use Prefix Sum + Hash Map.</li><li><strong>Empty Array:</strong> Returns <code>[-1, -1]</code>.</li></ul>",
+  description: `<p>Given an array of non-negative integers <code>arr</code> and a target integer <code>target</code>, find a contiguous subarray that sums to <code>target</code>.</p>
+<h3>Problem Statement</h3>
+<p>Given an array of non-negative integers <code>arr</code> and an integer <code>target</code>, locate the starting and ending 0-based indices <code>[left, right]</code> of any contiguous subarray whose elements sum to <code>target</code>. If no such contiguous subarray exists, return <code>[-1, -1]</code>.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>arr</code>: Array of non-negative integers.</li>
+  <li><code>target</code>: Target integer sum.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns a 2-element array containing 0-based indices <code>[left, right]</code> of a matching subarray, or <code>[-1, -1]</code> if absent.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; arr.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>0 &le; arr[i] &le; 10<sup>4</sup></code>.</li>
+  <li><code>1 &le; target &le; 10<sup>9</sup></code>.</li>
+  <li>Array elements are non-negative.</li>
+  <li>Empty array or no matching contiguous subarray returns <code>[-1, -1]</code>.</li>
+</ul>`,
   constraints: ["1 <= arr.length <= 10^5", "0 <= arr[i] <= 10^4", "1 <= target <= 10^9"],
   examples: [
     {

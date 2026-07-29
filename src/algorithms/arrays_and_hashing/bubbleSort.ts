@@ -154,8 +154,7 @@ export const generateBubbleSortSteps = (input: number[]): AlgorithmStep[] => {
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawInput =
-    Array.isArray(input) && input.length > 0 ? input : DEFAULT_BUBBLE_SORT_INPUT;
+  const rawInput = Array.isArray(input) && input.length > 0 ? input : DEFAULT_BUBBLE_SORT_INPUT;
   const arr = [...rawInput];
   const n = arr.length;
 
@@ -372,8 +371,22 @@ export const bubbleSort: AlgorithmDefinition<number[]> = {
   title: "Bubble Sort",
   topicIds: ["arrays_and_hashing"],
   difficulty: "Easy",
-  description:
-    "<p>Bubble Sort is the quintessential comparison-based sorting algorithm that repeatedly sweeps across an array, comparing adjacent elements and swapping them whenever they are out of order.</p><h3>Why It Exists &amp; What It Solves</h3><p>Bubble Sort provides a foundational model for understanding algorithm design, invariant propagation, and sorting stability. It solves the sequence ordering problem by iteratively reducing the total number of adjacent inversions.</p><ul><li><strong>Inversion Elimination:</strong> An inversion is a pair of indices <code>(i, j)</code> such that <code>i &lt; j</code> and <code>arr[i] &gt; arr[j]</code>. Every adjacent swap resolves exactly one inversion.</li><li><strong>Invariant Propagation:</strong> After pass <code>k</code>, the <code>k</code> largest elements are guaranteed to have bubbled into their final, permanent positions at the array's rightmost tail <code>arr[N-k &hellip; N-1]</code>.</li></ul><h3>Step-by-Step Intuition</h3><ul><li><strong>Pass Boundary:</strong> Execute up to <code>N - 1</code> outer passes. Pass <code>i</code> considers unsorted prefix <code>arr[0 &hellip; N - 1 - i]</code>.</li><li><strong>Adjacent Probe:</strong> Walk index <code>j</code> from <code>0</code> to <code>N - i - 2</code>. Compare neighbour pair <code>(arr[j], arr[j + 1])</code>.</li><li><strong>Swap &amp; Bubble:</strong> If <code>arr[j] &gt; arr[j + 1]</code>, swap them in-place. The larger value continues to bubble rightward toward the tail.</li><li><strong>Tail Lock:</strong> Upon completing pass <code>i</code>, index <code>N - 1 - i</code> is locked as permanently sorted. Repeat for <code>i + 1</code>.</li></ul><h3>Mathematical Formulation &amp; Derivation</h3><p>The total number of comparisons in the unoptimized worst case (e.g. reverse-sorted array) forms an arithmetic progression:</p><p><code>T(N) = sum(N - 1 - i) for i=0 &hellip; N-2 = (N-1) + (N-2) + &hellip; + 1 = N(N - 1) / 2 = O(N<sup>2</sup>)</code></p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>arr</code> (<code>list[int]</code>), an unsorted sequence of integers where <code>1 &le; N &le; 10<sup>3</sup></code>.</li><li><strong>Output:</strong> <code>list[int]</code>, the array sorted in non-decreasing order in-place.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Best Case:</strong> <code>O(N)</code> when an early-exit flag detects 0 swaps on pass 1.</li><li><strong>Average Case:</strong> <code>O(N<sup>2</sup>)</code>, requiring <code>N(N-1)/4</code> average swaps.</li><li><strong>Worst Case:</strong> <code>O(N<sup>2</sup>)</code>, executing all <code>N(N-1)/2</code> comparisons and swaps for reverse-sorted inputs.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space since all operations mutate <code>arr</code> in-place.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Single Element / Empty Input:</strong> No comparisons required; array is trivially sorted.</li><li><strong>Already Sorted Input:</strong> Executes <code>N-1</code> comparisons and 0 swaps.</li><li><strong>Duplicate Values:</strong> Stable sort guarantee—strict comparison <code>arr[j] &gt; arr[j+1]</code> prevents equal keys from swapping.</li></ul>",
+  description: `<p>Given an array of integers <code>nums</code>, sort the array in non-decreasing order.</p>
+<h3>Problem Statement</h3>
+<p>Given an unsorted array of integers <code>nums</code>, return the array sorted in ascending (non-decreasing) order.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: An unsorted array of integers.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns the array sorted in non-decreasing order.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; nums.length &le; 10<sup>3</sup></code>.</li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
+  <li>Single element or already sorted array: Returns array as-is.</li>
+  <li>Duplicate values: Order of equal elements is preserved (stable sort).</li>
+</ul>`,
   constraints: ["1 <= arr.length <= 10^3", "-10^4 <= arr[i] <= 10^4"],
   examples: [
     {

@@ -75,8 +75,23 @@ export const bfsGraph: AlgorithmDefinition<BFSGraphInput> = {
   title: "BFS Graph Traversal",
   topicIds: ["graph_traversal"],
   difficulty: "Medium",
-  description:
-    "<p>Given a directed or undirected graph <code>G = (V, E)</code> represented by vertices <code>V</code> and edges <code>E</code>, along with a specified start node <code>s</code>, <strong>Breadth-First Search (BFS)</strong> traverses all reachable vertices layer by layer in expanding concentric rings. BFS starts at the source <code>s</code> at distance 0 and explores all immediately adjacent neighbors at distance 1, then moves on to explore neighbors of neighbors at distance 2, and so forth.</p><p>The algorithm utilizes a First-In-First-Out (FIFO) queue <code>Q</code> to maintain discovery order and a visited set <code>S</code> to prevent processing duplicate vertices or getting trapped in infinite loops caused by graph cycles. Overall runtime is bounded by <code>O(V + E)</code> with <code>O(V)</code> auxiliary space.</p>",
+  description: `<p>Given a graph and a designated starting node, visit all reachable vertices in layer-by-layer breadth-first traversal order.</p>
+<h3>Problem Statement</h3>
+<p>Given a graph <code>G = (V, E)</code> represented by a list of vertices <code>V</code> and edges <code>E</code>, and a starting node <code>startNodeId</code>, return the sequence of vertices in the order they are first discovered during a breadth-first traversal.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nodes</code>: List of graph node objects representing vertices.</li>
+  <li><code>edges</code>: List of edge objects connecting pairs of vertices.</li>
+  <li><code>startNodeId</code>: The ID of the starting vertex.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an array of node IDs visited in layer-by-layer traversal order.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; |V| &le; 10<sup>4</sup></code>, <code>0 &le; |E| &le; 10<sup>5</sup></code>.</li>
+  <li>Graphs may contain cycles or disconnected components.</li>
+  <li>If <code>startNodeId</code> is invalid or absent, returns an empty list.</li>
+</ul>`,
   constraints: [
     "1 <= Number of vertices V <= 10^4",
     "0 <= Number of edges E <= 10^5",

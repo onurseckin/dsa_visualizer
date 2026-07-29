@@ -31,22 +31,21 @@ export const treeDiameter: AlgorithmDefinition<TreeDiameterInput> = {
   title: "Tree Diameter (2-DFS Algorithm)",
   topicIds: ["tree_fundamentals", "tree_queries_and_diameter"],
   difficulty: "Medium",
-  description: `<p>Find the diameter (length of the longest simple path between any two nodes) of an unweighted tree using two passes of Depth-First Search (2-DFS).</p>
+  description: `<p>Given an unweighted tree on <em>N</em> vertices, find its diameter—the maximum number of edges in any simple path connecting two vertices in the tree.</p>
 <h3>Problem Statement</h3>
-<p>Given an undirected tree on <em>N</em> vertices, find its diameter <em>D</em>—the maximum number of edges in any simple path connecting two vertices in the tree.</p>
-<p>The algorithm leverages the double-DFS property: starting a DFS from an arbitrary node <em>S</em> discovers a vertex <em>A</em> that is guaranteed to be one endpoint of a longest path. Running a second DFS starting from vertex <em>A</em> finds the opposite endpoint <em>B</em> and measures the exact diameter distance <em>D = dist(A, B)</em>.</p>
+<p>Given an unweighted undirected tree with <em>N</em> vertices and <em>N - 1</em> edges, find the diameter of the tree. The diameter is defined as the maximum length (measured in number of edges) of a simple path between any pair of nodes in the tree.</p>
 <h3>Input Parameters</h3>
 <ul>
-  <li><code>rootId</code>: Identifier of the root node to start Pass 1.</li>
+  <li><code>rootId</code>: Identifier of the root node of the tree.</li>
   <li><code>nodes</code>: List of tree node objects defining the tree structure.</li>
 </ul>
 <h3>Output</h3>
-<p>Returns an integer representing the diameter <em>D</em> (number of edges on the longest simple path).</p>
+<p>Returns an integer representing the diameter distance (number of edges on the longest path).</p>
 <h3>Constraints &amp; Edge Cases</h3>
 <ul>
   <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
   <li>Valid connected tree with <em>N - 1</em> undirected edges.</li>
-  <li>Single node tree (<em>N = 1</em>): Diameter distance is 0.</li>
+  <li>Single node tree (<em>N = 1</em>) returns diameter distance 0.</li>
   <li>Uniform edge weights (unweighted tree).</li>
 </ul>`,
   constraints: [

@@ -259,7 +259,10 @@ export const generateValidParenthesesSteps = (input: ValidParenthesesInput): Alg
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const s = typeof input?.s === "string" && input.s.length > 0 ? input.s : DEFAULT_VALID_PARENTHESES_INPUT.s;
+  const s =
+    typeof input?.s === "string" && input.s.length > 0
+      ? input.s
+      : DEFAULT_VALID_PARENTHESES_INPUT.s;
   const chars = s.split("");
   const n = chars.length;
 
@@ -444,8 +447,27 @@ export const validParentheses: AlgorithmDefinition<ValidParenthesesInput> = {
   title: "Valid Parentheses",
   topicIds: ["stack_and_queue"],
   difficulty: "Easy",
-  description:
-    "<p>Determine if an input string composed of bracket characters <code>()</code>, <code>{}</code>, and <code>[]</code> is valid.</p><p>An input string is valid if:</p><ul><li>Open brackets must be closed by the same type of brackets.</li><li>Open brackets must be closed in the correct Last-In, First-Out (LIFO) order.</li><li>Every close bracket has a corresponding open bracket of the same type.</li></ul><h3>Why It Exists &amp; Real-World Relevance</h3><p>Stack-based bracket matching is the foundational algorithm for parsing nested structures. Simple counting fails because it cannot verify nesting order (e.g. <code>([)]</code> has equal counts of brackets but is invalid).</p><p>Real-world applications include:</p><ul><li><strong>Compilers &amp; AST Parsers:</strong> Clang, Babel, and GCC use stack pushdown automata to parse code blocks, function calls, and expression syntax.</li><li><strong>HTML / XML / JSX Validation:</strong> Ensuring tags like <code>&lt;div&gt;&lt;span&gt;&lt;/span&gt;&lt;/div&gt;</code> are correctly nested.</li><li><strong>Math Expression Evaluation:</strong> Evaluators (like Shunting-Yard algorithm) use stacks to manage operator precedence and sub-expression parentheses.</li><li><strong>Runtime Call Stacks:</strong> Operating systems and language runtimes (V8, CPython) use a stack frame architecture mirroring this exact mechanism.</li></ul><h3>How It Works (Step-by-Step Intuition)</h3><ul><li>Initialize an empty stack and a lookup table mapping <code>&quot;)&quot; &rarr; &quot;(&quot;</code>, <code>&quot;}&quot; &rarr; &quot;{&quot;</code>, and <code>&quot;]&quot; &rarr; &quot;[&quot;</code>.</li><li>Iterate through each character in the string from left to right.</li><li><strong>Opener Case:</strong> If character is <code>(</code>, <code>{</code>, or <code>[</code>, push it onto the stack.</li><li><strong>Closer Case:</strong> If character is <code>)</code>, <code>}</code>, or <code>]</code>:<ul><li>Check if stack is empty (underflow: closer with no opener) or if top of stack does not match the required opener (mismatch: wrong bracket type). If so, return <code>False</code>.</li><li>Otherwise, pop the top opener from the stack.</li></ul></li><li><strong>Final Check:</strong> After scanning all characters, return <code>True</code> if the stack is completely empty, else <code>False</code>.</li></ul><p><code>stack[-1] == mapping[char] &rArr; stack.pop()</code></p><p><code>len(stack) == 0 &rArr; True</code></p><h3>Input Parameters</h3><ul><li><code>s</code>: A string composed entirely of parenthesis characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code>, <code>']'</code>.</li></ul><h3>Output</h3><p>Returns <code>true</code> if the string is validly formatted and properly nested, otherwise <code>false</code>.</p><h3>Edge Cases &amp; Constraints</h3><ul><li><code>1 &le; s.length &le; 10<sup>4</sup></code></li><li><code>s</code> consists of parentheses only: <code>(){}[]</code>.</li><li>Odd length strings (e.g. <code>s = &quot;(&quot;</code>): Can never be valid (<code>N % 2 != 0</code>).</li><li>Early closer underflow (e.g. <code>s = &quot;)(&quot;</code>): Handled by empty stack guard on closer inspection.</li><li>Leftover openers (e.g. <code>s = &quot;(((&quot;</code>): Detected by final <code>len(stack) == 0</code> check.</li></ul>",
+  description: `<p>Given a string <code>s</code> containing just the characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code> and <code>']'</code>, determine if the input string is valid.</p>
+<h3>Problem Statement</h3>
+<p>An input string is valid if:</p>
+<ul>
+  <li>Open brackets must be closed by the same type of brackets.</li>
+  <li>Open brackets must be closed in the correct order.</li>
+  <li>Every close bracket has a corresponding open bracket of the same type.</li>
+</ul>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>s</code>: A string consisting of parenthesis characters <code>'('</code>, <code>')'</code>, <code>'{'</code>, <code>'}'</code>, <code>'['</code>, <code>']'</code>.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns boolean <code>true</code> if the string is valid, otherwise <code>false</code>.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; s.length &le; 10<sup>4</sup></code>.</li>
+  <li><code>s</code> consists of parentheses only: <code>()[]{}</code>.</li>
+  <li>Odd length strings can never be valid.</li>
+  <li>Empty or incomplete bracket sequences return <code>false</code>.</li>
+</ul>`,
   constraints: ["1 <= s.length <= 10^4", "s consists of parentheses only: () {} []"],
   examples: [
     {

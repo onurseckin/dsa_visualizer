@@ -47,10 +47,9 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   title: "KMP String Matching",
   topicIds: ["tries_and_strings"],
   difficulty: "Hard",
-  description: `<p>Find all starting index occurrences of a pattern string in a text string in linear <em>O(N + M)</em> time using the Knuth-Morris-Pratt (KMP) algorithm.</p>
+  description: `<p>Given a text string <code>text</code> and a pattern string <code>pattern</code>, find all starting indices in <code>text</code> where <code>pattern</code> appears as a contiguous substring.</p>
 <h3>Problem Statement</h3>
-<p>Given a text string <code>text</code> of length <em>N</em> and a pattern string <code>pattern</code> of length <em>M</em>, find all starting indices in <code>text</code> where <code>pattern</code> appears as a contiguous substring.</p>
-<p>The KMP algorithm preprocesses <code>pattern</code> into a Longest Prefix Suffix (LPS) array in <em>O(M)</em> time. The LPS table <code>lps[i]</code> stores the length of the longest proper prefix of <code>pattern[0..i]</code> that is also a suffix of <code>pattern[0..i]</code>. During text scanning, when a mismatch occurs, the text pointer never moves backward; instead, the pattern pointer falls back to <code>lps[j-1]</code>, guaranteeing linear <em>O(N + M)</em> execution.</p>
+<p>Given a text string <code>text</code> of length <em>N</em> and a pattern string <code>pattern</code> of length <em>M</em>, find all starting 0-based indices in <code>text</code> where <code>pattern</code> appears as a contiguous substring. All matching starting positions, including overlapping matches, must be returned.</p>
 <h3>Input Parameters</h3>
 <ul>
   <li><code>text</code>: Search text string of length <em>N</em>.</li>
@@ -63,8 +62,7 @@ export const kmpStringMatch: AlgorithmDefinition<KmpInput> = {
   <li><code>1 &le; N &le; 10<sup>5</sup></code>.</li>
   <li><code>1 &le; M &le; 10<sup>4</sup></code>.</li>
   <li>Strings contain ASCII printable characters.</li>
-  <li>Pattern longer than text (<em>M &gt; N</em>): Returns empty array <code>[]</code>.</li>
-  <li>Overlapping matches are correctly reported.</li>
+  <li>Pattern longer than text (<em>M &gt; N</em>) returns an empty array <code>[]</code>.</li>
 </ul>`,
   constraints: [
     "1 <= text.length <= 10^5",

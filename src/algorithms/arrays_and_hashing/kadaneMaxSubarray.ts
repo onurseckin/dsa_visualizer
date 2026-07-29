@@ -162,8 +162,7 @@ export const generateKadaneMaxSubarraySteps = (input: number[]): AlgorithmStep[]
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const rawInput =
-    Array.isArray(input) && input.length > 0 ? input : DEFAULT_KADANE_INPUT;
+  const rawInput = Array.isArray(input) && input.length > 0 ? input : DEFAULT_KADANE_INPUT;
 
   const addStep = (
     narrative: string,
@@ -341,8 +340,22 @@ export const kadaneMaxSubarray: AlgorithmDefinition<number[]> = {
   title: "Kadane's Algorithm (Maximum Subarray)",
   topicIds: ["arrays_and_hashing"],
   difficulty: "Medium",
-  description:
-    "<p>Kadane's Algorithm computes the maximum sum of a contiguous subarray within a one-dimensional numeric array in a single linear pass.</p><h3>Why It Exists &amp; What It Solves</h3><p>Finding the maximum subarray sum brute-force requires evaluating all <code>O(N<sup>2</sup>)</code> candidate contiguous subarrays (or <code>O(N<sup>3</sup>)</code> if naive sum loops are re-executed). Kadane's algorithm solves this in <code>O(N)</code> time and <code>O(1)</code> auxiliary space using dynamic programming.</p><ul><li><strong>Local Recurrence:</strong> At index <code>i</code>, we decide whether to extend the maximal subarray ending at <code>i-1</code> or discard a negative-sum prefix and restart a fresh subarray at index <code>i</code>.</li><li><strong>Global Record:</strong> We track the historical maximum sum <code>global_max = max(current_max(k))</code> across all positions <code>k</code>.</li></ul><h3>Step-by-Step Intuition</h3><ul><li><strong>Base Case Initialization:</strong> Set <code>current_max = nums[0]</code> and <code>global_max = nums[0]</code> at index <code>0</code>.</li><li><strong>Transition Scan:</strong> For each element <code>nums[i]</code> (from <code>1</code> to <code>N-1</code>), compute <code>current_max = max(nums[i], current_max + nums[i])</code>.</li><li><strong>Prefix Drag Elimination:</strong> If <code>current_max + nums[i] &lt; nums[i]</code> (implying <code>current_max &lt; 0</code>), the preceding sum degrades future subtotals. Discard it and set <code>temp_start = i</code>.</li><li><strong>Record Update:</strong> If <code>current_max &gt; global_max</code>, update <code>global_max = current_max</code>, <code>start = temp_start</code>, and <code>end = i</code>.</li></ul><h3>Mathematical Formulation &amp; Derivation</h3><p>Let <code>DP[i]</code> be the maximum subarray sum ending precisely at index <code>i</code>. The Bellman recurrence relation is:</p><p><code>DP[i] = nums[0] if i = 0, else max(nums[i], DP[i-1] + nums[i])</code></p><p>The overall maximum subarray sum is the peak state across all indices:</p><p><code>MaxSubarraySum = max(DP[i]) for 0 &le; i &lt; N</code></p><p>Since <code>DP[i]</code> depends only on <code>DP[i-1]</code>, space collapses from <code>O(N)</code> array storage to <code>O(1)</code> scalar variables (<code>current_max</code>, <code>global_max</code>).</p><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>nums</code> (<code>list[int]</code>), an array of integers containing positive and negative numbers where <code>1 &le; N &le; 10<sup>5</sup></code>.</li><li><strong>Output:</strong> <code>int</code>, the maximum sum of any non-empty contiguous subarray.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> <code>O(N)</code> linear time; visits each element exactly once with constant-time scalar arithmetic.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space using scalar boundary and accumulator registers.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>All Negative Numbers:</strong> Correctly yields the single least-negative (maximum) element, e.g. <code>[-8, -3, -6] &rArr; -3</code>.</li><li><strong>Single Element Input (N=1):</strong> Instantly returns <code>nums[0]</code>.</li><li><strong>All Positive Numbers:</strong> Sums the entire array in <code>O(N)</code> time.</li></ul>",
+  description: `<p>Given an integer array <code>nums</code>, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum.</p>
+<h3>Problem Statement</h3>
+<p>Given an integer array <code>nums</code>, find the contiguous subarray (containing at least one number) which has the largest sum and return its sum. A subarray is a contiguous part of an array.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: An array of integers containing positive and negative numbers.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns an integer representing the maximum sum of any non-empty contiguous subarray.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; nums.length &le; 10<sup>5</sup></code>.</li>
+  <li><code>-10<sup>4</sup> &le; nums[i] &le; 10<sup>4</sup></code>.</li>
+  <li>All negative numbers: Returns the single least-negative (maximum) element.</li>
+  <li>Single element input (N=1): Returns <code>nums[0]</code>.</li>
+</ul>`,
   constraints: ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
   examples: [
     {

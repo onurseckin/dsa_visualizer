@@ -18,7 +18,7 @@ export const triePrefixTree: AlgorithmDefinition<TriePrefixTreeInput> = {
 <p>Implement the <code>Trie</code> class:</p>
 <ul>
   <li><code>Trie()</code> Initializes the trie object.</li>
-  <li><code>void insert(String word)</code> Inserts the string <code>word</code> into the trie in <em>O(L)</em> time.</li>
+  <li><code>void insert(String word)</code> Inserts the string <code>word</code> into the trie.</li>
   <li><code>boolean search(String word)</code> Returns <code>true</code> if the string <code>word</code> is in the trie, and <code>false</code> otherwise.</li>
   <li><code>boolean startsWith(String prefix)</code> Returns <code>true</code> if there is a previously inserted string <code>word</code> that has the prefix <code>prefix</code>, and <code>false</code> otherwise.</li>
 </ul>

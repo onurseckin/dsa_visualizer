@@ -132,8 +132,22 @@ export const kruskalMst: AlgorithmDefinition<KruskalInput> = {
   title: "Kruskal's Minimum Spanning Tree",
   topicIds: ["graph_spanning_trees"],
   difficulty: "Medium",
-  description:
-    "<p><strong>Kruskal's algorithm</strong> constructs the Minimum Spanning Tree (MST) of a connected, undirected weighted graph <code>G = (V, E)</code>—the cheapest subset of <code>|V| - 1</code> edges connecting all vertices without any cycles.</p><p>It sorts all <code>E</code> edges by weight, then uses a <strong>Disjoint-Set Union (DSU)</strong> structure to accept only edges whose endpoints are in different components. It stops as soon as <code>|V| - 1</code> edges have been accepted; if the graph is disconnected, it instead returns a minimum spanning forest after every available edge is considered. Overall time complexity is <code>O(E log E)</code>.</p>",
+  description: `<p>Given a connected, undirected weighted graph <code>G = (V, E)</code>, find a Minimum Spanning Tree (MST)—a subset of edges that connects all vertices together without any cycles and with the minimum possible total edge weight.</p>
+<h3>Problem Statement</h3>
+<p>Given a weighted undirected graph with <em>|V|</em> vertices and <em>|E|</em> edges, find a spanning tree (or spanning forest if disconnected) that connects all vertices while minimizing the sum of all edge weights in the tree.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nodes</code>: List of graph node objects representing vertices.</li>
+  <li><code>edges</code>: List of weighted edge objects connecting pairs of vertices.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns the list of accepted edges forming the Minimum Spanning Tree (or Forest) and the total sum of their weights.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>0 &le; |V| &le; 10<sup>4</sup></code>, <code>0 &le; |E| &le; 10<sup>5</sup></code>.</li>
+  <li>Weights are finite numbers with <code>-10<sup>4</sup> &le; weight &le; 10<sup>4</sup></code>.</li>
+  <li>Graph can be disconnected (producing a Minimum Spanning Forest).</li>
+</ul>`,
   constraints: [
     "0 <= Vertices V <= 10^4",
     "0 <= Edges E <= 10^5",

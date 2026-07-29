@@ -177,8 +177,12 @@ export const generateTwoSumSortedSteps = (input: TwoSumSortedInput): AlgorithmSt
   const steps: AlgorithmStep[] = [];
   let stepIndex = 0;
 
-  const nums = Array.isArray(input?.nums) && input.nums.length > 0 ? input.nums : DEFAULT_TWO_SUM_SORTED_INPUT.nums;
-  const target = typeof input?.target === "number" ? input.target : DEFAULT_TWO_SUM_SORTED_INPUT.target;
+  const nums =
+    Array.isArray(input?.nums) && input.nums.length > 0
+      ? input.nums
+      : DEFAULT_TWO_SUM_SORTED_INPUT.nums;
+  const target =
+    typeof input?.target === "number" ? input.target : DEFAULT_TWO_SUM_SORTED_INPUT.target;
   const n = nums.length;
 
   const addStep = (
@@ -360,8 +364,23 @@ export const twoSumSorted: AlgorithmDefinition<TwoSumSortedInput> = {
   title: "Two Sum II (Sorted)",
   topicIds: ["two_pointers"],
   difficulty: "Medium",
-  description:
-    "<p>Find two numbers in a sorted array that add up to a target sum using the converging two-pointer technique.</p><h3>Why It Exists &amp; What It Solves</h3><p>Standard Two Sum uses <code>O(N)</code> auxiliary space for a hash table. Two Sum II leverages the pre-sorted structure of the array to achieve <code>O(N)</code> time complexity and <code>O(1)</code> space complexity. By maintaining pointers at opposite ends of the array, we prune invalid candidate pairs in constant time.</p><h3>Step-by-Step Intuition</h3><ul><li><strong>Initialization:</strong> Set <code>left = 0</code> (smallest value) and <code>right = N - 1</code> (largest value).</li><li><strong>Sum Evaluation:</strong> Calculate <code>current_sum = nums[left] + nums[right]</code>.</li><li><strong>Monotonic Pointer Adjustment:</strong><ul><li>If <code>current_sum == target</code>: Return <code>[left, right]</code>.</li><li>If <code>current_sum &lt; target</code>: Increment <code>left += 1</code> because all pairs <code>(left, k)</code> with <code>k &lt; right</code> yield sums smaller than target.</li><li>If <code>current_sum &gt; target</code>: Decrement <code>right -= 1</code> because all pairs <code>(k, right)</code> with <code>k &gt; left</code> yield sums larger than target.</li></ul></li><li><strong>Loop Termination:</strong> Continue while <code>left &lt; right</code>.</li></ul><h3>Input &amp; Output Contracts</h3><ul><li><strong>Input:</strong> <code>nums</code> (<code>list[int]</code>), sorted in non-decreasing order; <code>target</code> (<code>int</code>), the desired pair sum.</li><li><strong>Output:</strong> <code>list[int]</code>, a 2-element array <code>[left, right]</code> containing 0-indexed positions.</li></ul><h3>Trade-Offs &amp; Complexity Analysis</h3><ul><li><strong>Time Complexity:</strong> <code>O(N)</code> since each iteration advances at least one pointer inward, resulting in at most <code>N</code> steps.</li><li><strong>Space Complexity:</strong> <code>O(1)</code> auxiliary space as only two index variables are maintained.</li></ul><h3>Edge Cases &amp; Constraints</h3><ul><li><strong>Negative Numbers &amp; Duplicates:</strong> Monotonicity holds across negative and duplicate numbers.</li><li><strong>No Solution:</strong> When pointers cross (<code>left &ge; right</code>), returns <code>[]</code>.</li></ul>",
+  description: `<p>Given a 1-indexed array of integers <code>nums</code> that is already <strong>sorted in non-decreasing order</strong>, find two numbers such that they add up to a specific <code>target</code> number.</p>
+<h3>Problem Statement</h3>
+<p>Given a 0-indexed array of integers <code>nums</code> that is already sorted in non-decreasing order, find two numbers such that they add up to a specific <code>target</code> number. Return the 0-based indices of the two numbers <code>[index1, index2]</code>.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>nums</code>: Array of integers sorted in non-decreasing order.</li>
+  <li><code>target</code>: Target integer sum.</li>
+</ul>
+<h3>Output</h3>
+<p>Returns a 2-element array containing indices <code>[left, right]</code> of the two matching numbers.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>2 &le; nums.length &le; 3 &times; 10<sup>4</sup></code>.</li>
+  <li><code>-1000 &le; nums[i] &le; 1000</code>.</li>
+  <li><code>nums</code> is sorted in non-decreasing order.</li>
+  <li>Exactly one valid solution exists.</li>
+</ul>`,
   constraints: [
     "2 <= nums.length <= 3 * 10^4",
     "-1000 <= nums[i] <= 1000",

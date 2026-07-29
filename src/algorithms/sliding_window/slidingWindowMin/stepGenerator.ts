@@ -318,9 +318,19 @@ export const generateSlidingWindowMinSteps = (input: SlidingWindowMinInput): Alg
       let state: ArrayElement["state"] = "default";
       if (idx === highlightIdx) {
         state = highlightState;
-      } else if (deque.length > 0 && deque[0] === idx && windowStart !== undefined && idx >= windowStart) {
+      } else if (
+        deque.length > 0 &&
+        deque[0] === idx &&
+        windowStart !== undefined &&
+        idx >= windowStart
+      ) {
         state = "sorted";
-      } else if (windowStart !== undefined && currentI !== undefined && idx >= windowStart && idx <= currentI) {
+      } else if (
+        windowStart !== undefined &&
+        currentI !== undefined &&
+        idx >= windowStart &&
+        idx <= currentI
+      ) {
         state = "active";
       } else if (windowStart !== undefined && idx < windowStart) {
         state = "visited";

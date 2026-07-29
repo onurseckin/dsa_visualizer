@@ -45,8 +45,20 @@ export const nQueens: AlgorithmDefinition<NQueensInput> = {
   title: "N-Queens Backtracking",
   topicIds: ["backtracking"],
   difficulty: "Hard",
-  description:
-    "<p>The <strong>N-Queens</strong> puzzle requires placing N chess queens on an N×N chessboard so that no two queens threaten each other. Using recursive backtracking, queens are placed row by row while maintaining constant-time lookup sets for occupied columns and diagonals (<code>row - col</code> and <code>row + col</code>). Invalid placement branches are pruned early before exploring doomed subtrees.</p>",
+  description: `<p>The N-Queens puzzle requires placing <em>N</em> chess queens on an <em>N</em> &times; <em>N</em> chessboard so that no two queens attack each other.</p>
+<h3>Problem Statement</h3>
+<p>Given an integer <em>N</em>, return all distinct solutions to the <em>N</em>-Queens puzzle. A solution contains a board layout where <em>N</em> queens are placed on an <em>N</em> &times; <em>N</em> chessboard such that no two queens share the same row, column, or diagonal.</p>
+<h3>Input Parameters</h3>
+<ul>
+  <li><code>n</code>: The size of the chessboard and number of queens (<em>N</em>).</li>
+</ul>
+<h3>Output</h3>
+<p>Returns a list of all distinct valid board arrangements of <em>N</em> non-attacking queens.</p>
+<h3>Constraints &amp; Edge Cases</h3>
+<ul>
+  <li><code>1 &le; N &le; 9</code>.</li>
+  <li>For <em>N = 2</em> and <em>N = 3</em>, no valid solutions exist.</li>
+</ul>`,
   constraints: ["1 <= N <= 9"],
   examples: [
     {
