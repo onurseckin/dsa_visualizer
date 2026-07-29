@@ -45,8 +45,14 @@ export const greedyAlgorithmsExecutions = [
           [4, 6],
           [6, 7],
         ],
+        comparison: "unordered-outer",
       },
-      { label: "No intervals", input: [], expected: [] },
+      {
+        label: "No intervals",
+        input: [],
+        expected: [],
+        comparison: "unordered-outer",
+      },
       {
         label: "Signed and touching intervals",
         input: [
@@ -60,6 +66,7 @@ export const greedyAlgorithmsExecutions = [
           [0, 1],
           [2, 3],
         ],
+        comparison: "unordered-outer",
       },
     ),
     audit: {
@@ -67,7 +74,8 @@ export const greedyAlgorithmsExecutions = [
       defaultInputShape: "Array<{ id: string; start: number; end: number }>",
       argumentMapping: ["intervals <- $"],
       mutation: "Does not mutate intervals; sorts a copy by finish time.",
-      returnBehavior: "Returns the greedy maximum compatible subset.",
+      returnBehavior:
+        "Returns the greedy maximum compatible subset; selected interval order is not significant, but each interval remains an ordered [start, end] pair.",
     },
   }),
   defineDsaExecution({
