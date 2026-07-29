@@ -1,16 +1,28 @@
 import { useState } from "react";
 
 import type { TraceAssessmentPayload } from "../../../learning/assessment";
+import type {
+  AssessmentSubmissionContext,
+  AssessmentSubmissionHandler,
+} from "../../../learning/progress/types";
 import { Button } from "../../atoms/Button";
 import { Well } from "../../atoms/Well";
 import { CodeCompletionAssessment } from "./CodeCompletionAssessment";
+import { createAssessmentSubmission, pendingRubric } from "./submission";
 
 export interface TraceAssessmentProps {
   readonly title: string;
   readonly payload?: TraceAssessmentPayload;
+  readonly submissionContext: AssessmentSubmissionContext;
+  readonly onSubmit: AssessmentSubmissionHandler;
 }
 
-export function TraceAssessment({ title, payload }: TraceAssessmentProps): React.ReactElement {
+export function TraceAssessment({
+  title,
+  payload,
+  submissionContext,
+  onSubmit,
+}: TraceAssessmentProps): React.ReactElement {
   const [prediction, setPrediction] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [message, setMessage] = useState("Enter a prediction before revealing the authored state.");
@@ -24,11 +36,25 @@ export function TraceAssessment({ title, payload }: TraceAssessmentProps): React
       setMessage("Enter a predicted next state before revealing the reference.");
       return;
     }
+    const saved = onSubmit(
+      createAssessmentSubmission({
+        mode: "trace",
+        metadata: payload,
+        context: submissionContext,
+        response: { prediction: prediction.trim() },
+        gradingStatus: "pending",
+        score: 0,
+        rubric: pendingRubric("prediction"),
+      }),
+    );
     setRevealed(true);
+    const referenceMessage = payload.referenceNextState
+      ? "Reference state revealed. Compare it with your prediction."
+      : "No authored reference state is available for this trace yet.";
     setMessage(
-      payload.referenceNextState
-        ? "Reference state revealed. Compare it with your prediction."
-        : "No authored reference state is available for this trace yet.",
+      saved
+        ? `${referenceMessage} Attempt saved for review.`
+        : `${referenceMessage} The attempt could not be saved.`,
     );
   };
 
@@ -60,7 +86,13 @@ export function TraceAssessment({ title, payload }: TraceAssessmentProps): React
       <p className="assessment-status" role="status" aria-live="polite">
         {message}
       </p>
-      {payload.completion ? <CodeCompletionAssessment payload={payload.completion} /> : null}
+      {payload.completion ? (
+        <CodeCompletionAssessment
+          payload={payload.completion}
+          submissionContext={submissionContext}
+          onSubmit={onSubmit}
+        />
+      ) : null}
     </section>
   );
 }

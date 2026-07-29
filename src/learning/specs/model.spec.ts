@@ -33,6 +33,18 @@ const profile = (
 ): DifficultyProfile => ({ prerequisite, representations, horizon, tradeoffs });
 
 describe("learning item model", () => {
+  it("keeps code completion nested inside the frozen six-kind learning-item model", () => {
+    expect(Object.keys(ASSESSMENT_RENDERER_BY_KIND)).toEqual([
+      "algorithm",
+      "trace",
+      "calculator",
+      "debugging",
+      "scenario",
+      "capstone",
+    ]);
+    expect(Object.keys(ASSESSMENT_RENDERER_BY_KIND)).not.toContain("code-completion");
+  });
+
   it.each([
     [profile(0, 0, 0, 0), 0, "Introductory", "Easy"],
     [profile(1, 1, 1, 0), 3, "Developing", "Easy"],

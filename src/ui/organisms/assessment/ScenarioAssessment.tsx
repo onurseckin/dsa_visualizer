@@ -1,15 +1,22 @@
 import { useState } from "react";
 
 import type { ScenarioAssessmentPayload } from "../../../learning/assessment";
+import type {
+  AssessmentSubmissionContext,
+  AssessmentSubmissionHandler,
+} from "../../../learning/progress/types";
 import type { RubricDefinition, ScenarioPrompt } from "../../../learning/types";
 import { Button } from "../../atoms/Button";
 import { Well } from "../../atoms/Well";
+import { createAssessmentSubmission, pendingRubricFromCriteria } from "./submission";
 
 export interface ScenarioAssessmentProps {
   readonly title: string;
   readonly prompt: ScenarioPrompt;
   readonly payload?: ScenarioAssessmentPayload;
   readonly rubric: RubricDefinition;
+  readonly submissionContext: AssessmentSubmissionContext;
+  readonly onSubmit: AssessmentSubmissionHandler;
 }
 
 export function ScenarioAssessment({
@@ -17,6 +24,8 @@ export function ScenarioAssessment({
   prompt,
   payload,
   rubric,
+  submissionContext,
+  onSubmit,
 }: ScenarioAssessmentProps): React.ReactElement {
   const [decision, setDecision] = useState("");
   const [rationale, setRationale] = useState("");
@@ -29,7 +38,30 @@ export function ScenarioAssessment({
       setMessage("Choose a constrained response and explain its rationale before saving.");
       return;
     }
-    setMessage("Response saved for rubric review. This scenario has no fake exact-output grade.");
+    if (!payload) {
+      setMessage("This response could not be saved because the authored variant is unavailable.");
+      return;
+    }
+    const saved = onSubmit(
+      createAssessmentSubmission({
+        mode: "scenario",
+        metadata: payload,
+        context: submissionContext,
+        response: {
+          decision: decision.trim(),
+          rationale: rationale.trim(),
+          evidence,
+        },
+        gradingStatus: "pending",
+        score: 0,
+        rubric: pendingRubricFromCriteria(rubric.criteria),
+      }),
+    );
+    setMessage(
+      saved
+        ? "Response saved for rubric review. This scenario has no fake exact-output grade."
+        : "The response could not be saved. Its rubric review is still pending.",
+    );
   };
 
   return (
@@ -104,7 +136,10 @@ export function ScenarioAssessment({
         Save response
       </Button>
       {message ? (
-        <p className="assessment-status" role={message.startsWith("Choose") ? "alert" : "status"}>
+        <p
+          className="assessment-status"
+          role={message.startsWith("Choose") || message.includes("could not") ? "alert" : "status"}
+        >
           {message}
         </p>
       ) : null}

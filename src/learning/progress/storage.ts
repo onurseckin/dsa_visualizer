@@ -1,12 +1,11 @@
 import { syncKeyToSqlite } from "../../app/sqliteSync";
 import {
-  ATTEMPT_RECORD_VERSION,
   createAttemptRecord,
   isAssessmentAttemptRecord,
   type AssessmentAttemptRecord,
 } from "./types";
 
-export const ATTEMPT_STORAGE_VERSION = 1;
+export const ATTEMPT_STORAGE_VERSION = 2;
 export const ATTEMPT_STORAGE_KEY = "dsa_visualizer_learning_attempts";
 export const DEFAULT_MAX_ATTEMPTS = 250;
 
@@ -23,7 +22,7 @@ export type AttemptResetScope =
 
 export interface AttemptStorage {
   load(): readonly AssessmentAttemptRecord[];
-  save(record: AssessmentAttemptRecord): void;
+  save(record: AssessmentAttemptRecord): boolean;
   reset(scope: AttemptResetScope): void;
 }
 
@@ -74,24 +73,30 @@ export function createAttemptStorage(options: AttemptStorageOptions = {}): Attem
     if (raw === null) return [];
     try {
       const parsed: unknown = JSON.parse(raw);
-      if (!isStoredAttempts(parsed)) return [];
+      if (!isStoredAttempts(parsed, maxAttempts)) return [];
       return parsed.attempts.map(createSnapshot);
     } catch {
       return [];
     }
   };
 
-  const write = (attempts: readonly AssessmentAttemptRecord[]): void => {
+  const write = (attempts: readonly AssessmentAttemptRecord[]): boolean => {
     const value = JSON.stringify({
       version: ATTEMPT_STORAGE_VERSION,
       attempts,
     } satisfies StoredAttempts);
+    let persisted = false;
     try {
-      selectedStorage()?.setItem(attemptStorageKey(), value);
+      const storage = selectedStorage();
+      if (storage) {
+        storage.setItem(attemptStorageKey(), value);
+        persisted = true;
+      }
     } catch {
       // Browser persistence remains immediate but best-effort.
     }
     enqueue(value);
+    return persisted;
   };
 
   const enqueue = (value: string | null): void => {
@@ -123,9 +128,9 @@ export function createAttemptStorage(options: AttemptStorageOptions = {}): Attem
   return {
     load,
     save(record) {
-      if (!isAssessmentAttemptRecord(record)) return;
+      if (!isAssessmentAttemptRecord(record)) return false;
       const attempts = [...load(), createSnapshot(record)].slice(-maxAttempts);
-      write(attempts);
+      return write(attempts);
     },
     reset(scope) {
       const current = load();
@@ -158,14 +163,14 @@ export function createAttemptStorage(options: AttemptStorageOptions = {}): Attem
 
 export const assessmentAttemptStorage = createAttemptStorage();
 
-function isStoredAttempts(value: unknown): value is StoredAttempts {
+function isStoredAttempts(value: unknown, maxAttempts: number): value is StoredAttempts {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
   return (
     Object.keys(record).length === 2 &&
     record.version === ATTEMPT_STORAGE_VERSION &&
     Array.isArray(record.attempts) &&
-    record.attempts.length <= DEFAULT_MAX_ATTEMPTS &&
+    record.attempts.length <= maxAttempts &&
     record.attempts.every(isAssessmentAttemptRecord)
   );
 }
@@ -189,5 +194,3 @@ function isCanonicalItemId(value: string): boolean {
 function isPromiseLike(value: void | Promise<void>): value is Promise<void> {
   return typeof value === "object" && value !== null && typeof value.then === "function";
 }
-
-void ATTEMPT_RECORD_VERSION;

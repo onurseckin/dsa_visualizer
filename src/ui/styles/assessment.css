@@ -5,6 +5,7 @@
 }
 
 .assessment-workspace__header,
+.assessment-context,
 .assessment-panel,
 .assessment-completion {
   display: grid;
@@ -35,11 +36,22 @@
 }
 
 .assessment-panel,
+.assessment-context,
 .assessment-completion {
   padding: var(--space-5);
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
+}
+
+.assessment-context {
+  grid-template-columns: minmax(120px, 0.5fr) repeat(2, minmax(180px, 1fr));
+  margin-bottom: var(--space-4);
+}
+
+.assessment-context .assessment-status {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .assessment-completion {
@@ -187,8 +199,13 @@
   }
 
   .assessment-workspace__header,
+  .assessment-context,
   .assessment-panel,
   .assessment-completion {
     padding: var(--space-4);
+  }
+
+  .assessment-context {
+    grid-template-columns: 1fr;
   }
 }

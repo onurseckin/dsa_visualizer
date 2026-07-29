@@ -1,23 +1,22 @@
 import { useState } from "react";
 
 import type { CapstoneAssessmentPayload } from "../../../learning/assessment";
+import type {
+  AssessmentSubmissionContext,
+  AssessmentSubmissionHandler,
+} from "../../../learning/progress/types";
 import type { RubricDefinition, ScenarioPrompt } from "../../../learning/types";
 import { Button } from "../../atoms/Button";
 import { Well } from "../../atoms/Well";
-
-export interface CapstoneResponse {
-  readonly design: string;
-  readonly checklist: readonly string[];
-  readonly incidentTimeline: Readonly<Record<string, string>>;
-  readonly rubric: RubricDefinition;
-}
+import { createAssessmentSubmission, pendingRubricFromCriteria } from "./submission";
 
 export interface CapstoneAssessmentProps {
   readonly title: string;
   readonly prompt: ScenarioPrompt;
   readonly payload?: CapstoneAssessmentPayload;
   readonly rubric: RubricDefinition;
-  readonly onSave?: (response: CapstoneResponse) => void;
+  readonly submissionContext: AssessmentSubmissionContext;
+  readonly onSubmit: AssessmentSubmissionHandler;
 }
 
 export function CapstoneAssessment({
@@ -25,7 +24,8 @@ export function CapstoneAssessment({
   prompt,
   payload,
   rubric,
-  onSave,
+  submissionContext,
+  onSubmit,
 }: CapstoneAssessmentProps): React.ReactElement {
   const [design, setDesign] = useState("");
   const [checked, setChecked] = useState<readonly string[]>([]);
@@ -55,8 +55,35 @@ export function CapstoneAssessment({
       setMessage("Describe the proposed design before saving the capstone response.");
       return;
     }
-    onSave?.({ design, checklist: checked, incidentTimeline: timeline, rubric });
-    setMessage("Capstone response saved for analytic rubric review.");
+    const saved = onSubmit(
+      createAssessmentSubmission({
+        mode: "capstone",
+        metadata: payload,
+        context: submissionContext,
+        response: {
+          design: design.trim(),
+          checklist: checked,
+          incidentTimeline: timeline,
+          rubric: {
+            criteria: rubric.criteria.map((criterion) => ({
+              id: criterion.id,
+              label: criterion.label,
+              description: criterion.description,
+              points: criterion.points,
+              ...(criterion.critical === undefined ? {} : { critical: criterion.critical }),
+            })),
+          },
+        },
+        gradingStatus: "pending",
+        score: 0,
+        rubric: pendingRubricFromCriteria(rubric.criteria),
+      }),
+    );
+    setMessage(
+      saved
+        ? "Capstone response saved for analytic rubric review."
+        : "The capstone response could not be saved. Analytic review is still pending.",
+    );
   };
 
   return (
@@ -123,7 +150,12 @@ export function CapstoneAssessment({
         Save capstone response
       </Button>
       {message ? (
-        <p className="assessment-status" role={message.startsWith("Describe") ? "alert" : "status"}>
+        <p
+          className="assessment-status"
+          role={
+            message.startsWith("Describe") || message.includes("could not") ? "alert" : "status"
+          }
+        >
           {message}
         </p>
       ) : null}

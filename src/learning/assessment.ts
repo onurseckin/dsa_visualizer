@@ -12,14 +12,26 @@ export const ASSESSMENT_RENDERER_BY_KIND = Object.freeze({
 export type AssessmentRenderer =
   (typeof ASSESSMENT_RENDERER_BY_KIND)[keyof typeof ASSESSMENT_RENDERER_BY_KIND];
 
-export interface CodeCompletionPayload {
+export interface AssessmentVariantMetadata {
+  readonly variant: string;
+  readonly changedContext: boolean;
+  readonly isomorphicRetest: boolean;
+  readonly delayedRetrievalDueAt?: number;
+  readonly delayedRetrievalCompletedAt?: number;
+}
+
+/**
+ * Code completion is intentionally an assessment mode nested within trace or debugging.
+ * It is not a seventh registry-level LearningItemKind.
+ */
+export interface CodeCompletionPayload extends AssessmentVariantMetadata {
   readonly prompt: string;
   readonly context: string;
   readonly requiredConcepts: readonly [string, ...string[]];
   readonly consequencePrompt: string;
 }
 
-export interface TraceAssessmentPayload {
+export interface TraceAssessmentPayload extends AssessmentVariantMetadata {
   readonly prompt: string;
   readonly currentState: string;
   readonly referenceNextState?: string;
@@ -33,7 +45,7 @@ export interface CalculatorInputDefinition {
   readonly defaultValue?: string;
 }
 
-export interface CalculatorAssessmentPayload {
+export interface CalculatorAssessmentPayload extends AssessmentVariantMetadata {
   readonly prompt: string;
   readonly inputs: readonly CalculatorInputDefinition[];
   readonly result: {
@@ -48,7 +60,7 @@ export interface DebuggingEvidence {
   readonly content: string;
 }
 
-export interface DebuggingAssessmentPayload {
+export interface DebuggingAssessmentPayload extends AssessmentVariantMetadata {
   readonly faultyStarter: string;
   readonly evidence: readonly DebuggingEvidence[];
   readonly failingTests: readonly string[];
@@ -56,7 +68,7 @@ export interface DebuggingAssessmentPayload {
   readonly completion?: CodeCompletionPayload;
 }
 
-export interface ScenarioAssessmentPayload {
+export interface ScenarioAssessmentPayload extends AssessmentVariantMetadata {
   readonly choices?: readonly [string, ...string[]];
   readonly consequences?: string;
 }
@@ -71,7 +83,7 @@ export interface CapstoneTimelinePrompt {
   readonly label: string;
 }
 
-export interface CapstoneAssessmentPayload {
+export interface CapstoneAssessmentPayload extends AssessmentVariantMetadata {
   readonly checklist: readonly CapstoneChecklistItem[];
   readonly incidentTimeline: readonly CapstoneTimelinePrompt[];
 }

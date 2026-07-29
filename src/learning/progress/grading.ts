@@ -1,11 +1,19 @@
 import type { AssessmentAttemptRecord } from "./types";
 
 const DAY_MS = 86_400_000;
+const ITEM_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const TARGET_ID_PATTERN = /^[a-z0-9]+(?:[-_][a-z0-9]+)*$/;
+const MAX_SCOPE_ITEMS = 128;
 
 export interface MasteryPolicy {
   readonly passingThreshold: number;
   readonly minimumDistinctModes: number;
   readonly delayedRetrievalDays: readonly [number, number, number];
+}
+
+export interface MasteryScope {
+  readonly targetId: string;
+  readonly itemIds: readonly [string, ...string[]];
 }
 
 export const DEFAULT_MASTERY_POLICY: MasteryPolicy = Object.freeze({
@@ -20,6 +28,7 @@ export interface MasteryResult {
   readonly changedContextSucceeded: boolean;
   readonly hasInvariantEvidence: boolean;
   readonly hasTradeoffEvidence: boolean;
+  readonly hasRequiredEvidence: boolean;
   readonly delayedRetrievalCompleted: boolean;
   readonly unresolvedCriticalFailures: readonly string[];
 }
@@ -27,6 +36,23 @@ export interface MasteryResult {
 export interface NextRetrieval {
   readonly dueAt: number;
   readonly intervalDays: number;
+}
+
+export function createMasteryScope(scope: MasteryScope): MasteryScope {
+  if (
+    !TARGET_ID_PATTERN.test(scope.targetId) ||
+    !Array.isArray(scope.itemIds) ||
+    scope.itemIds.length === 0 ||
+    scope.itemIds.length > MAX_SCOPE_ITEMS ||
+    !scope.itemIds.every((itemId) => ITEM_ID_PATTERN.test(itemId)) ||
+    new Set(scope.itemIds).size !== scope.itemIds.length
+  ) {
+    throw new Error("Mastery scope requires a canonical target and unique canonical item IDs.");
+  }
+  return Object.freeze({
+    targetId: scope.targetId,
+    itemIds: Object.freeze([...scope.itemIds]) as MasteryScope["itemIds"],
+  });
 }
 
 export function createMasteryPolicy(options: Partial<MasteryPolicy> = {}): MasteryPolicy {
@@ -56,38 +82,43 @@ export function createMasteryPolicy(options: Partial<MasteryPolicy> = {}): Maste
 
 export function evaluateMastery(
   attempts: readonly AssessmentAttemptRecord[],
+  scope: MasteryScope,
   policy: MasteryPolicy = DEFAULT_MASTERY_POLICY,
 ): MasteryResult {
-  const passing = attempts.filter((attempt) => isSuccessful(attempt, policy));
+  const inScope = attemptsInScope(attempts, scope);
+  const passing = inScope.filter((attempt) => isSuccessful(attempt, policy));
   const passingModes = [...new Set(passing.map((attempt) => attempt.mode))];
-  const unresolvedCriticalFailures = getUnresolvedCriticalFailures(attempts, policy);
-  const initialCreatedAt = earliestCreatedAt(attempts);
-  const delayedRetrievalCompleted =
-    initialCreatedAt !== undefined &&
-    passing.some(
-      (attempt) =>
-        attempt.delayedRetrievalDueAt !== undefined &&
-        attempt.delayedRetrievalCompletedAt !== undefined &&
-        attempt.delayedRetrievalCompletedAt >= attempt.delayedRetrievalDueAt &&
-        attempt.delayedRetrievalDueAt > initialCreatedAt,
-    );
+  const unresolvedCriticalFailures = getUnresolvedCriticalFailures(inScope, scope, policy);
+  const initialCreatedAt = earliestCreatedAt(inScope);
+  const scheduledDueDates =
+    initialCreatedAt === undefined
+      ? []
+      : policy.delayedRetrievalDays.map((days) => initialCreatedAt + days * DAY_MS);
+  const delayedRetrievalCompleted = passing.some(
+    (attempt) =>
+      attempt.delayedRetrievalDueAt !== undefined &&
+      scheduledDueDates.includes(attempt.delayedRetrievalDueAt) &&
+      attempt.delayedRetrievalCompletedAt !== undefined &&
+      attempt.delayedRetrievalCompletedAt >= attempt.delayedRetrievalDueAt,
+  );
   const hasInvariantEvidence = passing.some(
     (attempt) => attempt.invariantEvidence.trim().length > 0,
   );
   const hasTradeoffEvidence = passing.some((attempt) => attempt.tradeoffEvidence.trim().length > 0);
+  const hasRequiredEvidence = hasInvariantEvidence || hasTradeoffEvidence;
   const changedContextSucceeded = passing.some((attempt) => attempt.changedContext);
   return {
     mastered:
       passingModes.length >= policy.minimumDistinctModes &&
       changedContextSucceeded &&
-      hasInvariantEvidence &&
-      hasTradeoffEvidence &&
+      hasRequiredEvidence &&
       delayedRetrievalCompleted &&
       unresolvedCriticalFailures.length === 0,
     passingModes,
     changedContextSucceeded,
     hasInvariantEvidence,
     hasTradeoffEvidence,
+    hasRequiredEvidence,
     delayedRetrievalCompleted,
     unresolvedCriticalFailures,
   };
@@ -95,27 +126,45 @@ export function evaluateMastery(
 
 export function getUnresolvedCriticalFailures(
   attempts: readonly AssessmentAttemptRecord[],
+  scope: MasteryScope,
   policy: MasteryPolicy = DEFAULT_MASTERY_POLICY,
 ): readonly string[] {
-  const unresolved = new Set<string>();
-  for (const attempt of sortedAttempts(attempts)) {
-    for (const criticalFailure of attempt.criticalFailures) unresolved.add(criticalFailure);
-    if (isSuccessful(attempt, policy)) {
-      for (const repaired of attempt.repairedMisconceptionCodes) unresolved.delete(repaired);
+  const unresolved = new Map<string, CriticalFailure>();
+  for (const attempt of sortedAttempts(attemptsInScope(attempts, scope))) {
+    for (const code of attempt.criticalFailures) {
+      unresolved.set(failureKey(attempt.itemId, code), {
+        code,
+        itemId: attempt.itemId,
+        variant: attempt.variant,
+        createdAt: attempt.createdAt,
+        updatedAt: attempt.updatedAt,
+      });
+    }
+    if (!isSuccessful(attempt, policy) || !attempt.changedContext || !attempt.isomorphicRetest) {
+      continue;
+    }
+    for (const repaired of attempt.repairedMisconceptionCodes) {
+      const key = failureKey(attempt.itemId, repaired);
+      const failure = unresolved.get(key);
+      if (failure && attempt.variant !== failure.variant && isAfter(attempt, failure)) {
+        unresolved.delete(key);
+      }
     }
   }
-  return [...unresolved];
+  return [...unresolved.values()].map((failure) => failure.code);
 }
 
 export function nextRetrieval(
   attempts: readonly AssessmentAttemptRecord[],
+  scope: MasteryScope,
   policy: MasteryPolicy = DEFAULT_MASTERY_POLICY,
 ): NextRetrieval | undefined {
-  const initialCreatedAt = earliestCreatedAt(attempts);
+  const inScope = attemptsInScope(attempts, scope);
+  const initialCreatedAt = earliestCreatedAt(inScope);
   if (initialCreatedAt === undefined) return undefined;
   for (const intervalDays of policy.delayedRetrievalDays) {
     const dueAt = initialCreatedAt + intervalDays * DAY_MS;
-    const completed = attempts.some(
+    const completed = inScope.some(
       (attempt) =>
         isSuccessful(attempt, policy) &&
         attempt.delayedRetrievalDueAt === dueAt &&
@@ -127,8 +176,40 @@ export function nextRetrieval(
   return undefined;
 }
 
+interface CriticalFailure {
+  readonly code: string;
+  readonly itemId: string;
+  readonly variant: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+}
+
+function attemptsInScope(
+  attempts: readonly AssessmentAttemptRecord[],
+  scope: MasteryScope,
+): readonly AssessmentAttemptRecord[] {
+  const validScope = createMasteryScope(scope);
+  const itemIds = new Set(validScope.itemIds);
+  return attempts.filter((attempt) => itemIds.has(attempt.itemId));
+}
+
 function isSuccessful(attempt: AssessmentAttemptRecord, policy: MasteryPolicy): boolean {
-  return attempt.score >= policy.passingThreshold && attempt.criticalFailures.length === 0;
+  return (
+    attempt.gradingStatus === "graded" &&
+    attempt.score >= policy.passingThreshold &&
+    attempt.criticalFailures.length === 0
+  );
+}
+
+function failureKey(itemId: string, code: string): string {
+  return `${itemId}:${code}`;
+}
+
+function isAfter(attempt: AssessmentAttemptRecord, failure: CriticalFailure): boolean {
+  return (
+    attempt.createdAt > failure.createdAt ||
+    (attempt.createdAt === failure.createdAt && attempt.updatedAt > failure.updatedAt)
+  );
 }
 
 function earliestCreatedAt(attempts: readonly AssessmentAttemptRecord[]): number | undefined {

@@ -1,20 +1,31 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { CalculatorAssessment } from "../CalculatorAssessment";
 
 describe("CalculatorAssessment", () => {
   it("requires an estimate before checking a unit-aware result within tolerance", () => {
+    const onSubmit = vi.fn(() => true);
     render(
       <CalculatorAssessment
         title="KV memory"
         payload={{
+          variant: "fixed-kv-shape",
+          changedContext: true,
+          isomorphicRetest: false,
           prompt: "Estimate the memory needed for the cache.",
           inputs: [{ id: "tokens", label: "Tokens", unit: "tokens", defaultValue: "1024" }],
           result: { value: 2, unit: "GiB", tolerance: 0.05 },
         }}
+        submissionContext={{ confidence: 5, invariantEvidence: "", tradeoffEvidence: "" }}
+        onSubmit={onSubmit}
       />,
     );
+
+    const authoredInput = screen.getByRole("textbox", { name: "Calculator input: Tokens" });
+    expect(authoredInput).toHaveValue("1024");
+    expect(authoredInput).toHaveAttribute("readonly");
+    expect(screen.getByText(/fixed authored variant inputs/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole("spinbutton", { name: "Exact result" }), {
       target: { value: "2.03" },
@@ -29,5 +40,15 @@ describe("CalculatorAssessment", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("within the authored tolerance");
     expect(screen.getByText("Reference: 2 GiB ± 0.05")).toBeInTheDocument();
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "calculator",
+        variant: "fixed-kv-shape",
+        changedContext: true,
+        gradingStatus: "graded",
+        score: 1,
+        response: expect.objectContaining({ exact: 2.03, unit: "GiB" }),
+      }),
+    );
   });
 });
