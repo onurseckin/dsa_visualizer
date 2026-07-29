@@ -45,20 +45,45 @@ export const triesAndStringsExecutions = [
     invocation: {
       kind: "class-method",
       constructor: [],
-      method: "sumScores",
-      arguments: [input()],
+      method: "findMatches",
+      arguments: [input("text"), input("pattern")],
     },
-    cases: cases(
-      { label: "String 'babab'", input: "babab", expected: 9 },
-      { label: "String 'azbazbaz'", input: "azbazbaz", expected: 14 },
-      { label: "Single char 'a'", input: "a", expected: 1 },
-    ),
+    cases: [
+      ...cases(
+        {
+          label: "Overlapping matches",
+          input: { text: "babab", pattern: "bab" },
+          expected: [0, 2],
+        },
+        { label: "No match", input: { text: "azbazbaz", pattern: "zz" }, expected: [] },
+        { label: "Single character", input: { text: "a", pattern: "a" }, expected: [0] },
+      ),
+      ...extraCases(
+        { label: "Empty text", input: { text: "", pattern: "a" }, expected: [] },
+        { label: "Empty pattern", input: { text: "abc", pattern: "" }, expected: [0, 1, 2, 3] },
+        {
+          label: "Pattern is text",
+          input: { text: "zalgorithm", pattern: "zalgorithm" },
+          expected: [0],
+        },
+        {
+          label: "Repeated character matches",
+          input: { text: "aaaaa", pattern: "aa" },
+          expected: [0, 1, 2, 3],
+        },
+        {
+          label: "Pattern longer than text",
+          input: { text: "abc", pattern: "abcd" },
+          expected: [],
+        },
+      ),
+    ],
     audit: {
-      signature: "Solution().sumScores(s: str) -> int",
-      defaultInputShape: "string",
-      argumentMapping: ["s <- $"],
+      signature: "Solution().findMatches(text: str, pattern: str) -> list[int]",
+      defaultInputShape: "{ text: string; pattern: string }",
+      argumentMapping: ["text <- $.text", "pattern <- $.pattern"],
       mutation: "Does not mutate inputs.",
-      returnBehavior: "Returns sum of Z-box scores.",
+      returnBehavior: "Returns all matching start indices, including overlaps.",
     },
   }),
   defineDsaExecution({
