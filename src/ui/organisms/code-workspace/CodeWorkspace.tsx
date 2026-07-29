@@ -205,8 +205,6 @@ export function CodeWorkspace({
   };
 
   const runtime = executionSpec ? selectPythonRuntime(executionSpec) : undefined;
-  const activeTabId = codeWorkspaceTabId(itemId, tab);
-  const activePanelId = codeWorkspacePanelId(itemId, tab);
 
   const handleTabKeyDown = (
     event: KeyboardEvent<HTMLButtonElement>,
@@ -297,19 +295,31 @@ export function CodeWorkspace({
       </div>
 
       <div
-        id={activePanelId}
+        id={codeWorkspacePanelId(itemId, "reference")}
         role="tabpanel"
-        aria-labelledby={activeTabId}
+        aria-labelledby={codeWorkspaceTabId(itemId, "reference")}
+        hidden={tab !== "reference"}
+        tabIndex={0}
         className="code-workspace__body"
       >
-        {tab === "reference" ? (
+        {tab === "reference" && (
           <CodeBlockViewer
             code={referenceCode}
             activeLine={activeLine}
             variables={variables}
             lineExplanations={lineExplanations}
           />
-        ) : tab === "playground" ? (
+        )}
+      </div>
+
+      <div
+        id={codeWorkspacePanelId(itemId, "playground")}
+        role="tabpanel"
+        aria-labelledby={codeWorkspaceTabId(itemId, "playground")}
+        hidden={tab !== "playground"}
+        className="code-workspace__body"
+      >
+        {tab === "playground" && (
           <div className="code-workspace__playground">
             <div className="code-workspace__draft-actions">
               <Button size="sm" variant="secondary" onClick={() => updateDraft("")}>
@@ -337,7 +347,18 @@ export function CodeWorkspace({
               onSelectionChange={setSelectedCaseIds}
             />
           </div>
-        ) : (
+        )}
+      </div>
+
+      <div
+        id={codeWorkspacePanelId(itemId, "output")}
+        role="tabpanel"
+        aria-labelledby={codeWorkspaceTabId(itemId, "output")}
+        hidden={tab !== "output"}
+        tabIndex={0}
+        className="code-workspace__body"
+      >
+        {tab === "output" && (
           <ExecutionOutput caseLabels={caseLabels} message={outputMessage} result={result} />
         )}
       </div>
