@@ -115,6 +115,23 @@ const baseProps = {
   lineExplanations: { 2: "Return the computed answer." },
 };
 
+class DefaultBrowserWorker extends EventTarget {
+  readonly postMessage = vi.fn();
+  readonly terminate = vi.fn();
+
+  emitReady(runId: string, token: string): void {
+    this.dispatchEvent(new MessageEvent("message", { data: { type: "ready", runId, token } }));
+  }
+
+  emitResult(value: PythonRunResult, token: string): void {
+    this.dispatchEvent(
+      new MessageEvent("message", {
+        data: { type: "result", runId: value.runId, token, result: value },
+      }),
+    );
+  }
+}
+
 beforeEach(() => {
   localStorage.clear();
 });
@@ -122,6 +139,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("CodeWorkspace", () => {
@@ -312,6 +330,45 @@ describe("CodeWorkspace", () => {
     expect(screen.getByText("answer\\n")).toBeInTheDocument();
     expect(screen.getByText("Public example")).toBeInTheDocument();
     expect(screen.queryByText("Empty input")).toBeNull();
+  });
+
+  it("uses the default scaffold and browser runner when no playground overrides are supplied", async () => {
+    const workers: DefaultBrowserWorker[] = [];
+    vi.stubGlobal(
+      "Worker",
+      vi.fn(() => {
+        const worker = new DefaultBrowserWorker();
+        workers.push(worker);
+        return worker;
+      }),
+    );
+    render(
+      <CodeWorkspace
+        itemId={baseProps.itemId}
+        itemTitle={baseProps.itemTitle}
+        referenceCode={baseProps.referenceCode}
+        executionSpec={SPEC}
+        draftStorage={createDrafts()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Playground" }));
+    expect(screen.getByRole("textbox", { name: "Python playground editor" })).toHaveValue(
+      "# Binary Search\n# Write your Python solution here.\n",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Run Python" }));
+    await vi.waitFor(() => expect(workers).toHaveLength(1));
+    const worker = workers[0]!;
+    const dispatched = worker.postMessage.mock.calls[0]?.[0] as {
+      request: PythonRunRequest;
+      token: string;
+    };
+    worker.emitReady(dispatched.request.runId, dispatched.token);
+    worker.emitResult(result(dispatched.request), dispatched.token);
+
+    expect(await screen.findByText("All selected tests passed.")).toBeInTheDocument();
+    expect(worker.terminate).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -551,6 +551,21 @@ describe("Pyodide runner client", () => {
     expect(worker.terminate).toHaveBeenCalledOnce();
   });
 
+  it("cancels an in-flight browser run and releases its worker when disposed", async () => {
+    const worker = new FakeWorker();
+    const client = createPyodideRunnerClient({ createWorker: () => worker });
+
+    const pending = client.run(request("run-disposed"));
+    client.dispose();
+
+    await expect(pending).resolves.toMatchObject({
+      runId: "run-disposed",
+      status: "error",
+      stderr: "Python execution was cancelled.",
+    });
+    expect(worker.terminate).toHaveBeenCalledOnce();
+  });
+
   it("loads authored NumPy before reporting readiness and uses exact-version assets", async () => {
     const globals = {
       set: vi.fn(),

@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { ALGORITHM_REGISTRY, getAllAlgorithms } from "../registry";
+import { ALGORITHM_REGISTRY, getAlgorithm, getAllAlgorithms } from "../registry";
 
 describe("ALGORITHM_REGISTRY sources metadata", () => {
   it("should contain all registered algorithms", () => {
     const algorithms = getAllAlgorithms();
     expect(algorithms.length).toBeGreaterThanOrEqual(40);
     expect(Object.keys(ALGORITHM_REGISTRY).length).toBeGreaterThanOrEqual(40);
+  });
+
+  it("resolves canonical registry ids without accepting unknown ids", () => {
+    const enrolledAlgorithm = getAllAlgorithms().find(({ id }) => id === "two-sum");
+
+    expect(enrolledAlgorithm).toBeDefined();
+    expect(getAlgorithm("two-sum")).toBe(enrolledAlgorithm);
+    expect(getAlgorithm("retired-two-sum")).toBeUndefined();
   });
 
   it("should have a non-empty sources array for every algorithm", () => {
