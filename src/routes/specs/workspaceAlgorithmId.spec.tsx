@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RouterProvider, createMemoryHistory, createRouter } from "@tanstack/react-router";
 import { routeTree } from "../../routeTree.gen";
-import { Route } from "../workspace.$algorithmId";
+import { Route, workspaceRendererFor } from "../workspace.$algorithmId";
 
 const renderWorkspaceRoute = (algorithmId = "bubble-sort") => {
   const router = createRouter({
@@ -40,6 +40,11 @@ describe("workspace.$algorithmId route", () => {
       expect(redirectObj.options?.to).toBe("/workspace/$algorithmId");
       expect(redirectObj.options?.params?.algorithmId).toBe("bubble-sort");
     }
+  });
+
+  it("routes nonalgorithm learning items into the assessment workspace", () => {
+    expect(workspaceRendererFor({ kind: "trace" } as never)).toBe("assessment");
+    expect(workspaceRendererFor({ kind: "algorithm" } as never)).toBe("algorithm");
   });
 
   it("handles workspace keyboard shortcuts (ArrowRight, ArrowLeft, Space)", async () => {

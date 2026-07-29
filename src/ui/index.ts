@@ -120,6 +120,13 @@ export {
 export { ProblemList } from "./organisms/ProblemList";
 export { CodeWorkspace, defaultStarterCode } from "./organisms/code-workspace/CodeWorkspace";
 export type { CodeWorkspaceProps } from "./organisms/code-workspace/CodeWorkspace";
+export { AssessmentWorkspace } from "./organisms/assessment/AssessmentWorkspace";
+export { TraceAssessment } from "./organisms/assessment/TraceAssessment";
+export { CalculatorAssessment } from "./organisms/assessment/CalculatorAssessment";
+export { DebuggingAssessment } from "./organisms/assessment/DebuggingAssessment";
+export { ScenarioAssessment } from "./organisms/assessment/ScenarioAssessment";
+export { CodeCompletionAssessment } from "./organisms/assessment/CodeCompletionAssessment";
+export { CapstoneAssessment } from "./organisms/assessment/CapstoneAssessment";
 
 // Level 4: Templates
 export { MainLayout } from "./templates/MainLayout";

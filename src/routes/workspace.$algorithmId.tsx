@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getLearningItem } from "../learning/registry";
-import { isAlgorithmLearningItem, isRubricLearningItem } from "../learning/types";
-import type { AlgorithmLearningItem } from "../learning/types";
+import { isAlgorithmLearningItem } from "../learning/types";
+import type { AlgorithmLearningItem, LearningItem } from "../learning/types";
 import { useStepEngine } from "../engine/stepEngine";
+import { AssessmentWorkspace } from "../ui/organisms/assessment/AssessmentWorkspace";
 import { MainLayout } from "../ui/templates/MainLayout";
 import { useSettings } from "../app/SettingsContext";
 import { isDialogOpen, isTypingTarget } from "../app/keyboardGuards";
@@ -28,22 +29,16 @@ function WorkspacePage(): React.ReactElement {
   const { algorithmId } = Route.useParams();
   const item = getLearningItem(algorithmId);
 
-  if (!isAlgorithmLearningItem(item)) {
-    const message =
-      item && isRubricLearningItem(item)
-        ? "This rubric-based item needs its assessment workspace."
-        : "This learning item is not available in the algorithm workspace.";
-    return (
-      <main
-        aria-label="Learning item unavailable"
-        className="m-auto max-w-xl rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-6 text-[var(--text-secondary)]"
-      >
-        {message}
-      </main>
-    );
+  if (!item) {
+    return <main aria-label="Learning item unavailable">This learning item is unavailable.</main>;
   }
+  if (!isAlgorithmLearningItem(item)) return <AssessmentWorkspace item={item} />;
 
   return <AlgorithmWorkspacePage item={item} />;
+}
+
+export function workspaceRendererFor(item: LearningItem): "algorithm" | "assessment" {
+  return isAlgorithmLearningItem(item) ? "algorithm" : "assessment";
 }
 
 function AlgorithmWorkspacePage({
