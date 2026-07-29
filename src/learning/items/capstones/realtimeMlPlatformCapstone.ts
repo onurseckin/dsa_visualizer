@@ -134,7 +134,8 @@ export const realtimeMlPlatformCapstone = defineCapstoneItem({
     code,
     starterCode: capstoneStarter("plan_realtime_capacity", outputContract),
     execution,
-    generateSteps: () => lifecycleGraphSteps(["frame", "data", "train", "release", "operate"]),
+    generateSteps: (value) =>
+      lifecycleGraphSteps(["frame", "data", "train", "release", "operate"], value),
   },
   assessmentPayload: {
     variant: "bursty-online-decision",

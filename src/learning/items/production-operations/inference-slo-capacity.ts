@@ -10,41 +10,41 @@ import {
 const code = `import math
 
 def size_inference_service(request):
-    latency_ms = request["service_p95_ms"] + request["queue_p95_ms"] + request["network_p95_ms"]
-    concurrency = request["arrival_rps"] * latency_ms / 1000
+    measured_end_to_end_p95_ms = request["measured_end_to_end_p95_ms"]
+    mean_end_to_end_latency_ms = request["mean_end_to_end_latency_ms"]
+    concurrency = request["arrival_rps"] * mean_end_to_end_latency_ms / 1000
     effective_rps = request["per_replica_rps"] * request["target_utilization"]
     replicas = math.ceil(request["arrival_rps"] / effective_rps)
     utilization = request["arrival_rps"] / (replicas * request["per_replica_rps"])
     return {
         "concurrency": round(concurrency, 6),
-        "estimated_p95_ms": round(latency_ms, 6),
+        "measured_end_to_end_p95_ms": round(measured_end_to_end_p95_ms, 6),
         "replicas": replicas,
         "utilization": round(utilization, 6),
-        "slo_met": latency_ms <= request["slo_p95_ms"],
+        "slo_met": measured_end_to_end_p95_ms <= request["slo_p95_ms"],
         "hourly_cost": round(replicas * request["cost_per_replica_hour"], 6),
     }`;
 
 const execution = functionExecution({
   entrypoint: "size_inference_service",
   outputContract:
-    "Return Little's-law concurrency, additive p95 latency, replicas at target utilization, actual utilization, SLO result, and hourly cost.",
+    "Return Little's-law concurrency from measured mean end-to-end latency, measured end-to-end p95 for the SLO, replicas at target utilization, actual utilization, SLO result, and hourly cost.",
   cases: [
     {
       id: "steady-online",
       label: "Steady online service",
       input: {
         arrival_rps: 100,
-        service_p95_ms: 80,
-        queue_p95_ms: 25,
-        network_p95_ms: 15,
+        mean_end_to_end_latency_ms: 90,
+        measured_end_to_end_p95_ms: 135,
         per_replica_rps: 40,
         target_utilization: 0.8,
         slo_p95_ms: 150,
         cost_per_replica_hour: 0.5,
       },
       expected: {
-        concurrency: 12,
-        estimated_p95_ms: 120,
+        concurrency: 9,
+        measured_end_to_end_p95_ms: 135,
         replicas: 4,
         utilization: 0.625,
         slo_met: true,
@@ -57,17 +57,16 @@ const execution = functionExecution({
       label: "Queueing breaches p95",
       input: {
         arrival_rps: 60,
-        service_p95_ms: 90,
-        queue_p95_ms: 70,
-        network_p95_ms: 20,
+        mean_end_to_end_latency_ms: 120,
+        measured_end_to_end_p95_ms: 200,
         per_replica_rps: 30,
         target_utilization: 0.75,
         slo_p95_ms: 150,
         cost_per_replica_hour: 0.4,
       },
       expected: {
-        concurrency: 10.8,
-        estimated_p95_ms: 180,
+        concurrency: 7.2,
+        measured_end_to_end_p95_ms: 200,
         replicas: 3,
         utilization: 0.666667,
         slo_met: false,
@@ -80,17 +79,16 @@ const execution = functionExecution({
       label: "Low-volume endpoint",
       input: {
         arrival_rps: 5,
-        service_p95_ms: 40,
-        queue_p95_ms: 5,
-        network_p95_ms: 5,
+        mean_end_to_end_latency_ms: 40,
+        measured_end_to_end_p95_ms: 60,
         per_replica_rps: 25,
         target_utilization: 0.5,
         slo_p95_ms: 75,
         cost_per_replica_hour: 0.25,
       },
       expected: {
-        concurrency: 0.25,
-        estimated_p95_ms: 50,
+        concurrency: 0.2,
+        measured_end_to_end_p95_ms: 60,
         replicas: 1,
         utilization: 0.2,
         slo_met: true,
@@ -107,11 +105,11 @@ export const inferenceSloCapacity = defineCalculatorItem({
   topicIds: ["ml_inference_serving"],
   difficultyProfile: profile(2, 3, 3, 3),
   description:
-    "Use arrival rate, tail-latency components, measured per-replica capacity, utilization headroom, and cost to size an online service.",
+    "Use measured end-to-end p95 for the SLO and measured mean residence time for Little's law, alongside replica capacity, utilization headroom, and cost.",
   objective:
-    "Calculate concurrency, p95 latency, replicas, actual utilization, and cost without confusing average service time with an end-to-end SLO.",
+    "Calculate concurrency from mean end-to-end residence time, use an independently measured end-to-end p95 for the SLO, and size replicas and cost without treating percentile components as additive.",
   completionEvidence:
-    "A passing capacity plan states measured assumptions, uses ceiling replicas at the target utilization, and flags a latency breach even when capacity is sufficient.",
+    "A passing capacity plan preserves distinct mean and p95 measurements, uses ceiling replicas at the target utilization, and flags a measured tail-latency breach even when capacity is sufficient.",
   sources: [
     verifiedSource({
       label: "Kubernetes Horizontal Pod Autoscaling",
@@ -127,42 +125,58 @@ export const inferenceSloCapacity = defineCalculatorItem({
     entrypoint: "size_inference_service",
     parameters: ["request"],
     contract:
-      "Return concurrency, estimated_p95_ms, replicas, utilization, slo_met, and hourly_cost.",
+      "Return concurrency, measured_end_to_end_p95_ms, replicas, utilization, slo_met, and hourly_cost.",
   }),
   execution,
-  generateSteps: () =>
-    arraySteps([
+  generateSteps: (value) => {
+    const request = value as Record<string, number>;
+    return arraySteps([
       {
         codeLine: 4,
-        what: "Add measured p95 service, queue, and network components.",
-        why: "The end-to-end latency budget spans every request stage.",
-        values: ["service p95", "queue p95", "network p95", "end-to-end p95"],
-        activeIndices: [0, 1, 2],
+        what: "Read the measured end-to-end p95 rather than constructing a percentile from components.",
+        why: "Percentiles are not additive; the SLO must use one observed end-to-end distribution.",
+        values: ["measured end-to-end p95", `${request.measured_end_to_end_p95_ms} ms`],
+        activeIndices: [0, 1],
       },
       {
         codeLine: 5,
-        what: "Apply Little's law to arrival rate and residence time.",
+        what: "Apply Little's law to arrival rate and mean end-to-end residence time.",
         why: "Concurrency equals throughput multiplied by time in system under steady assumptions.",
-        values: ["arrival rps", "latency seconds", "concurrency"],
-        completedIndices: [0, 1],
-        activeIndices: [2],
+        values: [
+          "arrival rps",
+          `${request.arrival_rps}`,
+          "mean latency ms",
+          `${request.mean_end_to_end_latency_ms}`,
+          "concurrency",
+        ],
+        completedIndices: [0, 1, 2, 3],
+        activeIndices: [4],
       },
       {
         codeLine: 7,
         what: "Ceil replicas at target utilization.",
         why: "Fractional replicas cannot serve traffic and headroom reduces saturation risk.",
-        values: ["arrival rps", "replica rps", "target utilization", "ceil replicas"],
-        completedIndices: [0, 1, 2],
-        activeIndices: [3],
+        values: [
+          "arrival rps",
+          `${request.arrival_rps}`,
+          "replica rps",
+          `${request.per_replica_rps}`,
+          "target utilization",
+          `${request.target_utilization}`,
+          "ceil replicas",
+        ],
+        completedIndices: [0, 1, 2, 3, 4, 5],
+        activeIndices: [6],
       },
       {
         codeLine: 9,
         what: "Report actual utilization, SLO, and cost together.",
         why: "Capacity adequacy does not prove that the latency SLO is met.",
-        values: ["utilization", "p95 <= SLO", "hourly cost"],
+        values: ["utilization", "measured p95 <= SLO", "hourly cost"],
         activeIndices: [0, 1, 2],
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
     variant: "changed-arrival-and-tail-latency",
     changedContext: true,
@@ -171,10 +185,10 @@ export const inferenceSloCapacity = defineCalculatorItem({
     inputs: [
       { id: "arrival_rps", label: "Arrival rate", unit: "requests/s", defaultValue: "100" },
       {
-        id: "service_p95_ms",
-        label: "Service p95",
+        id: "mean_end_to_end_latency_ms",
+        label: "Mean end-to-end latency",
         unit: "ms",
-        defaultValue: "80",
+        defaultValue: "90",
       },
       {
         id: "per_replica_rps",

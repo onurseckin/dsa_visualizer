@@ -12,14 +12,20 @@ const entrypoint = "inspect_tensor_boundary";
 const code = `import numpy as np
 
 def inspect_tensor_boundary(record):
-    if record["device"] != "cpu":
-        raise ValueError("This NumPy exercise supports the CPU device only")
-    tensor = np.asarray(record["data"], dtype=record["dtype"])
+    source = np.array(record["data"], dtype=record["source_dtype"])
+    if record["conversion"] == "view":
+        tensor = np.asarray(source, dtype=record["dtype"])
+    else:
+        tensor = np.array(source, dtype=record["dtype"], copy=True)
+    peer_shape = tuple(record["peer_shape"])
     return {
+        "source_shape": list(source.shape),
         "shape": list(tensor.shape),
         "dtype": str(tensor.dtype),
-        "device": "cpu",
-        "contiguous": bool(tensor.flags.c_contiguous),
+        "device": "numpy-host",
+        "broadcast_shape": list(np.broadcast_shapes(tensor.shape, peer_shape)),
+        "shares_memory": bool(np.shares_memory(source, tensor)),
+        "copy_made": not bool(np.shares_memory(source, tensor)),
         "nbytes": int(tensor.nbytes),
     }`;
 
@@ -27,139 +33,187 @@ const starterCode = semanticStarter({
   entrypoint,
   parameters: ["record"],
   contract:
-    "Materialize the requested NumPy dtype on CPU and return shape, dtype, device, C-contiguity, and byte size.",
+    "Create a NumPy-host array/tensor boundary and return source shape, shape, dtype, host device label, broadcast shape, copy/view memory sharing, and byte size.",
 });
 
 const execution = functionExecution({
   entrypoint,
   packages: ["numpy"],
   outputContract:
-    "For the requested CPU NumPy array, return {shape, dtype, device, contiguous, nbytes} using JSON-native values.",
+    "Return {source_shape, shape, dtype, device, broadcast_shape, shares_memory, copy_made, nbytes}. The exercise models a NumPy-host boundary; it does not claim accelerator availability. Compute broadcast_shape without materializing the broadcast.",
   cases: [
     {
-      id: "float-matrix",
-      label: "Float32 matrix",
+      id: "broadcast-view",
+      label: "Float32 array view broadcasts with a feature vector",
       input: {
         data: [
-          [1, 2],
-          [3, 4],
+          [1, 2, 3],
+          [4, 5, 6],
         ],
+        source_dtype: "float32",
         dtype: "float32",
-        device: "cpu",
+        conversion: "view",
+        peer_shape: [3],
       },
       expected: {
-        shape: [2, 2],
+        source_shape: [2, 3],
+        shape: [2, 3],
         dtype: "float32",
-        device: "cpu",
-        contiguous: true,
-        nbytes: 16,
-      },
-      comparison: "deep-equal",
-    },
-    {
-      id: "integer-vector",
-      label: "Int64 vector",
-      input: { data: [4, 5, 6], dtype: "int64", device: "cpu" },
-      expected: {
-        shape: [3],
-        dtype: "int64",
-        device: "cpu",
-        contiguous: true,
+        device: "numpy-host",
+        broadcast_shape: [2, 3],
+        shares_memory: true,
+        copy_made: false,
         nbytes: 24,
       },
       comparison: "deep-equal",
     },
     {
-      id: "boolean-row",
-      label: "Boolean row",
-      input: { data: [[true, false, true]], dtype: "bool", device: "cpu" },
+      id: "dtype-copy",
+      label: "Dtype conversion deliberately makes an independent copy",
+      input: {
+        data: [
+          [1, 2, 3],
+          [4, 5, 6],
+        ],
+        source_dtype: "int32",
+        dtype: "float32",
+        conversion: "copy",
+        peer_shape: [1, 3],
+      },
       expected: {
-        shape: [1, 3],
-        dtype: "bool",
-        device: "cpu",
-        contiguous: true,
-        nbytes: 3,
+        source_shape: [2, 3],
+        shape: [2, 3],
+        dtype: "float32",
+        device: "numpy-host",
+        broadcast_shape: [2, 3],
+        shares_memory: false,
+        copy_made: true,
+        nbytes: 24,
+      },
+      comparison: "deep-equal",
+    },
+    {
+      id: "scalar-peer",
+      label: "Int64 vector broadcasts with a scalar without allocating a tiled tensor",
+      input: {
+        data: [4, 5, 6],
+        source_dtype: "int64",
+        dtype: "int64",
+        conversion: "view",
+        peer_shape: [],
+      },
+      expected: {
+        source_shape: [3],
+        shape: [3],
+        dtype: "int64",
+        device: "numpy-host",
+        broadcast_shape: [3],
+        shares_memory: true,
+        copy_made: false,
+        nbytes: 24,
       },
       comparison: "deep-equal",
     },
   ],
 });
 
-const representativeMatrix = [
-  [1, 2],
-  [3, 4],
-] as const;
-
 export const tensorDtypeDeviceBoundary = defineTraceItem({
   id: "tensor-dtype-device-boundary",
   title: "Tensor Dtype and Device Boundary",
   topicIds: ["ml_python_scientific_computing"],
-  difficultyProfile: profile(1, 2, 2, 2),
+  difficultyProfile: profile(2, 3, 2, 2),
   description:
-    "Trace how shape, dtype, device, contiguity, and storage size become explicit at a tensor boundary.",
+    "Trace an explicit NumPy-host array/tensor boundary: shape, dtype, host device label, broadcasting, and copy-versus-view memory behavior.",
   objective:
-    "Inspect a concrete tensor representation without treating shape, dtype, layout, and device as interchangeable.",
+    "Inspect shape, dtype, host placement, broadcast compatibility, and ownership independently without asserting that unavailable accelerator hardware exists.",
   completionEvidence:
-    "A passing NumPy boundary inspector and a trace that accounts for element count times dtype width.",
+    "A passing boundary inspector distinguishes a view from a copy, reports broadcast output shape without allocation, and accounts for dtype-dependent byte size.",
   sources: [
     verifiedSource({
-      label: "NumPy ndarray",
-      url: "https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html",
+      label: "NumPy broadcasting",
+      url: "https://numpy.org/doc/stable/user/basics.broadcasting.html",
     }),
     verifiedSource({
-      label: "PyTorch tensor views",
-      url: "https://docs.pytorch.org/docs/stable/tensor_view.html",
+      label: "NumPy shares_memory",
+      url: "https://numpy.org/doc/stable/reference/generated/numpy.shares_memory.html",
     }),
   ],
   code,
   starterCode,
   execution,
-  generateSteps: () =>
-    matrixSteps([
+  generateSteps: (value) => {
+    const record = value as {
+      data: unknown;
+      source_dtype: string;
+      dtype: string;
+      conversion: string;
+      peer_shape: readonly number[];
+    };
+    const logicalShape = (current: unknown): readonly number[] => {
+      if (!Array.isArray(current)) return [];
+      if (current.length === 0) return [0];
+      const childShapes = current.map(logicalShape);
+      const firstChildShape = childShapes[0] ?? [];
+      const rectangular = childShapes.every(
+        (shape) => JSON.stringify(shape) === JSON.stringify(firstChildShape),
+      );
+      return rectangular ? [current.length, ...firstChildShape] : [current.length];
+    };
+    const shape = logicalShape(record.data);
+    return matrixSteps([
       {
-        codeLine: 5,
-        what: "Read the logical tensor values and requested dtype.",
-        why: "Logical values do not yet expose physical byte width.",
-        values: representativeMatrix,
+        codeLine: 4,
+        what: "Materialize the supplied array shape and source dtype on the NumPy host.",
+        why: "The exercise names its host boundary rather than implying a device that was not used.",
+        values: [
+          ["logical shape", JSON.stringify(shape)],
+          ["source dtype", record.source_dtype],
+        ],
+        colHeaders: ["metadata", "value"],
         activeCells: [
-          [0, 0],
           [0, 1],
-          [1, 0],
           [1, 1],
         ],
-        title: "Logical 2 × 2 values",
-        variables: { elementCount: 4 },
       },
       {
-        codeLine: 5,
-        what: "Materialize four float32 elements on CPU.",
-        why: "The dtype fixes four bytes per element at this boundary.",
-        values: representativeMatrix,
-        activeCells: [[0, 0]],
-        title: "float32 · 4 bytes per element",
-        variables: { dtypeBytes: 4, device: "cpu" },
+        codeLine: 6,
+        what: "Choose an explicit view or copy while converting to the requested dtype.",
+        why: "Matching dtypes can preserve storage; explicit copying creates independent storage.",
+        values: [
+          ["requested dtype", record.dtype],
+          ["conversion", record.conversion],
+        ],
+        colHeaders: ["boundary choice", "value"],
+        activeCells: [
+          [0, 1],
+          [1, 1],
+        ],
       },
       {
-        codeLine: 11,
-        what: "Report shape, layout, device, and total storage.",
-        why: "Four contiguous float32 elements occupy exactly sixteen bytes.",
-        values: representativeMatrix,
+        codeLine: 10,
+        what: "Check broadcast compatibility against the supplied peer shape.",
+        why: "Broadcasting changes the logical result shape without requiring a tiled allocation.",
+        values: [
+          ["peer shape", JSON.stringify(record.peer_shape)],
+          ["broadcast", "validate trailing dimensions"],
+        ],
+        colHeaders: ["operation", "evidence"],
         completedCells: [
-          [0, 0],
           [0, 1],
-          [1, 0],
           [1, 1],
         ],
-        title: "C-contiguous · 16 bytes",
-        variables: { nbytes: 16, invariant: "elements × dtype width" },
       },
-    ]),
+    ]);
+  },
   assessmentPayload: {
-    variant: "changed-dtype-width",
+    variant: "array-tensor-boundary",
     changedContext: true,
     isomorphicRetest: true,
-    prompt: "Predict the representation metadata after materialization.",
-    currentState: "A 2 × 2 logical matrix is requested as float32 on CPU.",
-    referenceNextState: "shape=[2,2], dtype=float32, contiguous=true, nbytes=16",
+    prompt:
+      "Predict shape, broadcast compatibility, and whether the requested conversion shares memory.",
+    currentState:
+      "The artifact is a NumPy-host array boundary, not a claim about an accelerator runtime.",
+    referenceNextState:
+      "A dtype-preserving asarray view can share memory; an explicit copy cannot.",
   },
 });

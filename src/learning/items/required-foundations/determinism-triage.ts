@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineScenarioItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -135,32 +136,37 @@ export const determinismTriage = defineScenarioItem({
     code,
     starterCode,
     execution,
-    generateSteps: () =>
-      arraySteps([
-        {
-          codeLine: 2,
-          what: "List every boundary required for a controlled replay.",
-          why: "A seed alone does not identify software, platform, algorithms, or data.",
-          values: replayFields,
-          activeIndices: [0, 1, 2, 3, 4],
-        },
-        {
-          codeLine: 3,
-          what: "Check each recorded boundary independently.",
-          why: "Independent checks expose exactly which evidence is missing.",
-          values: replayFields,
-          activeIndices: [1, 2, 4],
-          completedIndices: [0, 3],
-        },
-        {
-          codeLine: 9,
-          what: "Return the missing evidence in a stable order.",
-          why: "A deterministic audit artifact supports comparison without overstating replay guarantees.",
-          values: ["dependency lock", "platform", "input digest"],
-          completedIndices: [0, 1, 2],
-          variables: { missingCount: 3 },
-        },
-      ]),
+    generateSteps: (input) =>
+      inputEvidenceSteps(
+        arraySteps([
+          {
+            codeLine: 2,
+            what: "List every boundary required for a controlled replay.",
+            why: "A seed alone does not identify software, platform, algorithms, or data.",
+            values: replayFields,
+            activeIndices: [0, 1, 2, 3, 4],
+          },
+          {
+            codeLine: 3,
+            what: "Check each recorded boundary independently.",
+            why: "Independent checks expose exactly which evidence is missing.",
+            values: replayFields,
+            activeIndices: [1, 2, 4],
+            completedIndices: [0, 3],
+          },
+          {
+            codeLine: 9,
+            what: "Return the missing evidence in a stable order.",
+            why: "A deterministic audit artifact supports comparison without overstating replay guarantees.",
+            values: ["dependency lock", "platform", "input digest"],
+            completedIndices: [0, 1, 2],
+            variables: { missingCount: 3 },
+          },
+        ]),
+        input,
+        ["seed", "platform", "input_digest"],
+        execution.cases,
+      ),
   },
   assessmentPayload: {
     variant: "platform-and-release-change",

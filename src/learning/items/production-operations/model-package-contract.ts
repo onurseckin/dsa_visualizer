@@ -1,6 +1,7 @@
 import {
   defineDebuggingItem,
   functionExecution,
+  inputEvidenceSteps,
   matrixSteps,
   profile,
   semanticStarter,
@@ -109,59 +110,64 @@ export const modelPackageContract = defineDebuggingItem({
       "Return valid, missing, signature, and deterministic_smoke_test for a complete model package.",
   }),
   execution,
-  generateSteps: () =>
-    matrixSteps([
-      {
-        codeLine: 2,
-        what: "Inventory every package contract surface.",
-        why: "A weights file alone does not define executable semantics.",
-        values: [
-          ["signature", "unchecked"],
-          ["preprocessing", "unchecked"],
-          ["runtime", "unchecked"],
-          ["smoke", "unchecked"],
-        ],
-        rowHeaders: ["I/O", "transform", "environment", "behavior"],
-        colHeaders: ["contract", "status"],
-        activeCells: [[0, 0]],
-      },
-      {
-        codeLine: 3,
-        what: "Mark missing package metadata.",
-        why: "Release must fail closed when a required contract is absent.",
-        values: [
-          ["signature", "present"],
-          ["preprocessing", "missing"],
-          ["runtime", "present"],
-          ["smoke", "missing"],
-        ],
-        rowHeaders: ["I/O", "transform", "environment", "behavior"],
-        colHeaders: ["contract", "status"],
-        activeCells: [
-          [1, 1],
-          [3, 1],
-        ],
-      },
-      {
-        codeLine: 5,
-        what: "Execute a deterministic smoke oracle.",
-        why: "Presence alone cannot prove the packaged runtime reproduces expected behavior.",
-        values: [
-          ["signature", "present"],
-          ["preprocessing", "present"],
-          ["runtime", "present"],
-          ["smoke", "actual=expected"],
-        ],
-        rowHeaders: ["I/O", "transform", "environment", "behavior"],
-        colHeaders: ["contract", "status"],
-        completedCells: [
-          [0, 1],
-          [1, 1],
-          [2, 1],
-        ],
-        activeCells: [[3, 1]],
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      matrixSteps([
+        {
+          codeLine: 2,
+          what: "Inventory every package contract surface.",
+          why: "A weights file alone does not define executable semantics.",
+          values: [
+            ["signature", "unchecked"],
+            ["preprocessing", "unchecked"],
+            ["runtime", "unchecked"],
+            ["smoke", "unchecked"],
+          ],
+          rowHeaders: ["I/O", "transform", "environment", "behavior"],
+          colHeaders: ["contract", "status"],
+          activeCells: [[0, 0]],
+        },
+        {
+          codeLine: 3,
+          what: "Mark missing package metadata.",
+          why: "Release must fail closed when a required contract is absent.",
+          values: [
+            ["signature", "present"],
+            ["preprocessing", "missing"],
+            ["runtime", "present"],
+            ["smoke", "missing"],
+          ],
+          rowHeaders: ["I/O", "transform", "environment", "behavior"],
+          colHeaders: ["contract", "status"],
+          activeCells: [
+            [1, 1],
+            [3, 1],
+          ],
+        },
+        {
+          codeLine: 5,
+          what: "Execute a deterministic smoke oracle.",
+          why: "Presence alone cannot prove the packaged runtime reproduces expected behavior.",
+          values: [
+            ["signature", "present"],
+            ["preprocessing", "present"],
+            ["runtime", "present"],
+            ["smoke", "actual=expected"],
+          ],
+          rowHeaders: ["I/O", "transform", "environment", "behavior"],
+          colHeaders: ["contract", "status"],
+          completedCells: [
+            [0, 1],
+            [1, 1],
+            [2, 1],
+          ],
+          activeCells: [[3, 1]],
+        },
+      ]),
+      input,
+      ["signature", "dependencies", "smoke_test"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "changed-package-contract",
     changedContext: true,

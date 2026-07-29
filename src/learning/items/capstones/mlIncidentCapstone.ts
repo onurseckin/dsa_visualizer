@@ -124,7 +124,7 @@ export const mlIncidentCapstone = defineCapstoneItem({
     code,
     starterCode: capstoneStarter("validate_incident_record", outputContract),
     execution,
-    generateSteps: incidentGraphSteps,
+    generateSteps: (value) => incidentGraphSteps(value),
   },
   assessmentPayload: {
     variant: "compound-feature-rollout-incident",

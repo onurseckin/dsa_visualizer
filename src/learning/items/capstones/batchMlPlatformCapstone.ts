@@ -136,7 +136,8 @@ export const batchMlPlatformCapstone = defineCapstoneItem({
     code,
     starterCode: capstoneStarter("plan_batch_platform", outputContract),
     execution,
-    generateSteps: () => lifecycleGraphSteps(["frame", "data", "train", "release", "operate"]),
+    generateSteps: (value) =>
+      lifecycleGraphSteps(["frame", "data", "train", "release", "operate"], value),
   },
   assessmentPayload: {
     variant: "daily-risk-snapshot",

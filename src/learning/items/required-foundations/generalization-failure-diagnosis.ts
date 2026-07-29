@@ -2,6 +2,7 @@ import {
   arraySteps,
   defineDebuggingItem,
   functionExecution,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -102,31 +103,36 @@ export const generalizationFailureDiagnosis = defineDebuggingItem({
   code,
   starterCode,
   execution,
-  generateSteps: () =>
-    arraySteps([
-      {
-        codeLine: 2,
-        what: "Read train, validation, and test metrics under one authored threshold.",
-        why: "Different split gaps support different failure hypotheses.",
-        values: ["train 0.82", "validation 0.81", "test 0.60"],
-        activeIndices: [0, 1, 2],
-      },
-      {
-        codeLine: 6,
-        what: "Compare validation with the untouched test boundary.",
-        why: "A large validation-test gap points to split mismatch rather than ordinary train overfit.",
-        values: ["train-val 0.01", "val-test 0.21"],
-        activeIndices: [1],
-        variables: { gapThreshold: 0.1 },
-      },
-      {
-        codeLine: 11,
-        what: "Combine the gap with independent drift evidence.",
-        why: "The ordered hypotheses guide a targeted data investigation instead of blind retuning.",
-        values: ["split-shift", "distribution-drift"],
-        completedIndices: [0, 1],
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      arraySteps([
+        {
+          codeLine: 2,
+          what: "Read train, validation, and test metrics under one authored threshold.",
+          why: "Different split gaps support different failure hypotheses.",
+          values: ["train 0.82", "validation 0.81", "test 0.60"],
+          activeIndices: [0, 1, 2],
+        },
+        {
+          codeLine: 6,
+          what: "Compare validation with the untouched test boundary.",
+          why: "A large validation-test gap points to split mismatch rather than ordinary train overfit.",
+          values: ["train-val 0.01", "val-test 0.21"],
+          activeIndices: [1],
+          variables: { gapThreshold: 0.1 },
+        },
+        {
+          codeLine: 11,
+          what: "Combine the gap with independent drift evidence.",
+          why: "The ordered hypotheses guide a targeted data investigation instead of blind retuning.",
+          values: ["split-shift", "distribution-drift"],
+          completedIndices: [0, 1],
+        },
+      ]),
+      input,
+      ["train_metric", "validation_metric", "drift_detected"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "validation-test-collapse",
     changedContext: true,

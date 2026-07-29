@@ -1,6 +1,7 @@
 import {
   defineTraceItem,
   functionExecution,
+  inputEvidenceSteps,
   matrixSteps,
   profile,
   semanticStarter,
@@ -126,57 +127,62 @@ export const tensorLayoutExplorer = defineTraceItem({
   code,
   starterCode,
   execution,
-  generateSteps: () =>
-    matrixSteps([
-      {
-        codeLine: 4,
-        what: "Materialize the contiguous 2 × 3 base matrix.",
-        why: "The base establishes row-major byte strides [12, 4] for float32.",
-        values: matrix,
-        activeCells: [
-          [0, 0],
-          [0, 1],
-          [0, 2],
-        ],
-        title: "shape [2,3] · strides [12,4]",
-      },
-      {
-        codeLine: 5,
-        what: "Swap the two logical axes without copying values.",
-        why: "The view indexes the same buffer with the stride order reversed.",
-        values: [
-          [1, 4],
-          [2, 5],
-          [3, 6],
-        ],
-        activeCells: [
-          [0, 0],
-          [1, 0],
-          [2, 0],
-        ],
-        title: "shape [3,2] · strides [4,12]",
-      },
-      {
-        codeLine: 10,
-        what: "Report the non-contiguous shared-memory view.",
-        why: "Logical transpose order no longer matches C-contiguous traversal.",
-        values: [
-          [1, 4],
-          [2, 5],
-          [3, 6],
-        ],
-        completedCells: [
-          [0, 0],
-          [0, 1],
-          [1, 0],
-          [1, 1],
-          [2, 0],
-          [2, 1],
-        ],
-        title: "view · shared memory · non-contiguous",
-        variables: { sharesMemory: true, contiguous: false },
-      },
-    ]),
+  generateSteps: (input) =>
+    inputEvidenceSteps(
+      matrixSteps([
+        {
+          codeLine: 4,
+          what: "Materialize the contiguous 2 × 3 base matrix.",
+          why: "The base establishes row-major byte strides [12, 4] for float32.",
+          values: matrix,
+          activeCells: [
+            [0, 0],
+            [0, 1],
+            [0, 2],
+          ],
+          title: "shape [2,3] · strides [12,4]",
+        },
+        {
+          codeLine: 5,
+          what: "Swap the two logical axes without copying values.",
+          why: "The view indexes the same buffer with the stride order reversed.",
+          values: [
+            [1, 4],
+            [2, 5],
+            [3, 6],
+          ],
+          activeCells: [
+            [0, 0],
+            [1, 0],
+            [2, 0],
+          ],
+          title: "shape [3,2] · strides [4,12]",
+        },
+        {
+          codeLine: 10,
+          what: "Report the non-contiguous shared-memory view.",
+          why: "Logical transpose order no longer matches C-contiguous traversal.",
+          values: [
+            [1, 4],
+            [2, 5],
+            [3, 6],
+          ],
+          completedCells: [
+            [0, 0],
+            [0, 1],
+            [1, 0],
+            [1, 1],
+            [2, 0],
+            [2, 1],
+          ],
+          title: "view · shared memory · non-contiguous",
+          variables: { sharesMemory: true, contiguous: false },
+        },
+      ]),
+      input,
+      ["data", "dtype", "axes"],
+      execution.cases,
+    ),
   assessmentPayload: {
     variant: "stride-order-change",
     changedContext: true,

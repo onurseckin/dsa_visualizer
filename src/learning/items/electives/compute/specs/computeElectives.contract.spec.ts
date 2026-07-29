@@ -90,6 +90,20 @@ describe("E1-E4 compute electives manifest", () => {
     }
   });
 
+  test("calibrates compute difficulty per item instead of applying one blanket profile", () => {
+    const roofline = COMPUTE_ELECTIVE_ITEMS.find((item) => item.id === "roofline-bound-estimator");
+    if (!roofline) throw new Error("roofline-bound-estimator: missing item");
+    expect(roofline.difficultyProfile).toEqual({
+      prerequisite: 1,
+      representations: 2,
+      horizon: 1,
+      tradeoffs: 1,
+    });
+    expect(
+      new Set(COMPUTE_ELECTIVE_ITEMS.map((item) => JSON.stringify(item.difficultyProfile))).size,
+    ).toBeGreaterThan(1);
+  });
+
   test("gives every item a browser-safe semantic executable playground with distinct cases", () => {
     for (const item of COMPUTE_ELECTIVE_ITEMS) {
       const playground = getLearningItemPlayground(item);

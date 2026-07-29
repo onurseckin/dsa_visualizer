@@ -21,14 +21,19 @@ describe("ml-incident-capstone", () => {
     expect(steps).toHaveLength(6);
     expect(steps.at(-1)?.primarySnapshot).toMatchObject({
       nodes: [
-        { id: "detect", label: "Detect", state: "sorted" },
-        { id: "contain", label: "Contain", state: "sorted" },
-        { id: "preserve", label: "Preserve", state: "sorted" },
+        { id: "detect", label: "Detect · 6 missing", state: "sorted" },
+        { id: "contain", label: "Contain · missing", state: "sorted" },
+        { id: "preserve", label: "Preserve · 0 artifacts", state: "sorted" },
         { id: "diagnose", label: "Diagnose", state: "sorted" },
-        { id: "recover", label: "Recover", state: "sorted" },
-        { id: "learn", label: "Learn", state: "active" },
+        { id: "recover", label: "Recover · 6 missing", state: "sorted" },
+        { id: "learn", label: "Learn · owner missing", state: "active" },
       ],
       edges: expect.arrayContaining([{ from: "recover", to: "learn", isTraversed: true }]),
     });
+    const complete = playground.generateSteps(playground.execution.cases[0]!.input);
+    const empty = playground.generateSteps(playground.execution.cases[1]!.input);
+    expect(complete).not.toEqual(empty);
+    expect(JSON.stringify(complete)).toContain("INC-42");
+    expect(JSON.stringify(empty)).toContain("6 missing");
   });
 });

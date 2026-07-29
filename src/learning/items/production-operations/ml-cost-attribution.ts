@@ -1,6 +1,7 @@
 import {
   defineCalculatorItem,
   functionExecution,
+  inputEvidenceSteps,
   matrixSteps,
   profile,
   semanticStarter,
@@ -163,6 +164,50 @@ const execution = functionExecution({
   ],
 });
 
+function numberField(record: Record<string, unknown>, field: string): number {
+  const value = record[field];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function recordField(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function displayNumber(value: number): string {
+  return String(Math.round(value * 1_000_000) / 1_000_000);
+}
+
+function costDecisionState(input: unknown) {
+  const request = recordField(input);
+  const usage = recordField(request.usage);
+  const rates = recordField(request.rates);
+  const stages = [
+    ["ingestion", "ingestion_gb", "ingestion_per_gb"],
+    ["storage", "storage_gb_month", "storage_per_gb_month"],
+    ["feature", "feature_compute_hours", "feature_per_hour"],
+    ["training", "training_gpu_hours", "training_per_gpu_hour"],
+    ["registry", "registry_artifacts", "registry_per_artifact"],
+    ["inference", "inference_replica_hours", "inference_per_replica_hour"],
+  ] as const;
+  const rows = stages.map(([stage, usageField, rateField]) => {
+    const units = numberField(usage, usageField);
+    const rate = numberField(rates, rateField);
+    return { stage, units, rate, cost: units * rate };
+  });
+  const total = rows.reduce((sum, row) => sum + row.cost, 0);
+  const predictions = numberField(usage, "predictions");
+  const budget = numberField(request, "budget");
+  return {
+    rows,
+    total,
+    budget,
+    perThousand: predictions === 0 ? 0 : (total / predictions) * 1000,
+    owner: `${String(request.product ?? "")}/${String(request.model ?? "")}/${String(request.tenant ?? "")}`,
+  };
+}
+
 export const mlCostAttribution = defineCalculatorItem({
   id: "ml-cost-attribution",
   title: "Attribute ML Lifecycle Cost",
@@ -187,91 +232,95 @@ export const mlCostAttribution = defineCalculatorItem({
     contract: "Return owner, six line_items, total, per_1000_predictions, and budget_exceeded.",
   }),
   execution,
-  generateSteps: () =>
-    matrixSteps([
-      {
-        codeLine: 4,
-        what: "Multiply ingestion, storage, and feature usage by explicit rates.",
-        why: "Attribution begins with dimensional usage rather than an unallocated cloud bill.",
-        values: [
-          ["ingestion", "usage", "rate", "cost"],
-          ["storage", "usage", "rate", "cost"],
-          ["feature", "usage", "rate", "cost"],
-          ["training", "pending", "pending", "pending"],
-          ["registry", "pending", "pending", "pending"],
-          ["inference", "pending", "pending", "pending"],
-        ],
-        colHeaders: ["stage", "usage", "rate", "cost"],
-        activeCells: [
-          [0, 3],
-          [1, 3],
-          [2, 3],
-        ],
-      },
-      {
-        codeLine: 7,
-        what: "Add training, registry, and inference costs.",
-        why: "The lifecycle total must include both build-time and serving-time work.",
-        values: [
-          ["ingestion", "usage", "rate", "20"],
-          ["storage", "usage", "rate", "15"],
-          ["feature", "usage", "rate", "30"],
-          ["training", "usage", "rate", "120"],
-          ["registry", "usage", "rate", "5"],
-          ["inference", "usage", "rate", "210"],
-        ],
-        colHeaders: ["stage", "usage", "rate", "cost"],
-        completedCells: [
-          [0, 3],
-          [1, 3],
-          [2, 3],
-        ],
-        activeCells: [
-          [3, 3],
-          [4, 3],
-          [5, 3],
-        ],
-      },
-      {
-        codeLine: 12,
-        what: "Reconcile all line items to the lifecycle total.",
-        why: "A budget decision must be reproducible from its component costs.",
-        values: [
-          ["ingestion", "20", "included", "400 total"],
-          ["storage", "15", "included", "400 total"],
-          ["feature", "30", "included", "400 total"],
-          ["training", "120", "included", "400 total"],
-          ["registry", "5", "included", "400 total"],
-          ["inference", "210", "included", "400 total"],
-        ],
-        colHeaders: ["stage", "cost", "reconciled", "total"],
-        completedCells: [
-          [0, 2],
-          [1, 2],
-          [2, 2],
-          [3, 2],
-          [4, 2],
-          [5, 2],
-        ],
-        activeCells: [[5, 3]],
-      },
-      {
-        codeLine: 18,
-        what: "Normalize total cost per thousand predictions and compare budget.",
-        why: "Unit cost enables product/tenant comparison while total preserves budget accountability.",
-        values: [
-          ["owner", "fraud/risk-v3/tenant-a"],
-          ["unit cost", "0.8 per 1k"],
-          ["budget", "400 <= 500"],
-        ],
-        colHeaders: ["decision field", "value"],
-        completedCells: [[0, 1]],
-        activeCells: [
-          [1, 1],
-          [2, 1],
-        ],
-      },
-    ]),
+  generateSteps: (input) => {
+    const { rows, total, budget, perThousand, owner } = costDecisionState(input);
+    const formattedRows = rows.map((row) => [
+      row.stage,
+      displayNumber(row.units),
+      displayNumber(row.rate),
+      displayNumber(row.cost),
+    ]);
+    const totalLabel = `${displayNumber(total)} total`;
+    return inputEvidenceSteps(
+      matrixSteps([
+        {
+          codeLine: 4,
+          what: "Multiply ingestion, storage, and feature usage by explicit rates.",
+          why: "Attribution begins with dimensional usage rather than an unallocated cloud bill.",
+          values: [
+            formattedRows[0] ?? ["ingestion", "0", "0", "0"],
+            formattedRows[1] ?? ["storage", "0", "0", "0"],
+            formattedRows[2] ?? ["feature", "0", "0", "0"],
+            ["training", "pending", "pending", "pending"],
+            ["registry", "pending", "pending", "pending"],
+            ["inference", "pending", "pending", "pending"],
+          ],
+          colHeaders: ["stage", "usage", "rate", "cost"],
+          activeCells: [
+            [0, 3],
+            [1, 3],
+            [2, 3],
+          ],
+        },
+        {
+          codeLine: 7,
+          what: "Add training, registry, and inference costs.",
+          why: "The lifecycle total must include both build-time and serving-time work.",
+          values: formattedRows,
+          colHeaders: ["stage", "usage", "rate", "cost"],
+          completedCells: [
+            [0, 3],
+            [1, 3],
+            [2, 3],
+          ],
+          activeCells: [
+            [3, 3],
+            [4, 3],
+            [5, 3],
+          ],
+        },
+        {
+          codeLine: 12,
+          what: "Reconcile all line items to the lifecycle total.",
+          why: "A budget decision must be reproducible from its component costs.",
+          values: rows.map((row) => [row.stage, displayNumber(row.cost), "included", totalLabel]),
+          colHeaders: ["stage", "cost", "reconciled", "total"],
+          completedCells: [
+            [0, 2],
+            [1, 2],
+            [2, 2],
+            [3, 2],
+            [4, 2],
+            [5, 2],
+          ],
+          activeCells: [[5, 3]],
+        },
+        {
+          codeLine: 18,
+          what: "Normalize total cost per thousand predictions and compare budget.",
+          why: "Unit cost enables product/tenant comparison while total preserves budget accountability.",
+          values: [
+            ["owner", owner],
+            ["unit cost", `${displayNumber(perThousand)} per 1k`],
+            [
+              "budget",
+              `${displayNumber(total)} ${total > budget ? ">" : "<="} ${displayNumber(budget)}`,
+            ],
+          ],
+          colHeaders: ["decision field", "value"],
+          completedCells: [[0, 1]],
+          activeCells: [
+            [1, 1],
+            [2, 1],
+          ],
+        },
+      ]),
+      input,
+      ["product", "usage", "budget"],
+      execution.cases,
+      false,
+    );
+  },
   assessmentPayload: {
     variant: "changed-tenant-usage-and-budget",
     changedContext: true,

@@ -2,6 +2,7 @@ import {
   defineScenarioItem,
   functionExecution,
   graphSteps,
+  inputEvidenceSteps,
   profile,
   semanticStarter,
   verifiedSource,
@@ -142,57 +143,62 @@ export const trainingExecutionTopology = defineScenarioItem({
         "Return topology, checkpoint_required, and ordered reasons from the supplied constraints.",
     }),
     execution,
-    generateSteps: () =>
-      graphSteps([
-        {
-          codeLine: 2,
-          what: "Start from workload and recovery constraints.",
-          why: "Execution topology is downstream of workload semantics.",
-          nodes: [
-            { id: "workload", label: "Workload" },
-            { id: "recovery", label: "Recovery" },
-            { id: "topology", label: "Topology" },
-          ],
-          edges: [
-            { from: "workload", to: "topology" },
-            { from: "recovery", to: "topology" },
-          ],
-          activeNodeIds: ["workload"],
-        },
-        {
-          codeLine: 3,
-          what: "Make checkpoint need explicit.",
-          why: "Long or preemptible jobs need a restart boundary independent of platform.",
-          nodes: [
-            { id: "workload", label: "Workload" },
-            { id: "recovery", label: "Checkpoint" },
-            { id: "topology", label: "Topology" },
-          ],
-          edges: [
-            { from: "workload", to: "topology" },
-            { from: "recovery", to: "topology" },
-          ],
-          activeNodeIds: ["recovery"],
-          traversedEdgeIndexes: [0],
-        },
-        {
-          codeLine: 13,
-          what: "Select the smallest topology satisfying all constraints.",
-          why: "The invariant is constraint coverage, not platform sophistication.",
-          nodes: [
-            { id: "workload", label: "Workload" },
-            { id: "recovery", label: "Checkpoint" },
-            { id: "topology", label: "Selected" },
-          ],
-          edges: [
-            { from: "workload", to: "topology" },
-            { from: "recovery", to: "topology" },
-          ],
-          activeNodeIds: ["topology"],
-          completedNodeIds: ["workload", "recovery"],
-          traversedEdgeIndexes: [0, 1],
-        },
-      ]),
+    generateSteps: (input) =>
+      inputEvidenceSteps(
+        graphSteps([
+          {
+            codeLine: 2,
+            what: "Start from workload and recovery constraints.",
+            why: "Execution topology is downstream of workload semantics.",
+            nodes: [
+              { id: "workload", label: "Workload" },
+              { id: "recovery", label: "Recovery" },
+              { id: "topology", label: "Topology" },
+            ],
+            edges: [
+              { from: "workload", to: "topology" },
+              { from: "recovery", to: "topology" },
+            ],
+            activeNodeIds: ["workload"],
+          },
+          {
+            codeLine: 3,
+            what: "Make checkpoint need explicit.",
+            why: "Long or preemptible jobs need a restart boundary independent of platform.",
+            nodes: [
+              { id: "workload", label: "Workload" },
+              { id: "recovery", label: "Checkpoint" },
+              { id: "topology", label: "Topology" },
+            ],
+            edges: [
+              { from: "workload", to: "topology" },
+              { from: "recovery", to: "topology" },
+            ],
+            activeNodeIds: ["recovery"],
+            traversedEdgeIndexes: [0],
+          },
+          {
+            codeLine: 13,
+            what: "Select the smallest topology satisfying all constraints.",
+            why: "The invariant is constraint coverage, not platform sophistication.",
+            nodes: [
+              { id: "workload", label: "Workload" },
+              { id: "recovery", label: "Checkpoint" },
+              { id: "topology", label: "Selected" },
+            ],
+            edges: [
+              { from: "workload", to: "topology" },
+              { from: "recovery", to: "topology" },
+            ],
+            activeNodeIds: ["topology"],
+            completedNodeIds: ["workload", "recovery"],
+            traversedEdgeIndexes: [0, 1],
+          },
+        ]),
+        input,
+        ["gpus", "hours", "scheduled"],
+        execution.cases,
+      ),
   },
   assessmentPayload: {
     variant: "changed-execution-constraints",
