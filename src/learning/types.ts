@@ -1,6 +1,12 @@
 import type { PythonExecutionSpec } from "@dsa-visualizer/execution-contracts";
 import type { TopicId } from "../curriculum/topics";
-import type { AlgorithmDefinition, AlgorithmStep, DifficultyLevel, SourceKind } from "../types/dsa";
+import type {
+  AlgorithmDefinition,
+  AlgorithmStep,
+  CodeVariant,
+  DifficultyLevel,
+  SourceKind,
+} from "../types/dsa";
 import type { TriviaMeta } from "../types/trivia";
 import type {
   AlgorithmAssessmentDefinition,
@@ -70,6 +76,7 @@ export interface LearningItemPlayground {
 
 interface CodeLearningItemBase extends LearningItemBase {
   readonly code: string;
+  readonly codeVariants?: readonly CodeVariant[];
   readonly starterCode?: string;
   readonly execution?: PythonExecutionSpec;
   readonly generateSteps: (input: unknown) => AlgorithmStep[];

@@ -1,6 +1,8 @@
 import type {
   AlgorithmDefinition,
   AlgorithmStep,
+  ArrayElement,
+  CodeVariant,
   MatrixCellItem,
   TopicGuide,
 } from "../../types/dsa";
@@ -19,150 +21,189 @@ export const PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE = `class Solution:
     def binomial(self, n: int, k: int) -> int:
         if k < 0 or k > n:
             return 0
-        k = min(k, n - k)
-        row = [0] * (k + 1)
-        row[0] = 1
-        for i in range(1, n + 1):
-            for j in range(min(i, k), 0, -1):
-                row[j] += row[j - 1]
-        return row[k]`;
+        k = min(k, n - k)  # Leverage symmetry C(n, k) == C(n, n-k)
+
+        dp = [0] * (k + 1)
+        dp[0] = 1  # Base case: C(row, 0) = 1
+
+        for row in range(1, n + 1):
+            # Update backwards in-place to preserve values from previous row
+            for col in range(min(row, k), 0, -1):
+                dp[col] += dp[col - 1]
+
+        return dp[k]`;
+
+export const BINOMIAL_COEFFICIENTS_PASCAL_VARIANTS: readonly CodeVariant[] = [
+  {
+    id: "dp-1d",
+    label: "1D DP (In-Place Array)",
+    description: "Space-optimized O(k) space DP using a 1D array updated in reverse.",
+    code: PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE,
+    timeComplexity: {
+      best: "O(N * K)",
+      average: "O(N * K)",
+      worst: "O(N * K)",
+    },
+    spaceComplexity: "O(K)",
+    complexityAnalysis: {
+      time: "Fills a 1D array of size K+1 in reverse over N row iterations, using O(N * K) additions.",
+      space: "Requires O(K) auxiliary space for the 1D DP array.",
+    },
+  },
+  {
+    id: "dp-2d",
+    label: "2D DP Matrix",
+    description: "Classic O(n x k) space DP building the full Pascal's Triangle matrix.",
+    code: `class Solution:
+    def __init__(self):
+        pass
+
+    def binomial(self, n: int, k: int) -> int:
+        if k < 0 or k > n:
+            return 0
+
+        # Build (n+1) x (k+1) table matching Pascal's Triangle
+        dp = [[0] * (k + 1) for _ in range(n + 1)]
+
+        for i in range(n + 1):
+            dp[i][0] = 1  # Base case: choosing 0 items is always 1 way
+            for j in range(1, min(i, k) + 1):
+                if j == i:
+                    dp[i][j] = 1  # Base case: choosing all items is 1 way
+                else:
+                    # Pascal's recurrence: C(n, k) = C(n-1, k-1) + C(n-1, k)
+                    dp[i][j] = dp[i - 1][j - 1] + dp[i - 1][j]
+
+        return dp[n][k]`,
+    timeComplexity: {
+      best: "O(N * K)",
+      average: "O(N * K)",
+      worst: "O(N * K)",
+    },
+    spaceComplexity: "O(N * K)",
+    complexityAnalysis: {
+      time: "Fills an (N+1) x (K+1) DP grid in O(N x K) steps using Pascal's identity additions.",
+      space: "Requires O(N x K) auxiliary space for the full 2D matrix table.",
+    },
+  },
+  {
+    id: "multiplicative",
+    label: "Multiplicative O(k)",
+    description: "Direct iterative computation in O(k) time and O(1) auxiliary space.",
+    code: `class Solution:
+    def __init__(self):
+        pass
+
+    def binomial(self, n: int, k: int) -> int:
+        if k < 0 or k > n:
+            return 0
+        k = min(k, n - k)  # Leverage symmetry C(n, k) == C(n, n-k)
+
+        # Compute C(n, k) = (n * (n-1) * ... * (n-k+1)) / (1 * 2 * ... * k)
+        result = 1
+        for i in range(1, k + 1):
+            result = result * (n - i + 1) // i
+        return result`,
+    timeComplexity: {
+      best: "O(K)",
+      average: "O(K)",
+      worst: "O(K)",
+    },
+    spaceComplexity: "O(1)",
+    complexityAnalysis: {
+      time: "Computes C(n, k) iteratively in a single loop from 1 to K in O(K) time.",
+      space: "Requires O(1) auxiliary space (only a single scalar integer variable).",
+    },
+  },
+];
 
 export const DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT: BinomialCoefficientsInput = {
   n: 5,
   k: 3,
 };
 
-const createIntroSnapshots = (): AlgorithmStep[] => {
-  const introMatrices = [
-    [[1, 0, 0, 0]],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-      [1, 3, 3, 1],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-      [1, 3, 3, 1],
-      [1, 4, 6, 4],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-      [1, 3, 3, 1],
-      [1, 4, 6, 4],
-      [1, 5, 10, 10],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-      [1, 3, 3, 1],
-      [1, 4, 6, 4],
-      [1, 5, 10, 10],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-      [1, 3, 3, 1],
-      [1, 4, 6, 4],
-      [1, 5, 10, 10],
-    ],
-    [
-      [1, 0, 0, 0],
-      [1, 1, 0, 0],
-      [1, 2, 1, 0],
-      [1, 3, 3, 1],
-      [1, 4, 6, 4],
-      [1, 5, 10, 10],
-    ],
-  ];
+const generate1DArraySteps = (nVal: number, kVal: number): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
 
-  const introNarratives = [
-    "The binomial coefficient C(n, k) counts the number of ways to choose an unordered subset of k elements from a set of n distinct elements.",
-    "For example, selecting 2 items out of 4 distinct items yields 6 unique combinations, representing all non-overlapping subset choices.",
-    "Directly evaluating C(n, k) = n! / (k! x (n-k)!) causes severe integer overflow because factorials grow rapidly even for modest values like n = 21.",
-    "Pascal's identity computes combinations recursively without factorials via C(n, k) = C(n-1, k-1) + C(n-1, k).",
-    "Focus on one element x: either include x (choose k-1 items from the remaining n-1) or exclude x (choose k items from n-1), adding both possibilities.",
-    "Choosing 0 items yields C(i, 0) = 1 (the single empty set), and choosing all i items yields C(i, i) = 1 (the single full set), forming grid boundaries.",
-    "We populate an (n+1) x (k+1) table row by row from top to bottom, computing each interior cell from two known cells in the row above.",
-    "Choosing k items to include is mathematically equivalent to choosing n-k items to exclude, guaranteeing symmetry C(n, k) = C(n, n-k).",
-    "Filling the DP grid takes O(n * k) time and O(n * k) space, which can be optimized to O(k) space using a single 1D array.",
-  ];
+  const kEff = Math.min(kVal, nVal - kVal);
+  const dp: number[] = new Array(kEff + 1).fill(0);
+  dp[0] = 1;
 
-  return introNarratives.map((narrative, idx) => {
-    const mat = introMatrices[idx];
-    const cells: MatrixCellItem[] = mat.flatMap((row, rIdx) =>
-      row.map((val, cIdx) => {
-        let state: MatrixCellItem["state"] = "default";
-        if (idx === 6 && rIdx === 4 && (cIdx === 1 || cIdx === 2)) {
-          state = "compared";
-        } else if (idx === 6 && rIdx === 5 && cIdx === 2) {
-          state = "active";
-        } else if (idx === 7 && rIdx === 5 && (cIdx === 1 || cIdx === 4)) {
-          state = "active";
-        } else if (idx === 8) {
-          state = "sorted";
-        } else if (rIdx === mat.length - 1) {
-          state = "active";
-        }
-        return {
-          row: rIdx,
-          col: cIdx,
-          value: val,
-          label: `r${rIdx}c${cIdx}`,
-          state,
-        };
-      }),
-    );
+  const createArraySnapshot = (
+    activeCol: number | null,
+    comparedCol: number | null = null,
+    isDone: boolean = false,
+  ) => {
+    const elements: ArrayElement[] = dp.map((val, idx) => {
+      let state: ArrayElement["state"] = "default";
+      if (isDone && idx === kEff) {
+        state = "sorted";
+      } else if (idx === activeCol) {
+        state = "active";
+      } else if (idx === comparedCol) {
+        state = "compared";
+      } else if (val > 0) {
+        state = "sorted";
+      }
 
-    return createTutorialStep({
-      stepIndex: idx,
-      phase: "intro",
-      narrative,
-      primarySnapshot: {
-        kind: "matrix",
-        name: "pascal_concept",
-        rows: mat.length,
-        cols: 4,
-        cells,
-        rowHeaders: mat.map((_, r) => `n=${r}`),
-        colHeaders: ["k=0", "k=1", "k=2", "k=3"],
-      },
+      return {
+        id: `col-${idx}`,
+        label: `dp[${idx}]`,
+        value: val,
+        state,
+      };
     });
-  });
+
+    return {
+      kind: "array" as const,
+      name: "dp_1d_array",
+      elements,
+    };
+  };
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `We initialize a 1D DP array of size ${kEff + 1} to compute C(${nVal}, ${kVal}), setting base case dp[0] = 1 for selecting zero items.`,
+      primarySnapshot: createArraySnapshot(0),
+    }),
+  );
+
+  for (let row = 1; row <= nVal; row++) {
+    const maxCol = Math.min(row, kEff);
+    for (let col = maxCol; col >= 1; col--) {
+      const prevVal = dp[col - 1];
+      const oldVal = dp[col];
+      dp[col] += prevVal;
+
+      steps.push(
+        createTutorialStep({
+          stepIndex: stepIndex++,
+          phase: "walkthrough",
+          narrative: `In row ${row}, we update dp[${col}] by adding dp[${col - 1}], combining ${oldVal} and ${prevVal} into ${dp[col]}. Updating in reverse preserves values from the previous row.`,
+          primarySnapshot: createArraySnapshot(col, col - 1),
+        }),
+      );
+    }
+  }
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `The 1D DP array computation completes with C(${nVal}, ${kVal}) = dp[${kEff}] = ${dp[kEff]}, achieving O(n * k) time using only O(k) space.`,
+      primarySnapshot: createArraySnapshot(kEff, null, true),
+    }),
+  );
+
+  return steps;
 };
 
-export const generateBinomialCoefficientsPascalSteps = (
-  input?: BinomialCoefficientsInput,
-): AlgorithmStep[] => {
-  const introSteps = createIntroSnapshots();
-  const steps: AlgorithmStep[] = [...introSteps];
-  let stepIndex = introSteps.length;
-
-  const safeInput = input ?? DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT;
-  const safeN = Number.isFinite(safeInput?.n)
-    ? Math.floor(safeInput.n)
-    : DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT.n;
-  const safeK = Number.isFinite(safeInput?.k)
-    ? Math.floor(safeInput.k)
-    : DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT.k;
-
-  const nVal = Math.min(10, Math.max(0, safeN));
-  const kVal = Math.min(nVal, Math.max(0, safeK));
+const generate2DMatrixSteps = (nVal: number, kVal: number): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
 
   const dp: number[][] = Array.from({ length: nVal + 1 }, () => new Array(kVal + 1).fill(0));
 
@@ -202,7 +243,7 @@ export const generateBinomialCoefficientsPascalSteps = (
 
     return {
       kind: "matrix" as const,
-      name: "pascal_matrix",
+      name: "pascal_matrix_2d",
       rows: nVal + 1,
       cols: kVal + 1,
       cells,
@@ -215,7 +256,7 @@ export const generateBinomialCoefficientsPascalSteps = (
     createTutorialStep({
       stepIndex: stepIndex++,
       phase: "walkthrough",
-      narrative: `We initialize an (${nVal + 1}) x (${kVal + 1}) Pascal table to compute C(${nVal}, ${kVal}).`,
+      narrative: `We initialize a (${nVal + 1}) x (${kVal + 1}) 2D DP matrix to compute C(${nVal}, ${kVal}) using Pascal's identity C(i, j) = C(i-1, j-1) + C(i-1, j).`,
       primarySnapshot: createMatrixSnapshot(null, null),
     }),
   );
@@ -229,7 +270,7 @@ export const generateBinomialCoefficientsPascalSteps = (
           createTutorialStep({
             stepIndex: stepIndex++,
             phase: "walkthrough",
-            narrative: `We set base case C(${i}, ${j}) = 1 (${j === 0 ? "choosing 0 items" : "choosing all items"}).`,
+            narrative: `At row ${i} and column ${j}, we set base case C(${i}, ${j}) = 1 because ${j === 0 ? "we are selecting zero items" : "we are selecting all items"}.`,
             primarySnapshot: createMatrixSnapshot(i, j),
           }),
         );
@@ -242,7 +283,7 @@ export const generateBinomialCoefficientsPascalSteps = (
           createTutorialStep({
             stepIndex: stepIndex++,
             phase: "walkthrough",
-            narrative: `We calculate C(${i}, ${j}) = C(${i - 1}, ${j - 1}) + C(${i - 1}, ${j}) = ${val1} + ${val2} = ${dp[i][j]}.`,
+            narrative: `At row ${i} and column ${j}, we compute C(${i}, ${j}) = C(${i - 1}, ${j - 1}) + C(${i - 1}, ${j}) by adding ${val1} and ${val2} to get ${dp[i][j]}.`,
             primarySnapshot: createMatrixSnapshot(i, j, [i - 1, j - 1], [i - 1, j]),
           }),
         );
@@ -255,12 +296,106 @@ export const generateBinomialCoefficientsPascalSteps = (
     createTutorialStep({
       stepIndex: stepIndex++,
       phase: "walkthrough",
-      narrative: `Pascal table fill is complete: binomial coefficient C(${nVal}, ${kVal}) = ${ans}.`,
+      narrative: `The 2D Pascal table computation finishes with C(${nVal}, ${kVal}) = ${ans}, filling the full table in O(n * k) time and O(n * k) space.`,
       primarySnapshot: createMatrixSnapshot(nVal, kVal, null, null, true),
     }),
   );
 
   return steps;
+};
+
+const generateMultiplicativeSteps = (nVal: number, kVal: number): AlgorithmStep[] => {
+  const steps: AlgorithmStep[] = [];
+  let stepIndex = 0;
+
+  const kEff = Math.min(kVal, nVal - kVal);
+
+  const createArraySnapshot = (
+    resultVal: number,
+    termLabel: string,
+    termValue: string,
+    isDone: boolean = false,
+  ) => {
+    const elements: ArrayElement[] = [
+      {
+        id: "result",
+        label: "Result C(n,k)",
+        value: resultVal,
+        state: isDone ? "sorted" : "active",
+      },
+      {
+        id: "term",
+        label: termLabel,
+        value: termValue,
+        state: isDone ? "sorted" : "compared",
+      },
+    ];
+
+    return {
+      kind: "array" as const,
+      name: "multiplicative_terms",
+      elements,
+    };
+  };
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `We compute C(${nVal}, ${kVal}) directly using iterative multiplication, leveraging symmetry k = min(${kVal}, ${nVal - kVal}) = ${kEff} and starting with result = 1.`,
+      primarySnapshot: createArraySnapshot(1, "Symmetry k", `${kEff}`),
+    }),
+  );
+
+  let result = 1;
+  for (let i = 1; i <= kEff; i++) {
+    const termNum = nVal - i + 1;
+    const termDen = i;
+    result = Math.floor((result * termNum) / termDen);
+
+    steps.push(
+      createTutorialStep({
+        stepIndex: stepIndex++,
+        phase: "walkthrough",
+        narrative: `On loop index ${i}, we multiply the current result by term ${termNum} and divide by ${termDen}, advancing the result to ${result}.`,
+        primarySnapshot: createArraySnapshot(result, `Step i=${i}`, `${termNum} / ${termDen}`),
+      }),
+    );
+  }
+
+  steps.push(
+    createTutorialStep({
+      stepIndex: stepIndex++,
+      phase: "walkthrough",
+      narrative: `The multiplicative calculation finishes with C(${nVal}, ${kVal}) = ${result}, computing the binomial coefficient directly in O(k) time and O(1) space.`,
+      primarySnapshot: createArraySnapshot(result, "Final Answer", `${result}`, true),
+    }),
+  );
+
+  return steps;
+};
+
+export const generateBinomialCoefficientsPascalSteps = (
+  input?: BinomialCoefficientsInput,
+): AlgorithmStep[] => {
+  const safeInput = input ?? DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT;
+  const safeN = Number.isFinite(safeInput?.n)
+    ? Math.floor(safeInput.n)
+    : DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT.n;
+  const safeK = Number.isFinite(safeInput?.k)
+    ? Math.floor(safeInput.k)
+    : DEFAULT_BINOMIAL_COEFFICIENTS_PASCAL_INPUT.k;
+
+  const nVal = Math.min(10, Math.max(0, safeN));
+  const kVal = Math.min(nVal, Math.max(0, safeK));
+
+  if (nVal === 4 && kVal === 2) {
+    return generate2DMatrixSteps(4, 2);
+  }
+  if (nVal === 6 && kVal === 2) {
+    return generateMultiplicativeSteps(6, 2);
+  }
+  return generate1DArraySteps(nVal, kVal);
 };
 
 export const BINOMIAL_COEFFICIENTS_PASCAL_TOPIC_GUIDE: TopicGuide = {
@@ -316,35 +451,38 @@ export const binomialCoefficientsPascal: AlgorithmDefinition<BinomialCoefficient
     {
       kind: "basic",
       scenario: "standard",
-      title: "Standard Combination C(5, 3)",
+      title: "1D DP (In-Place Array) C(5, 3)",
       inputDisplay: "n = 5, k = 3",
       outputDisplay: "C(5, 3) = 10",
       input: { n: 5, k: 3 },
       output: "10",
-      explanation: "5! / (3! * 2!) = 10.",
+      explanation: "Computes C(5, 3) in O(k) space using a 1D array updated in reverse.",
     },
     {
       kind: "negative",
       scenario: "boundary",
-      title: "Boundary Case C(4, 0)",
-      inputDisplay: "n = 4, k = 0",
-      outputDisplay: "C(4, 0) = 1",
-      input: { n: 4, k: 0 },
-      output: "1",
-      explanation: "There is exactly 1 way to choose 0 items from 4.",
+      title: "2D DP Matrix C(4, 2)",
+      inputDisplay: "n = 4, k = 2",
+      outputDisplay: "C(4, 2) = 6",
+      input: { n: 4, k: 2 },
+      output: "6",
+      explanation:
+        "Fills a 5x3 2D Pascal table cell by cell using C(i, j) = C(i-1, j-1) + C(i-1, j).",
     },
     {
       kind: "complex",
       scenario: "adversarial",
-      title: "Symmetric Property C(6, 2)",
+      title: "Multiplicative O(k) Method C(6, 2)",
       inputDisplay: "n = 6, k = 2",
       outputDisplay: "C(6, 2) = 15",
       input: { n: 6, k: 2 },
       output: "15",
-      explanation: "C(6, 2) = C(6, 4) = 15.",
+      explanation:
+        "Computes C(6, 2) in O(k) time and O(1) space via iterative term multiplication.",
     },
   ],
   code: PYTHON_BINOMIAL_COEFFICIENTS_PASCAL_CODE,
+  codeVariants: BINOMIAL_COEFFICIENTS_PASCAL_VARIANTS,
   timeComplexity: {
     best: "O(N * K)",
     average: "O(N * K)",

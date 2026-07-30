@@ -122,6 +122,9 @@ export function adaptAlgorithmDefinition(algorithm: AlgorithmDefinition): Algori
     get code() {
       return algorithm.code;
     },
+    get codeVariants() {
+      return algorithm.codeVariants;
+    },
     get execution() {
       return getPythonExecutionSpec(algorithm.id);
     },
