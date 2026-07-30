@@ -28,6 +28,26 @@ export const MainStage: React.FC<MainStageProps> = ({
   layoutState,
   totalSteps,
 }) => {
+  const [selectedVariantId, setSelectedVariantId] = React.useState<string | undefined>(
+    () => algorithm.codeVariants?.[0]?.id,
+  );
+
+  React.useEffect(() => {
+    setSelectedVariantId(algorithm.codeVariants?.[0]?.id);
+  }, [algorithm.id, algorithm.codeVariants]);
+
+  const activeVariant = React.useMemo(() => {
+    if (!algorithm.codeVariants || algorithm.codeVariants.length === 0) return undefined;
+    return (
+      algorithm.codeVariants.find((variant) => variant.id === selectedVariantId) ??
+      algorithm.codeVariants[0]
+    );
+  }, [algorithm.codeVariants, selectedVariantId]);
+
+  const timeComplexity = activeVariant?.timeComplexity ?? algorithm.timeComplexity;
+  const spaceComplexity = activeVariant?.spaceComplexity ?? algorithm.spaceComplexity;
+  const complexityAnalysis = activeVariant?.complexityAnalysis ?? algorithm.complexityAnalysis;
+
   const narrative = getStepNarrative(currentStep);
   const showTutorial = panels.tutorial && Boolean(narrative);
 
@@ -100,6 +120,9 @@ export const MainStage: React.FC<MainStageProps> = ({
             itemId={algorithm.id}
             itemTitle={algorithm.title}
             referenceCode={algorithm.code}
+            codeVariants={algorithm.codeVariants}
+            selectedVariantId={selectedVariantId}
+            onVariantChange={setSelectedVariantId}
             variables={currentStep?.variables}
             lineExplanations={algorithm.trivia?.lineExplanations}
             executionSpec={getPythonExecutionSpec(algorithm.id)}
@@ -116,9 +139,9 @@ export const MainStage: React.FC<MainStageProps> = ({
       height: layoutState.layout.panelHeights.complexity,
       content: (
         <ComplexityCard
-          timeComplexity={algorithm.timeComplexity}
-          spaceComplexity={algorithm.spaceComplexity}
-          complexityAnalysis={algorithm.complexityAnalysis}
+          timeComplexity={timeComplexity}
+          spaceComplexity={spaceComplexity}
+          complexityAnalysis={complexityAnalysis}
         />
       ),
     },

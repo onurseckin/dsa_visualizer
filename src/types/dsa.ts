@@ -661,6 +661,16 @@ export function getAlgorithmSources(alg: {
   return result;
 }
 
+export interface CodeVariant {
+  readonly id: string;
+  readonly label: string;
+  readonly code: string;
+  readonly description?: string;
+  readonly timeComplexity?: TimeComplexity;
+  readonly spaceComplexity?: string;
+  readonly complexityAnalysis?: ComplexityAnalysis;
+}
+
 export interface AlgorithmDefinition<TInput = unknown> {
   id: string;
   title: string;
@@ -670,6 +680,7 @@ export interface AlgorithmDefinition<TInput = unknown> {
   constraints?: string[];
   examples?: ProblemExample<TInput>[];
   code: string;
+  codeVariants?: readonly CodeVariant[];
   timeComplexity: TimeComplexity;
   spaceComplexity: string;
   complexityAnalysis: ComplexityAnalysis;

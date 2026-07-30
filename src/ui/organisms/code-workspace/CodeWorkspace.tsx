@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { playgroundDraftStorage, type DraftStorage } from "../../../playground/draftStorage";
 import { createHybridPythonRunner, selectPythonRuntime } from "../../../playground/runnerSelector";
 import { executionErrorResult, type PythonRunner } from "../../../playground/types";
-import type { DisplayValue } from "../../../types/dsa";
+import type { CodeVariant, DisplayValue } from "../../../types/dsa";
 import { Button } from "../../atoms/Button";
 import { Kbd } from "../../atoms/Kbd";
 import { CodeBlockViewer } from "../../molecules/CodeBlockViewer";
@@ -21,6 +21,9 @@ const CODE_WORKSPACE_TABS = ["reference", "playground", "output"] as const;
 
 export interface CodeWorkspaceProps {
   readonly activeLine?: number;
+  readonly codeVariants?: readonly CodeVariant[];
+  readonly selectedVariantId?: string;
+  readonly onVariantChange?: (variantId: string) => void;
   readonly draftStorage?: DraftStorage;
   readonly executionSpec?: PythonExecutionSpec;
   readonly isPinned?: boolean;
@@ -43,6 +46,9 @@ let runSequence = 0;
 
 export function CodeWorkspace({
   activeLine,
+  codeVariants,
+  selectedVariantId,
+  onVariantChange,
   draftStorage = playgroundDraftStorage,
   executionSpec,
   isPinned = false,
@@ -55,7 +61,28 @@ export function CodeWorkspace({
   variables,
 }: CodeWorkspaceProps): React.ReactElement {
   const [tab, setTab] = useState<CodeWorkspaceTab>("reference");
+  const [internalVariantId, setInternalVariantId] = useState<string | undefined>(
+    () => codeVariants?.[0]?.id,
+  );
   const [draft, setDraft] = useState(() => draftStorage.load(itemId, starterCode));
+
+  useEffect(() => {
+    setInternalVariantId(codeVariants?.[0]?.id);
+  }, [itemId, codeVariants]);
+
+  const activeVariantId = selectedVariantId ?? internalVariantId;
+
+  const handleVariantSelect = (variantId: string) => {
+    setInternalVariantId(variantId);
+    onVariantChange?.(variantId);
+  };
+
+  const activeVariant = useMemo(() => {
+    if (!codeVariants || codeVariants.length === 0) return undefined;
+    return codeVariants.find((v) => v.id === activeVariantId) ?? codeVariants[0];
+  }, [codeVariants, activeVariantId]);
+
+  const activeReferenceCode = activeVariant?.code ?? referenceCode;
   const [selectedCaseIds, setSelectedCaseIds] = useState<readonly string[]>(
     () => executionSpec?.cases.map((testCase) => testCase.id) ?? [],
   );
@@ -241,7 +268,7 @@ export function CodeWorkspace({
 
   const handleCopyCode = async () => {
     try {
-      await navigator.clipboard.writeText(referenceCode);
+      await navigator.clipboard.writeText(activeReferenceCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -318,13 +345,39 @@ export function CodeWorkspace({
         className="code-workspace__body"
       >
         {tab === "reference" && (
-          <CodeBlockViewer
-            code={referenceCode}
-            activeLine={activeLine}
-            variables={variables}
-            lineExplanations={lineExplanations}
-            isPinned={isPinned}
-          />
+          <div className="code-workspace__reference">
+            {codeVariants && codeVariants.length > 0 && (
+              <div className="code-workspace__variant-bar">
+                <div className="code-workspace__variant-actions">
+                  {codeVariants.map((variant) => {
+                    const isSelected = activeVariant?.id === variant.id;
+                    return (
+                      <Button
+                        key={variant.id}
+                        type="button"
+                        size="sm"
+                        variant={isSelected ? "primary" : "secondary"}
+                        aria-pressed={isSelected}
+                        onClick={() => handleVariantSelect(variant.id)}
+                      >
+                        {variant.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                {activeVariant?.description && (
+                  <span className="code-workspace__variant-desc">{activeVariant.description}</span>
+                )}
+              </div>
+            )}
+            <CodeBlockViewer
+              code={activeReferenceCode}
+              activeLine={activeLine}
+              variables={variables}
+              lineExplanations={lineExplanations}
+              isPinned={isPinned}
+            />
+          </div>
         )}
       </div>
 
@@ -341,7 +394,11 @@ export function CodeWorkspace({
               <Button size="sm" variant="secondary" onClick={() => updateDraft("")}>
                 Start blank
               </Button>
-              <Button size="sm" variant="secondary" onClick={() => updateDraft(referenceCode)}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => updateDraft(activeReferenceCode)}
+              >
                 Copy reference
               </Button>
               <Button size="sm" variant="ghost" onClick={resetDraft}>
