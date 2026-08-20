@@ -1,10 +1,11 @@
 import { MLTopicQuestionBank } from "./types";
-import { domain01to05 } from "./domain01to05";
-import { domain06to10 } from "./domain06to10";
+import { domain01to02 } from "./domain01to02";
+import { domain03to04 } from "./domain03to04";
+import { domain05to10 } from "./domain05to10";
 
 export const ML_QUESTION_BANKS: Record<string, MLTopicQuestionBank> = {};
 
-const allBanks = [...domain01to05, ...domain06to10];
+const allBanks: MLTopicQuestionBank[] = [...domain01to02, ...domain03to04, ...domain05to10];
 
 for (const bank of allBanks) {
   ML_QUESTION_BANKS[bank.topicId] = bank;
@@ -17,3 +18,6 @@ export function getMlTopicQuestionBank(topicId: string): MLTopicQuestionBank {
   }
   return bank;
 }
+
+export * from "./types";
+export { domain01to02, domain03to04, domain05to10 };

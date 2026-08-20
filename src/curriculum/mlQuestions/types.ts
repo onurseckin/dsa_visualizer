@@ -36,6 +36,49 @@ export interface ExecutableContract {
   pythonCode: string;
 }
 
+export interface CodeVariant {
+  id: string;
+  label: string;
+  code: string;
+  timeComplexity: string;
+  spaceComplexity: string;
+  description: string;
+}
+
+export interface ComplexityAnalysis {
+  timeComplexity: string;
+  spaceComplexity: string;
+  breakdown: string;
+}
+
+export interface TopicGuideTerm {
+  term: string;
+  definition: string;
+}
+
+export interface TopicGuideSection {
+  heading: string;
+  body: string;
+}
+
+export interface TopicGuide {
+  overview: string;
+  keyTerms: TopicGuideTerm[];
+  sections: TopicGuideSection[];
+}
+
+export interface TutorialAlignment {
+  phase1_intro: string;
+  phase2_walkthrough: string;
+  phase3_scenarios: string[];
+}
+
+export interface VisualizerSchema {
+  canvasType: string;
+  stateVariables: Record<string, string>;
+  colorMapping: Record<string, string>;
+}
+
 export interface MLTopicQuestionBank {
   topicId: string;
   title: string;
@@ -45,4 +88,9 @@ export interface MLTopicQuestionBank {
   partC_systemsQuestions: SystemsQuestion[];
   partD_stressTests: StressTest[];
   executableContract: ExecutableContract;
+  codeVariants: CodeVariant[];
+  complexityAnalysis: ComplexityAnalysis;
+  topicGuide: TopicGuide;
+  tutorialAlignment: TutorialAlignment;
+  visualizerSchema: VisualizerSchema;
 }
