@@ -126,7 +126,7 @@ export function verifyCompose(config: ComposeConfig): void {
     if (service.build === undefined) fail(`${name} must define build.`);
   }
 
-  if (commandValue(web.command) !== "bun run vite --host 0.0.0.0") {
+  if (commandValue(web.command) !== "bun run vite --host 0.0.0.0 --port 42000") {
     fail("web must run Vite in Docker development mode.");
   }
   if (objectValues(web.environment).VITE_USE_DOCKER_API !== "1") {
@@ -135,11 +135,11 @@ export function verifyCompose(config: ComposeConfig): void {
   const webPorts = publishedPorts(web.ports);
   if (
     webPorts.length !== 1 ||
-    webPorts[0].target !== 5173 ||
-    webPorts[0].published !== "5173" ||
+    webPorts[0].target !== 42000 ||
+    webPorts[0].published !== "42000" ||
     webPorts[0].hostIp !== undefined
   ) {
-    fail("web must publish host port 5173 to container port 5173.");
+    fail("web must publish host port 42000 to container port 42000.");
   }
   if (!hasWatchEntry(web, "sync", ".", "/app")) {
     fail("web must sync the workspace into /app.");

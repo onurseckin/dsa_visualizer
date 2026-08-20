@@ -37,7 +37,7 @@ bun run start
 ```
 
 `bun run dev` is an equivalent Docker-watch command. Open
-`http://localhost:5173`. Only the web service publishes a host port. Vite
+`http://localhost:42000`. Only the web service publishes a host port. Vite
 forwards `/api` to the API container, and the API reaches the runner over a
 separate internal network. The API and Python runner have no host ports.
 

@@ -44,6 +44,7 @@ export default defineConfig({
   server:
     process.env.VITE_USE_DOCKER_API === "1"
       ? {
+          port: 42000,
           proxy: { "/api": "http://api:3000" },
           headers: {
             "Cross-Origin-Opener-Policy": "same-origin",
@@ -51,9 +52,13 @@ export default defineConfig({
           },
         }
       : {
+          port: 42000,
           headers: {
             "Cross-Origin-Opener-Policy": "same-origin",
             "Cross-Origin-Embedder-Policy": "require-corp",
           },
         },
+  preview: {
+    port: 42173,
+  },
 });

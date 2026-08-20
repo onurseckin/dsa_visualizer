@@ -5,11 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
-    command: bun run vite --host 0.0.0.0
+    command: bun run vite --host 0.0.0.0 --port 42000
     environment:
       VITE_USE_DOCKER_API: "1"
     ports:
-      - "5173:5173"
+      - "42000:42000"
     depends_on:
       api:
         condition: service_healthy

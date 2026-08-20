@@ -128,7 +128,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   const portsToClear =
     args.length > 0
       ? args.map((arg) => parseInt(arg, 10)).filter((p) => !isNaN(p) && p > 0)
-      : [5173, 4173];
+      : [42000, 42173];
 
   for (const port of portsToClear) {
     await freePort(port);

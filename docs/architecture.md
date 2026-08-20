@@ -15,7 +15,7 @@ web (Vite + React + HMR) ──/api──► API (Bun + SQLite) ──runner net
              └──Web Worker──► Pyodide + NumPy
 ```
 
-Only `web` publishes host port 5173. Vite forwards API requests to `api` on the
+Only `web` publishes host port 42000. Vite forwards API requests to `api` on the
 application network. `python-runner` is reachable only from the API over the
 internal runner network. Compose health checks gate service startup. Compose
 watch syncs web and API source into their services, and syncs then restarts the

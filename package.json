@@ -18,7 +18,7 @@
     "shell:api": "docker compose exec api sh",
     "shell:runner": "docker compose exec python-runner sh",
     "clean": "docker compose down --volumes",
-    "dev:local": "bun run scripts/freePort.ts 5173 && vite",
+    "dev:local": "bun run scripts/freePort.ts 42000 && vite --port 42000",
     "start:local": "bun run dev:local",
     "typecheck": "tsc --noEmit",
     "generate-routes": "tsr generate",
@@ -30,7 +30,7 @@
     "audit:catalog": "bun run scripts/auditCatalog.ts",
     "audit:visualizers": "bun run scripts/auditVisualizers.ts",
     "build": "tsc && vite build",
-    "kill-ports:local": "bun run scripts/freePort.ts 5173 4173",
+    "kill-ports:local": "bun run scripts/freePort.ts 42000 42173",
     "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run audit:catalog && bun run build"
   },
   "dependencies": {
