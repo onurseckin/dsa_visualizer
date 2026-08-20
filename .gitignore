@@ -4,6 +4,7 @@ dist
 *.log
 coverage
 coverage_dir/
+.coverage_dir/
 playwright-report/
 test-results/
 .tmp/
