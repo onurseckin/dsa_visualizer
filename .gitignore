@@ -11,3 +11,4 @@ data/
 *.sqlite
 __pycache__/
 *.pyc
+.capsules/

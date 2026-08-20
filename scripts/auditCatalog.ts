@@ -85,10 +85,10 @@ function auditCountsAndTopics(): void {
   const mlCatalogIds = TOPIC_CATALOG.filter(({ track }) => track === "ml-infra").map(
     ({ id }) => id,
   );
-  check(mlCatalogIds.length === 23, `expected 23 ML topics, received ${mlCatalogIds.length}`);
+  check(mlCatalogIds.length === 41, `expected 41 ML topics, received ${mlCatalogIds.length}`);
   check(
-    ML_INFRA_TREE_PLACEMENTS.length === 23,
-    `expected 23 ML placements, received ${ML_INFRA_TREE_PLACEMENTS.length}`,
+    ML_INFRA_TREE_PLACEMENTS.length === 41,
+    `expected 41 ML placements, received ${ML_INFRA_TREE_PLACEMENTS.length}`,
   );
   for (const placement of ML_INFRA_TREE_PLACEMENTS) {
     const items = ML_INFRA_LEARNING_ITEMS.filter(({ topicIds }) =>
