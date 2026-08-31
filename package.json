@@ -29,9 +29,11 @@
     "compose:check": "bun run scripts/checkCompose.ts",
     "audit:catalog": "bun run scripts/auditCatalog.ts",
     "audit:visualizers": "bun run scripts/auditVisualizers.ts",
+    "modularity:staged": "bun scripts/modularity/check.ts --mode ratchet --source index",
+    "modularity:check": "bun scripts/modularity/check.ts --mode ratchet --source tree",
     "build": "tsc && vite build",
     "kill-ports:local": "bun run scripts/freePort.ts 42000 42173",
-    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run audit:catalog && bun run build"
+    "check": "bun run typecheck && bun run format:check && bun run lint && bun run intent:check && bun run compose:check && bun run audit:catalog && bun run modularity:check && bun run build"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-rc.0",
@@ -60,6 +62,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "lefthook": "^2.1.10",
     "oxfmt": "^0.60.0",
     "oxlint": "^1.75.0",
     "typescript": "^7.0.2",

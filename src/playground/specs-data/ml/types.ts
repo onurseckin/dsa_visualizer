@@ -1,0 +1,32 @@
+import type {
+  JsonValue,
+  PythonExecutionSpec,
+  PythonPackage,
+} from "@dsa-visualizer/execution-contracts";
+
+export interface MlExecutionAuditSeed {
+  readonly signature: string;
+  readonly defaultInputShape: string;
+  readonly argumentMapping: readonly string[];
+  readonly mutation: string;
+  readonly returnBehavior: string;
+}
+
+export interface MlExecutionEntry {
+  readonly id: string;
+  readonly starterCode: string;
+  readonly audit: MlExecutionAuditSeed & {
+    readonly symbol: string;
+    readonly invocation: PythonExecutionSpec["invocation"]["kind"];
+    readonly packages: readonly PythonPackage[];
+  };
+  readonly spec: PythonExecutionSpec;
+}
+
+export interface MlCaseFixture {
+  readonly label: string;
+  readonly input: JsonValue;
+  readonly expected: JsonValue;
+  readonly comparison?: PythonExecutionSpec["cases"][number]["comparison"];
+  readonly tolerance?: number;
+}

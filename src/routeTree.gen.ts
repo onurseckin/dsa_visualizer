@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MlInfraRouteImport } from './routes/ml-infra'
 import { Route as ProblemsRouteImport } from './routes/problems'
 import { Route as TriviaRouteImport } from './routes/trivia'
+import { Route as LearnRouteImport } from './routes/learn'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
 import { Route as WorkspaceAlgorithmIdRouteImport } from './routes/workspace.$algorithmId'
 
@@ -36,6 +37,11 @@ const TriviaRoute = TriviaRouteImport.update({
   path: '/trivia',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LearnRoute = LearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
   id: '/workspace/',
   path: '/workspace/',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
+  '/learn': typeof LearnRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
+  '/learn': typeof LearnRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace': typeof WorkspaceIndexRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
+  '/learn': typeof LearnRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/ml-infra'
     | '/problems'
     | '/trivia'
+    | '/learn'
     | '/workspace/$algorithmId'
     | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/ml-infra'
     | '/problems'
     | '/trivia'
+    | '/learn'
     | '/workspace/$algorithmId'
     | '/workspace'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/ml-infra'
     | '/problems'
     | '/trivia'
+    | '/learn'
     | '/workspace/$algorithmId'
     | '/workspace/'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   MlInfraRoute: typeof MlInfraRoute
   ProblemsRoute: typeof ProblemsRoute
   TriviaRoute: typeof TriviaRoute
+  LearnRoute: typeof LearnRoute
   WorkspaceAlgorithmIdRoute: typeof WorkspaceAlgorithmIdRoute
   WorkspaceIndexRoute: typeof WorkspaceIndexRoute
 }
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriviaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/learn': {
+      id: '/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof LearnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/workspace/': {
       id: '/workspace/'
       path: '/workspace'
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   MlInfraRoute: MlInfraRoute,
   ProblemsRoute: ProblemsRoute,
   TriviaRoute: TriviaRoute,
+  LearnRoute: LearnRoute,
   WorkspaceAlgorithmIdRoute: WorkspaceAlgorithmIdRoute,
   WorkspaceIndexRoute: WorkspaceIndexRoute,
 }

@@ -47,7 +47,9 @@ visualizations, and retrieval-practice trivia. Read [README.md](README.md) for s
 | `bun run build` | Typecheck and create the standalone `dist/` quality artifact |
 | `bun run audit:catalog` | Verify exact active counts, Python assets, sources, and retirement |
 | `bun run audit:visualizers` | Report tutorial migration and primitive-authoring health |
-| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog audit, and standalone build |
+| `bun run modularity:staged` | Verify staged changes against modularity baseline in Git index mode |
+| `bun run modularity:check` | Verify whole-tree modularity compliance against baseline |
+| `bun run check` | Typecheck, format, lint, Intent, Compose, catalog audit, modularity, and build |
 
 `src/routeTree.gen.ts` is generated. Never edit it by hand. Keep the TanStack Router
 plugin before React in `vite.config.ts` and use `bun run generate-routes` when a route
@@ -188,6 +190,44 @@ canonical `defineDsaExecution` contract.
 Do not write, generate, or require unit, component, integration, or end-to-end tests
 in plans or implementation work. Verify changes with the relevant non-test commands,
 such as typecheck, formatting, lint, catalog audit, Compose validation, and build.
+
+## Codebase modularity and pre-commit invariants
+
+All agents and contributors must strictly obey the modularity and pre-commit rules:
+
+1. **Mandatory Pre-Commit Hook (`lefthook.yml`)**:
+   - Lefthook is configured as the active git pre-commit hook manager.
+   - On every commit, it automatically runs:
+     - Global TypeScript typecheck (`bun run typecheck`).
+     - Staged-file linting with zero warnings (`oxlint --deny-warnings`).
+     - Staged-file formatting check (`oxfmt --check`).
+     - Modularity ratchet validation on staged index blobs (`bun run modularity:staged`).
+   - Commits that introduce new modularity violations, worsen line metrics, or violate quality gates will be rejected.
+
+2. **Strict File Line Budget ($\le 300$ Physical Lines)**:
+   - Other than markdown documentation (`.md`) and curriculum question files, **no source or configuration file may exceed 300 physical lines of code**.
+   - Larger components or utilities must be decomposed into focused submodules.
+
+3. **Strict Directory Fanout Budget ($\le 10$ Files)**:
+   - Any folder containing more than 10 direct `.ts` or `.tsx` files must be further modularized into semantic subfolders.
+
+4. **Semantic Naming Law**:
+   - When modularizing subfolders, arbitrary, meaningless, or numeric sequence partitioning (e.g. `chapter-01`, `chapter-02`, `part-1`, `misc`, `helpers2`) is **strictly prohibited** unless directly representing genuine published book chapters.
+   - All subfolders must maintain clear, domain-level semantic meaning reflecting their architectural responsibility (e.g., `components/`, `hooks/`, `geometry/`, `rendering/`, `session/`).
+
+5. **Explicit Named Facade Invariant**:
+   - Every TypeScript module directory must expose an explicit `index.ts` (or `index.tsx`) facade with named exports.
+   - Wildcard exports (`export * from ...`) are strictly prohibited to maintain deterministic AST import graphs and avoid namespace pollution.
+
+6. **Zero Facade Bypass**:
+   - Cross-directory imports must strictly target the destination directory's `index.ts` facade (e.g., `import { Foo } from "../components/index.ts"`), never reaching across directory boundaries to private internal submodule files.
+
+7. **Zero Circular Dependencies**:
+   - Import graphs must form a strict directed acyclic graph (DAG). Dependency cycles (strongly connected components) are strictly prohibited.
+
+8. **Modularity Ratchet & Baseline**:
+   - Baseline violations are tracked in `scripts/modularity/baseline/index.json`.
+   - The ratchet prevents any new violation or worsening of existing metrics while allowing improvements to resolve cleanly.
 
 ## Working in a shared checkout
 

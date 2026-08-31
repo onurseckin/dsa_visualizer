@@ -1,0 +1,1 @@
+export const isTestDirectory = true;

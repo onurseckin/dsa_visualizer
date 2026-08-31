@@ -8,7 +8,7 @@ coverage_dir/
 playwright-report/
 test-results/
 .tmp/
-data/
+/data/
 *.sqlite
 __pycache__/
 *.pyc

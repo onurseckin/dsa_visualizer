@@ -1,7 +1,3 @@
-import type { TopicGuide, TopicGuideSection, TopicGuideTerm } from "../../types/dsa";
-
-export type { TopicGuide, TopicGuideSection, TopicGuideTerm };
-
 export interface LeetCodeProblem {
   title: string;
   url: string;
@@ -40,7 +36,7 @@ export interface ExecutableContract {
   pythonCode: string;
 }
 
-export interface MLCodeVariant {
+export interface CodeVariant {
   id: string;
   label: string;
   code: string;
@@ -49,10 +45,26 @@ export interface MLCodeVariant {
   description: string;
 }
 
-export interface MLComplexityAnalysis {
+export interface ComplexityAnalysis {
   timeComplexity: string;
   spaceComplexity: string;
   breakdown: string;
+}
+
+export interface TopicGuideTerm {
+  term: string;
+  definition: string;
+}
+
+export interface TopicGuideSection {
+  heading: string;
+  body: string;
+}
+
+export interface TopicGuide {
+  overview: string;
+  keyTerms: TopicGuideTerm[];
+  sections: TopicGuideSection[];
 }
 
 export interface TutorialAlignment {
@@ -76,8 +88,8 @@ export interface MLTopicQuestionBank {
   partC_systemsQuestions: SystemsQuestion[];
   partD_stressTests: StressTest[];
   executableContract: ExecutableContract;
-  codeVariants: MLCodeVariant[];
-  complexityAnalysis: MLComplexityAnalysis;
+  codeVariants: CodeVariant[];
+  complexityAnalysis: ComplexityAnalysis;
   topicGuide: TopicGuide;
   tutorialAlignment: TutorialAlignment;
   visualizerSchema: VisualizerSchema;

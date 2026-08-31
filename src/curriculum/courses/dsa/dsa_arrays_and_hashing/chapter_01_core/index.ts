@@ -1,0 +1,22 @@
+import type { CourseChapter } from "../../../../courseTypes";
+import { page1 as page_1 } from "./page_01_mental_model";
+import { page2 as page_2 } from "./page_02_math_and_code";
+import { page3 as page_3 } from "./page_03_systems_and_bugs";
+
+export const chapter_1: CourseChapter = {
+  id: "dsa_arrays_and_hashing_chapter_01_core",
+  chapterNumber: 1,
+  title: "Core Mechanics",
+  subtitle: "First principles and architectural foundations",
+  estimatedMinutes: 45,
+  sections: [],
+  pages: [page_1, page_2, page_3],
+};
+
+export const chapter = chapter_1;
+export const chapter_01 = chapter_1;
+export const chapter_02 = chapter_1;
+export const chapter1 = chapter_1;
+export const chapter2 = chapter_1;
+export const chapter_01_core = chapter_1;
+export const chapter_N_practice_laboratory = chapter_1;

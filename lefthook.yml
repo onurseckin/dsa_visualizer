@@ -1,0 +1,18 @@
+# Lefthook Git Hooks Configuration
+#
+# Pre-commit runs whole-tree typecheck, staged-only lint and format checks, and modularity ratchet checks.
+# Zero-tolerance: Pass or error only, zero warnings allowed, fail-fast quality gates.
+
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      run: bun run typecheck
+    lint:
+      glob: "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}"
+      run: bunx oxlint --deny-warnings --no-error-on-unmatched-pattern {staged_files}
+    format-check:
+      glob: "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,md,yaml,yml}"
+      run: bunx oxfmt --check --no-error-on-unmatched-pattern {staged_files}
+    modularity:
+      run: bun run modularity:staged
