@@ -1,35 +1,40 @@
 import React, { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { ALL_COURSE_JOURNEYS, getCourseJourney } from "../curriculum";
+import {
+  ALL_COURSE_JOURNEYS,
+  DSA_COURSE_JOURNEYS,
+  getCourseJourney,
+  ML_COURSE_JOURNEYS,
+} from "../curriculum";
 import { CoursePlayerStage } from "../components/curriculum";
 
 interface LearnSearch {
   topic?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const Route = createFileRoute("/learn" as any)({
+/** Falls back to a course with a dedicated in-canvas visualizer when no topic is pinned. */
+const DEFAULT_TOPIC_ID = "dsa_graph_flows_and_cuts";
+
+export const Route = createFileRoute("/learn")({
+  // Unknown or blank topics collapse to the default course instead of erroring so
+  // shared or mistyped URLs still open the catalog.
   validateSearch: (
     search: Record<string, string | number | boolean | undefined | null | object>,
   ): LearnSearch => {
-    const topic = typeof search.topic === "string" ? search.topic : undefined;
-    return {
-      topic: topic && topic.trim() ? topic.trim() : undefined,
-    };
+    const topic = typeof search.topic === "string" ? search.topic.trim() : "";
+    return topic ? { topic } : {};
   },
   component: LearnPage,
 });
 
-export function LearnPage(): React.ReactElement {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const search = ((Route.useSearch ? Route.useSearch() : {}) ?? {}) as LearnSearch;
-  const topic = search.topic;
-  const navigate = Route.useNavigate ? Route.useNavigate() : undefined;
+function LearnPage(): React.ReactElement {
+  const { topic } = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTrack, setSelectedTrack] = useState<"all" | "dsa" | "ml-infra">("all");
 
-  const selectedTopicId = topic && getCourseJourney(topic) ? topic : "dsa_graph_flows_and_cuts";
+  const selectedTopicId = topic && getCourseJourney(topic) ? topic : DEFAULT_TOPIC_ID;
 
   const filteredCourses = useMemo(() => {
     return ALL_COURSE_JOURNEYS.filter((c) => {
@@ -47,13 +52,7 @@ export function LearnPage(): React.ReactElement {
   }, [searchQuery, selectedTrack]);
 
   const handleSelectTopic = (nextTopicId: string) => {
-    if (navigate) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      navigate({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        search: ((prev: any) => ({ ...prev, topic: nextTopicId })) as any,
-      });
-    }
+    navigate({ search: (prev) => ({ ...prev, topic: nextTopicId }) });
   };
 
   return (
@@ -83,7 +82,7 @@ export function LearnPage(): React.ReactElement {
         {/* Search & Filter Header */}
         <div style={{ padding: "16px", borderBottom: "1px solid #1e293b" }}>
           <h2 style={{ fontSize: "14px", fontWeight: 700, margin: "0 0 10px 0", color: "#f8fafc" }}>
-            Curriculum Catalog (64 Courses)
+            Curriculum Catalog ({ALL_COURSE_JOURNEYS.length} Courses)
           </h2>
           <input
             type="text"
@@ -106,8 +105,8 @@ export function LearnPage(): React.ReactElement {
           <div style={{ display: "flex", gap: "6px", marginTop: "10px" }}>
             {[
               { id: "all", label: "All" },
-              { id: "dsa", label: "DSA (23)" },
-              { id: "ml-infra", label: "ML Infra (41)" },
+              { id: "dsa", label: `DSA (${DSA_COURSE_JOURNEYS.length})` },
+              { id: "ml-infra", label: `ML Infra (${ML_COURSE_JOURNEYS.length})` },
             ].map((t) => (
               <button
                 key={t.id}
@@ -194,7 +193,7 @@ export function LearnPage(): React.ReactElement {
 
       {/* Main Content Area: Master Course Player Stage */}
       <div style={{ flex: 1, padding: "24px", overflowY: "auto" }}>
-        <CoursePlayerStage topicId={selectedTopicId} onTopicChange={handleSelectTopic} />
+        <CoursePlayerStage topicId={selectedTopicId} />
       </div>
     </div>
   );

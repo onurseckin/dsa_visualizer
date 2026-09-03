@@ -87,65 +87,53 @@ export interface SessionSummaryReport {
 }
 
 /**
- * Extracts structured questions from any 4-part QuestionBankSuiteSection variant.
+ * Projects the 4-part question bank suite onto the flat Socratic diagnostic question list.
+ * Each part contributes at most its first entry: the dialogue walks one question per part.
  */
 export function extractQuestionsFromSuite(
   suite?: QuestionBankSuiteSection,
 ): readonly SocraticDiagnosticQuestion[] {
   if (!suite) return [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anySuite = suite as any;
-  if (anySuite.questions && anySuite.questions.length > 0) {
-    return anySuite.questions;
-  }
 
   const questions: SocraticDiagnosticQuestion[] = [];
 
   // Part A: DSA Coding
-  const partA = anySuite.partA_dsaCoding || anySuite.partA_coding;
-  if (partA && partA.length > 0) {
-    const qA = partA[0];
+  const qA = suite.partA_dsaCoding?.[0];
+  if (qA) {
     questions.push({
       title: `Part A (Algorithmic Invariant): ${qA.title}`,
-      prompt: `${qA.description ?? qA.prompt ?? qA.title}\n\n**Task:** Formalize the exact inductive invariant and state the optimal asymptotic time and space complexity.`,
-      referenceSolution: qA.rationale ?? qA.solution,
+      prompt: `${qA.description ?? qA.problemStatement ?? qA.title}\n\n**Task:** Formalize the exact inductive invariant and state the optimal asymptotic time and space complexity.`,
+      referenceSolution: qA.rationale,
     });
   }
 
   // Part B: Mathematical Proofs
-  const partB = anySuite.partB_mathProofs || anySuite.partB_proofs;
-  if (partB && partB.length > 0) {
-    const qB = partB[0];
+  const qB = suite.partB_mathProofs?.[0];
+  if (qB) {
     questions.push({
       title: `Part B (Mathematical Proof): ${qB.title}`,
-      prompt: `${qB.prompt ?? qB.statement ?? qB.title}\n\n**Theorem:** ${qB.theorem ?? qB.proofOutline ?? ""}\n\n**Task:** Provide the first-principles mathematical derivation or induction steps.`,
-      referenceInvariant: qB.theorem ?? qB.proofOutline,
+      prompt: `${qB.prompt ?? qB.statement ?? qB.title}\n\n**Theorem:** ${qB.proofOutline ?? ""}\n\n**Task:** Provide the first-principles mathematical derivation or induction steps.`,
+      referenceInvariant: qB.proofOutline,
     });
   }
 
   // Part C: Systems Failure Scenarios / Questions
-  const partC =
-    anySuite.partC_systemsFailureScenarios ||
-    anySuite.partC_systemsQuestions ||
-    anySuite.partC_systems;
-  if (partC && partC.length > 0) {
-    const qC = partC[0];
+  const qC = suite.partC_systemsQuestions?.[0];
+  if (qC) {
     questions.push({
       title: `Part C (Systems & Silicon Realities): ${qC.title}`,
-      prompt: `${qC.scenario ?? qC.prompt ?? qC.title}\n\n**Hardware Reality:** ${qC.hardwareContext ?? qC.engineeringContext ?? ""}\n\n**Task:** Explain the microarchitectural bottlenecks (L1/L2 cache line alignment, SRAM limits, branch mispredictions).`,
-      expectedHardwareKey: qC.hardwareContext ?? qC.engineeringContext,
+      prompt: `${qC.scenario ?? qC.prompt ?? qC.title}\n\n**Hardware Reality:** ${qC.engineeringContext ?? ""}\n\n**Task:** Explain the microarchitectural bottlenecks (L1/L2 cache line alignment, SRAM limits, branch mispredictions).`,
+      expectedHardwareKey: qC.engineeringContext,
     });
   }
 
   // Part D: Edge-Case Stress Tests
-  const partD =
-    anySuite.partD_edgeCaseStressTests || anySuite.partD_stressTests || anySuite.partD_edgeCases;
-  if (partD && partD.length > 0) {
-    const qD = partD[0];
+  const qD = suite.partD_stressTests?.[0];
+  if (qD) {
     questions.push({
       title: `Part D (Edge-Case Stress Testing): ${qD.title}`,
-      prompt: `${qD.buggyImplementationOrScenario ?? qD.scenario ?? qD.title}\n\n**Stress Case:** ${qD.counterExample ?? qD.failureMode ?? ""}\n\n**Task:** Identify the failure mode and provide the corrected invariant.`,
-      expectedAsymptotics: qD.counterExample ?? qD.failureMode,
+      prompt: `${qD.scenario ?? qD.title}\n\n**Stress Case:** ${qD.failureMode ?? ""}\n\n**Task:** Identify the failure mode and provide the corrected invariant.`,
+      expectedAsymptotics: qD.failureMode,
     });
   }
 

@@ -694,4 +694,4 @@ export interface AlgorithmDefinition<TInput = unknown> {
   defaultInput: TInput;
 }
 
-export type AppView = "ml-infra" | "tree" | "list" | "workspace" | "trivia";
+export type AppView = "ml-infra" | "tree" | "learn" | "list" | "workspace" | "trivia";

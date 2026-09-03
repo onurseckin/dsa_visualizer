@@ -25,7 +25,6 @@ export interface CoursePlayerStageProps {
   readonly topicId: string;
   readonly initialChapterNumber?: number;
   readonly initialPageNumber?: number;
-  readonly onTopicChange?: (topicId: string) => void;
   readonly className?: string;
 }
 
@@ -52,6 +51,16 @@ export const CoursePlayerStage: React.FC<CoursePlayerStageProps> = ({
   const controller = useMemo(() => new TimeTravelController(steps), [steps]);
   const [currentStep, setCurrentStep] = useState(controller.currentStep);
   const [currentDiff, setCurrentDiff] = useState(controller.currentCheckpoint?.forwardDiff);
+
+  // Changing topic or progression stage rebuilds the controller. Re-seed the displayed
+  // step during render (React's documented derive-on-prop-change pattern) so the stepper
+  // bar and state inspector do not keep showing the previous course's trace.
+  const [seededController, setSeededController] = useState(controller);
+  if (seededController !== controller) {
+    setSeededController(controller);
+    setCurrentStep(controller.currentStep);
+    setCurrentDiff(controller.currentCheckpoint?.forwardDiff);
+  }
 
   const handleStepChange = () => {
     setCurrentStep(controller.currentStep);
@@ -255,42 +264,32 @@ export const CoursePlayerStage: React.FC<CoursePlayerStageProps> = ({
 
         {/* Chapter Switcher Tabs */}
         <div style={{ display: "flex", gap: "6px" }}>
-          <button
-            onClick={() => {
-              setActiveChapter(1);
-              setActivePage(1);
-            }}
-            style={{
-              padding: "6px 14px",
-              fontSize: "12px",
-              fontWeight: 600,
-              borderRadius: "6px",
-              border: activeChapter === 1 ? "1px solid #38bdf8" : "1px solid #334155",
-              background: activeChapter === 1 ? "#0284c7" : "#1e293b",
-              color: "#ffffff",
-              cursor: "pointer",
-            }}
-          >
-            Ch 1: Core Foundations
-          </button>
-          <button
-            onClick={() => {
-              setActiveChapter(2);
-              setActivePage(1);
-            }}
-            style={{
-              padding: "6px 14px",
-              fontSize: "12px",
-              fontWeight: 600,
-              borderRadius: "6px",
-              border: activeChapter === 2 ? "1px solid #38bdf8" : "1px solid #334155",
-              background: activeChapter === 2 ? "#0284c7" : "#1e293b",
-              color: "#ffffff",
-              cursor: "pointer",
-            }}
-          >
-            Ch 2: Practice Laboratory
-          </button>
+          {chapters.map((ch: CourseChapter) => {
+            const isActive = activeChapter === ch.chapterNumber;
+            return (
+              <button
+                key={ch.id}
+                onClick={() => {
+                  setActiveChapter(ch.chapterNumber);
+                  setActivePage(1);
+                }}
+                title={ch.title}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                  border: isActive ? "1px solid #38bdf8" : "1px solid #334155",
+                  background: isActive ? "#0284c7" : "#1e293b",
+                  color: "#ffffff",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Ch {ch.chapterNumber}: {ch.title}
+              </button>
+            );
+          })}
         </div>
       </div>
 

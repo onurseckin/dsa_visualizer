@@ -8,6 +8,7 @@ import {
   Code2,
   Eye,
   FileText,
+  GraduationCap,
   Lightbulb,
   LayoutPanelLeft,
   BookOpen,
@@ -41,6 +42,7 @@ export interface NavbarProps {
 const APP_VIEW_OPTIONS = [
   { value: "ml-infra", label: "ML Infra", icon: <BrainCircuit className="w-4 h-4" /> },
   { value: "tree", label: "Knowledge Tree", icon: <Network className="w-4 h-4" /> },
+  { value: "learn", label: "Learn", icon: <GraduationCap className="w-4 h-4" /> },
   { value: "list", label: "Problem List", icon: <List className="w-4 h-4" /> },
   { value: "workspace", label: "Workspace", icon: <LayoutPanelLeft className="w-4 h-4" /> },
   { value: "trivia", label: "Trivia", icon: <Brain className="w-4 h-4" /> },

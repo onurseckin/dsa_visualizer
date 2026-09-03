@@ -25,17 +25,21 @@ function RootShell(): React.ReactElement {
     ? "ml-infra"
     : pathname === "/"
       ? "tree"
-      : pathname.startsWith("/problems")
-        ? "list"
-        : pathname.startsWith("/trivia")
-          ? "trivia"
-          : "workspace";
+      : pathname.startsWith("/learn")
+        ? "learn"
+        : pathname.startsWith("/problems")
+          ? "list"
+          : pathname.startsWith("/trivia")
+            ? "trivia"
+            : "workspace";
 
   const handleSetAppView = (view: AppView) => {
     if (view === "ml-infra") {
       navigate({ to: "/ml-infra" });
     } else if (view === "tree") {
       navigate({ to: "/" });
+    } else if (view === "learn") {
+      navigate({ to: "/learn", search: {} });
     } else if (view === "list") {
       navigate({ to: "/problems", search: {} });
     } else if (view === "trivia") {

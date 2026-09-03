@@ -1,0 +1,476 @@
+- generic [ref=f1e3]:
+  - banner [ref=f1e4]:
+    - navigation "Main Navigation" [ref=f1e5]:
+      - group "App view" [ref=f1e6]:
+        - button "ML Infra" [ref=f1e7] [cursor=pointer]
+        - button "Knowledge Tree" [ref=f1e21] [cursor=pointer]
+        - button "Learn" [pressed] [ref=f1e28] [cursor=pointer]
+        - button "Problem List" [ref=f1e33] [cursor=pointer]
+        - button "Workspace" [ref=f1e36] [cursor=pointer]
+        - button "Trivia" [ref=f1e42] [cursor=pointer]
+    - button "Search algorithms" [ref=f1e55] [cursor=pointer]:
+      - generic [ref=f1e56]: Search algorithms…
+      - generic [ref=f1e61]: /
+  - generic [ref=f1e63]:
+    - generic [ref=f1e64]:
+      - generic [ref=f1e65]:
+        - heading "Curriculum Catalog (64 Courses)" [level=2] [ref=f1e66]
+        - textbox "Search topics, algorithms..." [ref=f1e67]
+        - generic [ref=f1e68]:
+          - button "All" [ref=f1e69] [cursor=pointer]
+          - button "DSA (23)" [ref=f1e70] [cursor=pointer]
+          - button "ML Infra (41)" [ref=f1e71] [cursor=pointer]
+      - generic [ref=f1e72]:
+        - generic [ref=f1e73] [cursor=pointer]:
+          - generic [ref=f1e74]:
+            - generic [ref=f1e75]: DSA
+            - generic [ref=f1e76]: ARRAYS AND HASHING
+          - generic [ref=f1e77]: University-Grade Masterclass Depth
+        - generic [ref=f1e78] [cursor=pointer]:
+          - generic [ref=f1e79]:
+            - generic [ref=f1e80]: DSA
+            - generic [ref=f1e81]: TWO POINTERS
+          - generic [ref=f1e82]: University-Grade Masterclass Depth
+        - generic [ref=f1e83] [cursor=pointer]:
+          - generic [ref=f1e84]:
+            - generic [ref=f1e85]: DSA
+            - generic [ref=f1e86]: SLIDING WINDOW
+          - generic [ref=f1e87]: University-Grade Masterclass Depth
+        - generic [ref=f1e88] [cursor=pointer]:
+          - generic [ref=f1e89]:
+            - generic [ref=f1e90]: DSA
+            - generic [ref=f1e91]: STACK AND QUEUE
+          - generic [ref=f1e92]: University-Grade Masterclass Depth
+        - generic [ref=f1e93] [cursor=pointer]:
+          - generic [ref=f1e94]:
+            - generic [ref=f1e95]: DSA
+            - generic [ref=f1e96]: BINARY SEARCH
+          - generic [ref=f1e97]: University-Grade Masterclass Depth
+        - generic [ref=f1e98] [cursor=pointer]:
+          - generic [ref=f1e99]:
+            - generic [ref=f1e100]: DSA
+            - generic [ref=f1e101]: LINKED LIST
+          - generic [ref=f1e102]: University-Grade Masterclass Depth
+        - generic [ref=f1e103] [cursor=pointer]:
+          - generic [ref=f1e104]:
+            - generic [ref=f1e105]: DSA
+            - generic [ref=f1e106]: TREE FUNDAMENTALS
+          - generic [ref=f1e107]: University-Grade Masterclass Depth
+        - generic [ref=f1e108] [cursor=pointer]:
+          - generic [ref=f1e109]:
+            - generic [ref=f1e110]: DSA
+            - generic [ref=f1e111]: TREE QUERIES AND DIAMETER
+          - generic [ref=f1e112]: University-Grade Masterclass Depth
+        - generic [ref=f1e113] [cursor=pointer]:
+          - generic [ref=f1e114]:
+            - generic [ref=f1e115]: DSA
+            - generic [ref=f1e116]: HEAP AND PRIORITY QUEUE
+          - generic [ref=f1e117]: University-Grade Masterclass Depth
+        - generic [ref=f1e118] [cursor=pointer]:
+          - generic [ref=f1e119]:
+            - generic [ref=f1e120]: DSA
+            - generic [ref=f1e121]: GRAPH TRAVERSAL
+          - generic [ref=f1e122]: University-Grade Masterclass Depth
+        - generic [ref=f1e123] [cursor=pointer]:
+          - generic [ref=f1e124]:
+            - generic [ref=f1e125]: DSA
+            - generic [ref=f1e126]: GRAPH SHORTEST PATHS
+          - generic [ref=f1e127]: University-Grade Masterclass Depth
+        - generic [ref=f1e128] [cursor=pointer]:
+          - generic [ref=f1e129]:
+            - generic [ref=f1e130]: DSA
+            - generic [ref=f1e131]: GRAPH SPANNING TREES
+          - generic [ref=f1e132]: University-Grade Masterclass Depth
+        - generic [ref=f1e133] [cursor=pointer]:
+          - generic [ref=f1e134]:
+            - generic [ref=f1e135]: DSA
+            - generic [ref=f1e136]: GRAPH FLOWS AND CUTS
+          - generic [ref=f1e137]: University-Grade Masterclass Depth
+        - generic [ref=f1e138] [cursor=pointer]:
+          - generic [ref=f1e139]:
+            - generic [ref=f1e140]: DSA
+            - generic [ref=f1e141]: DP 1D
+          - generic [ref=f1e142]: University-Grade Masterclass Depth
+        - generic [ref=f1e143] [cursor=pointer]:
+          - generic [ref=f1e144]:
+            - generic [ref=f1e145]: DSA
+            - generic [ref=f1e146]: DP 2D
+          - generic [ref=f1e147]: University-Grade Masterclass Depth
+        - generic [ref=f1e148] [cursor=pointer]:
+          - generic [ref=f1e149]:
+            - generic [ref=f1e150]: DSA
+            - generic [ref=f1e151]: ADVANCED RANGE QUERIES
+          - generic [ref=f1e152]: University-Grade Masterclass Depth
+        - generic [ref=f1e153] [cursor=pointer]:
+          - generic [ref=f1e154]:
+            - generic [ref=f1e155]: DSA
+            - generic [ref=f1e156]: BIT MANIPULATION
+          - generic [ref=f1e157]: University-Grade Masterclass Depth
+        - generic [ref=f1e158] [cursor=pointer]:
+          - generic [ref=f1e159]:
+            - generic [ref=f1e160]: DSA
+            - generic [ref=f1e161]: MATH AND NUMBER THEORY
+          - generic [ref=f1e162]: University-Grade Masterclass Depth
+        - generic [ref=f1e163] [cursor=pointer]:
+          - generic [ref=f1e164]:
+            - generic [ref=f1e165]: DSA
+            - generic [ref=f1e166]: GEOMETRY AND SWEEP LINE
+          - generic [ref=f1e167]: University-Grade Masterclass Depth
+        - generic [ref=f1e168] [cursor=pointer]:
+          - generic [ref=f1e169]:
+            - generic [ref=f1e170]: DSA
+            - generic [ref=f1e171]: TRIES AND STRINGS
+          - generic [ref=f1e172]: University-Grade Masterclass Depth
+        - generic [ref=f1e173] [cursor=pointer]:
+          - generic [ref=f1e174]:
+            - generic [ref=f1e175]: DSA
+            - generic [ref=f1e176]: BACKTRACKING
+          - generic [ref=f1e177]: University-Grade Masterclass Depth
+        - generic [ref=f1e178] [cursor=pointer]:
+          - generic [ref=f1e179]:
+            - generic [ref=f1e180]: DSA
+            - generic [ref=f1e181]: GAME THEORY
+          - generic [ref=f1e182]: University-Grade Masterclass Depth
+        - generic [ref=f1e183] [cursor=pointer]:
+          - generic [ref=f1e184]:
+            - generic [ref=f1e185]: DSA
+            - generic [ref=f1e186]: INTERVALS
+          - generic [ref=f1e187]: University-Grade Masterclass Depth
+        - generic [ref=f1e188] [cursor=pointer]:
+          - generic [ref=f1e189]:
+            - generic [ref=f1e190]: ML
+            - generic [ref=f1e191]: Matrix Memory Layout & Physical RAM
+          - generic [ref=f1e192]: 1D DRAM Addressing, Strides, and Cache Locality Mechanics
+        - generic [ref=f1e193] [cursor=pointer]:
+          - generic [ref=f1e194]:
+            - generic [ref=f1e195]: ML
+            - generic [ref=f1e196]: Tensor Strides, Shapes, & Zero-Copy Views
+          - generic [ref=f1e197]: Decoupled Storage, Affine Indexing, and Contiguity Proofs
+        - generic [ref=f1e198] [cursor=pointer]:
+          - generic [ref=f1e199]:
+            - generic [ref=f1e200]: ML
+            - generic [ref=f1e201]: Vector Spaces, Orthogonality, & Gram-Schmidt
+          - generic [ref=f1e202]: Subspace Projections, MGS Stability, and QR Factorizations
+        - generic [ref=f1e203] [cursor=pointer]:
+          - generic [ref=f1e204]:
+            - generic [ref=f1e205]: ML
+            - generic [ref=f1e206]: Singular Value Decomposition (SVD) & PCA
+          - generic [ref=f1e207]: Spectral Geometry, Eckart-Young Optimality, and Randomized SVD
+        - generic [ref=f1e208] [cursor=pointer]:
+          - generic [ref=f1e209]:
+            - generic [ref=f1e210]: ML
+            - generic [ref=f1e211]: Gradients, Jacobians, & Hessians
+          - generic [ref=f1e212]: Multivariate Curvature, Taylor Expansions, and Matrix-Free HVP
+        - generic [ref=f1e213] [cursor=pointer]:
+          - generic [ref=f1e214]:
+            - generic [ref=f1e215]: ML
+            - generic [ref=f1e216]: Automatic Differentiation Engines
+          - generic [ref=f1e217]: Forward Dual Numbers, DAG Adjoints, and Tensor-Level Autograd
+        - generic [ref=f1e218] [cursor=pointer]:
+          - generic [ref=f1e219]:
+            - generic [ref=f1e220]: ML
+            - generic [ref=f1e221]: Gradient Descent & AdamW Optimization
+          - generic [ref=f1e222]: Momentum, Ravine Conditioning, and Decoupled Weight Decay
+        - generic [ref=f1e223] [cursor=pointer]:
+          - generic [ref=f1e224]:
+            - generic [ref=f1e225]: ML
+            - generic [ref=f1e226]: Information Theory & Loss Functions
+          - generic [ref=f1e227]: Entropy, Relative Divergence, Focal Losses, and Contrastive InfoNCE
+        - generic [ref=f1e228] [cursor=pointer]:
+          - generic [ref=f1e229]:
+            - generic [ref=f1e230]: ML
+            - generic [ref=f1e231]: Multivariate Distributions & Covariance Mechanics
+          - generic [ref=f1e232]: Gaussian Geometry, Mahalanobis Metric, and Cholesky Factorization
+        - generic [ref=f1e233] [cursor=pointer]:
+          - generic [ref=f1e234]:
+            - generic [ref=f1e235]: ML
+            - generic [ref=f1e236]: MLE, MAP, & Naive Bayes Estimation
+          - generic [ref=f1e237]: Frequentist Likelihood, Bayesian Conjugate Priors, and Log-Space Inference
+        - generic [ref=f1e238] [cursor=pointer]:
+          - generic [ref=f1e239]:
+            - generic [ref=f1e240]: ML
+            - generic [ref=f1e241]: Hypothesis Testing & Bootstrap Resampling
+          - generic [ref=f1e242]: Non-Parametric Estimation, Glivenko-Cantelli Bounds, and FDR Control
+        - generic [ref=f1e243] [cursor=pointer]:
+          - generic [ref=f1e244]:
+            - generic [ref=f1e245]: ML
+            - generic [ref=f1e246]: Autoregressive LLM Sampling Mechanics
+          - generic [ref=f1e247]: Temperature Scaling, Top-P Nucleus Truncation, and Gumbel-Max Engines
+        - generic [ref=f1e248] [cursor=pointer]:
+          - generic [ref=f1e249]:
+            - generic [ref=f1e250]: ML
+            - generic [ref=f1e251]: Linear & Logistic Regression Systems
+          - generic [ref=f1e252]: OLS Normal Equations, Lasso Coordinate Descent, and Newton-Raphson IRLS
+        - generic [ref=f1e253] [cursor=pointer]:
+          - generic [ref=f1e254]:
+            - generic [ref=f1e255]: ML
+            - generic [ref=f1e256]: Decision Trees & CART Systems
+          - generic [ref=f1e257]: Gini Impurity, Axis-Aligned Partitions, and Flat-Array Binary Trees
+        - generic [ref=f1e258] [cursor=pointer]:
+          - generic [ref=f1e259]:
+            - generic [ref=f1e260]: ML
+            - generic [ref=f1e261]: Ensemble Learning & XGBoost Systems
+          - generic [ref=f1e262]: Bagging, Boosting, and 2nd-Order Taylor Objective Formulations
+        - generic [ref=f1e263] [cursor=pointer]:
+          - generic [ref=f1e264]:
+            - generic [ref=f1e265]: ML
+            - generic [ref=f1e266]: "Clustering: K-Means & DBSCAN Systems"
+          - generic [ref=f1e267]: Lloyd's Objective, K-Means++ Bounds, and Density-Connected Spatial Manifolds
+        - generic [ref=f1e268] [cursor=pointer]:
+          - generic [ref=f1e269]:
+            - generic [ref=f1e270]: ML
+            - generic [ref=f1e271]: Support Vector Machines & Kernel Mechanics
+          - generic [ref=f1e272]: Maximum Margin Hyperplanes, Mercer Kernels, and Platt's SMO Engine
+        - generic [ref=f1e273] [cursor=pointer]:
+          - generic [ref=f1e274]:
+            - generic [ref=f1e275]: ML
+            - generic [ref=f1e276]: Collaborative Filtering & Implicit ALS
+          - generic [ref=f1e277]: Matrix Factorization, Implicit Feedback Confidence, and Fast Gram Acceleration
+        - generic [ref=f1e278] [cursor=pointer]:
+          - generic [ref=f1e279]:
+            - generic [ref=f1e280]: ML
+            - generic [ref=f1e281]: MLP BACKPROPAGATION
+          - generic [ref=f1e282]: University-Grade Masterclass Depth
+        - generic [ref=f1e283] [cursor=pointer]:
+          - generic [ref=f1e284]:
+            - generic [ref=f1e285]: ML
+            - generic [ref=f1e286]: ACTIVATIONS ONLINE SOFTMAX
+          - generic [ref=f1e287]: University-Grade Masterclass Depth
+        - generic [ref=f1e288] [cursor=pointer]:
+          - generic [ref=f1e289]:
+            - generic [ref=f1e290]: ML
+            - generic [ref=f1e291]: NORMALIZATION RMSNORM
+          - generic [ref=f1e292]: University-Grade Masterclass Depth
+        - generic [ref=f1e293] [cursor=pointer]:
+          - generic [ref=f1e294]:
+            - generic [ref=f1e295]: ML
+            - generic [ref=f1e296]: CONVOLUTIONS IM2COL GEMM
+          - generic [ref=f1e297]: University-Grade Masterclass Depth
+        - generic [ref=f1e298] [cursor=pointer]:
+          - generic [ref=f1e299]:
+            - generic [ref=f1e300]: ML
+            - generic [ref=f1e301]: RECURRENT LSTM GRU
+          - generic [ref=f1e302]: University-Grade Masterclass Depth
+        - generic [ref=f1e303] [cursor=pointer]:
+          - generic [ref=f1e304]:
+            - generic [ref=f1e305]: ML
+            - generic [ref=f1e306]: TRIE AHO CORASICK
+          - generic [ref=f1e307]: University-Grade Masterclass Depth
+        - generic [ref=f1e308] [cursor=pointer]:
+          - generic [ref=f1e309]:
+            - generic [ref=f1e310]: ML
+            - generic [ref=f1e311]: SUBWORD BPE TIKTOKEN
+          - generic [ref=f1e312]: University-Grade Masterclass Depth
+        - generic [ref=f1e313] [cursor=pointer]:
+          - generic [ref=f1e314]:
+            - generic [ref=f1e315]: ML
+            - generic [ref=f1e316]: KD TREES TOP K
+          - generic [ref=f1e317]: University-Grade Masterclass Depth
+        - generic [ref=f1e318] [cursor=pointer]:
+          - generic [ref=f1e319]:
+            - generic [ref=f1e320]: ML
+            - generic [ref=f1e321]: ANN HNSW IVFPQ
+          - generic [ref=f1e322]: University-Grade Masterclass Depth
+        - generic [ref=f1e323] [cursor=pointer]:
+          - generic [ref=f1e324]:
+            - generic [ref=f1e325]: ML
+            - generic [ref=f1e326]: ATTENTION CAUSAL SDPA
+          - generic [ref=f1e327]: University-Grade Masterclass Depth
+        - generic [ref=f1e328] [cursor=pointer]:
+          - generic [ref=f1e329]:
+            - generic [ref=f1e330]: ML
+            - generic [ref=f1e331]: ROPE GQA ATTENTION
+          - generic [ref=f1e332]: University-Grade Masterclass Depth
+        - generic [ref=f1e333] [cursor=pointer]:
+          - generic [ref=f1e334]:
+            - generic [ref=f1e335]: ML
+            - generic [ref=f1e336]: FlashAttention & SRAM Tiling
+          - generic [ref=f1e337]: University-Grade Masterclass Depth
+        - generic [ref=f1e338] [cursor=pointer]:
+          - generic [ref=f1e339]:
+            - generic [ref=f1e340]: ML
+            - generic [ref=f1e341]: CONTINUOUS BATCHING ORCA
+          - generic [ref=f1e342]: University-Grade Masterclass Depth
+        - generic [ref=f1e343] [cursor=pointer]:
+          - generic [ref=f1e344]:
+            - generic [ref=f1e345]: ML
+            - generic [ref=f1e346]: PAGEDATTENTION COW VLLM
+          - generic [ref=f1e347]: University-Grade Masterclass Depth
+        - generic [ref=f1e348] [cursor=pointer]:
+          - generic [ref=f1e349]:
+            - generic [ref=f1e350]: ML
+            - generic [ref=f1e351]: SPECULATIVE DECODING
+          - generic [ref=f1e352]: University-Grade Masterclass Depth
+        - generic [ref=f1e353] [cursor=pointer]:
+          - generic [ref=f1e354]:
+            - generic [ref=f1e355]: ML
+            - generic [ref=f1e356]: FLOATING POINT KAHAN
+          - generic [ref=f1e357]: University-Grade Masterclass Depth
+        - generic [ref=f1e358] [cursor=pointer]:
+          - generic [ref=f1e359]:
+            - generic [ref=f1e360]: ML
+            - generic [ref=f1e361]: AFFINE QUANTIZATION INT8
+          - generic [ref=f1e362]: University-Grade Masterclass Depth
+        - generic [ref=f1e363] [cursor=pointer]:
+          - generic [ref=f1e364]:
+            - generic [ref=f1e365]: ML
+            - generic [ref=f1e366]: DENSE GEMM TILING
+          - generic [ref=f1e367]: University-Grade Masterclass Depth
+        - generic [ref=f1e368] [cursor=pointer]:
+          - generic [ref=f1e369]:
+            - generic [ref=f1e370]: ML
+            - generic [ref=f1e371]: INTERCONNECT ALPHA BETA
+          - generic [ref=f1e372]: University-Grade Masterclass Depth
+        - generic [ref=f1e373] [cursor=pointer]:
+          - generic [ref=f1e374]:
+            - generic [ref=f1e375]: ML
+            - generic [ref=f1e376]: RING ALLREDUCE COLLECTIVE
+          - generic [ref=f1e377]: University-Grade Masterclass Depth
+        - generic [ref=f1e378] [cursor=pointer]:
+          - generic [ref=f1e379]:
+            - generic [ref=f1e380]: ML
+            - generic [ref=f1e381]: ZERO3 PARAMETER SHARDING
+          - generic [ref=f1e382]: University-Grade Masterclass Depth
+        - generic [ref=f1e383] [cursor=pointer]:
+          - generic [ref=f1e384]:
+            - generic [ref=f1e385]: ML
+            - generic [ref=f1e386]: COMPILER FUSION LIVENESS
+          - generic [ref=f1e387]: University-Grade Masterclass Depth
+        - generic [ref=f1e388] [cursor=pointer]:
+          - generic [ref=f1e389]:
+            - generic [ref=f1e390]: ML
+            - generic [ref=f1e391]: PARALLELISM 3D MOE 1F1B
+          - generic [ref=f1e392]: University-Grade Masterclass Depth
+    - generic [ref=f1e394]:
+      - generic [ref=f1e395]:
+        - generic [ref=f1e396]:
+          - generic [ref=f1e397]:
+            - generic [ref=f1e398]: ML Systems Track
+            - generic [ref=f1e399]: /
+            - generic [ref=f1e400]: ml_flashattention_sram_tiling
+          - heading "FlashAttention & SRAM Tiling" [level=1] [ref=f1e401]
+          - paragraph [ref=f1e402]: University-Grade Masterclass Depth
+        - generic [ref=f1e403]:
+          - 'button "Ch 1: Core Mechanics" [ref=f1e404] [cursor=pointer]'
+          - 'button "Ch 2: Practice Laboratory" [ref=f1e405] [cursor=pointer]'
+      - generic [ref=f1e406]:
+        - generic [ref=f1e407]:
+          - generic [ref=f1e408]: "Page:"
+          - 'button "1. FlashAttention: SRAM Til..." [ref=f1e409] [cursor=pointer]'
+          - button "2. 3-Stage Code Progression..." [ref=f1e410] [cursor=pointer]
+        - generic [ref=f1e411]:
+          - generic [ref=f1e412]: "Progression:"
+          - 'button "1: Naive" [ref=f1e413] [cursor=pointer]'
+          - 'button "2: Optimal" [ref=f1e414] [cursor=pointer]'
+          - 'button "3: Hardware-Aware" [ref=f1e415] [cursor=pointer]'
+      - generic [ref=f1e417]:
+        - generic [ref=f1e418]:
+          - generic [ref=f1e419]:
+            - 'heading "FlashAttention-2: Dual-Buffer SRAM Tiling & Online Rescaling" [level=3] [ref=f1e420]'
+            - paragraph [ref=f1e421]: "Step 1 of 16: Processing Q-Tile [0] with K/V-Tile [0]"
+          - generic [ref=f1e422]:
+            - button "Prev Tile" [ref=f1e423] [cursor=pointer]
+            - button "Next Tile" [ref=f1e424] [cursor=pointer]
+        - img [ref=f1e426]:
+          - generic [ref=f1e427]:
+            - generic [ref=f1e429]: Global HBM Attention Grid (N x N)
+            - generic [ref=f1e430]: "Outer Loop: Q-Tiles (64 rows) | Inner Loop: K,V-Tiles (64 cols)"
+            - generic [ref=f1e431]:
+              - generic [ref=f1e432]: S[0,0]
+              - generic [ref=f1e435]: MASK
+              - generic [ref=f1e438]: MASK
+              - generic [ref=f1e441]: MASK
+              - generic [ref=f1e444]: S[1,0]
+              - generic [ref=f1e447]: S[1,1]
+              - generic [ref=f1e450]: MASK
+              - generic [ref=f1e453]: MASK
+              - generic [ref=f1e456]: S[2,0]
+              - generic [ref=f1e459]: S[2,1]
+              - generic [ref=f1e462]: S[2,2]
+              - generic [ref=f1e465]: MASK
+              - generic [ref=f1e468]: S[3,0]
+              - generic [ref=f1e471]: S[3,1]
+              - generic [ref=f1e474]: S[3,2]
+              - generic [ref=f1e477]: S[3,3]
+          - generic [ref=f1e480]:
+            - generic [ref=f1e482]: On-Chip Fast SRAM (SMEM) State
+            - generic [ref=f1e483]: Zero HBM writes for S, P. Online streaming softmax rescale in registers.
+            - generic [ref=f1e484]:
+              - generic [ref=f1e486]: Q_tile [0]
+              - generic [ref=f1e487]: 64 x 128 (FP16 in SRAM)
+              - generic [ref=f1e489]: K_tile [0]
+              - generic [ref=f1e490]: 64 x 128 (FP16 in SRAM)
+              - generic [ref=f1e492]: V_tile [0]
+              - generic [ref=f1e493]: 64 x 128 (FP16 in SRAM)
+              - generic [ref=f1e494]:
+                - generic [ref=f1e495]: Fast Register Accumulators (Row 0)
+                - generic [ref=f1e497]: Running Max (m_0)
+                - generic [ref=f1e498]: "3.25"
+                - generic [ref=f1e500]: Running Sum (l_0)
+                - generic [ref=f1e501]: "20.5"
+                - generic [ref=f1e502]:
+                  - generic [ref=f1e504]: "Online Rescaling Invariant:"
+                  - generic [ref=f1e505]: m_new = max(m_old, m_tile)
+                  - generic [ref=f1e506]: l_new = l_old * exp(m_old - m_new) + l_tile * exp(m_tile - m_new)
+          - generic [ref=f1e510]:
+            - generic [ref=f1e511]: "SRAM Arithmetic Intensity:"
+            - text: O(N d) HBM memory transfers vs O(N²) for standard attention. 10x-20x reduction in memory traffic.
+      - generic [ref=f1e512]:
+        - generic [ref=f1e514]:
+          - generic [ref=f1e515]: Step 1/4
+          - generic [ref=f1e516]: Line 4
+          - 'generic "Softmax Running Invariant: l_i = sum(exp(S - m_i))" [ref=f1e517]': "📌 Softmax Running Invariant: l_i = sum(exp(S - m_i))"
+        - slider [ref=f1e519] [cursor=pointer]: "0"
+        - generic [ref=f1e520]:
+          - generic [ref=f1e521]:
+            - button "↺ Reset" [ref=f1e522] [cursor=pointer]
+            - button "◀ Back" [disabled] [ref=f1e523]
+            - button "▶ Play" [ref=f1e524] [cursor=pointer]
+            - button "Forward ▶" [ref=f1e525] [cursor=pointer]
+            - button "⏩ Resume" [ref=f1e526] [cursor=pointer]
+          - generic [ref=f1e527]:
+            - combobox [ref=f1e528] [cursor=pointer]:
+              - option "0.5x"
+              - option "1.0x"
+              - option "2.0x" [selected]
+              - option "4.0x"
+              - option "8.0x"
+            - button "⚙ Breakpoints (0)" [ref=f1e529] [cursor=pointer]
+      - generic [ref=f1e530]:
+        - generic [ref=f1e531] [cursor=pointer]:
+          - generic [ref=f1e532]: 📊 Live Runtime State & Memory Hierarchy Inspector
+          - generic [ref=f1e533]: ▲ Collapse
+        - generic [ref=f1e534]:
+          - generic [ref=f1e535]:
+            - generic [ref=f1e536]: "Runtime Variables:"
+            - generic [ref=f1e537]:
+              - generic [ref=f1e538]:
+                - generic [ref=f1e539]: "B_r:"
+                - generic [ref=f1e540]: "64"
+              - generic [ref=f1e541]:
+                - generic [ref=f1e542]: "B_c:"
+                - generic [ref=f1e543]: "64"
+              - generic [ref=f1e544]:
+                - generic [ref=f1e545]: "d:"
+                - generic [ref=f1e546]: "128"
+              - generic [ref=f1e547]:
+                - generic [ref=f1e548]: "m_i:"
+                - generic [ref=f1e549]: "\"-inf\""
+              - generic [ref=f1e550]:
+                - generic [ref=f1e551]: "l_i:"
+                - generic [ref=f1e552]: "0"
+          - generic [ref=f1e553]:
+            - generic [ref=f1e554]: "L1/L2 Memory Cache Lines:"
+            - generic [ref=f1e555]:
+              - generic [ref=f1e556]:
+                - generic [ref=f1e557]: "SRAM_0x00 (Q_i Tile):"
+                - generic [ref=f1e558]: 64x128 FP16
+                - generic [ref=f1e559]: HIT
+              - generic [ref=f1e560]:
+                - generic [ref=f1e561]: "SRAM_0x40 (m_prev):"
+                - generic [ref=f1e562]: "-inf"
+                - generic [ref=f1e563]: HIT
+              - generic [ref=f1e564]:
+                - generic [ref=f1e565]: "SRAM_0x44 (l_prev):"
+                - generic [ref=f1e566]: "0.0"
+                - generic [ref=f1e567]: HIT

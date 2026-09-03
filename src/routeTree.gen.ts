@@ -10,16 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LearnRouteImport } from './routes/learn'
 import { Route as MlInfraRouteImport } from './routes/ml-infra'
 import { Route as ProblemsRouteImport } from './routes/problems'
 import { Route as TriviaRouteImport } from './routes/trivia'
-import { Route as LearnRouteImport } from './routes/learn'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
 import { Route as WorkspaceAlgorithmIdRouteImport } from './routes/workspace.$algorithmId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LearnRoute = LearnRouteImport.update({
+  id: '/learn',
+  path: '/learn',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MlInfraRoute = MlInfraRouteImport.update({
@@ -37,11 +42,6 @@ const TriviaRoute = TriviaRouteImport.update({
   path: '/trivia',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LearnRoute = LearnRouteImport.update({
-  id: '/learn',
-  path: '/learn',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
   id: '/workspace/',
   path: '/workspace/',
@@ -55,29 +55,29 @@ const WorkspaceAlgorithmIdRoute = WorkspaceAlgorithmIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/learn': typeof LearnRoute
   '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
-  '/learn': typeof LearnRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/learn': typeof LearnRoute
   '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
-  '/learn': typeof LearnRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/learn': typeof LearnRoute
   '/ml-infra': typeof MlInfraRoute
   '/problems': typeof ProblemsRoute
   '/trivia': typeof TriviaRoute
-  '/learn': typeof LearnRoute
   '/workspace/$algorithmId': typeof WorkspaceAlgorithmIdRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
@@ -85,38 +85,38 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/learn'
     | '/ml-infra'
     | '/problems'
     | '/trivia'
-    | '/learn'
     | '/workspace/$algorithmId'
     | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/learn'
     | '/ml-infra'
     | '/problems'
     | '/trivia'
-    | '/learn'
     | '/workspace/$algorithmId'
     | '/workspace'
   id:
     | '__root__'
     | '/'
+    | '/learn'
     | '/ml-infra'
     | '/problems'
     | '/trivia'
-    | '/learn'
     | '/workspace/$algorithmId'
     | '/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LearnRoute: typeof LearnRoute
   MlInfraRoute: typeof MlInfraRoute
   ProblemsRoute: typeof ProblemsRoute
   TriviaRoute: typeof TriviaRoute
-  LearnRoute: typeof LearnRoute
   WorkspaceAlgorithmIdRoute: typeof WorkspaceAlgorithmIdRoute
   WorkspaceIndexRoute: typeof WorkspaceIndexRoute
 }
@@ -128,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/learn': {
+      id: '/learn'
+      path: '/learn'
+      fullPath: '/learn'
+      preLoaderRoute: typeof LearnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ml-infra': {
@@ -151,13 +158,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TriviaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/learn': {
-      id: '/learn'
-      path: '/learn'
-      fullPath: '/learn'
-      preLoaderRoute: typeof LearnRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/workspace/': {
       id: '/workspace/'
       path: '/workspace'
@@ -177,10 +177,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LearnRoute: LearnRoute,
   MlInfraRoute: MlInfraRoute,
   ProblemsRoute: ProblemsRoute,
   TriviaRoute: TriviaRoute,
-  LearnRoute: LearnRoute,
   WorkspaceAlgorithmIdRoute: WorkspaceAlgorithmIdRoute,
   WorkspaceIndexRoute: WorkspaceIndexRoute,
 }
